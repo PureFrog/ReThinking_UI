@@ -1,0 +1,15 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import ts from 'typescript';
+const source=ts.transpileModule(fs.readFileSync(new URL('../app/model.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText;
+const {treeState,defaultRules,initial,route}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+const sample={...initial[0],date:'2026-10-01',lossDays:0};
+test('fruit glow includes exactly +10 percent',()=>{assert.equal(treeState({...sample,rate:10},defaultRules).glowing,true);assert.equal(treeState({...sample,rate:9.9},defaultRules).glowing,false)});
+test('shrink starts below -10, not at -10',()=>{assert.equal(treeState({...sample,rate:-10},defaultRules).shrunken,false);assert.equal(treeState({...sample,rate:-10.1},defaultRules).shrunken,true)});
+test('old tree requires positive return and sufficient holding age',()=>{assert.equal(treeState({...sample,date:'2025-01-01',rate:1},defaultRules).old,true);assert.equal(treeState({...sample,date:'2025-01-01',rate:0},defaultRules).old,false)});
+test('severe damage depends on separate sustained loss duration',()=>{assert.equal(treeState({...sample,date:'2025-01-01',rate:-24,lossDays:59},defaultRules).broken,false);assert.equal(treeState({...sample,date:'2025-01-01',rate:-20,lossDays:60},defaultRules).broken,true)});
+test('recovery removes severe damage and enables growth and glow',()=>{const s=treeState({...sample,date:'2025-01-01',rate:12,lossDays:90},defaultRules);assert.equal(s.broken,false);assert.equal(s.old,true);assert.equal(s.glowing,true)});
+test('four starting trees represent distinct states',()=>{const states=initial.map(h=>treeState(h,defaultRules));assert.ok(states[0].glowing);assert.ok(states[1].old);assert.ok(states[2].shrunken);assert.ok(states[3].broken)});
+test('pathfinding goes around furniture with adjacent steps',()=>{const blocks=new Set(['1,0','1,1']);const path=route({x:0,y:0},{x:2,y:0},blocks);assert.ok(path);assert.equal(path.at(-1).x,2);let prev={x:0,y:0};for(const p of path){assert.ok(!blocks.has(`${p.x},${p.y}`));assert.equal(Math.abs(p.x-prev.x)+Math.abs(p.y-prev.y),1);prev=p}});
+test('interaction ends beside blocked object and impossible routes fail',()=>{const blocks=new Set(['1,1']);const path=route({x:4,y:4},{x:1,y:1},blocks,true);const end=path.at(-1);assert.equal(Math.abs(end.x-1)+Math.abs(end.y-1),1);assert.equal(route({x:0,y:0},{x:3,y:3},new Set(['0,1','1,0'])),null)});
