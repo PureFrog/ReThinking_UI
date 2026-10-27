@@ -4,7 +4,7 @@ React 19 + Phaser 3.90 / Sites Vinext. UI-only isometric house and garden. All f
 ## Interaction
 Click the floor to walk. Physical objects open features after approach: drawer for belongings/wardrobe/furniture, bookcase for quiz, desk journal for mock holdings, mailbox for invitations, seed box for planting, shovel for removal. Tree click sways branches and opens water/information choices. Information and acquired gifts appear beside their world targets. Financial editing remains at the journal. Removal has an explicit cancel-first confirmation.
 
-NPCs visit intermittently, walk, water trees and start conversations. Formal dialogue pages type gradually; click/Space/Enter completes or advances. Choices appear after the final page. Ambient speech can open dialogue and leaves a missed-message marker. General guidance uses player thoughts. Furnishing is a distinct mode; normal furniture clicks do not open editing.
+NPCs visit intermittently, walk, water trees and start conversations. Formal dialogue pages type gradually; click/Space/Enter completes or advances. Choices appear after the final page. Ambient speech can open dialogue and disappears completely when finished; no missed-message marker remains. Visitors greet once, rest at least 35 seconds between at most two quiet activities, and do not repeatedly approach the player. General guidance uses player thoughts. Furnishing is a distinct mode; normal furniture clicks do not open editing.
 
 ## Foundation revision
 - `store.ts`: reducer-owned persisted state, nondestructive v2→v3 migration. `little-garden-v3` retains legacy holdings/items/history and prepares care/relationship/memory/currency/slot fields. Future systems are not implemented merely by having these fields.
@@ -13,7 +13,7 @@ NPCs visit intermittently, walk, water trees and start conversations. Formal dia
 - `timing.ts`, `assets.ts`, `scene/effects.ts`: common timing, atlas manifest with missing-texture fallback, particles.
 
 ## Limits and staging
-The 2026-10-28 redesign is staged. Care/seasons, relationships/memory dialogue, reward economy, realtime visits, onboarding, full art replacement and extended furnishings are later stages. Existing tree thresholds/visuals and simulation date remain until their stage. Current accessories still use a single equipped item. New art concept is approved direction, not integrated sprites.
+The 2026-10-28 redesign is staged. Care/seasons, relationships/memory dialogue, reward economy, realtime visits, onboarding, full art replacement and extended furnishings are later stages. Existing tree thresholds/visuals and simulation date remain until their stage. Current accessories still use a single equipped item. The approved concept now informs four integrated hand-painted furniture sprites: sofa, drawer, bookcase and journal desk. Player, visitors, trees and house structure still await full replacement.
 
 Foundation still needs visual/interaction acceptance at 1400px and 375px. Browser QA was blocked by automatic review citing workspace credits; screenshots are not available. State-machine timers, IME, mobile sheets, card bounds, busy-visitor conversation and placement interruption require acceptance testing. Not all 11.x interaction details are complete (rotation, swipe placement, target-tool flows, exact three-line typography, hover-release timing and full scene-module extraction).
 
@@ -23,4 +23,4 @@ Foundation still needs visual/interaction acceptance at 1400px and 375px. Browse
 `pnpm build`
 Managed preview: `sites-preview start /workspace/sites/character-garden`.
 
-14 model tests cover tree thresholds/routes/placement cancellation/dialogue bounds. 9 foundation tests cover migration, reducer, queue, visitor tokens, modes, dialogue splitting. No claim of automated end-to-end gameplay validation.
+14 model tests cover tree thresholds/routes/placement cancellation/dialogue bounds. 10 foundation tests cover migration, reducer, queue, visitor tokens, modes, dialogue splitting. No claim of automated end-to-end gameplay validation.
