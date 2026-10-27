@@ -1,4 +1,5 @@
 'use client';
+import {TIMING} from './timing';
 import {useEffect,useRef,useState} from 'react';
 
 /** A line owns its timer, so following the character never restarts speech. */
@@ -11,8 +12,8 @@ export default function TypedDialogue({text}:{text:string}){
  useEffect(()=>{
   if(finished)return;
   const previous=letters[count-1]??'';
-  const pause=/[.!?…]/.test(previous)?260:/[,，]/.test(previous)?140:38;
-  timer.current=setTimeout(()=>setCount(n=>n+1),count===0?180:pause);
+  const pause=/[.!?…]/.test(previous)?TIMING.typeEnd:/[,，]/.test(previous)?TIMING.typeComma:TIMING.typeChar;
+  timer.current=setTimeout(()=>setCount(n=>n+1),count===0?TIMING.typeStart:pause);
   return()=>{if(timer.current)clearTimeout(timer.current)};
  },[count,text,finished]);
  useEffect(()=>{if(line.current)line.current.scrollTop=line.current.scrollHeight},[count]);
