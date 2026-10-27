@@ -12,3 +12,7 @@ test('visitor pause blocks idle actions and transitions invalidate timers',()=>{
 
 const {splitDialogue}=await import(pathToFileURL(dir+'/dialogue-pages.mjs'));
 test('dialogue pages preserve words and keep each page bounded',()=>{const text='오늘은 어떤 하루였어? 잠깐 앉아서 이야기할래? '+ '가'.repeat(100);const pages=splitDialogue(text);assert.ok(pages.every(p=>Array.from(p).length<=42));assert.equal(pages.join('').replace(/\s/g,''),text.replace(/\s/g,''))});
+const clockCode=ts.transpileModule(fs.readFileSync(new URL('../app/scene/pause-clock.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText;
+fs.writeFileSync(dir+'/pause-clock.mjs',clockCode);const {PauseClock}=await import(pathToFileURL(dir+'/pause-clock.mjs'));
+test('speech hover preserves remaining duration and adds release grace',()=>{const c=new PauseClock(4000);c.start(0);c.pause(1000);assert.equal(c.left(9000),3000);c.release(9000);assert.equal(c.left(10000),3500);c.pause(10000);c.release(12000);assert.equal(c.left(13000),4000)});
+test('queue coalesces departure without losing gifts',()=>{const q=new WorldQueue();q.enqueue('departure',()=>{},0);q.enqueue('gift',()=>{},1);q.enqueue('departure',()=>{},2);assert.equal(q.items.length,2);assert.equal(q.take(3).kind,'gift');assert.equal(q.take(3).kind,'departure')});

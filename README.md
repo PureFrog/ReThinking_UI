@@ -23,4 +23,4 @@ Foundation still needs visual/interaction acceptance at 1400px and 375px. Browse
 `pnpm build`
 Managed preview: `sites-preview start /workspace/sites/character-garden`.
 
-14 model tests cover tree thresholds/routes/placement cancellation/dialogue bounds. 7 foundation tests cover migration, reducer, queue, visitor tokens, modes, dialogue splitting. No claim of automated end-to-end gameplay validation.
+14 model tests cover tree thresholds/routes/placement cancellation/dialogue bounds. 9 foundation tests cover migration, reducer, queue, visitor tokens, modes, dialogue splitting. No claim of automated end-to-end gameplay validation.
