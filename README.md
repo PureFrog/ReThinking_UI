@@ -43,3 +43,10 @@ Run `pnpm dev`, `pnpm build`, `node node_modules/typescript/bin/tsc --noEmit`, `
 Art is a UI prototype: the player is procedural with animated limbs; visitors use single generated sprites with simple motion. Furniture remains procedural isometric geometry. No complete directional sprite animation, clothing equipment, or production market integrations are claimed.
 
 Furniture placement cancels pending arrival commits; a second scene click cannot interrupt a placement into a stuck state. Rugs render under characters and are traversable. Visitor parcels choose unoccupied floor positions. Dialogue choices choose the left or right of the character according to available viewport width.
+
+## Expanded garden interaction update
+- Walkable world: 17 × 15 tiles; cutaway house: 9 × 8 tiles. Furniture may be placed indoors or outdoors.
+- Seed box opens six plot choices; planting walks to the chosen plot. Shovel lists trees with a separate confirmation before removal.
+- Tree click sways the branches and opens only watering/read-only information nearby. Watering approaches the tree and animates a watering can and droplets; it does not modify returns. Simulation inputs remain in the notebook.
+- Drawer wardrobe equips a scarf/flower accessory and collected sunglasses, with visible avatar graphics and local persistence. Collected lamp/blanket gifts can be placed and stored; candy can be used once. One accessory may be equipped at a time.
+- Validation: 14 model tests, TypeScript, framework build, and browser interaction checks.

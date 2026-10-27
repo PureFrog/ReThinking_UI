@@ -16,7 +16,7 @@ export const friends=[{name:'모아',tag:'다정한 편지 친구',greet:'잠깐
 {name:'토리',tag:'씩씩한 정원 친구',greet:'왔데이! 정원 구경 좀 해도 되나? 오늘 햇살 참 좋다!',talk:'급하게 결론 내리지 말고, 근거부터 하나씩 같이 보자. 내도 옆에 있을게!',bye:'내 또 놀러 올게! 나무 잘 보고 있그래이!',item:'여름 선글라스',anonymous:false},
 {name:'루온',tag:'조용히 챙겨주는 친구',greet:'…근처에 왔다가. 잠깐 들렀어.',talk:'문 앞 상자? …글쎄. 누가 두고 갔나 보지. 따뜻하게 지내.',bye:'가볼게. …문 앞도 한번 보고.',item:'작은 별 조명',anonymous:true}];
 export function route(start:{x:number;y:number},goal:{x:number;y:number},blocked:Set<string>,near=false){
- const key=(x:number,y:number)=>`${x},${y}`;const valid=(x:number,y:number)=>x>=0&&x<=12&&y>=0&&y<=10&&!blocked.has(key(x,y));
+ const key=(x:number,y:number)=>`${x},${y}`;const valid=(x:number,y:number)=>x>=0&&x<=16&&y>=0&&y<=14&&!blocked.has(key(x,y));
  let goals=near?[[goal.x-1,goal.y],[goal.x+1,goal.y],[goal.x,goal.y-1],[goal.x,goal.y+1]]:[[goal.x,goal.y]];goals=goals.filter(([x,y])=>valid(x,y));if(!goals.length)return null;
  const queue=[start],seen=new Set([key(start.x,start.y)]),prev=new Map<string,{x:number;y:number}>();let end:{x:number;y:number}|undefined;
  for(let i=0;i<queue.length;i++){const p=queue[i];if(goals.some(([x,y])=>x===p.x&&y===p.y)){end=p;break}for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const n={x:p.x+dx,y:p.y+dy},k=key(n.x,n.y);if(valid(n.x,n.y)&&!seen.has(k)){seen.add(k);prev.set(k,p);queue.push(n)}}}
