@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import ts from 'typescript';
 const source=ts.transpileModule(fs.readFileSync(new URL('../app/model.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText;
-const {treeState,defaultRules,initial,route}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+const {treeState,defaultRules,initial,route,ActionGate,dialogueLayout,giftPosition,subject}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
 const sample={...initial[0],date:'2026-10-01',lossDays:0};
 test('fruit glow includes exactly +10 percent',()=>{assert.equal(treeState({...sample,rate:10},defaultRules).glowing,true);assert.equal(treeState({...sample,rate:9.9},defaultRules).glowing,false)});
 test('shrink starts below -10, not at -10',()=>{assert.equal(treeState({...sample,rate:-10},defaultRules).shrunken,false);assert.equal(treeState({...sample,rate:-10.1},defaultRules).shrunken,true)});
@@ -13,3 +13,9 @@ test('recovery removes severe damage and enables growth and glow',()=>{const s=t
 test('four starting trees represent distinct states',()=>{const states=initial.map(h=>treeState(h,defaultRules));assert.ok(states[0].glowing);assert.ok(states[1].old);assert.ok(states[2].shrunken);assert.ok(states[3].broken)});
 test('pathfinding goes around furniture with adjacent steps',()=>{const blocks=new Set(['1,0','1,1']);const path=route({x:0,y:0},{x:2,y:0},blocks);assert.ok(path);assert.equal(path.at(-1).x,2);let prev={x:0,y:0};for(const p of path){assert.ok(!blocks.has(`${p.x},${p.y}`));assert.equal(Math.abs(p.x-prev.x)+Math.abs(p.y-prev.y),1);prev=p}});
 test('interaction ends beside blocked object and impossible routes fail',()=>{const blocks=new Set(['1,1']);const path=route({x:4,y:4},{x:1,y:1},blocks,true);const end=path.at(-1);assert.equal(Math.abs(end.x-1)+Math.abs(end.y-1),1);assert.equal(route({x:0,y:0},{x:3,y:3},new Set(['0,1','1,0'])),null)});
+
+test('cancelled placement cannot commit after player arrival',()=>{const gate=new ActionGate();const old=gate.begin();gate.cancel();assert.equal(gate.complete(old),false);assert.equal(gate.active,false)});
+test('a newer placement replaces the prior one and can only commit once',()=>{const gate=new ActionGate();const a=gate.begin();const b=gate.begin();assert.equal(gate.complete(a),false);assert.equal(gate.complete(b),true);assert.equal(gate.complete(b),false)});
+test('dialogue choices stay beside the character and inside narrow frames',()=>{for(const w of [320,375,600,1100]){for(const x of [8,45,75,95]){const d=dialogueLayout(x,70,w,w/1.375);assert.ok(d.choiceX>=12);assert.ok(d.choiceX+d.choicesWidth<=w-12);assert.ok(d.bubbleX-d.bubbleWidth/2>=12);assert.ok(d.bubbleX+d.bubbleWidth/2<=w-12)}}});
+test('uncollected visitor gifts use separate floor positions',()=>{const gifts=[{id:'a',x:6,y:7},{id:'b',x:4,y:7}];assert.deepEqual(giftPosition(gifts,[]),{x:5,y:8});assert.deepEqual(giftPosition(gifts,['a']),{x:6,y:7})});
+test('Korean names use appropriate subject particle',()=>{assert.equal(subject('모아'),'모아가');assert.equal(subject('루온'),'루온이')});

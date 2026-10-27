@@ -35,9 +35,11 @@ The 180/60 day thresholds are editable from the table's record book; they are pr
 - `app/page.tsx`: React contextual speech, physical-object panels, local persistence and event bridge.
 - `app/game.ts`: Phaser projected scene, player walking, BFS routes, object interactions, visitors, gift pickups, furniture placement and tree rendering.
 - `app/model.ts`: pure tree-state and route rules.
-- `tests/model.test.mjs`: 8 tests for thresholds, recovery and collision routing.
+- `tests/model.test.mjs`: 13 tests for thresholds, recovery, collision routing, placement cancellation, dialog bounds and gift spacing.
 - `public/assets/garden-atlas.png`: generated three-character/three-tree transparent atlas, 512px frames.
 
 Run `pnpm dev`, `pnpm build`, `node node_modules/typescript/bin/tsc --noEmit`, `node --test tests/model.test.mjs`. Managed preview: `sites-preview start <checkout>`.
 
 Art is a UI prototype: the player is procedural with animated limbs; visitors use single generated sprites with simple motion. Furniture remains procedural isometric geometry. No complete directional sprite animation, clothing equipment, or production market integrations are claimed.
+
+Furniture placement cancels pending arrival commits; a second scene click cannot interrupt a placement into a stuck state. Rugs render under characters and are traversable. Visitor parcels choose unoccupied floor positions. Dialogue choices choose the left or right of the character according to available viewport width.

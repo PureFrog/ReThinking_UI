@@ -22,3 +22,24 @@ export function route(start:{x:number;y:number},goal:{x:number;y:number},blocked
  for(let i=0;i<queue.length;i++){const p=queue[i];if(goals.some(([x,y])=>x===p.x&&y===p.y)){end=p;break}for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const n={x:p.x+dx,y:p.y+dy},k=key(n.x,n.y);if(valid(n.x,n.y)&&!seen.has(k)){seen.add(k);prev.set(k,p);queue.push(n)}}}
  if(!end)return null;const path=[];let p=end;while(p.x!==start.x||p.y!==start.y){path.unshift(p);p=prev.get(key(p.x,p.y))!}return path;
 }
+
+// Only the latest uncancelled action may commit a furniture change.
+export class ActionGate {
+ private revision=0;
+ active=false;
+ begin(){this.active=true;return ++this.revision}
+ cancel(){this.active=false;++this.revision}
+ complete(token:number){if(!this.active||token!==this.revision)return false;this.active=false;return true}
+}
+export function dialogueLayout(x:number,y:number,width:number,height:number){
+ const bubbleWidth=Math.min(width-24,width<600?185:240),choicesWidth=Math.min(width-24,width<600?170:205);
+ const px=x/100*width,py=y/100*height;
+ const bubbleX=Math.max(bubbleWidth/2+12,Math.min(width-bubbleWidth/2-12,px));
+ const right=px+width*.06;const choiceX=right+choicesWidth<=width-12?right:Math.max(12,px-width*.06-choicesWidth);
+ return {bubbleX,bubbleY:Math.max(0,py-height*.14),choiceX,choiceY:Math.max(0,py-height*.02),bubbleWidth,choicesWidth};
+}
+export function giftPosition(gifts:GiftBox[],claimed:string[]){
+ const occupied=new Set(gifts.filter(g=>!claimed.includes(g.id)).map(g=>`${g.x},${g.y}`));
+ return [{x:6,y:7},{x:4,y:7},{x:5,y:8},{x:6,y:8},{x:4,y:8}].find(p=>!occupied.has(`${p.x},${p.y}`))??null;
+}
+export function subject(name:string){const code=name.charCodeAt(name.length-1)-0xac00;return name+(code>=0&&code<=11171&&code%28!==0?'이':'가')}
