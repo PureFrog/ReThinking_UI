@@ -1,52 +1,26 @@
 # 마음이 자라는 정원
+React 19 + Phaser 3.90 / Sites Vinext. UI-only isometric house and garden. All financial data, disclosures and chat are fictional; no market, LLM or trading backend.
 
-React 19 / TypeScript / Phaser 3.90, Sites Vinext. This version replaces the dashboard with a playable house and garden. No financial, disclosure, LLM, trading, or portfolio backend is connected. Companies, evidence, scenarios and returns are fictional.
+## Interaction
+Click the floor to walk. Physical objects open features after approach: drawer for belongings/wardrobe/furniture, bookcase for quiz, desk journal for mock holdings, mailbox for invitations, seed box for planting, shovel for removal. Tree click sways branches and opens water/information choices. Information and acquired gifts appear beside their world targets. Financial editing remains at the journal. Removal has an explicit cancel-first confirmation.
 
-## Play
+NPCs visit intermittently, walk, water trees and start conversations. Formal dialogue pages type gradually; click/Space/Enter completes or advances. Choices appear after the final page. Ambient speech can open dialogue and leaves a missed-message marker. General guidance uses player thoughts. Furnishing is a distinct mode; normal furniture clicks do not open editing.
 
-Click the floor to move your player. The player routes around furniture and planted plots and approaches an object before opening it. Hover over objects for a short label.
+## Foundation revision
+- `store.ts`: reducer-owned persisted state, nondestructive v2→v3 migration. `little-garden-v3` retains legacy holdings/items/history and prepares care/relationship/memory/currency/slot fields. Future systems are not implemented merely by having these fields.
+- `visitor-machine.ts`, `interaction-mode.ts`: visit states, pause/resume, state tokens, one selected mode, deferred ambient/gifts/departures.
+- `ui/WorldUI.tsx`, `ui/DialogueLine.tsx`: common bubbles/menu/card/panel/confirmation and dialogue pagination. Panel close warns about edited inputs, traps keyboard focus, supports downward touch close.
+- `timing.ts`, `assets.ts`, `scene/effects.ts`: common timing, atlas manifest with missing-texture fallback, particles.
 
-- Drawer: collected gifts, furniture placement, in-world guide.
-- Bookcase: investment quiz.
-- Paper on table: holdings, configurable tree age/loss thresholds, mock conversation history.
-- Empty plot: register a fictional holding.
-- Tree: inspect/edit the mock return, purchase date and sustained loss duration.
-- Mailbox: invite a visitor.
-- Gift box on floor: approach and collect, then show the item and sender (or anonymous).
-- Visitor: approach, then speak through a head-level bubble and translucent choices beside the character. Mock incident input and decisions stay attached to the character; evidence opens a readable book panel.
+## Limits and staging
+The 2026-10-28 redesign is staged. Care/seasons, relationships/memory dialogue, reward economy, realtime visits, onboarding, full art replacement and extended furnishings are later stages. Existing tree thresholds/visuals and simulation date remain until their stage. Current accessories still use a single equipped item. New art concept is approved direction, not integrated sprites.
 
-Visitors are absent initially, arrive periodically (short demo timing), leave again, and can be invited at the mailbox. Only one visits at a time. Open conversations postpone automatic departure. Gifts are idempotent per demo event and persist after collection. Anonymous gifts remain anonymous in the inventory.
+Foundation still needs visual/interaction acceptance at 1400px and 375px. Browser QA was blocked by automatic review citing workspace credits; screenshots are not available. State-machine timers, IME, mobile sheets, card bounds, busy-visitor conversation and placement interruption require acceptance testing. Not all 11.x interaction details are complete (rotation, swipe placement, target-tool flows, exact three-line typography, hover-release timing and full scene-module extraction).
 
-Furniture is selected from the drawer, previewed on the grid, and placed after the player walks to the selected location. Occupied cells and placements that block access to the key furniture or exit are rejected. Placed furniture can be moved or stored by interacting with it.
+## Checks
+`node node_modules/typescript/bin/tsc --noEmit`
+`node --test tests/model.test.mjs tests/foundation.test.mjs`
+`pnpm build`
+Managed preview: `sites-preview start /workspace/sites/character-garden`.
 
-## Tree states
-
-- Return >= +10%: animated fruit glow.
-- Positive return and held for >= 180 days: large old tree with broad roots.
-- Return < -10%: substantially smaller, drooping canopy with fallen leaves.
-- Return <= -20% for >= 60 days: leafless bent/broken branches.
-
-The 180/60 day thresholds are editable from the table's record book; they are prototype defaults. Holding age and time spent below -20% are separate. Tree appearance is not an inference about corporate risk. Simulation reference date is explicitly 2026-10-27.
-
-## Persistence and implementation
-
-`little-garden-v2` localStorage stores holdings, configurable rules, furniture positions, floor gifts, collection IDs, dialogue history and decisions. The earlier v1 storage remains untouched. Player position and transient visitor state reset on reload. No cross-device sync.
-
-- `app/page.tsx`: React contextual speech, physical-object panels, local persistence and event bridge.
-- `app/game.ts`: Phaser projected scene, player walking, BFS routes, object interactions, visitors, gift pickups, furniture placement and tree rendering.
-- `app/model.ts`: pure tree-state and route rules.
-- `tests/model.test.mjs`: 13 tests for thresholds, recovery, collision routing, placement cancellation, dialog bounds and gift spacing.
-- `public/assets/garden-atlas.png`: generated three-character/three-tree transparent atlas, 512px frames.
-
-Run `pnpm dev`, `pnpm build`, `node node_modules/typescript/bin/tsc --noEmit`, `node --test tests/model.test.mjs`. Managed preview: `sites-preview start <checkout>`.
-
-Art is a UI prototype: the player is procedural with animated limbs; visitors use single generated sprites with simple motion. Furniture remains procedural isometric geometry. No complete directional sprite animation, clothing equipment, or production market integrations are claimed.
-
-Furniture placement cancels pending arrival commits; a second scene click cannot interrupt a placement into a stuck state. Rugs render under characters and are traversable. Visitor parcels choose unoccupied floor positions. Dialogue choices choose the left or right of the character according to available viewport width.
-
-## Expanded garden interaction update
-- Walkable world: 17 × 15 tiles; cutaway house: 9 × 8 tiles. Furniture may be placed indoors or outdoors.
-- Seed box opens six plot choices; planting walks to the chosen plot. Shovel lists trees with a separate confirmation before removal.
-- Tree click sways the branches and opens only watering/read-only information nearby. Watering approaches the tree and animates a watering can and droplets; it does not modify returns. Simulation inputs remain in the notebook.
-- Drawer wardrobe equips a scarf/flower accessory and collected sunglasses, with visible avatar graphics and local persistence. Collected lamp/blanket gifts can be placed and stored; candy can be used once. One accessory may be equipped at a time.
-- Validation: 14 model tests, TypeScript, framework build, and browser interaction checks.
+14 model tests cover tree thresholds/routes/placement cancellation/dialogue bounds. 7 foundation tests cover migration, reducer, queue, visitor tokens, modes, dialogue splitting. No claim of automated end-to-end gameplay validation.

@@ -1,0 +1,2 @@
+export function splitDialogue(text:string,limit=42){const chunks=text.match(/[^.!?。！？]+[.!?。！？…]*\s*|.+$/g)??[text];const pages:string[]=[];let page='';for(const chunk of chunks){for(const part of chunk.match(new RegExp(`.{1,${limit}}`,'gu'))??[]){if(Array.from(page+part).length>limit){if(page.trim())pages.push(page.trim());page=''}page+=part}}if(page.trim())pages.push(page.trim());return pages.length?pages:['']}
+export function isTypingTarget(target:EventTarget|null){return target instanceof HTMLElement&&(target.matches('input,textarea,select')||target.isContentEditable)}
