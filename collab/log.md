@@ -9,3 +9,7 @@
 ```
 2026-10-28 15:05 | Claude | 000 GPT 전달 zip 반영 — main = GPT 마지막 검증 커밋(8076b47) + 문서 병합. GPT 미완성 초안·미통합 그림은 gpt-wip 브랜치에 보존(테스트 실패 상태, 미검증)
 ```
+
+```
+2026-10-28 16:20 | Claude | 0단계 — pnpm dev 수정 없이 실행 확인, Playwright + pnpm test:e2e 추가, 기준선 스크린샷(test-results/baseline/), tsc·모델 14·e2e 2·빌드 통과
+```
