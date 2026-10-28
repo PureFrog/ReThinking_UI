@@ -1,0 +1,3 @@
+let ctx:AudioContext|undefined;let enabled=false,volume=.25;
+export function configureSound(on:boolean,v=.25){enabled=on;volume=v;if(on){ctx??=new AudioContext();void ctx.resume();}}
+export function chime(kind='click'){if(!enabled||!ctx)return;const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.setValueAtTime(kind==='water'?420:kind==='reward'?880:620,ctx.currentTime);o.frequency.exponentialRampToValueAtTime(kind==='reward'?1100:360,ctx.currentTime+.12);g.gain.setValueAtTime(volume*.1,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+.18);o.connect(g);g.connect(ctx.destination);o.start();o.stop(ctx.currentTime+.2);}
