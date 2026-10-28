@@ -20,17 +20,15 @@ test("11.3 생각 풍선은 누르면 바로 닫힌다", async ({ page }) => {
   await expect(thought).toHaveCount(0, { timeout: 1_000 });
 });
 
-test("11.3 앰비언트 말풍선: 이름표, 자동으로 닫힘, 놓친 말 아이콘으로 대화 이어가기", async ({ page }) => {
+test("11.3 앰비언트 말풍선: 이름표, 자동으로 닫히고 아이콘을 남기지 않는다", async ({ page }) => {
   await openGarden(page);
   await inviteMoa(page);
   const ambient = page.locator(".ambient-bubble");
   await expect(ambient.locator(".name-tag")).toHaveText("모아");
   // 33자 인사 → 타이핑 약 1.6초 + 유지 약 4.3초. 누르지 않으면 스스로 닫힌다.
   await expect(ambient).toHaveCount(0, { timeout: 12_000 });
-  const dots = page.locator(".missed-dots");
-  await expect(dots).toBeVisible();
-  await dots.click();
-  await expect(page.locator(".formal-bubble")).toContainText("잠깐 놀러 왔어", { timeout: 10_000 });
+  await page.waitForTimeout(500);
+  await expect(page.locator(".missed-dots")).toHaveCount(0);
 });
 
 test("11.4 선택지: 하나씩 등장, 최대 4개, 마지막은 '다음에 얘기하자', 숫자키, Esc는 작별 한 줄", async ({ page }) => {
