@@ -1,11 +1,12 @@
+import {dayKey,vitality} from './systems';
 export type Holding={id:number;name:string;kind:number;price:number;quantity:number;date:string;rate:number;plot:number;lossDays:number};
 export type Rules={oldDays:number;damageDays:number};
-export type Decoration={id:number;name:string;color:number;x:number;y:number};
+export type Decoration={id:number;name:string;color:number;x:number;y:number;w?:number;h?:number;rotation?:boolean};
 export type GiftBox={id:string;sender:number;anonymous:boolean;item:string;x:number;y:number};
 export const demoDate='2026-10-27';
 export const defaultRules:Rules={oldDays:180,damageDays:60};
-export function heldDays(date:string){return Math.max(0,Math.floor((Date.parse(demoDate)-Date.parse(date))/86400000))}
-export function treeState(h:Holding,r:Rules){const old=heldDays(h.date)>=r.oldDays&&h.rate>0;const broken=h.rate<=-20&&h.lossDays>=r.damageDays;return {old,broken,shrunken:!broken&&h.rate< -10,glowing:!broken&&h.rate>=10,days:heldDays(h.date)}}
+export function heldDays(date:string,now=demoDate){return Math.max(0,Math.floor((Date.parse(now)-Date.parse(date))/86400000))}
+export function treeState(h:Holding,r:Rules,care:any={},now=demoDate,expiry=30){const old=heldDays(h.date,now)>=r.oldDays&&h.rate>0;const broken=h.rate<=-20&&h.lossDays>=r.damageDays;return {season:broken?'winter':h.rate< -10?'autumn':old?'old':h.rate>=10?'fruit':'green',vitality:vitality(care,now,expiry),old,broken,shrunken:!broken&&h.rate< -10,glowing:!broken&&h.rate>=10,days:heldDays(h.date,now)}}
 export const initial:Holding[]=[
 {id:1,name:'새봄반도체',kind:0,price:52000,quantity:12,date:'2026-08-01',rate:12.4,plot:0,lossDays:0},
 {id:2,name:'별숲게임즈',kind:2,price:34000,quantity:8,date:'2025-06-01',rate:7.2,plot:2,lossDays:0},
