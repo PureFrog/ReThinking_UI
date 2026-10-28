@@ -12,9 +12,9 @@ export const initial:Holding[]=[
 {id:3,name:'꽃빛뷰티',kind:1,price:28000,quantity:20,date:'2026-09-01',rate:-13,plot:3,lossDays:25},
 {id:4,name:'달빛스튜디오',kind:2,price:24000,quantity:10,date:'2025-12-01',rate:-24,plot:5,lossDays:90}];
 export const initialGifts:GiftBox[]=[{id:'welcome-parcel',sender:2,anonymous:true,item:'포근한 담요',x:5,y:6}];
-export const friends=[{name:'모아',tag:'다정한 편지 친구',greet:'잠깐 놀러 왔어. 오늘도 네 속도로 자라고 있구나.',talk:'잘 자라는 날도, 쉬는 날도 있어. 혼자 서두르지 않았으면 좋겠어.',bye:'차 고마워! 다음에 또 놀러 올게.',item:'위로 사탕',anonymous:false},
-{name:'토리',tag:'씩씩한 정원 친구',greet:'왔데이! 정원 구경 좀 해도 되나? 오늘 햇살 참 좋다!',talk:'급하게 결론 내리지 말고, 근거부터 하나씩 같이 보자. 내도 옆에 있을게!',bye:'내 또 놀러 올게! 나무 잘 보고 있그래이!',item:'여름 선글라스',anonymous:false},
-{name:'루온',tag:'조용히 챙겨주는 친구',greet:'…근처에 왔다가. 잠깐 들렀어.',talk:'문 앞 상자? …글쎄. 누가 두고 갔나 보지. 따뜻하게 지내.',bye:'가볼게. …문 앞도 한번 보고.',item:'작은 별 조명',anonymous:true}];
+export const friends=[{name:'모아',tag:'다정한 편지 친구',greet:'잠깐 놀러 왔어. 오늘도 네 속도로 자라고 있구나.',talk:'잘 자라는 날도, 쉬는 날도 있어. 혼자 서두르지 않았으면 좋겠어.',bye:'차 고마워! 다음에 또 놀러 올게.',farewell:'응, 또 얘기하자.',busy:'바쁜가 보네. 이따 또 올게.',color:'#d4927f',item:'위로 사탕',anonymous:false},
+{name:'토리',tag:'씩씩한 정원 친구',greet:'왔데이! 정원 구경 좀 해도 되나? 오늘 햇살 참 좋다!',talk:'급하게 결론 내리지 말고, 근거부터 하나씩 같이 보자. 내도 옆에 있을게!',bye:'내 또 놀러 올게! 나무 잘 보고 있그래이!',farewell:'알겠데이, 또 보자!',busy:'바쁜갑네! 이따 또 올게!',color:'#c49a45',item:'여름 선글라스',anonymous:false},
+{name:'루온',tag:'조용히 챙겨주는 친구',greet:'…근처에 왔다가. 잠깐 들렀어.',talk:'문 앞 상자? …글쎄. 누가 두고 갔나 보지. 따뜻하게 지내.',bye:'가볼게. …문 앞도 한번 보고.',farewell:'…응. 나중에.',busy:'…바쁜가 보네. 이따 올게.',color:'#7f93b5',item:'작은 별 조명',anonymous:true}];
 export function route(start:{x:number;y:number},goal:{x:number;y:number},blocked:Set<string>,near=false){
  const key=(x:number,y:number)=>`${x},${y}`;const valid=(x:number,y:number)=>x>=0&&x<=16&&y>=0&&y<=14&&!blocked.has(key(x,y));
  let goals=near?[[goal.x-1,goal.y],[goal.x+1,goal.y],[goal.x,goal.y-1],[goal.x,goal.y+1]]:[[goal.x,goal.y]];goals=goals.filter(([x,y])=>valid(x,y));if(!goals.length)return null;
@@ -36,7 +36,9 @@ export function dialogueLayout(x:number,y:number,width:number,height:number){
  const px=x/100*width,py=y/100*height;
  const bubbleX=Math.max(bubbleWidth/2+12,Math.min(width-bubbleWidth/2-12,px));
  const right=px+width*.06;const choiceX=right+choicesWidth<=width-12?right:Math.max(12,px-width*.06-choicesWidth);
- return {bubbleX,bubbleY:Math.max(0,py-height*.14),choiceX,choiceY:Math.max(0,py-height*.02),bubbleWidth,choicesWidth};
+ // The bubble is pushed inward at the edges; the tail keeps pointing at the speaker.
+ const tailX=Math.max(-bubbleWidth/2+18,Math.min(bubbleWidth/2-18,px-bubbleX));
+ return {bubbleX,bubbleY:Math.max(0,py-height*.12),choiceX,choiceY:Math.max(0,py-height*.02),bubbleWidth,choicesWidth,tailX};
 }
 export function giftPosition(gifts:GiftBox[],claimed:string[]){
  const occupied=new Set(gifts.filter(g=>!claimed.includes(g.id)).map(g=>`${g.x},${g.y}`));

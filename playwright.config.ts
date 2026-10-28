@@ -10,6 +10,9 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:5173",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
+    // Headless Chromium falls back to software WebGL on macOS, which makes each Phaser
+    // frame ~130ms and slows every timer (typing, bubbles) about tenfold. Metal fixes it.
+    launchOptions: { args: process.platform === "darwin" ? ["--use-angle=metal"] : [] },
   },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"], viewport: { width: 1400, height: 1050 } } },

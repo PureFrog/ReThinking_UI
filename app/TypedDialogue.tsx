@@ -19,5 +19,5 @@ export default function TypedDialogue({text,onComplete,onAdvance}:{text:string;o
  useEffect(()=>{if(line.current)line.current.scrollTop=line.current.scrollHeight},[count]);
  useEffect(()=>{if(finished)onComplete?.()},[finished]);
  const complete=()=>{if(timer.current)clearTimeout(timer.current);setCount(letters.length)};
- return <><button ref={line} type="button" className="typed-dialogue" onClick={()=>finished?onAdvance?.():complete()} aria-label={finished?text:'대사 전체 보기'}><span aria-hidden="true">{letters.slice(0,count).join('')}{!finished&&<span className="typing-cursor">▍</span>}</span></button><span className="typing-hint" aria-hidden="true">{finished?'':'말풍선을 누르면 한 번에 읽어요'}</span><span className="sr-only" role="status" aria-live="polite">{finished?text:''}</span></>;
+ return <><button ref={line} type="button" className="typed-dialogue" onClick={()=>finished?onAdvance?.():complete()} aria-label={finished?text:'대사 전체 보기'}><span aria-hidden="true">{letters.slice(0,count).join('')}{!finished&&<span className="typing-cursor">▍</span>}</span></button><span className="sr-only" role="status" aria-live="polite">{finished?text:''}</span></>;
 }
