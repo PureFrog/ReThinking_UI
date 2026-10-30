@@ -16,7 +16,9 @@ test("11.3 생각 풍선은 누르면 바로 닫힌다", async ({ page }) => {
   await openGarden(page);
   const thought = page.locator(".thought-bubble");
   await expect(thought).toBeVisible({ timeout: 5_000 });
-  await thought.locator(".typed-dialogue").click();
+  // the cloud lets the press through to the world; pressing where it sits closes it
+  const box = (await thought.boundingBox())!;
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   await expect(thought).toHaveCount(0, { timeout: 1_000 });
 });
 

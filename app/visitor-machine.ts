@@ -1,4 +1,4 @@
-export type VisitorState='absent'|'arriving'|'greeting'|'idle'|'moving'|'watering'|'approaching'|'talking'|'leaving';
+export type VisitorState='absent'|'arriving'|'greeting'|'idle'|'moving'|'watering'|'doing'|'approaching'|'talking'|'leaving';
 export class VisitorMachine{
  state:VisitorState='absent';paused=false;private token=0;
  transition(state:VisitorState){this.state=state;return ++this.token}

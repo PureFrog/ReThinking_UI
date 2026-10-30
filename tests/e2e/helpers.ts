@@ -36,3 +36,16 @@ export async function advanceUntilChoices(page: Page, count: number) {
   }
   await expect(choices).toHaveCount(count);
 }
+
+// The anonymous welcome parcel sits at cell (5,6); the drawer at (1,5).
+export async function pickWelcomeGift(page: Page) {
+  await clickWorld(page, 657, 448);
+  await expect(page.locator(".gift-card")).toBeVisible({ timeout: 10_000 });
+}
+
+export async function openDrawer(page: Page) {
+  // a panel that is still playing its close animation would swallow the click
+  await expect(page.locator(".object-panel")).toHaveCount(0);
+  await clickWorld(page, 536, 314);
+  await expect(page.locator(".object-panel")).toBeVisible({ timeout: 10_000 });
+}
