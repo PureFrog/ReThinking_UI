@@ -1,0 +1,211 @@
+{
+  "png_files": [
+    {
+      "file": "bedroom_bed.png",
+      "width": 512,
+      "height": 512,
+      "transparent_pixels": 204120
+    },
+    {
+      "file": "bedroom_nightstand.png",
+      "width": 512,
+      "height": 512,
+      "transparent_pixels": 233651
+    },
+    {
+      "file": "bedroom_rug.png",
+      "width": 512,
+      "height": 512,
+      "transparent_pixels": 241132
+    },
+    {
+      "file": "bedroom_wardrobe.png",
+      "width": 512,
+      "height": 512,
+      "transparent_pixels": 192541
+    },
+    {
+      "file": "floor1_front_cut.png",
+      "width": 2100,
+      "height": 2048,
+      "transparent_pixels": 4201587
+    },
+    {
+      "file": "floor1_layout.png",
+      "width": 2100,
+      "height": 2048,
+      "transparent_pixels": 2494354
+    },
+    {
+      "file": "floor1_shell.png",
+      "width": 2100,
+      "height": 2048,
+      "transparent_pixels": 2494374
+    },
+    {
+      "file": "floor2_front_cut.png",
+      "width": 2100,
+      "height": 2048,
+      "transparent_pixels": 4194853
+    },
+    {
+      "file": "floor2_layout.png",
+      "width": 2100,
+      "height": 2048,
+      "transparent_pixels": 2494354
+    },
+    {
+      "file": "floor2_shell.png",
+      "width": 2100,
+      "height": 2048,
+      "transparent_pixels": 2494374
+    },
+    {
+      "file": "house_exterior.png",
+      "width": 2100,
+      "height": 2048,
+      "transparent_pixels": 2160965
+    },
+    {
+      "file": "kitchen_chair_a.png",
+      "width": 512,
+      "height": 512,
+      "transparent_pixels": 238902
+    },
+    {
+      "file": "kitchen_chair_b.png",
+      "width": 512,
+      "height": 512,
+      "transparent_pixels": 243225
+    },
+    {
+      "file": "kitchen_corner.png",
+      "width": 512,
+      "height": 512,
+      "transparent_pixels": 239420
+    },
+    {
+      "file": "kitchen_fridge.png",
+      "width": 512,
+      "height": 512,
+      "transparent_pixels": 207276
+    },
+    {
+      "file": "kitchen_island.png",
+      "width": 512,
+      "height": 512,
+      "transparent_pixels": 225335
+    },
+    {
+      "file": "kitchen_mat.png",
+      "width": 512,
+      "height": 512,
+      "transparent_pixels": 250224
+    },
+    {
+      "file": "kitchen_sink.png",
+      "width": 512,
+      "height": 512,
+      "transparent_pixels": 225488
+    },
+    {
+      "file": "kitchen_stove.png",
+      "width": 512,
+      "height": 512,
+      "transparent_pixels": 239869
+    },
+    {
+      "file": "kitchen_table.png",
+      "width": 512,
+      "height": 512,
+      "transparent_pixels": 236580
+    },
+    {
+      "file": "living_bookshelf.png",
+      "width": 512,
+      "height": 512,
+      "transparent_pixels": 202358
+    },
+    {
+      "file": "living_drawer.png",
+      "width": 512,
+      "height": 512,
+      "transparent_pixels": 222316
+    },
+    {
+      "file": "living_journal_table.png",
+      "width": 512,
+      "height": 512,
+      "transparent_pixels": 251312
+    },
+    {
+      "file": "living_lamp.png",
+      "width": 512,
+      "height": 512,
+      "transparent_pixels": 245300
+    },
+    {
+      "file": "living_plant.png",
+      "width": 512,
+      "height": 512,
+      "transparent_pixels": 242635
+    },
+    {
+      "file": "living_rug.png",
+      "width": 512,
+      "height": 512,
+      "transparent_pixels": 241132
+    },
+    {
+      "file": "living_sofa.png",
+      "width": 512,
+      "height": 512,
+      "transparent_pixels": 228937
+    },
+    {
+      "file": "stairs_floor1.png",
+      "width": 2100,
+      "height": 2048,
+      "transparent_pixels": 4212234
+    },
+    {
+      "file": "study_armchair.png",
+      "width": 512,
+      "height": 512,
+      "transparent_pixels": 241619
+    },
+    {
+      "file": "study_bookshelf.png",
+      "width": 512,
+      "height": 512,
+      "transparent_pixels": 202358
+    },
+    {
+      "file": "study_chair.png",
+      "width": 512,
+      "height": 512,
+      "transparent_pixels": 243225
+    },
+    {
+      "file": "study_desk.png",
+      "width": 512,
+      "height": 512,
+      "transparent_pixels": 230597
+    }
+  ],
+  "recomposition": {
+    "floor1_differing_bytes": 0,
+    "floor2_differing_bytes": 0
+  },
+  "connectivity": {
+    "floor1": {
+      "reachable": 96,
+      "free": 96
+    },
+    "floor2": {
+      "reachable": 103,
+      "free": 103
+    }
+  },
+  "runtime_collision_test": false
+}

@@ -10,6 +10,10 @@ export const ITEMS:Record<string,ItemDef>={
  '작은 별 조명':{id:'star_lamp',kind:'furniture',desc:'밤이 되면 작은 별처럼 반짝이는 스탠드.',note:'…밤에 어두우면 켜.'},
  '포근한 담요':{id:'blanket',kind:'furniture',desc:'소파 옆에 두면 집이 한결 포근해지는 담요.',note:'그냥… 필요할 것 같아서.'},
  '산책 목도리':{id:'scarf',kind:'clothes',slot:'neck',desc:'산책할 때 두르는 살구색 목도리.',starter:true},
+ // 12.5 milestones, brought by a visiting friend
+ '첫 일지 액자':{id:'journal_frame',kind:'furniture',desc:'처음 쓴 일지를 기념하는 작은 액자.',note:'첫 일지 썼더라. 걸어 두면 좋겠어서.'},
+ '작은 독서 의자':{id:'reading_chair',kind:'furniture',desc:'일지를 열 번 쓴 사람에게 어울리는 폭신한 의자.',note:'여기 앉아서 천천히 써.'},
+ '금박 책받침':{id:'gold_bookend',kind:'furniture',desc:'금박 책 세 권을 지켜 주는 책받침.',note:'책장이 반짝반짝하네!'},
  '꽃 장식':{id:'flower_pin',kind:'clothes',slot:'hat',desc:'모자에 꽂는 분홍 꽃 장식.',starter:true},
 };
 export const SLOT_LABEL:Record<Slot,string>={hat:'모자',face:'얼굴',neck:'목',hand:'손'};

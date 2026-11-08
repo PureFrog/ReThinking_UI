@@ -146,3 +146,75 @@
 .object-panel select{padding-right:34px;background:#fffaf0 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%238a6a44' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 13px center}
 .object-panel input:focus-visible,.object-panel select:focus-visible{border-color:#c99a46;outline:none;box-shadow:0 0 0 3px #e9c98a55}
 .thought-bubble,.thought-bubble *{pointer-events:none}
+/* 5단계 돌봄 = 성찰: 물 주기 일지, 비료 주기 뉴스 OX (13.7-7·8) */
+.world-weather>span.sun-count{display:inline;color:#b08a3a;font-weight:600}
+.care-journal label{align-items:stretch;text-align:left}
+.journal-prompt{margin:6px 0 4px;color:#6f8b6a;font-weight:600}
+.mood-stickers{border:0;padding:0;margin:18px 0 0;display:flex;flex-wrap:wrap;gap:8px}
+.mood-stickers legend{font-size:11px;color:#859572;margin-bottom:9px}
+.mood-stickers label{flex-direction:row;align-items:center;gap:6px;margin:0;padding:7px 10px;border:1px solid #e3d3b0;border-radius:999px;background:#fffaf0;color:#6d6248;cursor:pointer;font-size:11px}
+.mood-stickers label.chosen{border-color:#c99a46;box-shadow:0 0 0 2px #e9c98a66}
+.mood-stickers input{position:absolute;opacity:0;pointer-events:none}
+.mood-stickers .sticker{width:14px;height:14px;border-radius:50%;box-shadow:inset 0 -2px 0 #0000001a}
+.journal-past{margin-top:16px;padding-top:12px;border-top:1px dashed #d8c9a5;font-size:11px;color:#7a7158}
+.journal-past p{margin:6px 0;line-height:1.6}.journal-past small{color:#a49a73;margin-right:8px}
+.news-statement{margin:6px 0 10px;padding:16px 18px;background:#fffaf0;border-left:4px solid #c9a87a;border-radius:6px;font-size:14px;line-height:1.7;color:#4f4330}
+.news-ask{font-size:13px;font-weight:700;color:#6f6142;margin:14px 0 10px;text-align:center}
+.ox{display:flex;gap:14px;justify-content:center}
+.ox button{width:92px;height:72px;border-radius:14px;border:2px solid #e0cfa8;background:#fffaf0;font-size:30px;font-weight:800;color:#8a6a44;cursor:pointer}
+.ox button.ox-O{color:#5c8a63}.ox button.ox-X{color:#b36a55}
+.ox button.chosen{border-color:#c99a46;background:#fff1cf}
+.ox button:disabled:not(.chosen){opacity:.45;cursor:default}
+.news-result strong{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.news-result.right strong{color:#5c8a63}.news-result.wrong strong{color:#b36a55}
+.news-result p{margin:6px 0;line-height:1.7}.news-result b{color:#8a6a44;margin-right:6px}
+/* 일지·퀴즈 창은 나무 반대편에 (데스크톱): 물 주는 모습이 보이게 */
+@media(min-width:900px){.overlay.care-overlay{background:#2a22160f}.overlay.side-right{justify-content:flex-end;padding-right:4vw}.overlay.side-left{justify-content:flex-start;padding-left:4vw}.care-overlay .object-panel{width:500px}}
+/* 12.3 퀴즈 책 책등 */
+.book-spines{display:flex;gap:6px;margin:4px 0 14px;flex-wrap:wrap}
+.spine{position:relative;flex:1 1 0;min-width:72px;min-height:44px;padding:8px 6px;border-radius:6px 6px 3px 3px;background:var(--spine);color:#fffdf3;font-size:11px;font-weight:700;box-shadow:inset -4px 0 0 #0000001a,0 2px 0 #00000014;opacity:.78}
+.spine.open{opacity:1;outline:2px solid #c99a46;outline-offset:2px}
+.spine.gold{background:linear-gradient(135deg,#f6dc8c,#d9a93e 45%,#f3d27a);color:#6b4a12;box-shadow:inset 0 0 0 2px #fff3c4,0 2px 0 #00000014}
+.spine .bookmark{position:absolute;top:-4px;right:8px;width:8px;height:16px;background:#d9675a;clip-path:polygon(0 0,100% 0,100% 100%,50% 75%,0 100%)}
+.answer:disabled{opacity:.5}
+/* 12.2 벽 달력 */
+.week-goal{display:flex;align-items:center;justify-content:space-between;background:#fff7e4;border:1px dashed #d6bf91;border-radius:10px;padding:10px 14px;margin-bottom:12px;color:#6f6142;font-size:12px}
+.week-dots{display:flex;gap:6px}.week-dots i{width:14px;height:14px;border-radius:50%;background:#eadfc5}.week-dots i.on{background:#e3b24e;box-shadow:0 0 0 2px #fff3c4}
+table.month{width:100%;border-collapse:separate;border-spacing:4px;table-layout:fixed}
+table.month th{font-size:10px;color:#a49a73;font-weight:500}
+table.month td{height:40px;vertical-align:top;background:#fffaf0;border-radius:6px;position:relative;padding:3px 4px}
+table.month td small{font-size:9px;color:#a49a73}
+table.month td.today{outline:2px solid #c99a46}
+table.month td .sticker{position:absolute;left:50%;top:55%;width:16px;height:16px;border-radius:50%;transform:translate(-50%,-50%);box-shadow:inset 0 -2px 0 #0000001f}
+.obj-calendar{display:block;width:26px;height:26px;border-radius:4px;background:linear-gradient(#d98f7a 0 30%,#fffaf0 30%);box-shadow:inset 0 0 0 1.5px #b59b72}
+/* 12.5 추억 앨범 */
+.album{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.album-card{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 10px;border-radius:12px;background:#f3ecd8;text-align:center;color:#9a907a}
+.album-card:not(.got) .item-icon,.album-card:not(.got) svg{filter:grayscale(1) brightness(1.2);opacity:.35}
+.album-card.got{background:#fffaf0;box-shadow:inset 0 0 0 1.5px #e3c27e;color:#5f5440}
+.album-card small{font-size:10px;line-height:1.5}
+.skin-book .book-spines{grid-column:1/-1;margin:12px 14px 0;flex-wrap:nowrap}
+.skin-book .spine{min-width:0;min-height:40px;font-size:10px}
+/* 12.7 moa's monthly letter: a folded sheet on top of the invitations, the newest one open */
+.month-letter{position:relative;background:#fffcf3 repeating-linear-gradient(transparent 0 29px,#efe3c9 29px 30px);border:1px solid #e5d6b6;border-radius:4px;box-shadow:0 2px 0 #e9dcc0,0 4px 8px #6b52301a;padding:14px 20px 16px;margin:0 4px 18px;transform:rotate(-.4deg)}
+.month-letter summary{display:flex;align-items:center;gap:12px;cursor:pointer;list-style:none}
+.month-letter summary::-webkit-details-marker{display:none}
+.month-letter .portrait{width:44px;height:44px;border-radius:50%;background-color:#fbefe6;border:2px solid #f0d9cc}
+.month-letter strong{display:block;font-family:'Gaegu','Noto Sans KR',sans-serif;font-size:19px;color:#b0765f}
+.month-letter small{display:block;font-size:10px;color:#a99d84;margin-top:3px}
+.month-letter p{font-family:'Gaegu','Noto Sans KR',sans-serif;font-size:16px;line-height:30px;color:#6d5a45;margin-top:0}
+.month-letter[open] summary{margin-bottom:10px}
+.month-letter .sign{text-align:right;color:#b0765f}
+@media(max-width:600px){.month-letter{padding:12px 14px}.month-letter p{font-size:15px}}
+/* 12.4 회고: 루온이 들고 온 리본 */
+.retro label{align-items:stretch;text-align:left}
+.retro-page{margin:4px 0 6px;padding:14px 16px;background:#fffaf0;border-left:4px solid #9fb0cc;border-radius:6px;color:#4f4330;line-height:1.7;font-size:13px}
+.retro-page small{display:block;color:#8d97ad;font-size:11px;margin-bottom:4px}.retro-page p{margin:4px 0}.retro-page b{color:#7a6c4e;margin-right:6px;font-weight:600}
+.retro-mood{display:flex;align-items:center;gap:6px;font-size:11px;color:#7a7158}.retro-mood .sticker{width:14px;height:14px;border-radius:50%}
+.retro-verdict{border:0;padding:0;margin:16px 0 4px;display:flex;flex-wrap:wrap;gap:8px}
+.retro-verdict legend{font-size:12px;font-weight:700;color:#6f6142;margin-bottom:9px}
+.retro-verdict label{flex-direction:row;align-items:center;margin:0;padding:8px 14px;border:1px solid #e3d3b0;border-radius:999px;background:#fffaf0;color:#6d6248;cursor:pointer;font-size:12px}
+.retro-verdict label.chosen{border-color:#7f93b5;box-shadow:0 0 0 2px #b9c7de88}
+.retro-verdict input{position:absolute;opacity:0;pointer-events:none}
+/* 12.2 주 목표 리본 */
+.week-ribbon{margin-left:8px;padding:2px 9px 2px 20px;border-radius:999px;background:#fbe9c6 no-repeat 7px 50%/9px 9px radial-gradient(circle,#e3a64f 60%,transparent 62%);color:#9a6a24;font-size:11px;font-weight:700}

@@ -38,7 +38,7 @@ React + Phaser 기반 아이소메트릭 집·정원 UI 프로토타입. 사용�
 
 ```bash
 node node_modules/typescript/bin/tsc --noEmit
-node --test tests/model.test.mjs tests/foundation.test.mjs tests/items.test.mjs
+node --test tests/model.test.mjs tests/foundation.test.mjs tests/items.test.mjs tests/care.test.mjs
 pnpm test:e2e   # 0단계에서 추가
 pnpm build
 ```

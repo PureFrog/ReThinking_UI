@@ -3,6 +3,7 @@ import {useEffect,useRef,useState,type HTMLAttributes,type ReactNode} from 'reac
 import {X} from 'lucide-react';
 import {TIMING} from '../timing';
 // One balloon shape for friends (name tag) and a cloud for the player's thoughts (11.3).
+import {friendById,portraitStyle} from '../friends';
 export function SpeechBubble({name,color,tail=0,leaving,...p}:HTMLAttributes<HTMLDivElement>&{name?:string;color?:string;tail?:number;leaving?:boolean}){const r=useRef<HTMLDivElement>(null);const [below,setBelow]=useState(false);useEffect(()=>{const b=r.current?.getBoundingClientRect();const parent=r.current?.parentElement?.getBoundingClientRect();setBelow(!!b&&!!parent&&parent.top+Number(p.style?.top??0)-b.height<12)},[p.style?.top,p.children]);return <div {...p} ref={r} style={{...p.style,['--tail' as string]:tail+'px'}} className={'npc-bubble '+(below?'bubble-below ':'')+(leaving?'bubble-leave ':'')+(p.className??'')}>{name&&<span className="name-tag" style={{background:color}}>{name}</span>}{p.children}</div>}
 export function SideMenu(p:HTMLAttributes<HTMLDivElement>){return <div {...p} className={'npc-choices '+(p.className??'')}/>}
 export function InfoCard(p:HTMLAttributes<HTMLDivElement>){return <div {...p} className={'world-info '+(p.className??'')}/>}
@@ -17,5 +18,5 @@ export function ObjectPanel({onRequestClose,icon,label,heading,tabs,foot,skin='p
  {ask?<footer className="panel-foot draft-footer"><p>작성 중인 내용이 있어. 닫을까?</p><button className="secondary" onClick={()=>setAsk(false)}>계속 쓰기</button><button className="primary" onClick={()=>{setAsk(false);latest.current.shut()}}>닫기</button></footer>:foot&&<footer className="panel-foot">{foot}</footer>}
 </section>}
 // Empty panel body (11.6-5): a friend's picture and what to do next, never a blank box.
-export function EmptyState({friend=0,children}:{friend?:number;children:ReactNode}){return <div className="empty-state"><span className="portrait" style={{backgroundPosition:`${friend*50}% 0%`}} aria-hidden="true"/><p>{children}</p></div>}
+export function EmptyState({friend='moa',children}:{friend?:string;children:ReactNode}){return <div className="empty-state"><span className="portrait" style={portraitStyle(friendById(friend))} aria-hidden="true"/><p>{children}</p></div>}
 export function ConfirmDialog(p:HTMLAttributes<HTMLDivElement>){return <div {...p} role="alertdialog" aria-modal="true" className="confirm-dialog"/>}

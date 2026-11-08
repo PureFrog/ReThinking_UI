@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import ts from 'typescript';
 const source=ts.transpileModule(fs.readFileSync(new URL('../app/model.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText;
-const {treeState,defaultRules,initial,route,ActionGate,dialogueLayout,giftPosition,subject}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+const {growthOf,conditionOf,treeState,defaultRules,initial,route,ActionGate,dialogueLayout,giftPosition,subject}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
 const sample={...initial[0],date:'2026-10-01',lossDays:0};
 test('fruit glow includes exactly +10 percent',()=>{assert.equal(treeState({...sample,rate:10},defaultRules).glowing,true);assert.equal(treeState({...sample,rate:9.9},defaultRules).glowing,false)});
 test('shrink starts below -10, not at -10',()=>{assert.equal(treeState({...sample,rate:-10},defaultRules).shrunken,false);assert.equal(treeState({...sample,rate:-10.1},defaultRules).shrunken,true)});
@@ -20,3 +20,15 @@ test('dialogue choices stay beside the character and inside narrow frames',()=>{
 test('uncollected visitor gifts use separate floor positions',()=>{const gifts=[{id:'a',x:6,y:7},{id:'b',x:4,y:7}];assert.deepEqual(giftPosition(gifts,[]),{x:5,y:8});assert.deepEqual(giftPosition(gifts,['a']),{x:6,y:7})});
 test('Korean names use appropriate subject particle',()=>{assert.equal(subject('모아'),'모아가');assert.equal(subject('루온'),'루온이')});
 test('expanded yard is walkable through its far corner and rejects outside bounds',()=>{const path=route({x:4,y:4},{x:16,y:14},new Set());assert.deepEqual(path.at(-1),{x:16,y:14});assert.equal(route({x:4,y:4},{x:17,y:14},new Set()),null)});
+
+// 012 finer stages: growth by days held, condition by the mock return; the old thresholds stay exact
+test('growth goes seed → sprout → sapling → young → grand by days held',()=>{
+ const g=d=>growthOf(d,defaultRules);assert.deepEqual([0,6,7,29,30,89,90,179,180].map(g),['seed','seed','sprout','sprout','sapling','sapling','young','young','grand']);
+});
+test('condition: bloom from +10, dull from 0 to -10, wilt below -10, rot halfway to dead, dead at -20 for damageDays',()=>{
+ const c=(rate,lossDays=0)=>conditionOf({...sample,rate,lossDays},defaultRules);
+ assert.deepEqual([10,9.9,0,-0.1,-10,-10.1,-19.9].map(r=>c(r)),['bloom','well','well','dull','dull','wilt','wilt']);
+ assert.equal(c(-20,29),'wilt');assert.equal(c(-20,30),'rot');assert.equal(c(-20,59),'rot');assert.equal(c(-20,60),'dead');assert.equal(c(-19.9,90),'wilt');
+ assert.equal(treeState({...sample,rate:-24,lossDays:90},defaultRules).broken,true,'dead keeps the old broken flag');
+ assert.equal(treeState({...sample,rate:12,lossDays:90},defaultRules).condition,'bloom','recovery shows at once');
+});

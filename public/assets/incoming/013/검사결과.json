@@ -1,0 +1,129 @@
+{
+  "files": [
+    {
+      "name": "ground_edge_left.png",
+      "width": 172,
+      "height": 130,
+      "bounds": [
+        0,
+        0,
+        170,
+        129
+      ]
+    },
+    {
+      "name": "ground_edge_right.png",
+      "width": 172,
+      "height": 130,
+      "bounds": [
+        1,
+        0,
+        171,
+        129
+      ]
+    },
+    {
+      "name": "ground_grass_1.png",
+      "width": 172,
+      "height": 86,
+      "bounds": [
+        1,
+        0,
+        170,
+        85
+      ]
+    },
+    {
+      "name": "ground_grass_2.png",
+      "width": 172,
+      "height": 86,
+      "bounds": [
+        1,
+        0,
+        170,
+        85
+      ]
+    },
+    {
+      "name": "ground_grass_3.png",
+      "width": 172,
+      "height": 86,
+      "bounds": [
+        1,
+        0,
+        170,
+        85
+      ]
+    },
+    {
+      "name": "ground_grass_4.png",
+      "width": 172,
+      "height": 86,
+      "bounds": [
+        1,
+        0,
+        170,
+        85
+      ]
+    },
+    {
+      "name": "ground_path.png",
+      "width": 172,
+      "height": 86,
+      "bounds": [
+        1,
+        0,
+        170,
+        85
+      ]
+    },
+    {
+      "name": "ground_stepping_stone.png",
+      "width": 172,
+      "height": 86,
+      "bounds": [
+        1,
+        0,
+        170,
+        85
+      ]
+    }
+  ],
+  "checks": {
+    "ground_grass_1": {
+      "missingPixels": 0,
+      "outsidePixels": 0
+    },
+    "ground_grass_2": {
+      "missingPixels": 0,
+      "outsidePixels": 0
+    },
+    "ground_grass_3": {
+      "missingPixels": 0,
+      "outsidePixels": 0
+    },
+    "ground_grass_4": {
+      "missingPixels": 0,
+      "outsidePixels": 0
+    },
+    "ground_path": {
+      "missingPixels": 0,
+      "outsidePixels": 0
+    },
+    "grassCommonEdgeDifferences": 0,
+    "sixBySixGrassHoles": 0,
+    "stone": {
+      "missingPixels": 0,
+      "backgroundDifferencesOutsideStone": 0
+    },
+    "edge_left": {
+      "wrongFacePixels": 0,
+      "grassTopDifferences": 0
+    },
+    "edge_right": {
+      "wrongFacePixels": 0,
+      "grassTopDifferences": 0
+    },
+    "allEightDimensionsCorrect": true
+  }
+}

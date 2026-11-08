@@ -16,17 +16,17 @@ test("11.6-2 공통 틀: 머리줄(그림·이름·제목·X), 탭은 머리줄 
   await expect(p.locator(".panel-head small")).toHaveText("나무 서랍");
   await expect(p.locator(".panel-head h2")).toHaveText("작은 물건들을 모아둔 곳");
   await expect(p.locator(".panel-head .obj-art")).toBeVisible();
-  await expect(p.locator(".panel-tabs button")).toHaveCount(4);
-  const box = (await p.boundingBox())!;
-  expect(box.height).toBeLessThanOrEqual(641);
-  expect(box.width).toBeLessThanOrEqual(561);
+  await expect(p.locator(".panel-tabs button")).toHaveCount(5); // 보유함·옷장·집 꾸미기·추억 앨범(12.5)·사용법
+  // measured once the open animation settles (it overshoots while popping in)
+  await expect.poll(async () => (await p.boundingBox())!.height).toBeLessThanOrEqual(641);
+  await expect.poll(async () => (await p.boundingBox())!.width).toBeLessThanOrEqual(561);
 });
 
 test("11.16-5 사물마다 다른 모습: 책장=펼친 책, 기록장=공책, 우편함=편지 묶음", async ({ page }) => {
   await openGarden(page);
   // the first-visit thought cloud sits over the bookcase; the press must still reach the bookcase
   await expect(page.locator(".thought-bubble")).toBeVisible({ timeout: 8_000 });
-  await openAt(page, 740, 250); // 책장
+  await openAt(page, 850, 250); // 책장 (뒷벽 3–4)
   await expect(page.locator(".thought-bubble")).toHaveCount(0);
   await expect(panel(page)).toHaveAttribute("data-skin", "book");
   await expect(panel(page).locator(".question.page-left")).toBeVisible();
@@ -34,7 +34,7 @@ test("11.16-5 사물마다 다른 모습: 책장=펼친 책, 기록장=공책, �
   await page.keyboard.press("Escape");
   await expect(panel(page)).toHaveCount(0);
 
-  await openAt(page, 805, 312);
+  await openAt(page, 700, 298);
   await expect(panel(page)).toHaveAttribute("data-skin", "notebook");
   await page.keyboard.press("Escape");
   await expect(panel(page)).toHaveCount(0);
@@ -85,7 +85,7 @@ test("11.6-1 걸어가는 도중 다른 곳을 누르면 패널을 열지 않는
 
 test("11.6-5 빈 상태: 친구 그림과 다음 행동 안내", async ({ page }) => {
   await openGarden(page);
-  await openAt(page, 805, 312);
+  await openAt(page, 700, 298);
   await panel(page).locator(".panel-tabs").getByRole("button", { name: "나눈 이야기" }).click();
   const empty = panel(page).locator(".empty-state");
   await expect(empty.locator(".portrait")).toBeVisible();

@@ -1,0 +1,2104 @@
+{
+  "geometry": {
+    "canvas": [
+      2100,
+      2048
+    ],
+    "origin": [
+      749,
+      1000
+    ],
+    "tile": [
+      172,
+      86
+    ],
+    "wall_height": 460,
+    "front_wall_height": 48,
+    "floors": [
+      {
+        "floor": 1,
+        "blocked": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ],
+          [
+            6,
+            0
+          ],
+          [
+            7,
+            0
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            11,
+            0
+          ],
+          [
+            12,
+            0
+          ],
+          [
+            10,
+            0
+          ],
+          [
+            13,
+            0
+          ],
+          [
+            9,
+            0
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            12,
+            4
+          ],
+          [
+            13,
+            4
+          ],
+          [
+            12,
+            3
+          ],
+          [
+            12,
+            5
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            7
+          ]
+        ],
+        "walkable": [
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            8,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            8,
+            6
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            1,
+            7
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            10,
+            7
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            8,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            1,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            10,
+            6
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            8,
+            4
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            1,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            12,
+            7
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            10,
+            5
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            8,
+            3
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            5,
+            0
+          ],
+          [
+            13,
+            7
+          ],
+          [
+            12,
+            6
+          ],
+          [
+            11,
+            5
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            8,
+            2
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            14,
+            7
+          ],
+          [
+            13,
+            6
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            14,
+            6
+          ],
+          [
+            13,
+            5
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            10,
+            2
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            14,
+            5
+          ],
+          [
+            11,
+            2
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            14,
+            4
+          ],
+          [
+            12,
+            2
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            14,
+            3
+          ],
+          [
+            13,
+            2
+          ],
+          [
+            12,
+            1
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            13,
+            3
+          ],
+          [
+            14,
+            2
+          ],
+          [
+            13,
+            1
+          ],
+          [
+            14,
+            1
+          ],
+          [
+            14,
+            0
+          ]
+        ],
+        "free_cells": 96,
+        "reachable_cells": 96,
+        "all_free_cells_connected": true
+      },
+      {
+        "floor": 2,
+        "blocked": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            5,
+            0
+          ],
+          [
+            6,
+            0
+          ],
+          [
+            3,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            9,
+            0
+          ],
+          [
+            11,
+            0
+          ],
+          [
+            12,
+            0
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            13,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            7
+          ]
+        ],
+        "walkable": [
+          [
+            1,
+            7
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            1,
+            6
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            1,
+            5
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            8,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            8,
+            6
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            10,
+            7
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            8,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            10,
+            6
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            8,
+            4
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            4,
+            0
+          ],
+          [
+            12,
+            7
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            10,
+            5
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            8,
+            3
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            13,
+            7
+          ],
+          [
+            12,
+            6
+          ],
+          [
+            11,
+            5
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            8,
+            2
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            14,
+            7
+          ],
+          [
+            13,
+            6
+          ],
+          [
+            12,
+            5
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            7,
+            0
+          ],
+          [
+            14,
+            6
+          ],
+          [
+            13,
+            5
+          ],
+          [
+            12,
+            4
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            10,
+            2
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            14,
+            5
+          ],
+          [
+            13,
+            4
+          ],
+          [
+            12,
+            3
+          ],
+          [
+            11,
+            2
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            14,
+            4
+          ],
+          [
+            12,
+            2
+          ],
+          [
+            10,
+            0
+          ],
+          [
+            14,
+            3
+          ],
+          [
+            13,
+            2
+          ],
+          [
+            12,
+            1
+          ],
+          [
+            14,
+            2
+          ],
+          [
+            13,
+            1
+          ],
+          [
+            14,
+            1
+          ],
+          [
+            13,
+            0
+          ],
+          [
+            14,
+            0
+          ]
+        ],
+        "free_cells": 103,
+        "reachable_cells": 103,
+        "all_free_cells_connected": true
+      }
+    ]
+  },
+  "stairs": {
+    "cells": [
+      [
+        0,
+        4
+      ],
+      [
+        0,
+        5
+      ],
+      [
+        0,
+        6
+      ],
+      [
+        0,
+        7
+      ]
+    ],
+    "floor1_landing": [
+      0,
+      3
+    ],
+    "floor2_landing": [
+      1,
+      7
+    ]
+  },
+  "furniture": [
+    {
+      "name": "living_sofa",
+      "floor": 1,
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "d": 2,
+      "front": "SE",
+      "source": "new:living_sofa",
+      "flop": false,
+      "blocks": true,
+      "file": "living_sofa.png",
+      "sprite_anchor": [
+        256,
+        429.5
+      ],
+      "world_anchor": [
+        706,
+        1064.5
+      ],
+      "draw_at": [
+        450,
+        635
+      ],
+      "art_size": [
+        243,
+        210
+      ],
+      "interaction_cells": [
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "preferred_interaction": [
+        1,
+        0
+      ]
+    },
+    {
+      "name": "living_journal_table",
+      "floor": 1,
+      "x": 2,
+      "y": 2,
+      "w": 1,
+      "d": 1,
+      "front": "SE",
+      "source": "journal",
+      "flop": false,
+      "blocks": true,
+      "file": "living_journal_table.png",
+      "sprite_anchor": [
+        256,
+        451
+      ],
+      "world_anchor": [
+        749,
+        1215
+      ],
+      "draw_at": [
+        493,
+        764
+      ],
+      "art_size": [
+        162,
+        116
+      ],
+      "interaction_cells": [
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          2
+        ]
+      ],
+      "preferred_interaction": [
+        3,
+        2
+      ]
+    },
+    {
+      "name": "living_bookshelf",
+      "floor": 1,
+      "x": 3,
+      "y": 0,
+      "w": 2,
+      "d": 1,
+      "front": "SW",
+      "source": "study_bookshelf",
+      "flop": true,
+      "blocks": true,
+      "file": "living_bookshelf.png",
+      "sprite_anchor": [
+        256,
+        429.5
+      ],
+      "world_anchor": [
+        1050,
+        1193.5
+      ],
+      "draw_at": [
+        794,
+        764
+      ],
+      "art_size": [
+        243,
+        323
+      ],
+      "interaction_cells": [
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          5,
+          0
+        ]
+      ],
+      "preferred_interaction": [
+        3,
+        1
+      ]
+    },
+    {
+      "name": "living_drawer",
+      "floor": 1,
+      "x": 6,
+      "y": 0,
+      "w": 2,
+      "d": 1,
+      "front": "SW",
+      "source": "new:living_drawer",
+      "flop": false,
+      "blocks": true,
+      "file": "living_drawer.png",
+      "sprite_anchor": [
+        256,
+        429.5
+      ],
+      "world_anchor": [
+        1308,
+        1322.5
+      ],
+      "draw_at": [
+        1052,
+        893
+      ],
+      "art_size": [
+        243,
+        253
+      ],
+      "interaction_cells": [
+        [
+          5,
+          0
+        ],
+        [
+          6,
+          1
+        ],
+        [
+          7,
+          1
+        ]
+      ],
+      "preferred_interaction": [
+        6,
+        1
+      ]
+    },
+    {
+      "name": "living_lamp",
+      "floor": 1,
+      "x": 1,
+      "y": 3,
+      "w": 1,
+      "d": 1,
+      "front": "SE",
+      "source": "new:living_lamp",
+      "flop": false,
+      "blocks": true,
+      "file": "living_lamp.png",
+      "sprite_anchor": [
+        256,
+        451
+      ],
+      "world_anchor": [
+        577,
+        1215
+      ],
+      "draw_at": [
+        321,
+        764
+      ],
+      "art_size": [
+        125,
+        320
+      ],
+      "interaction_cells": [
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "preferred_interaction": [
+        2,
+        3
+      ]
+    },
+    {
+      "name": "living_plant",
+      "floor": 1,
+      "x": 8,
+      "y": 0,
+      "w": 1,
+      "d": 1,
+      "front": "SW",
+      "source": "new:living_plant",
+      "flop": false,
+      "blocks": true,
+      "file": "living_plant.png",
+      "sprite_anchor": [
+        256,
+        451
+      ],
+      "world_anchor": [
+        1437,
+        1387
+      ],
+      "draw_at": [
+        1181,
+        936
+      ],
+      "art_size": [
+        172,
+        190
+      ],
+      "interaction_cells": [
+        [
+          8,
+          1
+        ]
+      ],
+      "preferred_interaction": [
+        8,
+        1
+      ]
+    },
+    {
+      "name": "living_rug",
+      "floor": 1,
+      "x": 1,
+      "y": 1,
+      "w": 2,
+      "d": 2,
+      "front": "floor",
+      "source": "bedroom_rug",
+      "flop": false,
+      "blocks": false,
+      "file": "living_rug.png",
+      "sprite_anchor": [
+        256,
+        408
+      ],
+      "world_anchor": [
+        749,
+        1172
+      ],
+      "draw_at": [
+        493,
+        764
+      ],
+      "art_size": [
+        237,
+        119
+      ]
+    },
+    {
+      "name": "kitchen_sink",
+      "floor": 1,
+      "x": 11,
+      "y": 0,
+      "w": 2,
+      "d": 1,
+      "front": "SW",
+      "source": "new:kitchen_sink",
+      "flop": false,
+      "blocks": true,
+      "file": "kitchen_sink.png",
+      "sprite_anchor": [
+        256,
+        429.5
+      ],
+      "world_anchor": [
+        1738,
+        1537.5
+      ],
+      "draw_at": [
+        1482,
+        1108
+      ],
+      "art_size": [
+        243,
+        228
+      ],
+      "interaction_cells": [
+        [
+          11,
+          1
+        ],
+        [
+          12,
+          1
+        ]
+      ],
+      "preferred_interaction": [
+        11,
+        1
+      ]
+    },
+    {
+      "name": "kitchen_stove",
+      "floor": 1,
+      "x": 10,
+      "y": 0,
+      "w": 1,
+      "d": 1,
+      "front": "SW",
+      "source": "kitchen_stove",
+      "flop": true,
+      "blocks": true,
+      "file": "kitchen_stove.png",
+      "sprite_anchor": [
+        256,
+        451
+      ],
+      "world_anchor": [
+        1609,
+        1473
+      ],
+      "draw_at": [
+        1353,
+        1022
+      ],
+      "art_size": [
+        162,
+        185
+      ],
+      "interaction_cells": [
+        [
+          10,
+          1
+        ]
+      ],
+      "preferred_interaction": [
+        10,
+        1
+      ]
+    },
+    {
+      "name": "kitchen_fridge",
+      "floor": 1,
+      "x": 13,
+      "y": 0,
+      "w": 1,
+      "d": 1,
+      "front": "SW",
+      "source": "kitchen_fridge",
+      "flop": false,
+      "blocks": true,
+      "file": "kitchen_fridge.png",
+      "sprite_anchor": [
+        256,
+        451
+      ],
+      "world_anchor": [
+        1867,
+        1602
+      ],
+      "draw_at": [
+        1611,
+        1151
+      ],
+      "art_size": [
+        162,
+        390
+      ],
+      "interaction_cells": [
+        [
+          13,
+          1
+        ],
+        [
+          14,
+          0
+        ]
+      ],
+      "preferred_interaction": [
+        13,
+        1
+      ]
+    },
+    {
+      "name": "kitchen_corner",
+      "floor": 1,
+      "x": 9,
+      "y": 0,
+      "w": 1,
+      "d": 1,
+      "front": "SW",
+      "source": "new:kitchen_corner",
+      "flop": false,
+      "blocks": true,
+      "file": "kitchen_corner.png",
+      "sprite_anchor": [
+        256,
+        451
+      ],
+      "world_anchor": [
+        1523,
+        1430
+      ],
+      "draw_at": [
+        1267,
+        979
+      ],
+      "art_size": [
+        162,
+        185
+      ],
+      "interaction_cells": [],
+      "preferred_interaction": null
+    },
+    {
+      "name": "kitchen_island",
+      "floor": 1,
+      "x": 9,
+      "y": 1,
+      "w": 1,
+      "d": 2,
+      "front": "SE",
+      "source": "new:kitchen_island",
+      "flop": false,
+      "blocks": true,
+      "file": "kitchen_island.png",
+      "sprite_anchor": [
+        256,
+        429.5
+      ],
+      "world_anchor": [
+        1394,
+        1494.5
+      ],
+      "draw_at": [
+        1138,
+        1065
+      ],
+      "art_size": [
+        243,
+        228
+      ],
+      "interaction_cells": [
+        [
+          8,
+          1
+        ],
+        [
+          8,
+          2
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          10,
+          1
+        ],
+        [
+          10,
+          2
+        ]
+      ],
+      "preferred_interaction": [
+        10,
+        1
+      ]
+    },
+    {
+      "name": "kitchen_table",
+      "floor": 1,
+      "x": 12,
+      "y": 4,
+      "w": 2,
+      "d": 1,
+      "front": "SW",
+      "source": "kitchen_table",
+      "flop": false,
+      "blocks": true,
+      "file": "kitchen_table.png",
+      "sprite_anchor": [
+        256,
+        429.5
+      ],
+      "world_anchor": [
+        1480,
+        1752.5
+      ],
+      "draw_at": [
+        1224,
+        1323
+      ],
+      "art_size": [
+        243,
+        187
+      ],
+      "interaction_cells": [
+        [
+          11,
+          4
+        ],
+        [
+          13,
+          3
+        ],
+        [
+          13,
+          5
+        ],
+        [
+          14,
+          4
+        ]
+      ],
+      "preferred_interaction": [
+        13,
+        5
+      ]
+    },
+    {
+      "name": "kitchen_chair_a",
+      "floor": 1,
+      "x": 12,
+      "y": 3,
+      "w": 1,
+      "d": 1,
+      "front": "SW",
+      "source": "kitchen_chair",
+      "flop": true,
+      "blocks": true,
+      "file": "kitchen_chair_a.png",
+      "sprite_anchor": [
+        256,
+        451
+      ],
+      "world_anchor": [
+        1523,
+        1688
+      ],
+      "draw_at": [
+        1267,
+        1237
+      ],
+      "art_size": [
+        162,
+        240
+      ],
+      "interaction_cells": [
+        [
+          11,
+          3
+        ],
+        [
+          12,
+          2
+        ],
+        [
+          13,
+          3
+        ]
+      ],
+      "preferred_interaction": [
+        11,
+        3
+      ]
+    },
+    {
+      "name": "kitchen_chair_b",
+      "floor": 1,
+      "x": 12,
+      "y": 5,
+      "w": 1,
+      "d": 1,
+      "front": "NE",
+      "source": "new:chair_back",
+      "flop": false,
+      "blocks": true,
+      "file": "kitchen_chair_b.png",
+      "sprite_anchor": [
+        256,
+        451
+      ],
+      "world_anchor": [
+        1351,
+        1774
+      ],
+      "draw_at": [
+        1095,
+        1323
+      ],
+      "art_size": [
+        162,
+        199
+      ],
+      "interaction_cells": [
+        [
+          11,
+          5
+        ],
+        [
+          12,
+          6
+        ],
+        [
+          13,
+          5
+        ]
+      ],
+      "preferred_interaction": [
+        11,
+        5
+      ]
+    },
+    {
+      "name": "kitchen_mat",
+      "floor": 1,
+      "x": 12,
+      "y": 4,
+      "w": 2,
+      "d": 1,
+      "front": "floor",
+      "source": "bedroom_rug",
+      "flop": false,
+      "blocks": false,
+      "file": "kitchen_mat.png",
+      "sprite_anchor": [
+        256,
+        429.5
+      ],
+      "world_anchor": [
+        1480,
+        1752.5
+      ],
+      "draw_at": [
+        1224,
+        1323
+      ],
+      "art_size": [
+        178,
+        89
+      ]
+    },
+    {
+      "name": "bedroom_bed",
+      "floor": 2,
+      "x": 0,
+      "y": 0,
+      "w": 2,
+      "d": 2,
+      "front": "SE",
+      "source": "bedroom_bed",
+      "flop": false,
+      "blocks": true,
+      "file": "bedroom_bed.png",
+      "sprite_anchor": [
+        256,
+        408
+      ],
+      "world_anchor": [
+        749,
+        1086
+      ],
+      "draw_at": [
+        493,
+        678
+      ],
+      "art_size": [
+        323,
+        309
+      ],
+      "interaction_cells": [
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "preferred_interaction": [
+        2,
+        0
+      ]
+    },
+    {
+      "name": "bedroom_wardrobe",
+      "floor": 2,
+      "x": 5,
+      "y": 0,
+      "w": 2,
+      "d": 1,
+      "front": "SW",
+      "source": "bedroom_wardrobe",
+      "flop": true,
+      "blocks": true,
+      "file": "bedroom_wardrobe.png",
+      "sprite_anchor": [
+        256,
+        429.5
+      ],
+      "world_anchor": [
+        1222,
+        1279.5
+      ],
+      "draw_at": [
+        966,
+        850
+      ],
+      "art_size": [
+        243,
+        358
+      ],
+      "interaction_cells": [
+        [
+          4,
+          0
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          6,
+          1
+        ],
+        [
+          7,
+          0
+        ]
+      ],
+      "preferred_interaction": [
+        5,
+        1
+      ]
+    },
+    {
+      "name": "bedroom_nightstand",
+      "floor": 2,
+      "x": 3,
+      "y": 0,
+      "w": 1,
+      "d": 1,
+      "front": "SW",
+      "source": "new:bedroom_nightstand",
+      "flop": false,
+      "blocks": true,
+      "file": "bedroom_nightstand.png",
+      "sprite_anchor": [
+        256,
+        451
+      ],
+      "world_anchor": [
+        1007,
+        1172
+      ],
+      "draw_at": [
+        751,
+        721
+      ],
+      "art_size": [
+        162,
+        257
+      ],
+      "interaction_cells": [
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          4,
+          0
+        ]
+      ],
+      "preferred_interaction": [
+        3,
+        1
+      ]
+    },
+    {
+      "name": "bedroom_rug",
+      "floor": 2,
+      "x": 2,
+      "y": 3,
+      "w": 2,
+      "d": 2,
+      "front": "floor",
+      "source": "bedroom_rug",
+      "flop": false,
+      "blocks": false,
+      "file": "bedroom_rug.png",
+      "sprite_anchor": [
+        256,
+        408
+      ],
+      "world_anchor": [
+        663,
+        1301
+      ],
+      "draw_at": [
+        407,
+        893
+      ],
+      "art_size": [
+        237,
+        119
+      ]
+    },
+    {
+      "name": "study_bookshelf",
+      "floor": 2,
+      "x": 8,
+      "y": 0,
+      "w": 2,
+      "d": 1,
+      "front": "SW",
+      "source": "study_bookshelf",
+      "flop": true,
+      "blocks": true,
+      "file": "study_bookshelf.png",
+      "sprite_anchor": [
+        256,
+        429.5
+      ],
+      "world_anchor": [
+        1480,
+        1408.5
+      ],
+      "draw_at": [
+        1224,
+        979
+      ],
+      "art_size": [
+        243,
+        323
+      ],
+      "interaction_cells": [
+        [
+          7,
+          0
+        ],
+        [
+          8,
+          1
+        ],
+        [
+          9,
+          1
+        ],
+        [
+          10,
+          0
+        ]
+      ],
+      "preferred_interaction": [
+        8,
+        1
+      ]
+    },
+    {
+      "name": "study_desk",
+      "floor": 2,
+      "x": 11,
+      "y": 0,
+      "w": 2,
+      "d": 1,
+      "front": "SW",
+      "source": "study_desk",
+      "flop": false,
+      "blocks": true,
+      "file": "study_desk.png",
+      "sprite_anchor": [
+        256,
+        429.5
+      ],
+      "world_anchor": [
+        1738,
+        1537.5
+      ],
+      "draw_at": [
+        1482,
+        1108
+      ],
+      "art_size": [
+        243,
+        214
+      ],
+      "interaction_cells": [
+        [
+          10,
+          0
+        ],
+        [
+          12,
+          1
+        ],
+        [
+          13,
+          0
+        ]
+      ],
+      "preferred_interaction": [
+        12,
+        1
+      ]
+    },
+    {
+      "name": "study_chair",
+      "floor": 2,
+      "x": 11,
+      "y": 1,
+      "w": 1,
+      "d": 1,
+      "front": "NE",
+      "source": "new:chair_back",
+      "flop": false,
+      "blocks": true,
+      "file": "study_chair.png",
+      "sprite_anchor": [
+        256,
+        451
+      ],
+      "world_anchor": [
+        1609,
+        1559
+      ],
+      "draw_at": [
+        1353,
+        1108
+      ],
+      "art_size": [
+        162,
+        199
+      ],
+      "interaction_cells": [
+        [
+          10,
+          1
+        ],
+        [
+          11,
+          2
+        ],
+        [
+          12,
+          1
+        ]
+      ],
+      "preferred_interaction": [
+        10,
+        1
+      ]
+    },
+    {
+      "name": "study_armchair",
+      "floor": 2,
+      "x": 13,
+      "y": 3,
+      "w": 1,
+      "d": 1,
+      "front": "SW",
+      "source": "study_armchair",
+      "flop": true,
+      "blocks": true,
+      "file": "study_armchair.png",
+      "sprite_anchor": [
+        256,
+        451
+      ],
+      "world_anchor": [
+        1609,
+        1731
+      ],
+      "draw_at": [
+        1353,
+        1280
+      ],
+      "art_size": [
+        162,
+        182
+      ],
+      "interaction_cells": [
+        [
+          12,
+          3
+        ],
+        [
+          13,
+          2
+        ],
+        [
+          13,
+          4
+        ],
+        [
+          14,
+          3
+        ]
+      ],
+      "preferred_interaction": [
+        13,
+        4
+      ]
+    }
+  ]
+}

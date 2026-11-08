@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openGarden, pickWelcomeGift, openDrawer, clickWorld } from "./helpers";
+import { openGarden, pickWelcomeGift, openDrawer, clickWorld, enterHouse } from "./helpers";
 
 test.describe.configure({ timeout: 90_000 });
 
@@ -74,6 +74,8 @@ test("11.1·11.8-④ 사탕은 0.6초 꾹 눌러야 먹고, 먹으면 서랍에�
   await clickWorld(page, 485, 527);
   await page.getByRole("button", { name: /모아/ }).click();
   await expect(page.locator(".ambient-bubble")).toBeVisible({ timeout: 15_000 });
+  // the box lies just inside the door, out of sight from the yard
+  await enterHouse(page);
   await clickWorld(page, 657, 491);
   await expect(page.locator(".gift-card")).toContainText("위로 사탕", { timeout: 10_000 });
   await page.locator(".gift-card").click();
