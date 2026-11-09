@@ -1,7 +1,7 @@
 // Shared world helpers: the event bus between the scene and React, and the iso grid.
-import {cue,EVENT_SLOTS} from '../sound';
+import {cue,EVENT_SLOTS} from '../core/sound';
 import type * as Phaser from 'phaser';
-import type {Pose} from '../visitor-tasks';
+import type {Pose} from '../core/visitor-tasks';
 import {insideHouse} from './layout';
 export const bus=new EventTarget();
 // a bus event that is also a sound slot (docs/sound-map.md) cues it

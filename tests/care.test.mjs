@@ -1,10 +1,10 @@
 import test from 'node:test';
+import {load} from './load-app.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import ts from 'typescript';
-const load=async f=>import('data:text/javascript;base64,'+Buffer.from(ts.transpileModule(fs.readFileSync(new URL('../app/'+f,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText).toString('base64'));
-const {saveJournal,answerNews,canSave,wateredToday,journalPrompt}=await load('care.ts');
-const {mockQuizFor,NEWS_ITEMS,newsProvider}=await load('news.ts');
+const {saveJournal,answerNews,canSave,wateredToday,journalPrompt}=await load('core/care');
+const {mockQuizFor,NEWS_ITEMS,newsProvider}=await load('content/news');
 const entry=(holdingId,day,saw='')=>({id:day+holdingId,holdingId,name:'새봄반도체',day,saw,think:'',mood:''});
 
 // 13.7-7 watering = journal: one sunlight piece per tree per day, more writing is kept but not paid
@@ -34,8 +34,8 @@ test('the next quiz is an item not answered yet; a right answer pays once a day'
  assert.equal(newsProvider.quizFor('없는회사',day,[]),null);
 });
 
-const {stickers,weekCount,weekDays,monthGrid}=await load('care.ts');
-const QB=await load('quiz-books.ts');const A=await load('achievements.ts');
+const {stickers,weekCount,weekDays,monthGrid}=await load('core/care');
+const QB=await load('core/quiz-books');const A=await load('core/achievements');
 // 12.2 calendar: a sticker per day written, a Mon–Sun week, aim 4 days
 test('the calendar puts one sticker on each day written and counts this week',()=>{
  const j=[entry(1,'2026-11-02'),{...entry(2,'2026-11-02'),mood:'calm'},entry(1,'2026-11-04'),entry(1,'2026-11-09')];
@@ -64,7 +64,7 @@ test('milestones are reached once and wait for a friend to bring them',()=>{
 });
 // 12.4 retrospective: luon brings a page back at 30 and 90 days; a reply ties a knot on that tree's ribbon
 test('a journal page comes back at 30 and 90 days, once a day, and each answer ties a knot',async()=>{
- const R=await load('retro.ts');const page=(id,holdingId,day,think='계약이 이어질 것 같아서')=>({id,holdingId,name:'새봄반도체',day,saw:'',think,mood:''});
+ const R=await load('core/retro');const page=(id,holdingId,day,think='계약이 이어질 것 같아서')=>({id,holdingId,name:'새봄반도체',day,saw:'',think,mood:''});
  const j=[page('a',1,'2026-10-01'),page('b',2,'2026-10-05'),page('c',1,'2026-10-20'),page('m',1,'2026-09-01',''/* mood only: nothing to reread */)];
  assert.equal(R.dueRetro(j,[],[1,2],'2026-10-30'),null,'29 days is not yet');
  let d=R.dueRetro(j,[],[1,2],'2026-10-31');assert.equal(d.entry.id,'a');assert.equal(d.mark,30);assert.equal(d.days,30);assert.equal(R.retroLine(d),'…30일 전에 이렇게 써놨더라.');
@@ -83,7 +83,7 @@ test('a journal page comes back at 30 and 90 days, once a day, and each answer t
 });
 // 12.2 a week with 4 journal days hangs a ribbon; the newest such week not yet congratulated is the one a friend cheers
 test('weeks that reached the aim are congratulated once, newest first',async()=>{
- const C=await load('care.ts');const days=d=>d.map(x=>entry(1,x));
+ const C=await load('core/care');const days=d=>d.map(x=>entry(1,x));
  const j=days(['2026-11-02','2026-11-03','2026-11-04','2026-11-04','2026-11-09','2026-11-10','2026-11-11','2026-11-13','2026-11-16']);
  assert.equal(C.weekKey('2026-11-08'),'2026-11-02');assert.deepEqual(C.goalWeekKeys(j),['2026-11-09'],'3 distinct days is not 4');
  assert.equal(C.pendingCheer(j,[]),'2026-11-09');assert.equal(C.pendingCheer(j,['2026-11-09']),null);
@@ -91,9 +91,7 @@ test('weeks that reached the aim are congratulated once, newest first',async()=>
 });
 // ux-spec 2장 vitality: only care raises it, it fades, 30 days without a journal page switches it off; the ribbon holds the newest reason
 test('vitality follows the player\'s care, not the return, and the ribbon keeps the newest reason',async()=>{
- const dir=fs.mkdtempSync(new URL('../.vitality-test-',import.meta.url).pathname);
- for(const n of ['care','retro','vitality']){let code=ts.transpileModule(fs.readFileSync(new URL('../app/'+n+'.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText;code=code.replace(/from ['"]\.\/(\w[\w-]*)['"]/g,'from "./$1.mjs"');fs.writeFileSync(dir+'/'+n+'.mjs',code)}
- const V=await import(dir+'/vitality.mjs');fs.rmSync(dir,{recursive:true});
+ const V=await load('core/vitality');
  const pg=(day,think='')=>({id:day,holdingId:1,name:'새봄반도체',day,saw:'',think,mood:''});
  assert.equal(V.vitalityOf(1,{},[],[],'2026-11-08',30),0,'never cared for');
  const j=[pg('2026-11-01','계약이 이어질 것 같아서'),pg('2026-11-05'),pg('2026-11-07','공장 증설이 아직 이유야')];

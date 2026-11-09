@@ -1,7 +1,7 @@
 'use client';
 // The drawer's 설정 tab (ux-spec 7장, 8장): sound on or off with a volume each for effects and voices, the music
 // waiting for its tracks, and 움직임 줄이기 for the decorative motion.
-import type {SoundSettings} from '../sound';
+import type {SoundSettings} from '../core/sound';
 
 export function SettingsTab({sound,onSound,calm,onCalm,follow,onFollow}:{sound:SoundSettings;onSound:(s:Partial<SoundSettings>)=>void;calm:boolean;onCalm:(on:boolean)=>void;follow:boolean;onFollow:(on:boolean)=>void}){
  const slider=(key:'sfx'|'voice',label:string)=><label className="setting-row"><span>{label}</span><input type="range" min={0} max={1} step={.1} value={sound[key]} disabled={!sound.on} aria-label={label} onChange={e=>onSound({[key]:Number(e.target.value)})}/><output>{Math.round(sound[key]*10)}</output></label>;

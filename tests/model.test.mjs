@@ -1,9 +1,9 @@
 import test from 'node:test';
+import {load} from './load-app.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import ts from 'typescript';
-const source=ts.transpileModule(fs.readFileSync(new URL('../app/model.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText;
-const {growthOf,conditionOf,treeState,defaultRules,initial,route,ActionGate,dialogueLayout,giftPosition,subject}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+const {growthOf,conditionOf,treeState,defaultRules,initial,route,ActionGate,dialogueLayout,giftPosition,subject}=await load('core/model');
 const sample={...initial[0],date:'2026-10-01',lossDays:0};
 test('fruit glow includes exactly +10 percent',()=>{assert.equal(treeState({...sample,rate:10},defaultRules).glowing,true);assert.equal(treeState({...sample,rate:9.9},defaultRules).glowing,false)});
 test('shrink starts below -10, not at -10',()=>{assert.equal(treeState({...sample,rate:-10},defaultRules).shrunken,false);assert.equal(treeState({...sample,rate:-10.1},defaultRules).shrunken,true)});

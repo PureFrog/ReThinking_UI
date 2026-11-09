@@ -1,9 +1,9 @@
 import test from 'node:test';
+import {load} from './load-app.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import ts from 'typescript';
-const source=ts.transpileModule(fs.readFileSync(new URL('../app/items.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText;
-const {inventoryEntries,toggleWear,sameSlots,formatDay,ITEMS}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+const {inventoryEntries,toggleWear,sameSlots,formatDay,ITEMS}=await load('core/items');
 const gift=(id,item,sender=0)=>({id,sender,anonymous:false,item,x:0,y:0});
 const empty={hat:null,face:null,neck:null,hand:null};
 

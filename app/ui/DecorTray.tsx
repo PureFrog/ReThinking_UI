@@ -3,8 +3,8 @@
 // house surfaces (floors, wallpaper, yard tiles). On a phone it is a sheet folded down to its handle.
 import {useState,type ReactNode} from 'react';
 import {Leaf,Armchair} from 'lucide-react';
-import {FLOOR_STYLES,WALL_STYLES,TILE_STYLES,EXTERIOR_STYLES,type SurfaceKind} from '../decorate';
-import {SURFACE_ART,surfaceArt,house9,exteriorLayer} from '../assets';
+import {FLOOR_STYLES,WALL_STYLES,TILE_STYLES,EXTERIOR_STYLES,type SurfaceKind} from '../core/decorate';
+import {SURFACE_ART,surfaceArt,house9,exteriorLayer} from '../scene/assets';
 
 export type Paint={kind:SurfaceKind;style:string};
 type Piece={key:string;name:string;icon:ReactNode;choose:()=>void};

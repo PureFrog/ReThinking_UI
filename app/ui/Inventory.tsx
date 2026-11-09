@@ -1,11 +1,11 @@
 'use client';
 import {useEffect,useRef,useState,type ReactNode} from 'react';
-import {ITEMS,SLOTS,SLOT_LABEL,KIND_LABEL,toggleWear,sameSlots,formatDay,type Entry,type ItemKind,type Slots} from '../items';
-import {ITEM_IMAGES,SPRITES,WEAR_IMAGES} from '../assets';
-import {TIMING} from '../timing';
-import {subject,type GiftBox} from '../model';
+import {ITEMS,SLOTS,SLOT_LABEL,KIND_LABEL,toggleWear,sameSlots,formatDay,type Entry,type ItemKind,type Slots} from '../core/items';
+import {ITEM_IMAGES,SPRITES,WEAR_IMAGES} from '../scene/assets';
+import {TIMING} from '../core/timing';
+import {subject,type GiftBox} from '../core/model';
 import {EmptyState} from './WorldUI';
-import {friendById,portraitStyle} from '../friends';
+import {friendById,portraitStyle} from '../content/friends';
 
 // Temporary item art (11.16-2: never a text-only cell). Replaced per item by ITEM_IMAGES.
 const ART:Record<string,ReactNode>={

@@ -1,9 +1,9 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import TypedDialogue from '../TypedDialogue';
-import {splitDialogue,isTypingTarget} from '../dialogue-pages';
+import TypedDialogue from './TypedDialogue';
+import {splitDialogue,isTypingTarget} from '../core/dialogue-pages';
 import {PauseClock} from '../scene/pause-clock';
-import {TIMING,speechDuration} from '../timing';
+import {TIMING,speechDuration} from '../core/timing';
 // `pages` gives the balloons as written (a stage scene); each is still split when it runs long
 export default function DialogueLine({text,pages:given,kind='formal',autoAdvance=false,voice,onReady,onDone,onActivate}:{text:string;voice?:string;pages?:string[];kind?:'formal'|'ambient'|'thought';autoAdvance?:boolean;onReady?:(ready:boolean)=>void;onDone?:()=>void;onActivate?:()=>void}){
  const pages=kind!=='formal'?[text]:given?.length?given.flatMap(p=>splitDialogue(p)):splitDialogue(text);const [page,setPage]=useState(0),[complete,setComplete]=useState(false),[held,setHeld]=useState(false);const content=pages[page];const ref=useRef<HTMLDivElement>(null);const callbacks=useRef({onReady,onDone,onActivate});callbacks.current={onReady,onDone,onActivate};

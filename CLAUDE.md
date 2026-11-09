@@ -1,16 +1,21 @@
 # 마음이 자라는 정원 (character garden)
 
-React + Phaser 기반 아이소메트릭 집·정원 UI 프로토타입. 사용자가 캐릭터로 집과 정원을 돌아다니며 주식 보유를 표현한 나무를 돌보고, 놀러 오는 동물 친구(모아·토리·루온)와 유대를 쌓고, 집을 꾸민다. 투자 일지·퀴즈 같은 성찰 행동이 정원 성장의 연료다.
+**투자자가 다시 생각해볼 기회를 주는 서비스.** React + Phaser 기반 아이소메트릭 집·정원 프로토타입. 사용자가 캐릭터로 집과 정원을 돌아다니며 주식 보유를 표현한 나무를 돌보고, 놀러 오는 동물 친구(모아·토리·루온)와 유대를 쌓는다. 투자 일지·퀴즈 같은 성찰 행동이 정원 성장의 연료고, 매일 오게 하는 힘은 퀴즈와 연속일 보상이다.
+
+이 저장소는 팀원들도 함께 쓴다. 설치·실행·폴더 구조는 `README.md`에 있다.
 
 ## 작업 전에 반드시 읽을 것
 
-1. `docs/COLLABORATION.md` — 로컬 협업 방식, 역할과 구역(코드=Claude, 이미지·작동 테스트=ChatGPT/Codex), `collab/` 우편함
-2. `docs/handoff.md` — 현재 구현 상태 (GPT가 만든 프로토타입 인수인계)
-3. `docs/ux-spec.md` — UI/UX 개선 설계서. **handoff와 충돌하면 ux-spec이 우선.**
-   - 13장: 인수인계, 작업 순서, 작업 방식 (가장 먼저)
+1. `README.md` — 실행 방법, 폴더 구조, 문서 목록
+2. `docs/ux-spec.md` — 유일한 설계서
+   - 13.7: 사용자 결정 기록 (같은 주제의 다른 결정보다 우선)
+   - 13장: 작업 순서, 작업 방식
    - 11장: 모든 UI의 통일 규칙 (말풍선, 패널, 아이템, 가구, 시간값)
    - 11.16: 금지 목록 — 하나라도 남아 있으면 그 단계는 미완료
-4. `collab/log.md`의 최근 기록 — 지금 어디까지 왔는지
+3. `docs/deferred.md` — 뒤로 미룬 것
+4. `docs/COLLABORATION.md` — 그림(GPT·나노바나나) 요청과 작동 테스트를 나누는 방식, `collab/` 우편함
+5. `collab/log.md`의 최근 기록 — 지금 어디까지 왔는지
+6. 옛 기록이 필요할 때만 `docs/archive/` (처음 프로토타입 인수인계서 등)
 
 ## 절대 규칙
 
@@ -30,7 +35,7 @@ React + Phaser 기반 아이소메트릭 집·정원 UI 프로토타입. 사용�
 - 단계마다 핵심 동작을 `tests/e2e/`에 Playwright 테스트로 추가한다.
 - 단계가 끝나면 보고: 검사 결과, 실제 화면 스크린샷(데스크톱 1400px, 모바일 375px), 전/후 비교, 11.16 금지 목록 점검. 화면을 직접 확인하지 못했으면 그렇다고 쓴다.
 - GPT에게 넘길 일(이미지, 작동 테스트)은 `collab/templates/` 양식으로 `collab/to-gpt/`에 요청서를 쓰고, `collab/log.md`에 한 줄 남긴다.
-- 사용자의 감각 피드백("너무 빨라", "별로야")은 바로 고쳐서 다시 보여준다. 시간값은 `app/timing.ts` 한 곳에 둔다.
+- 사용자의 감각 피드백("너무 빨라", "별로야")은 바로 고쳐서 다시 보여준다. 시간값은 `app/core/timing.ts` 한 곳에 둔다.
 - 커밋 메시지: `[stage-n] 요약`, `[asset NNN] 요약`, `[fix] 요약`, `[docs] 요약`.
 - 사용자에게는 짧고 직설적인 반말 한국어로 설명한다.
 
@@ -38,9 +43,9 @@ React + Phaser 기반 아이소메트릭 집·정원 UI 프로토타입. 사용�
 
 ```bash
 node node_modules/typescript/bin/tsc --noEmit
-node --test tests/model.test.mjs tests/foundation.test.mjs tests/items.test.mjs tests/care.test.mjs
-pnpm test:e2e   # 0단계에서 추가
+pnpm test:unit
+pnpm test:e2e
 pnpm build
 ```
 
-기존 모델 테스트 14개는 계속 통과해야 한다. 새 계산 로직마다 테스트를 추가한다.
+기존 모델 테스트는 계속 통과해야 한다. 새 계산 로직마다 `tests/*.test.mjs`에 테스트를 추가한다(`tests/load-app.mjs`의 `load('core/…')`로 불러온다).

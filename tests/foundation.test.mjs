@@ -1,8 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import ts from 'typescript';import {pathToFileURL} from 'node:url';
-const dir=fs.mkdtempSync(new URL('../.foundation-test-',import.meta.url));
-for(const n of ['model','timing','store','interaction-mode','visitor-machine','dialogue-pages','visitor-tasks','friends','personas','content','relationships','memory','gifts','decorate','sound']){let code=ts.transpileModule(fs.readFileSync(new URL('../app/'+n+'.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText;code=code.replace(/from ['"]\.\/(\w[\w-]*)['"]/g,'from "./$1.mjs"');code=code.replace(/from ['"]\.\/dialogue\/(\w+)\.json['"]/g,(m,n)=>'from '+JSON.stringify(new URL('../app/dialogue/'+n+'.json',import.meta.url).href)+' with {type:"json"}');fs.writeFileSync(dir+'/'+n+'.mjs',code)}
-const {migrateV3,gardenReducer}=await import(pathToFileURL(dir+'/store.mjs'));const {WorldQueue,resolveMode}=await import(pathToFileURL(dir+'/interaction-mode.mjs'));const {VisitorMachine}=await import(pathToFileURL(dir+'/visitor-machine.mjs'));
-process.on('exit',()=>fs.rmSync(dir,{recursive:true,force:true}));
+import {load} from './load-app.mjs';
+const {migrateV3,gardenReducer}=await load('core/store');const {WorldQueue,resolveMode}=await load('core/interaction-mode');const {VisitorMachine}=await load('core/visitor-machine');
 test('v2 migration retains possessions and reasons without mutating old data',()=>{const old={holdings:[],decor:[{id:3}],records:['reason'],equipped:'여름 선글라스',claimed:['gift']};const before=JSON.stringify(old),v=migrateV3(old);assert.equal(JSON.stringify(old),before);assert.deepEqual(v.records,old.records);assert.deepEqual(v.decor,old.decor);assert.equal(v.slots.face,old.equipped);assert.equal(v.version,3);assert.equal(v.sunlight,0)});
 test('old saves move friend records from list position to friend id (13.7-2)',()=>{const v=migrateV3({gifts:[{id:'visit-1',sender:1,anonymous:false,item:'x',x:1,y:1}],relationships:[{points:5,stage:1,daily:{}},{points:2,stage:0,daily:{}},{points:0,stage:0,daily:{}}]});assert.equal(v.gifts[0].sender,'tori');assert.equal(v.relationships.moa.points,5);assert.equal(v.relationships.tori.points,2);assert.deepEqual(migrateV3(v),v)});
 test('v3 migration is idempotent and keeps added progress',()=>{const v=migrateV3({sunlight:42,care:{1:3}});assert.deepEqual(migrateV3(v),v)});
@@ -11,17 +9,16 @@ test('modes have a single explicit precedence',()=>{assert.equal(resolveMode({pa
 test('queue expires ambient only and preserves gifts',()=>{const q=new WorldQueue();q.enqueue('ambient',()=>{},0);q.enqueue('gift',()=>{},0);assert.equal(q.take(31000).kind,'gift');assert.equal(q.take(31000),undefined)});
 test('visitor pause blocks idle actions and transitions invalidate timers',()=>{const v=new VisitorMachine();v.transition('idle');const t=v.capture();v.pause();assert.equal(v.canAct,false);v.resume();assert.equal(v.canAct,true);v.transition('talking');assert.equal(v.valid(t),false);v.reset();assert.equal(v.state,'absent')});
 
-const {splitDialogue}=await import(pathToFileURL(dir+'/dialogue-pages.mjs'));
+const {splitDialogue}=await load('core/dialogue-pages');
 test('dialogue pages preserve words and keep each page bounded',()=>{const text='오늘은 어떤 하루였어? 잠깐 앉아서 이야기할래? '+ '가'.repeat(100);const pages=splitDialogue(text);assert.ok(pages.every(p=>Array.from(p).length<=42));assert.equal(pages.join('').replace(/\s/g,''),text.replace(/\s/g,''))});
-const clockCode=ts.transpileModule(fs.readFileSync(new URL('../app/scene/pause-clock.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText;
-fs.writeFileSync(dir+'/pause-clock.mjs',clockCode);const {PauseClock}=await import(pathToFileURL(dir+'/pause-clock.mjs'));
+const {PauseClock}=await load('scene/pause-clock');
 test('speech hover preserves remaining duration and adds release grace',()=>{const c=new PauseClock(4000);c.start(0);c.pause(1000);assert.equal(c.left(9000),3000);c.release(9000);assert.equal(c.left(10000),3500);c.pause(10000);c.release(12000);assert.equal(c.left(13000),4000)});
 test('queue coalesces departure without losing gifts',()=>{const q=new WorldQueue();q.enqueue('departure',()=>{},0);q.enqueue('gift',()=>{},1);q.enqueue('departure',()=>{},2);assert.equal(q.items.length,2);assert.equal(q.take(3).kind,'gift');assert.equal(q.take(3).kind,'departure')});
 
-const {pickTask,taskWeights,mayTalk,stepAside,cornerCell,fleeCell,TASKS,TASK_IDS}=await import(pathToFileURL(dir+'/visitor-tasks.mjs'));
-const {PERSONAS,personaOf}=await import(pathToFileURL(dir+'/personas.mjs'));
-const {FRIENDS,friendById,friendIdOf}=await import(pathToFileURL(dir+'/friends.mjs'));
-const {taskLine,friendLine}=await import(pathToFileURL(dir+'/content.mjs'));
+const {pickTask,taskWeights,mayTalk,stepAside,cornerCell,fleeCell,TASKS,TASK_IDS}=await load('core/visitor-tasks');
+const {PERSONAS,personaOf}=await load('content/personas');
+const {FRIENDS,friendById,friendIdOf}=await load('content/friends');
+const {taskLine,friendLine}=await load('content/content');
 const seq=(...v)=>{let i=0;return ()=>v[i++%v.length]};
 // Example kinds of friends the user named (13.7-2). Not shipped: they show the persona fields can carry such characters.
 const base={near:'face',pace:1,rest:1,linger:1,lineGap:40000,lineChance:.35};
@@ -84,8 +81,7 @@ test('a friend in the way steps to a free cell off the path (11.15-5)',()=>{
 });
 
 // 13.7-5/6 space: furniture and the farm fence block cells, and furniture draws in front of whoever is behind it
-fs.writeFileSync(dir+'/layout.mjs',ts.transpileModule(fs.readFileSync(new URL('../app/scene/layout.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText);
-const L=await import(pathToFileURL(dir+'/layout.mjs'));const {route}=await import(pathToFileURL(dir+'/model.mjs'));
+const L=await load('scene/layout');const {route}=await load('core/model');
 const blockedAll=()=>{const b=new Set([...L.BLOCKED_CELLS,...L.FENCE_CELLS]);for(const w of L.PARTITIONS)for(let y=w.y0;y<=w.y1;y++)if(y<w.door[0]||y>w.door[1])b.add(`${w.x},${y}`);for(let i=0;i<L.PLOT_COUNT;i++){const p=L.plotCell(i);b.add(`${p.x},${p.y}`)}return b};
 test('the 009 layout: furniture and stairs block their cells, and every spot to use a piece is reachable',()=>{const b=blockedAll();
  for(const p of L.HOUSE_PLAN.filter(p=>p.blocks))for(const k of L.pieceCells(p))assert.ok(b.has(k),`${p.art} ${k}`);
@@ -111,8 +107,8 @@ test('a long piece draws over people behind it and under people in front of it',
  const bed=L.footDepth(40,0,41,1);for(const c of [[42,0],[42,1],[40,2],[41,2]])assert.ok(y(...c)>bed)});
 
 // ux-spec 3장 relationships: five stages per friend, a daily cap, the retrospective outside it, each scene once
-const RL=await import(pathToFileURL(dir+'/relationships.mjs'));
-const {pickLine,sceneLines,friendLetter,DIALOGUE}=await import(pathToFileURL(dir+'/content.mjs'));
+const RL=await load('core/relationships');
+const {pickLine,sceneLines,friendLetter,DIALOGUE}=await load('content/content');
 test('closeness climbs five stages, capped per day, with a run of visit days paying more',()=>{
  assert.deepEqual(RL.STAGES,['처음 만남','아는 사이','친구','단짝','가족 같은']);
  let r=RL.gain(undefined,5,'2026-11-01');assert.equal(r.rel.points,5);assert.equal(r.rose,null);
@@ -150,7 +146,7 @@ test('every friend has its four stage scenes, its secret, and never talks trades
 });
 
 // ux-spec 3장 memory: each greeting may bring up one remembered thing, once, in a fixed order; templates fill particles
-const M=await import(pathToFileURL(dir+'/memory.mjs'));const {memoryLine,greetLine,giftLine,setLineContext}=await import(pathToFileURL(dir+'/content.mjs'));
+const M=await load('core/memory');const {memoryLine,greetLine,giftLine,setLineContext}=await load('content/content');
 test('memory picks one untold thing in order, and templates fill names with the right particle',()=>{
  const facts={today:'2026-11-20',lastVisit:'2026-11-09',holding:{item:'털실 바구니',day:'2026-11-09'},decor:{id:7,name:'들꽃 화병'},outfit:['산책 목도리'],decision:{tree:'새봄반도체',decision:'수정',reason:'신규 계약이 나올 거라 봐',day:'2026-11-08'}};
  const all=['absence','holding','loss','mine','decor','outfit','decision'];
@@ -175,7 +171,7 @@ test('a friend greets with what it remembers once, then says hello as usual',()=
  setLineContext({stages:{},placed:[],memory:{},told:{}});
 });
 // ux-spec 3장 gifts both ways
-const G=await import(pathToFileURL(dir+'/gifts.mjs'));
+const G=await load('core/gifts');
 test('a friend brings one gift a day: its first, then what each stage opens, then what it brings again',()=>{
  const box=(id,item,day,sender='moa')=>({id,sender,anonymous:false,item,x:0,y:0,day});
  assert.deepEqual(G.visitGift('moa',0,[],'2026-11-01'),{id:'visit-moa',item:'위로 사탕'},'the first keeps its old id');
@@ -202,7 +198,7 @@ test('a gift lands loved, thanked or awkward; the friend has it from the next vi
 });
 
 // ux-spec 11.9 placing furniture: the first reason it does not fit, said by the player
-const DC=await import(pathToFileURL(dir+'/decorate.mjs'));
+const DC=await load('core/decorate');
 test('a piece fits only where it may go, with the reason when it does not; pieces are for using',()=>{
  const ok={walkable:true,locked:false,taken:false,someone:false,inside:true,routesOpen:true,count:0};
  assert.equal(DC.placementProblem('화분',ok),null);
@@ -240,8 +236,8 @@ test('7장 settings: an old save starts with sound not yet asked and calm off; p
  const v=migrateV3({settings:{autoAdvance:true}});assert.equal(v.settings.autoAdvance,true);assert.equal(v.settings.sound.on,null,'asked once, on the first press');assert.equal(v.settings.reduceMotion,false);
  const w=migrateV3({settings:{sound:{on:true,voice:.3}}});assert.deepEqual(w.settings.sound,{on:true,sfx:.7,voice:.3,music:.5});
 });
-test('sound map: docs/sound-map.md and the SLOTS in app/sound.ts list the same places',async()=>{
- const {SLOTS,EVENT_SLOTS}=await import(pathToFileURL(dir+'/sound.mjs'));
+test('sound map: docs/sound-map.md and the SLOTS in app/core/sound.ts list the same places',async()=>{
+ const {SLOTS,EVENT_SLOTS}=await load('core/sound');
  const doc=fs.readFileSync(new URL('../docs/sound-map.md',import.meta.url),'utf8');
  const listed=[...doc.matchAll(/^\| `([a-z-]+)` \|/gm)].map(m=>m[1]);
  assert.deepEqual([...listed].sort(),Object.keys(SLOTS).sort());

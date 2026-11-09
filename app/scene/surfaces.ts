@@ -1,11 +1,11 @@
 // 11.9 house surfaces: a room's floor and walls, and the path and flower tiles laid in the yard.
 // A room's first style is the house picture as drawn, so nothing is laid over it. The others use the 021 pictures
-// once they are here (app/assets.ts SURFACE_ART) and temporary patterns until then.
+// once they are here (app/scene/assets.ts SURFACE_ART) and temporary patterns until then.
 import type * as Phaser from 'phaser';
-import {FLOOR_STYLES,WALL_STYLES,type Surfaces} from '../decorate';
+import {FLOOR_STYLES,WALL_STYLES,type Surfaces} from '../core/decorate';
 import {ROOMS,HOUSE,WALL_H,insideHouse,inLockedLand,type Room} from './layout';
 import {iso,pos} from './world';
-import {GROUND_TILES,houseArt,surfaceArt,WALL_FIXTURES,HOUSE_ART_SIZE,HOUSE_ART_ANCHOR} from '../assets';
+import {GROUND_TILES,houseArt,surfaceArt,WALL_FIXTURES,HOUSE_ART_SIZE,HOUSE_ART_ANCHOR} from './assets';
 
 const corner=(x:number,y:number,up=0)=>{const p=iso(x,y);return {x:p.x,y:p.y-15-up}};
 // the walls a room shows: its back wall, and the left wall when it stands on the house's left edge

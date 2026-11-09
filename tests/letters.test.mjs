@@ -1,8 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import ts from 'typescript';import {pathToFileURL} from 'node:url';
-const dir=fs.mkdtempSync(new URL('../.letters-test-',import.meta.url));
-for(const n of ['care','letters']){let code=ts.transpileModule(fs.readFileSync(new URL('../app/'+n+'.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText;code=code.replace(/from ['"]\.\/(\w[\w-]*)['"]/g,'from "./$1.mjs"');fs.writeFileSync(dir+'/'+n+'.mjs',code)}
-const {monthlyLetter,dueLetter,letterLines,prevMonth}=await import(pathToFileURL(dir+'/letters.mjs'));
-process.on('exit',()=>fs.rmSync(dir,{recursive:true,force:true}));
+import {load} from './load-app.mjs';
+const {monthlyLetter,dueLetter,letterLines,prevMonth}=await load('core/letters');
 const e=(day,think,mood='',name='새봄반도체')=>({id:day+think,holdingId:1,name,day,saw:'',think,mood});
 const journal=[e('2026-10-02','계약 연장 소식이 궁금했어','curious'),e('2026-10-02','',''),e('2026-10-09','공장 증설 계획이 내 이유랑 아직 맞는지 다시 보고 싶어','curious','꽃빛뷰티'),e('2026-10-20','짧게','calm'),e('2026-11-01','이번 달 첫 기록','sunny')];
 

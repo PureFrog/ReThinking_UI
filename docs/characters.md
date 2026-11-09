@@ -3,9 +3,9 @@
 세 친구의 성격, 말투, 행동을 한곳에 모은 문서. 원본은 아래 파일이고, 이 문서와 다르면 원본이 맞다.
 
 - 성격·관계·말투: `docs/ux-spec.md` 3장 (캐릭터 바이블)
-- 겉모습·선물: `docs/handoff.md`
-- 실제 대사: `app/friends.ts`
-- 행동 수치: `app/personas.ts`
+- 겉모습·선물: `docs/archive/handoff.md`
+- 실제 대사: `app/content/friends.ts`
+- 행동 수치: `app/content/personas.ts`
 
 ## 한눈에
 
@@ -99,6 +99,6 @@
 
 - 사용자가 든 다섯 타입(신나게 돌아다니기, 구석에 숨기, 오면 물 주기, 수다, 잠만 자기)은 **앞으로 올 캐릭터의 예시**다. 미리 만들어 두는 성격이 아니다.
 - 새 캐릭터가 정해지면 할 일이 세 가지다:
-  1. 그 페르소나대로 `app/personas.ts`에 프리셋을 쓴다.
-  2. `app/friends.ts`에 친구 하나를 추가한다.
+  1. 그 페르소나대로 `app/content/personas.ts`에 프리셋을 쓴다.
+  2. `app/content/friends.ts`에 친구 하나를 추가한다.
   3. 그림을 요청서로 받는다.

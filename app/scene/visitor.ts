@@ -1,15 +1,15 @@
 // One visiting friend (13.7-4: up to MAX_VISITORS at once). Each visitor owns its state machine,
 // timers, task memory and head emote; the scene owns the world, the player and the one shared speech bubble.
-import {cue} from '../sound';
+import {cue} from '../core/sound';
 import type * as Phaser from 'phaser';
-import type {GardenScene} from '../game';
-import {pickTask,mayTalk,stepAside,near,dist,cornerCell,fleeCell,TASKS,FLOWER_CELLS,type TaskId,type Emote} from '../visitor-tasks';
-import {friendById} from '../friends';
-import {personaOf} from '../personas';
-import {friendLine,taskLine} from '../content';
-import {VisitorMachine} from '../visitor-machine';
-import {TIMING,speechDuration} from '../timing';
-import {ASSETS,friendArt,FRIEND_POSE_GAP,EMOTE_IMAGES} from '../assets';
+import type {GardenScene} from './game';
+import {pickTask,mayTalk,stepAside,near,dist,cornerCell,fleeCell,TASKS,FLOWER_CELLS,type TaskId,type Emote} from '../core/visitor-tasks';
+import {friendById} from '../content/friends';
+import {personaOf} from '../content/personas';
+import {friendLine,taskLine} from '../content/content';
+import {VisitorMachine} from '../core/visitor-machine';
+import {TIMING,speechDuration} from '../core/timing';
+import {ASSETS,friendArt,FRIEND_POSE_GAP,EMOTE_IMAGES} from './assets';
 import {emit,iso,pos,type Actor,type Cell} from './world';
 import {floorOf} from './layout';
 const EMOTE_GLYPH:Record<Emote,string>={heart:'♥',note:'♪',sparkle:'✦',zzz:'Zz',dots:'…'};

@@ -1,11 +1,11 @@
 'use client';
-import {MOOD_IMAGES} from '../assets';
+import {MOOD_IMAGES} from '../scene/assets';
 import {useState} from 'react';
 import {Check,X as Cross} from 'lucide-react';
-import {MOODS,canSave,journalPrompt,type JournalEntry,type Mood} from '../care';
-import type {NewsQuiz} from '../news';
-import {formatDay} from '../items';
-import {VERDICTS,type Verdict} from '../retro';
+import {MOODS,canSave,journalPrompt,type JournalEntry,type Mood} from '../core/care';
+import type {NewsQuiz} from '../content/news';
+import {formatDay} from '../core/items';
+import {VERDICTS,type Verdict} from '../core/retro';
 // Watering = the stock's journal (12.1): three boxes, one is enough; the day's question sits on top, past pages below.
 export function CareJournal({name,day,past,onSave}:{name:string;day:string;past:JournalEntry[];onSave:(e:{saw:string;think:string;mood:Mood|''})=>void}){
  const [saw,setSaw]=useState(''),[think,setThink]=useState(''),[mood,setMood]=useState<Mood|''>('');

@@ -13,7 +13,7 @@
 - **작업은 사용자 컴퓨터의 로컬 폴더 하나에서 한다.** 개발 서버를 띄워두고, 고치면 바로 화면에서 확인한다.
 - **AI끼리는 직접 대화하지 않는다.** 폴더 안의 `collab/`을 우편함으로 쓴다. Claude가 요청서를 쓰고, 사용자가 GPT에게 전달하고, GPT의 결과물은 정해진 칸으로 들어온다.
 - **깃헙은 백업과 공유용이다.** 사용자가 OK한 상태만 푸시한다. 브랜치·PR·Preview 배포 절차는 쓰지 않는다.
-- **판단이 부딪히면** 사용자 결정 > `CLAUDE.md`·`AGENTS.md` 절대 규칙 > `docs/ux-spec.md` > 이 문서 > `docs/handoff.md` 순으로 이긴다. 화면을 보고 느낀 사용자의 감각이 최종 판정이다.
+- **판단이 부딪히면** 사용자 결정 > `CLAUDE.md`·`AGENTS.md` 절대 규칙 > `docs/ux-spec.md` > 이 문서 > `docs/archive/handoff.md` 순으로 이긴다. 화면을 보고 느낀 사용자의 감각이 최종 판정이다.
 
 ---
 
@@ -25,7 +25,7 @@
 
 **마감.** 팀 프로젝트는 **2026-11-27**에 끝난다. 절차보다 사용자가 체감하는 화면 품질에 시간을 쓴다.
 
-**지금까지의 경과.** GPT가 ChatGPT Sites 환경에서 프로토타입을 만들었다(`docs/handoff.md`). 사용자는 결과를 "감이 없다"고 판단했다. 설계서를 줘도 디자인이 거의 안 바뀌었고, 말풍선을 누를 때마다 안내 토스트가 반복됐고, 캐릭터가 살아 있지 않았고, 서랍·책장 패널이 별로였고, 아이템을 그림 없이 보여줬고, 일지·퀴즈 성취감 시스템이 빠져 있었다. 그래서 코드는 Claude, 이미지와 작동 테스트는 GPT로 역할을 나눴다.
+**지금까지의 경과.** GPT가 ChatGPT Sites 환경에서 프로토타입을 만들었다(`docs/archive/handoff.md`). 사용자는 결과를 "감이 없다"고 판단했다. 설계서를 줘도 디자인이 거의 안 바뀌었고, 말풍선을 누를 때마다 안내 토스트가 반복됐고, 캐릭터가 살아 있지 않았고, 서랍·책장 패널이 별로였고, 아이템을 그림 없이 보여줬고, 일지·퀴즈 성취감 시스템이 빠져 있었다. 그래서 코드는 Claude, 이미지와 작동 테스트는 GPT로 역할을 나눴다.
 
 **사용자.** 금융·데이터 분석 배경의 학생이다. 개발 전문가가 아니므로, 사용자에게 시키는 일은 최소로 하고 명령어와 클릭 경로를 정확히 알려준다. 사용자와는 한국어로, 짧고 직설적으로 말한다.
 
@@ -50,26 +50,19 @@
 
 ## 3. 폴더 구조와 우편함
 
+전체 폴더 구조는 `README.md`에 있다. 협업에 쓰는 곳만 보면:
+
 ```
-ReThinking_UI/
-├── CLAUDE.md                  Claude가 매번 읽는 규칙
-├── AGENTS.md                  Codex가 매번 읽는 규칙
-├── docs/
-│   ├── COLLABORATION.md       이 문서
-│   ├── ux-spec.md             유일한 명세
-│   └── handoff.md             이전 프로토타입 기록 (더 고치지 않음)
-├── collab/
-│   ├── log.md                 작업 기록. 누가 언제 무엇을 했는지 한 줄씩
-│   ├── templates/             요청서·보고서 양식
-│   ├── to-gpt/                Claude → GPT 요청서
-│   └── from-gpt/              GPT → Claude 결과 보고서·메모
-├── public/assets/
-│   ├── incoming/              GPT가 만든 그림이 처음 들어오는 곳
-│   └── (characters/, trees/ …) Claude가 검수·정리한 뒤 옮기는 곳
-├── tests/
-│   ├── model.test.mjs         기존 모델 테스트
-│   └── e2e/                   Claude가 쓰는 작동 테스트 시나리오
-└── test-results/              테스트 실행 결과물 (커밋 안 함)
+collab/
+├── log.md                 작업 기록. 누가 언제 무엇을 했는지 한 줄씩
+├── templates/             요청서·보고서 양식
+├── to-gpt/                GPT 요청서 (첨부 그림 폴더 NNN-refs/는 git에 없음)
+├── to-nanobanana/         나노바나나 요청서 (첨부 그림 폴더는 git에 없음)
+└── from-gpt/              GPT → 결과 보고서·메모
+public/assets/incoming/    GPT가 만든 그림이 처음 들어오는 곳 (git에 없음)
+public/assets/<폴더>/       검수·정리한 그림 (게임이 쓰는 곳)
+scripts/gpt-handoff.sh     요청서를 클립보드에, 첨부를 Finder에 여는 도구
+scripts/art/               시트 자르기·나무 자리 재기 같은 기계적 손질 도구
 ```
 
 **요청서 번호.** `to-gpt/`와 `from-gpt/`는 같은 세 자리 번호를 공유한다. 요청 `007-style-sample.md`의 답장은 `007-style-sample-report.md`다. 번호는 `log.md`의 마지막 번호 + 1.
@@ -87,21 +80,12 @@ ReThinking_UI/
 
 ## 4. 처음 한 번 하는 준비
 
-1. **[GPT → 사용자] 코드를 깃헙 main에 올린다.** 11.2의 문장을 ChatGPT(Sites 환경)에 그대로 붙여넣는다. 안 되면 zip으로 받아 Claude에게 전달한다.
-2. **[Claude] `setup-docs` 브랜치 문서를 main에 합친다.** 이 브랜치에 `CLAUDE.md`, `AGENTS.md`, `docs/`, `collab/`이 있다.
-3. **[사용자] 로컬로 받는다.** Git, Node.js(LTS), pnpm을 설치하고 터미널에서:
-   ```bash
-   git clone https://github.com/PureFrog/ReThinking_UI.git
-   cd ReThinking_UI
-   pnpm install
-   pnpm dev
-   ```
-   설치나 실행에서 막히면 에러 메시지를 그대로 Claude에게 보낸다. Sites/Vinext 전용 설정 때문에 `pnpm dev`가 안 될 수 있는데, 그건 Claude가 0단계에서 고친다.
-4. **[사용자] Claude를 이 폴더에 붙인다.** 둘 중 하나.
-   - 이 폴더에서 Claude Code를 실행한다.
-   - claude.ai 대화에서 컴퓨터 연결을 켜고 이 폴더 접근을 허락한다.
-5. **[사용자] Codex를 이 폴더에서 실행할 수 있게 설치한다.** Codex는 시작할 때 `AGENTS.md`를 읽는다.
-6. **[Claude] 0단계** (`ux-spec.md` 13.3): 구조 파악, `.gitignore`·비밀값 점검, 로컬 실행 확인, Playwright 설치, 기준선 스크린샷, 커밋.
+저장소를 받고 실행하는 방법은 `README.md`의 '빠른 시작'을 따른다. 그림 요청까지 맡는 사람은 추가로:
+
+- 요청서 첨부 그림(`collab/to-gpt/NNN-refs/` 등)과 GPT 원본(`public/assets/incoming/`)은 git에 없다. 이어서 작업할 요청이 있으면 그 폴더를 만든 사람에게 받는다.
+- AI 도구는 시작할 때 `CLAUDE.md`(Claude Code) 또는 `AGENTS.md`(Codex 등)를 읽는다.
+
+(2026-10-28 처음 준비 기록: GPT Sites 프로토타입을 main에 올리고, 로컬 실행과 0단계 기준선을 만들었다. 지금은 끝난 일이다.)
 
 ---
 
@@ -145,7 +129,7 @@ ReThinking_UI/
 
 ### 6.4 통합 (Claude)
 
-규격(크기, 앵커, 투명 배경)을 확인하고, `scripts/cut-sheet.py`로 칸을 잘라 `public/assets/<폴더>/`에 정해진 이름으로 저장해 게임에 붙인다. `incoming/` 원본은 건드리지 않는다. 게임 화면 스크린샷을 사용자에게 보여준다. 규격이 틀렸으면 무엇이 틀렸는지 적은 재요청서를 같은 번호의 `-v2`로 쓴다.
+규격(크기, 앵커, 투명 배경)을 확인하고, `scripts/art/cut-sheet.py`로 칸을 잘라 `public/assets/<폴더>/`에 정해진 이름으로 저장해 게임에 붙인다. `incoming/` 원본은 건드리지 않는다. 게임 화면 스크린샷을 사용자에게 보여준다. 규격이 틀렸으면 무엇이 틀렸는지 적은 재요청서를 같은 번호의 `-v2`로 쓴다.
 
 ### 6.5 승인 관문 — 건너뛰지 않는다
 
@@ -212,7 +196,7 @@ ReThinking_UI/
 | --- | --- | --- |
 | `ux-spec.md`의 [결정] 항목 변경 | 사용자 | `ux-spec.md` 수정 + `[docs]` 커밋 |
 | [제안] 항목을 다르게 구현 | Claude (이유 기록) | `log.md` |
-| 시간값·간격 수치 조정 | 사용자 피드백 → Claude | `app/timing.ts` |
+| 시간값·간격 수치 조정 | 사용자 피드백 → Claude | `app/core/timing.ts` |
 | 에셋 승인 | 사용자 | `log.md` |
 | GPT 보고서의 "제안" | 사용자 | `log.md` |
 | 배포·호스팅 | 사용자 | 이 문서 갱신 |

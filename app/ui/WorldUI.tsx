@@ -1,9 +1,9 @@
 'use client';
 import {useEffect,useRef,useState,type HTMLAttributes,type ReactNode} from 'react';
 import {X} from 'lucide-react';
-import {TIMING} from '../timing';
+import {TIMING} from '../core/timing';
 // One balloon shape for friends (name tag) and a cloud for the player's thoughts (11.3).
-import {friendById,portraitStyle} from '../friends';
+import {friendById,portraitStyle} from '../content/friends';
 export function SpeechBubble({name,color,tail=0,leaving,...p}:HTMLAttributes<HTMLDivElement>&{name?:string;color?:string;tail?:number;leaving?:boolean}){const r=useRef<HTMLDivElement>(null);const [below,setBelow]=useState(false);useEffect(()=>{const b=r.current?.getBoundingClientRect();const parent=r.current?.parentElement?.getBoundingClientRect();setBelow(!!b&&!!parent&&parent.top+Number(p.style?.top??0)-b.height<12)},[p.style?.top,p.children]);return <div {...p} ref={r} style={{...p.style,['--tail' as string]:tail+'px'}} className={'npc-bubble '+(below?'bubble-below ':'')+(leaving?'bubble-leave ':'')+(p.className??'')}>{name&&<span className="name-tag" style={{background:color}}>{name}</span>}{p.children}</div>}
 export function SideMenu(p:HTMLAttributes<HTMLDivElement>){return <div {...p} className={'npc-choices '+(p.className??'')}/>}
 export function InfoCard(p:HTMLAttributes<HTMLDivElement>){return <div {...p} className={'world-info '+(p.className??'')}/>}

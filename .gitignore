@@ -47,3 +47,14 @@ yarn-error.log*
 # Local test output
 /test-results/
 /playwright-report/
+
+# Record-only files: they stay on the machine that made them, not in git.
+# Stage screenshots, image-request attachments and templates, raw art deliveries (GPT zone).
+/docs/screenshots/
+/public/assets/incoming/
+/collab/to-gpt/*/
+/collab/to-gpt/*.zip
+/collab/to-nanobanana/*/
+# unit-test scratch folders left by an interrupted run
+/.foundation-test-*/
+/.vitality-test-*/

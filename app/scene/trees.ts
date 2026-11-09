@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
-import {TREE_ART,treeArt,LEAF_IMAGES} from '../assets';
-import type {Condition,Growth} from '../model';
-import {TIMING} from '../timing';
+import {TREE_ART,treeArt,LEAF_IMAGES} from './assets';
+import type {Condition,Growth} from '../core/model';
+import {TIMING} from '../core/timing';
 import {TREE_FIT} from './treeFit';
 
 // Seeds and sprouts are too small to show every condition; their art falls back to the nearest one drawn.
@@ -27,7 +27,7 @@ export function paintTree(s:Phaser.Scene,c:Phaser.GameObjects.Container,kind:num
  const art=deliveredArt(kind,g,cond),stand=standInArt(kind,g,cond);const gr=s.add.graphics();c.add(gr);
  const litter=(n:number,spread:number)=>{for(let j=0;j<n;j++){const x=-spread+j*(spread*2/Math.max(1,n-1)),y=4+((j*7)%3)*3,leaf=LEAF_ART[cond][j%Math.max(1,LEAF_ART[cond].length)],img=leaf&&LEAF_IMAGES[leaf];
   if(img&&s.textures.exists(img.key))c.add(s.add.image(x,y,img.key).setDisplaySize(10,10).setAngle((j*67)%360));else gr.fillStyle(LEAF_COLORS[cond][j%Math.max(1,LEAF_COLORS[cond].length)]??0xb5a17b).fillEllipse(x,y,8,3.5)}};
- // drawn at 2×: the picture's ground footprint (TREE_FIT, measured by scripts/fit-trees.py) on the plot centre,
+ // drawn at 2×: the picture's ground footprint (TREE_FIT, measured by scripts/art/fit-trees.py) on the plot centre,
  // shrunk evenly when roots or fallen leaves would spill off the soil
  const picture=(a:{key:string;url:string})=>{const [fx,fy,k]=TREE_FIT[a.url.split('/').pop()!.replace('.png','')]??[256,451,1];return s.add.image(k*(128-fx/2),k*(256-fy/2),a.key).setOrigin(.5,1).setDisplaySize(256*k,256*k)};
  if(art&&s.textures.exists(art.key)){c.add(picture(art));return}
