@@ -16,7 +16,7 @@ test("11.6-2 공통 틀: 머리줄(그림·이름·제목·X), 탭은 머리줄 
   await expect(p.locator(".panel-head small")).toHaveText("나무 서랍");
   await expect(p.locator(".panel-head h2")).toHaveText("작은 물건들을 모아둔 곳");
   await expect(p.locator(".panel-head .obj-art")).toBeVisible();
-  await expect(p.locator(".panel-tabs button")).toHaveCount(5); // 보유함·옷장·집 꾸미기·추억 앨범(12.5)·사용법
+  await expect(p.locator(".panel-tabs button")).toHaveCount(6); // 보유함·옷장·집 꾸미기·추억 앨범(12.5)·설정(7장)·사용법
   // measured once the open animation settles (it overshoots while popping in)
   await expect.poll(async () => (await p.boundingBox())!.height).toBeLessThanOrEqual(641);
   await expect.poll(async () => (await p.boundingBox())!.width).toBeLessThanOrEqual(561);

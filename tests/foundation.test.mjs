@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import ts from 'typescript';import {pathToFileURL} from 'node:url';
 const dir=fs.mkdtempSync(new URL('../.foundation-test-',import.meta.url));
-for(const n of ['model','timing','store','interaction-mode','visitor-machine','dialogue-pages','visitor-tasks','friends','personas','content']){let code=ts.transpileModule(fs.readFileSync(new URL('../app/'+n+'.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText;code=code.replace(/from ['"]\.\/(\w[\w-]*)['"]/g,'from "./$1.mjs"');fs.writeFileSync(dir+'/'+n+'.mjs',code)}
+for(const n of ['model','timing','store','interaction-mode','visitor-machine','dialogue-pages','visitor-tasks','friends','personas','content','relationships','memory','gifts','decorate','sound']){let code=ts.transpileModule(fs.readFileSync(new URL('../app/'+n+'.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText;code=code.replace(/from ['"]\.\/(\w[\w-]*)['"]/g,'from "./$1.mjs"');code=code.replace(/from ['"]\.\/dialogue\/(\w+)\.json['"]/g,(m,n)=>'from '+JSON.stringify(new URL('../app/dialogue/'+n+'.json',import.meta.url).href)+' with {type:"json"}');fs.writeFileSync(dir+'/'+n+'.mjs',code)}
 const {migrateV3,gardenReducer}=await import(pathToFileURL(dir+'/store.mjs'));const {WorldQueue,resolveMode}=await import(pathToFileURL(dir+'/interaction-mode.mjs'));const {VisitorMachine}=await import(pathToFileURL(dir+'/visitor-machine.mjs'));
 process.on('exit',()=>fs.rmSync(dir,{recursive:true,force:true}));
 test('v2 migration retains possessions and reasons without mutating old data',()=>{const old={holdings:[],decor:[{id:3}],records:['reason'],equipped:'여름 선글라스',claimed:['gift']};const before=JSON.stringify(old),v=migrateV3(old);assert.equal(JSON.stringify(old),before);assert.deepEqual(v.records,old.records);assert.deepEqual(v.decor,old.decor);assert.equal(v.slots.face,old.equipped);assert.equal(v.version,3);assert.equal(v.sunlight,0)});
@@ -49,7 +49,7 @@ test('the three friends keep their personalities, and situation shapes the weigh
 test('every preset is complete and every task has a default line (13.7-2)',()=>{
  for(const [id,p] of Object.entries(P)){assert.ok(p.label&&p.pace>0&&p.rest>0&&p.linger>0&&p.lineGap>=20000,id);assert.ok(Object.values(p.weights).some(v=>v>0),id);for(const k of Object.keys(p.weights))assert.ok(TASK_IDS.includes(k),id+' '+k)}
  for(const k of TASK_IDS)assert.ok(TASKS[k].line,k);
- for(const f of FRIENDS){assert.ok(P[f.persona],f.id);for(const k of ['greet','talk','bye','farewell','busy','notice','agree'])assert.ok(f.lines[k],f.id+' '+k)}
+ for(const f of FRIENDS){assert.ok(P[f.persona],f.id);for(const k of ['greet','talk','bye','farewell','busy','notice','agree','cheer'])assert.ok(friendLine(f.id,k),f.id+' '+k)}
 });
 test('new kinds of friends behave by persona (13.7-2)',()=>{
  const base={recent:[],dryTree:true,newThing:false};const top=p=>{const w=taskWeights(p,base);return Object.entries(w).sort((a,b)=>b[1]-a[1])[0][0]};
@@ -67,7 +67,7 @@ test('lines stay at least the gap apart; a chatty persona may talk at 20 s (11.1
 });
 test('lines come from the friend, then the persona, then the task (13.7-9 provider)',()=>{
  assert.equal(taskLine('moa','sofa'),'여기 앉으니까 포근하다.');assert.equal(taskLine('moa','hide'),TASKS.hide.line);
- assert.equal(friendLine('tori','greet'),friendById('tori').lines.greet);
+ assert.equal(friendLine('tori','greet'),'왔데이! 정원 구경 좀 해도 되나? 오늘 햇살 참 좋다!');
 });
 test('friends are found by id; old saves by position still resolve',()=>{
  assert.equal(friendById('luon').name,'루온');assert.equal(friendIdOf(1),'tori');assert.equal(friendIdOf('moa'),'moa');assert.equal(friendIdOf('nobody'),FRIENDS[0].id);
@@ -109,3 +109,141 @@ test('a long piece draws over people behind it and under people in front of it',
  const sink=L.footDepth(11,0,12,0);for(const x of [11,12])assert.ok(y(x,1)>sink,`in front at ${x},1`);
  const table=L.footDepth(12,4,13,4);for(const c of [[12,5],[13,5],[14,4]])assert.ok(y(...c)>table);for(const c of [[12,3],[13,3],[11,4]])assert.ok(y(...c)<table);
  const bed=L.footDepth(40,0,41,1);for(const c of [[42,0],[42,1],[40,2],[41,2]])assert.ok(y(...c)>bed)});
+
+// ux-spec 3장 relationships: five stages per friend, a daily cap, the retrospective outside it, each scene once
+const RL=await import(pathToFileURL(dir+'/relationships.mjs'));
+const {pickLine,sceneLines,friendLetter,DIALOGUE}=await import(pathToFileURL(dir+'/content.mjs'));
+test('closeness climbs five stages, capped per day, with a run of visit days paying more',()=>{
+ assert.deepEqual(RL.STAGES,['처음 만남','아는 사이','친구','단짝','가족 같은']);
+ let r=RL.gain(undefined,5,'2026-11-01');assert.equal(r.rel.points,5);assert.equal(r.rose,null);
+ r=RL.gain(r.rel,5,'2026-11-01');assert.equal(r.rel.points,RL.DAILY_CAP,'the cap stops the same day');
+ r=RL.gain(r.rel,3,'2026-11-02');assert.equal(r.rel.points,RL.DAILY_CAP+3);assert.equal(r.rose,1,'a stage reached is reported once');
+ assert.equal(RL.gain(r.rel,1,'2026-11-02').rose,null);
+ const free=RL.gain(r.rel,20,'2026-11-02',false);assert.equal(free.rel.points,r.rel.points+20,'the retrospective is outside the cap');assert.equal(free.rose,2);
+ for(const [p,s] of [[0,0],[7,0],[8,1],[25,2],[50,3],[89,3],[90,4],[500,4]])assert.equal(RL.stageOf(p),s,String(p));
+ let v=RL.visitGain(undefined,'2026-11-01');assert.equal(v.rel.points,RL.POINTS.visit);assert.equal(RL.visitGain(v.rel,'2026-11-01').rel,v.rel,'the second visit of a day pays nothing');
+ v=RL.visitGain(v.rel,'2026-11-02');assert.equal(v.rel.points,RL.POINTS.visit*2+RL.POINTS.streak);assert.equal(v.rel.streak,2);
+ assert.equal(RL.visitGain(v.rel,'2026-11-05').rel.streak,1,'a gap starts the run again');
+});
+test('each stage scene plays once, lowest first',()=>{
+ let r={points:60,stage:3,daily:{}};assert.equal(RL.pendingScene(r),1);r=RL.markScene(r,1);r=RL.markScene(r,2);assert.equal(RL.pendingScene(r),3);
+ r=RL.markScene(r,3);assert.equal(RL.pendingScene(r),null);assert.ok(RL.sceneSeen(r,RL.LUON_REVEAL));assert.equal(RL.pendingScene({points:0,stage:0,daily:{}}),null);
+ assert.equal(RL.closeness(r),.75);
+});
+test('lines follow stage, placed furniture and priority, and the same one does not come twice in a row',()=>{
+ const opts=[{text:'a'},{text:'b',minStage:2,priority:1},{text:'c',minStage:3,priority:2},{text:'d',placed:'포근한 담요',priority:5}];
+ assert.equal(pickLine(opts,{stage:0,placed:[]}),'a');assert.equal(pickLine(opts,{stage:2,placed:[]}),'b');assert.equal(pickLine(opts,{stage:3,placed:[]}),'c');
+ assert.equal(pickLine(opts,{stage:0,placed:['포근한 담요']}),'d');
+ assert.equal(pickLine(opts,{stage:3,placed:[]},['c']),'b','the newest said is skipped');
+ assert.equal(pickLine(opts,{stage:2,placed:[]},['b','a']),'a','all said lately: the one said longest ago');
+ assert.equal(pickLine([{text:'x',maxStage:1}],{stage:2,placed:[]}),undefined);
+});
+test('every friend has its four stage scenes, its secret, and never talks trades or prices (3장 대화 금기)',()=>{
+ const all=[];for(const f of FRIENDS){const b=DIALOGUE[f.id];assert.ok(b,f.id);
+  for(const s of [1,2,3,4]){const l=sceneLines(f.id,s);assert.ok(l.length>=2&&l.length<=4,f.id+' scene '+s);all.push(...l)}
+  for(const ls of [...Object.values(b.lines),...Object.values(b.tasks),...Object.values(b.memory??{}),...Object.values(b.gifts??{})])for(const l of ls)all.push(l.text);all.push(...(b.letter??[]))}
+ for(const t of all)assert.doesNotMatch(t,/팔아|사라|사 둬|계속 들고|오를 거|떨어질 거|매수|매도|목표가|수익/,t);
+ for(const t of [...[...Object.values(DIALOGUE.luon.lines),...Object.values(DIALOGUE.luon.memory),...Object.values(DIALOGUE.luon.gifts)].flat().map(l=>l.text),...[1,2,3,4].flatMap(s=>sceneLines('luon',s))])assert.ok((t.match(/[.!?…](?=\s|$)/g)??[]).length<=2,'luon: two sentences at most · '+t);
+ assert.match(sceneLines('luon',RL.LUON_REVEAL).join(' '),/담요|별 조명/,'luon owns up to the anonymous gifts');
+ assert.match(sceneLines('tori',3).join(' '),/도토리/,'tori tells the acorn story');
+ assert.ok(friendLetter('moa').length>=3,'moa\'s letter');assert.match(friendLetter('moa')[0],/울 것 같아서/);
+});
+
+// ux-spec 3장 memory: each greeting may bring up one remembered thing, once, in a fixed order; templates fill particles
+const M=await import(pathToFileURL(dir+'/memory.mjs'));const {memoryLine,greetLine,giftLine,setLineContext}=await import(pathToFileURL(dir+'/content.mjs'));
+test('memory picks one untold thing in order, and templates fill names with the right particle',()=>{
+ const facts={today:'2026-11-20',lastVisit:'2026-11-09',holding:{item:'털실 바구니',day:'2026-11-09'},decor:{id:7,name:'들꽃 화병'},outfit:['산책 목도리'],decision:{tree:'새봄반도체',decision:'수정',reason:'신규 계약이 나올 거라 봐',day:'2026-11-08'}};
+ const all=['absence','holding','loss','mine','decor','outfit','decision'];
+ assert.equal(M.memoryTopic(facts,[],all).kind,'absence','a long absence comes first');
+ assert.equal(M.memoryTopic({...facts,lastVisit:'2026-11-18'},[],all).kind,'holding','two days away is not long');
+ assert.equal(M.memoryTopic(facts,['absence:2026-11-20','holding:털실 바구니:2026-11-09'],all).kind,'decor','what was told is not told again');
+ assert.equal(M.memoryTopic(facts,[],['decision']).vars.day,'11월 8일');
+ assert.equal(M.memoryTopic({...facts,decision:{...facts.decision,day:'2026-11-20'}},[],['decision']),null,'a decision of today is not a memory yet');
+ assert.equal(M.memoryTopic({today:'2026-11-20'},[],all),null);
+ assert.equal(M.fill('{item|을} 줬어',{item:'털실 바구니'}),'털실 바구니를 줬어');assert.equal(M.fill('{item|이} 있네',{item:'들꽃 화병'}),'들꽃 화병이 있네');
+ assert.equal(M.fill('{decision|으로}',{decision:'수정'}),'수정으로');assert.equal(M.fill('{decision|으로}',{decision:'유보'}),'유보로');assert.equal(M.fill('{x|으로}',{x:'별'}),'별로','ㄹ takes 로');
+ assert.equal(M.fill('"{reason}"',{reason:''}),'','a missing value drops the template');
+ assert.equal(M.remember(Array.from({length:M.TOLD_KEEP},(_,i)=>'k'+i),'new').length,M.TOLD_KEEP);
+});
+test('a friend greets with what it remembers once, then says hello as usual',()=>{
+ const told=[];setLineContext({stages:{moa:0,tori:0,luon:0},placed:[],memory:{moa:{today:'2026-11-20',lastVisit:'2026-11-01'},tori:{today:'2026-11-20',loss:{id:3,tree:'꽃빛뷰티'}}},told:{}},(id,k)=>told.push(id+'|'+k));
+ assert.equal(memoryLine('moa'),'19일 만이네. 오랜만이야, 보고 싶었어.');assert.deepEqual(told,['moa|absence:2026-11-20']);
+ assert.equal(memoryLine('moa'),'','told once');assert.equal(greetLine('moa'),friendLine('moa','greet'));
+ assert.equal(memoryLine('tori'),'','only moa worries about a tree in a loss');
+ setLineContext({stages:{},placed:[],memory:{moa:{today:'2026-11-20',loss:{id:3,tree:'꽃빛뷰티'}}},told:{}});assert.match(memoryLine('moa'),/꽃빛뷰티 나무가 힘들어 보여서 먼저/);
+ assert.match(giftLine('moa','loved','들꽃 화병'),/들꽃 화병을 나한테/);assert.match(giftLine('tori','returned','x'),/내가 준/);
+ setLineContext({stages:{},placed:[],memory:{},told:{}});
+});
+// ux-spec 3장 gifts both ways
+const G=await import(pathToFileURL(dir+'/gifts.mjs'));
+test('a friend brings one gift a day: its first, then what each stage opens, then what it brings again',()=>{
+ const box=(id,item,day,sender='moa')=>({id,sender,anonymous:false,item,x:0,y:0,day});
+ assert.deepEqual(G.visitGift('moa',0,[],'2026-11-01'),{id:'visit-moa',item:'위로 사탕'},'the first keeps its old id');
+ let gifts=[box('visit-moa','위로 사탕','2026-11-01')];
+ assert.equal(G.visitGift('moa',4,gifts,'2026-11-01'),null,'one a day');
+ assert.deepEqual(G.visitGift('moa',0,gifts,'2026-11-02'),{id:'visit-moa-2026-11-02',item:'위로 사탕'},'a candy again while nothing new is open');
+ assert.equal(G.visitGift('moa',2,gifts,'2026-11-02').item,'산딸기 잼','a stage opens a new one, lowest first');
+ gifts=[...gifts,box('visit-moa-2026-10-30','위로 사탕','2026-10-30'),box('visit-moa-2026-11-02','산딸기 잼','2026-11-02'),box('visit-moa-2026-11-03','털실 바구니','2026-11-03'),box('visit-moa-2026-11-04','말린 꽃 액자','2026-11-04')];
+ assert.equal(G.visitGift('moa',4,gifts,'2026-11-05').item,'산딸기 잼','everything given: the again one given least');
+ assert.equal(G.visitGift('moa',4,[box('visit-moa','위로 사탕',undefined)],'2026-11-05').id,'visit-moa-2026-11-05','an old save without a day');
+ const tori=[box('visit-tori','여름 선글라스','2026-11-01','tori')];assert.equal(G.visitGift('tori',0,tori,'2026-11-02'),null,'nothing to bring again');
+ assert.equal(G.visitGift('nobody',0,[],'2026-11-02'),null);
+});
+test('a gift lands loved, thanked or awkward; the friend has it from the next visit on',()=>{
+ const g=(item,sender)=>({id:item,sender,anonymous:false,item,x:0,y:0});
+ assert.deepEqual(G.reactionTo('moa',g('들꽃 화병','tori')),{reaction:'loved',returned:false});
+ assert.deepEqual(G.reactionTo('tori',g('털실 바구니','moa')),{reaction:'thanks',returned:false});
+ assert.deepEqual(G.reactionTo('tori',g('들꽃 화병','tori')),{reaction:'awkward',returned:true},'its own gift back');
+ assert.equal(G.reactionTo('luon',g('여름 선글라스','tori')).reaction,'awkward');
+ assert.ok(G.GIFT_POINTS.loved>G.GIFT_POINTS.thanks&&G.GIFT_POINTS.thanks>G.GIFT_POINTS.awkward);
+ const given=[{giftId:'a',to:'moa',item:'산딸기 잼',day:'2026-11-01',reaction:'thanks',visit:3},{giftId:'b',to:'moa',item:'들꽃 화병',day:'2026-11-02',reaction:'loved',visit:5}];
+ assert.equal(G.holding(given,'moa',3),null,'not on the visit it was given');assert.equal(G.holding(given,'moa',4),'산딸기 잼');assert.equal(G.holding(given,'moa',6),'들꽃 화병','the latest');assert.equal(G.holding(given,'tori',9),null);
+ for(const [id,pool] of Object.entries(G.GIFT_POOL))for(const p of pool)assert.ok(p.item,id);
+});
+
+// ux-spec 11.9 placing furniture: the first reason it does not fit, said by the player
+const DC=await import(pathToFileURL(dir+'/decorate.mjs'));
+test('a piece fits only where it may go, with the reason when it does not; pieces are for using',()=>{
+ const ok={walkable:true,locked:false,taken:false,someone:false,inside:true,routesOpen:true,count:0};
+ assert.equal(DC.placementProblem('화분',ok),null);
+ assert.equal(DC.placementProblem('화분',{...ok,walkable:false}),'wall');
+ assert.equal(DC.placementProblem('화분',{...ok,inside:false,locked:true}),'locked');
+ assert.equal(DC.placementProblem('작은 별 조명',{...ok,inside:false}),'outside','a lamp stays indoors');
+ assert.equal(DC.placementProblem('화분',{...ok,inside:false}),null,'a pot goes anywhere');
+ assert.equal(DC.placementProblem('화분',{...ok,taken:true,someone:true}),'taken');
+ assert.equal(DC.placementProblem('화분',{...ok,someone:true}),'someone');
+ assert.equal(DC.placementProblem('화분',{...ok,count:DC.LIMITS.in}),'full');assert.equal(DC.placementProblem('화분',{...ok,inside:false,count:DC.LIMITS.in}),null,'the yard holds more');
+ assert.equal(DC.placementProblem('화분',{...ok,routesOpen:false}),'path');assert.equal(DC.placementProblem('러그',{...ok,routesOpen:false}),null,'a rug lets people pass');
+ for(const p of Object.keys(DC.PROBLEM_LINES))assert.ok(DC.PROBLEM_LINES[p].length>2);
+ assert.equal(DC.ruleOf('작은 별 조명').use,'light');assert.ok(DC.ruleOf('들꽃 화병').line);assert.equal(DC.ruleOf('없는 가구').use,'look');
+});
+test('a long piece covers its cells (the other way once turned), and fits only where every cell does',()=>{
+ assert.deepEqual(DC.footprint({name:'나무 벤치',x:3,y:12}),[{x:3,y:12},{x:4,y:12}]);
+ assert.deepEqual(DC.footprint({name:'나무 벤치',x:3,y:12,flip:true}),[{x:3,y:12},{x:3,y:13}]);
+ assert.deepEqual(DC.footprint({name:'화분',x:1,y:2,flip:true}),[{x:1,y:2}]);
+ const ok={walkable:true,locked:false,taken:false,someone:false,inside:false,routesOpen:true,count:0};
+ assert.equal(DC.footprintProblem('나무 벤치',[ok,ok]),null);assert.equal(DC.footprintProblem('나무 벤치',[ok,{...ok,taken:true}]),'taken');
+ assert.equal(DC.footprintProblem('나무 벤치',[{...ok,inside:true},ok]),'inside','a bench stays in the yard');
+ for(const n of ['쿠션','나무 벤치','작은 독서 의자'])assert.equal(DC.ruleOf(n).use,'sit');
+});
+test('house surfaces: a room floor or wall at a time, yard tiles one cell each, the first style takes it back',()=>{
+ let s={};s=DC.paint(s,'floor','check','living');assert.deepEqual(s.floor,{living:'check'});
+ s=DC.paint(s,'wall','stripe','kitchen');assert.deepEqual(s.wall,{kitchen:'stripe'});
+ s=DC.paint(s,'tile','path','3,9');s=DC.paint(s,'tile','flower','3,11');assert.deepEqual(s.tiles,{'3,9':'path','3,11':'flower'});
+ s=DC.paint(s,'tile','grass','3,9');assert.deepEqual(s.tiles,{'3,11':'flower'},'grass lifts a tile');
+ s=DC.paint(s,'floor',DC.FLOOR_STYLES[0].id,'living');assert.deepEqual(s.floor,{},'the house picture again');
+ for(const list of [DC.FLOOR_STYLES,DC.WALL_STYLES])assert.equal(list[0].colors.length,0,'the first style is the picture as drawn');
+ s=DC.withExterior(s,'rose');assert.equal(s.exterior,'rose');assert.equal(DC.withExterior(s,DC.EXTERIOR_STYLES[0].id).exterior,undefined,'the outside as drawn');
+ for(const l of Object.values(DC.SURFACE_LINES))assert.ok(l.endsWith('.'));
+});
+test('7장 settings: an old save starts with sound not yet asked and calm off; partial sound settings are filled in',()=>{
+ const v=migrateV3({settings:{autoAdvance:true}});assert.equal(v.settings.autoAdvance,true);assert.equal(v.settings.sound.on,null,'asked once, on the first press');assert.equal(v.settings.reduceMotion,false);
+ const w=migrateV3({settings:{sound:{on:true,voice:.3}}});assert.deepEqual(w.settings.sound,{on:true,sfx:.7,voice:.3,music:.5});
+});
+test('sound map: docs/sound-map.md and the SLOTS in app/sound.ts list the same places',async()=>{
+ const {SLOTS,EVENT_SLOTS}=await import(pathToFileURL(dir+'/sound.mjs'));
+ const doc=fs.readFileSync(new URL('../docs/sound-map.md',import.meta.url),'utf8');
+ const listed=[...doc.matchAll(/^\| `([a-z-]+)` \|/gm)].map(m=>m[1]);
+ assert.deepEqual([...listed].sort(),Object.keys(SLOTS).sort());
+ for(const s of Object.values(EVENT_SLOTS))assert.ok(s in SLOTS,s);
+});

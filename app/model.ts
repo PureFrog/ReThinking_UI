@@ -1,9 +1,12 @@
 export type Holding={id:number;name:string;kind:number;price:number;quantity:number;date:string;rate:number;plot:number;lossDays:number};
-export type Rules={oldDays:number;damageDays:number};
-export type Decoration={id:number;name:string;color:number;x:number;y:number};
-export type GiftBox={id:string;sender:string;anonymous:boolean;item:string;x:number;y:number};
+// vitalityDays: no journal for this long switches a tree's vitality off (ux-spec 2장, app/vitality.ts)
+export type Rules={oldDays:number;damageDays:number;vitalityDays?:number};
+// flip: turned the other way (11.9, the picture mirrored) · on: a lamp switched on
+export type Decoration={id:number;name:string;color:number;x:number;y:number;flip?:boolean;on?:boolean};
+// day: when a friend brought it (one a day, app/gifts.ts)
+export type GiftBox={id:string;sender:string;anonymous:boolean;item:string;x:number;y:number;day?:string};
 export const demoDate='2026-10-27';
-export const defaultRules:Rules={oldDays:180,damageDays:60};
+export const defaultRules:Rules={oldDays:180,damageDays:60,vitalityDays:30};
 export function heldDays(date:string){return Math.max(0,Math.floor((Date.parse(demoDate)-Date.parse(date))/86400000))}
 // Growth follows holding time; condition follows the mock return (and how long a deep loss lasted).
 // The thresholds stay the old ones: +10% inclusive glows, below -10% wilts, -20% or worse for damageDays is dead.

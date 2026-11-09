@@ -3,7 +3,8 @@ export type ItemKind='clothes'|'furniture'|'consumable';
 export type Slot='hat'|'face'|'neck'|'hand';
 export type Slots=Record<Slot,string|null>;
 // id doubles as the art file name once GPT art lands (assets.ts ITEM_IMAGES).
-export type ItemDef={id:string;kind:ItemKind;slot?:Slot;desc:string;note?:string;starter?:boolean};
+// eat: the player's thought after a consumable
+export type ItemDef={id:string;kind:ItemKind;slot?:Slot;desc:string;note?:string;starter?:boolean;eat?:string};
 export const ITEMS:Record<string,ItemDef>={
  '위로 사탕':{id:'candy',kind:'consumable',desc:'달콤한 한 알. 먹으면 그날 하루 마음이 은은하게 밝아.',note:'마음이 쓰이는 날엔 달콤한 한 알. 네 속도로 가도 괜찮아.'},
  '여름 선글라스':{id:'sunglasses',kind:'clothes',slot:'face',desc:'햇살 쨍한 날 쓰는 동그란 선글라스.',note:'햇빛이 쨍하네! 이거 쓰고 정원 한 바퀴 돌자!'},
@@ -15,6 +16,16 @@ export const ITEMS:Record<string,ItemDef>={
  '작은 독서 의자':{id:'reading_chair',kind:'furniture',desc:'일지를 열 번 쓴 사람에게 어울리는 폭신한 의자.',note:'여기 앉아서 천천히 써.'},
  '금박 책받침':{id:'gold_bookend',kind:'furniture',desc:'금박 책 세 권을 지켜 주는 책받침.',note:'책장이 반짝반짝하네!'},
  '꽃 장식':{id:'flower_pin',kind:'clothes',slot:'hat',desc:'모자에 꽂는 분홍 꽃 장식.',starter:true},
+ // ux-spec 3장: what friends bring as they get closer (app/gifts.ts GIFT_POOL)
+ '산딸기 잼':{id:'berry_jam',kind:'consumable',desc:'새콤달콤한 산딸기 잼 한 병. 먹으면 그날 하루 마음이 은은하게 밝아.',note:'토리네 숲 산딸기로 만들었어. 같이 먹으면 더 맛있대.',eat:'새콤달콤하다. 잠깐 쉬어 가자.'},
+ '털실 바구니':{id:'yarn_basket',kind:'furniture',desc:'알록달록한 털실 뭉치가 담긴 작은 바구니.',note:'뜨개질하다 남은 털실이야. 예쁘지?'},
+ '말린 꽃 액자':{id:'pressed_flowers',kind:'furniture',desc:'정원 꽃을 눌러 말린 작은 액자.',note:'처음 같이 본 꽃이야. 기억나?'},
+ '들꽃 화병':{id:'wildflower_vase',kind:'furniture',desc:'들판에서 꺾어 온 꽃이 꽂힌 화병.',note:'오다가 예뻐서 꺾었데이! 물 자주 갈아 줘라!'},
+ '별 모양 조약돌':{id:'star_pebble',kind:'furniture',desc:'냇가에서 주운 별 모양 조약돌.',note:'이거 별 모양 맞제? 신기해서 주워 왔다!'},
+ '도토리 새싹 화분':{id:'acorn_sprout',kind:'furniture',desc:'도토리에서 싹이 튼 작은 화분.',note:'이번엔 여러 군데 나눠 심었다. 이건 그중 하나다!'},
+ '따뜻한 보리차':{id:'barley_tea',kind:'consumable',desc:'보온병에 담긴 따뜻한 보리차. 마시면 그날 하루 마음이 은은하게 밝아.',note:'…추우니까.',eat:'따뜻하다. 잠깐 쉬어 가자.'},
+ '작은 나무 상자':{id:'wood_box',kind:'furniture',desc:'자잘한 걸 넣어 두기 좋은 작은 나무 상자.',note:'…정리할 데 필요하면.'},
+ '별자리 모빌':{id:'star_mobile',kind:'furniture',desc:'달아 두면 별자리가 천천히 도는 모빌.',note:'…밤에 보면 좋아.'},
 };
 export const SLOT_LABEL:Record<Slot,string>={hat:'모자',face:'얼굴',neck:'목',hand:'손'};
 export const SLOTS:Slot[]=['hat','face','neck','hand'];

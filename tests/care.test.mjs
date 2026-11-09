@@ -89,3 +89,19 @@ test('weeks that reached the aim are congratulated once, newest first',async()=>
  assert.equal(C.pendingCheer(j,[]),'2026-11-09');assert.equal(C.pendingCheer(j,['2026-11-09']),null);
  const j2=[...j,entry(1,'2026-11-05')];assert.deepEqual(C.goalWeekKeys(j2),['2026-11-02','2026-11-09']);assert.equal(C.pendingCheer(j2,['2026-11-09']),'2026-11-02');
 });
+// ux-spec 2장 vitality: only care raises it, it fades, 30 days without a journal page switches it off; the ribbon holds the newest reason
+test('vitality follows the player\'s care, not the return, and the ribbon keeps the newest reason',async()=>{
+ const dir=fs.mkdtempSync(new URL('../.vitality-test-',import.meta.url).pathname);
+ for(const n of ['care','retro','vitality']){let code=ts.transpileModule(fs.readFileSync(new URL('../app/'+n+'.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText;code=code.replace(/from ['"]\.\/(\w[\w-]*)['"]/g,'from "./$1.mjs"');fs.writeFileSync(dir+'/'+n+'.mjs',code)}
+ const V=await import(dir+'/vitality.mjs');fs.rmSync(dir,{recursive:true});
+ const pg=(day,think='')=>({id:day,holdingId:1,name:'새봄반도체',day,saw:'',think,mood:''});
+ assert.equal(V.vitalityOf(1,{},[],[],'2026-11-08',30),0,'never cared for');
+ const j=[pg('2026-11-01','계약이 이어질 것 같아서'),pg('2026-11-05'),pg('2026-11-07','공장 증설이 아직 이유야')];
+ assert.equal(V.vitalityOf(1,{},j,[],'2026-11-08',30),2);
+ assert.equal(V.vitalityOf(1,{1:{feed:'2026-11-08'}},j,[],'2026-11-08',30),3,'a right news answer counts');
+ assert.equal(V.vitalityOf(1,{},j,[{holdingId:1,day:'2026-11-08'}],'2026-11-08',30),3,'a retrospective counts');
+ assert.equal(V.vitalityOf(1,{},j,[],'2026-11-25',30),1,'fades as the days pass');
+ assert.equal(V.vitalityOf(1,{},j,[],'2026-12-08',30),0,'30 days without a page: off');
+ assert.equal(V.vitalityOf(1,{},j,[],'2026-12-08',60),1,'the off point is a setting');
+ assert.deepEqual(V.promiseOf(1,j),{text:'공장 증설이 아직 이유야',day:'2026-11-07'});assert.equal(V.promiseOf(2,j),null);
+});

@@ -37,7 +37,14 @@ test("13.7-4 초대장: 와 있는 친구는 다시 못 부르고, 최대 3명�
   await page.getByRole("button", { name: /토리/ }).click();
   await invite(page, /루온/);
   await expect.poll(() => data(page, "guests"), { timeout: 15_000 }).toBe("moa,tori,luon");
-  await clickWorld(page, 485, 527);
+  // a friend just arriving (or a greeting bubble on a phone) can be over the mailbox for a moment: press again
+  for (let i = 0; i < 4; i++) {
+    // the invitation panel may still be playing its close animation
+    await expect(page.locator(".object-panel")).toHaveCount(0);
+    await clickWorld(page, 485, 527);
+    if (await page.locator(".object-panel").waitFor({ timeout: 4_000 }).then(() => true, () => false)) break;
+    await page.keyboard.press("Escape");
+  }
   await expect(page.locator(".object-panel")).toBeVisible();
   await expect(page.getByText("집이 꽉 찼어요")).toBeVisible();
 });

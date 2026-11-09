@@ -1,5 +1,6 @@
 // One visiting friend (13.7-4: up to MAX_VISITORS at once). Each visitor owns its state machine,
 // timers, task memory and head emote; the scene owns the world, the player and the one shared speech bubble.
+import {cue} from '../sound';
 import type * as Phaser from 'phaser';
 import type {GardenScene} from '../game';
 import {pickTask,mayTalk,stepAside,near,dist,cornerCell,fleeCell,TASKS,FLOWER_CELLS,type TaskId,type Emote} from '../visitor-tasks';
@@ -41,7 +42,7 @@ export class Visitor{
   const taken=(c:Cell)=>s.guests.some(o=>o!==this&&(o.goal?.x===c.x&&o.goal?.y===c.y||o.actor.cell.x===c.x&&o.actor.cell.y===c.y));
   let id:TaskId='stretch';let t=TASKS.stretch;let goal:Cell|null=null;let tree;
   for(let attempt=0;attempt<4;attempt++){
-   id=attempt===0&&opening&&(opening!=='water'||dry.length)?opening:pickTask(persona,{recent:this.tasksDone,dryTree:dry.length>0,newThing:!!fresh});t=TASKS[id];
+   id=attempt===0&&opening&&(opening!=='water'||dry.length)?opening:pickTask(persona,{recent:this.tasksDone,dryTree:dry.length>0,newThing:!!fresh,closeness:s.closeness[this.id]});t=TASKS[id];
    tree=id==='water'?dry[Math.floor(Math.random()*dry.length)]:undefined;goal=null;
    if(typeof t.spot==='object')goal=t.spot;
    else if(t.spot==='player')goal={...s.player.cell};
@@ -83,7 +84,7 @@ export class Visitor{
  // Lines stay rare: one per friend per persona.lineGap at most (11.15-6; chatty friends 20 s, 13.7-3).
  mutter(line:string,always=false){const p=this.persona;if(mayTalk(this.scene.time.now,this.scene.lastLine[this.id],p.lineGap,Math.random,always?1:p.lineChance))this.says(line)}
  // Head emotes for gestures (11.15-6): the 006 bubbles, or glyph cards if the art is missing.
- gesture(kind:Emote|null,ms:number=TIMING.emote){const s=this.scene;this.gestureNode?.destroy();this.gestureNode=undefined;if(!kind||!this.present)return;s.game.canvas.dataset.guestEmote=kind;s.game.canvas.dataset[`emote_${this.id}`]=kind;
+ gesture(kind:Emote|null,ms:number=TIMING.emote){const s=this.scene;this.gestureNode?.destroy();this.gestureNode=undefined;if(!kind||!this.present)return;if(kind==='heart')cue('heart');s.game.canvas.dataset.guestEmote=kind;s.game.canvas.dataset[`emote_${this.id}`]=kind;
   const a=this.actor.node;const art=EMOTE_IMAGES[kind];const n=s.textures.exists(art.key)?s.add.image(a.x,a.y-112,art.key).setDisplaySize(TIMING.emoteSize,TIMING.emoteSize):s.add.text(a.x,a.y-112,EMOTE_GLYPH[kind],{fontFamily:'sans-serif',fontSize:'20px',color:kind==='heart'?'#d4756a':'#6c7f5c',backgroundColor:'#fffdf0',padding:{x:8,y:3}});n.setOrigin(.5,1).setDepth(3500);const full=n.scaleX;n.setScale(full*.4);this.gestureNode=n;
   s.tweens.add({targets:n,scale:full,duration:200,ease:'Back.Out'});s.time.delayedCall(ms,()=>{if(this.gestureNode!==n)return;s.tweens.add({targets:n,alpha:0,duration:TIMING.fade,onComplete:()=>{n.destroy();if(this.gestureNode===n)this.gestureNode=undefined}})})}
  // Ready for an interruption (step aside, notice, react): standing about or in the middle of a task, not talking or leaving.

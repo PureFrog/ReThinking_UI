@@ -5,8 +5,9 @@ import { expect, type Page } from "@playwright/test";
 export async function clickWorld(page: Page, x: number, y: number) {
   const canvas = page.locator(".game canvas");
   const box = (await canvas.boundingBox())!;
-  const cam = await canvas.evaluate((c) => ({ x: Number((c as HTMLCanvasElement).dataset.camX ?? 0), y: Number((c as HTMLCanvasElement).dataset.camY ?? 0) }));
-  await page.mouse.click(box.x + ((x - cam.x) / 1400) * box.width, box.y + ((y - cam.y) / 1050) * box.height);
+  // camX/camY: the top-left of what the camera shows; camZoom: 0.75–1.5 (7장), so the view is 1400/zoom wide
+  const cam = await canvas.evaluate((c) => { const d = (c as HTMLCanvasElement).dataset; return { x: Number(d.camX ?? 0), y: Number(d.camY ?? 0), z: Number(d.camZoom ?? 1) } });
+  await page.mouse.click(box.x + ((x - cam.x) * cam.z / 1400) * box.width, box.y + ((y - cam.y) * cam.z / 1050) * box.height);
 }
 
 // Cell centre in world coordinates (app/scene/world.ts iso); `lift` for cells on the raised house floor.

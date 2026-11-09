@@ -121,6 +121,8 @@
 .skin-letters .friend-invite:hover:not(:disabled){transform:translateY(-2px) rotate(0)}
 .skin-letters .friend-invite .portrait{width:54px;height:54px;border:2px dashed #d9a08f;border-radius:4px;background-color:#fbefe6;outline:4px solid #fffcf3}
 .skin-letters .friend-invite strong{font-family:'Gaegu','Noto Sans KR',sans-serif;font-size:19px}
+/* ux-spec 3장: the stage with each friend, warmer as it grows */
+.skin-letters .friend-invite .bond{color:#b07a52;font-weight:600}.skin-letters .friend-invite .bond[data-stage="3"],.skin-letters .friend-invite .bond[data-stage="4"]{color:#c4606a}
 
 /* 정원 도구·나무: 크라프트 종이 */
 .skin-paper{background:#fbf4e2 radial-gradient(circle at 20% 10%,#ffffff80,transparent 40%);color:var(--ink)}
@@ -218,3 +220,43 @@ table.month td .sticker{position:absolute;left:50%;top:55%;width:16px;height:16p
 .retro-verdict input{position:absolute;opacity:0;pointer-events:none}
 /* 12.2 주 목표 리본 */
 .week-ribbon{margin-left:8px;padding:2px 9px 2px 20px;border-radius:999px;background:#fbe9c6 no-repeat 7px 50%/9px 9px radial-gradient(circle,#e3a64f 60%,transparent 62%);color:#9a6a24;font-size:11px;font-weight:700}
+/* 2장 돌봄 축: 정보 카드의 생기·일지·리본 줄 */
+.tree-care{display:flex;align-items:center;gap:5px;color:#6d7a5c}.tree-care svg{flex:none;color:#8aa27a}
+.rule span svg{vertical-align:-2px;color:#8aa27a}
+/* ux-spec 3장 선물하기: friend chips with a small face */
+.gift-giving .filter-tabs button{display:inline-flex;align-items:center;gap:6px}
+.gift-giving .give-face{width:22px;height:22px;border-radius:50%;background-color:#fbefe6}
+/* 11.9 the decorate tray: picture cells; on a phone a sheet folded at the bottom */
+.furniture-tray{flex-direction:column;align-items:stretch;padding:8px 10px}
+.furniture-tray .tray-handle{display:none}
+.furniture-tray .tray-items{display:flex;gap:6px;overflow-x:auto}
+.furniture-tray .tray-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:74px;min-height:68px;padding:6px 8px;background:#f6efdc;border:1px solid #e2d6b8;border-radius:12px;font-size:10px;white-space:nowrap}
+.furniture-tray .tray-cell .rug-icon{width:30px;height:18px;margin:0}
+.furniture-tray .tray-actions{display:flex;gap:6px;justify-content:center}
+.furniture-tray .tray-actions button{min-height:36px;padding:6px 14px;background:#e6ecd9;border-radius:10px}
+@media(max-width:600px){.furniture-tray{bottom:0;left:0;right:0;transform:none;max-width:none;border-radius:16px 16px 0 0;padding:6px 12px 14px}.furniture-tray .tray-handle{display:block;min-height:40px;font-size:11px;color:#6f8460}.furniture-tray .tray-items{display:none}.furniture-tray.open .tray-items{display:flex}}
+@media(max-width:600px){.decorate-chip{top:64px;padding:9px 16px;font-size:12px}}
+
+/* 11.9 B: tray tabs, the house surfaces, a full house, the seats' icons */
+.furniture-tray .tray-tabs{display:flex;gap:4px;justify-content:center}
+.furniture-tray .tray-tabs button{min-height:32px;padding:4px 14px;background:transparent;border:1px solid transparent;border-radius:999px;font-size:12px;color:#6f8460}
+.furniture-tray .tray-tabs button[aria-selected=true]{background:#e6ecd9;border-color:#cbd8b6;color:#3f5640;font-weight:600}
+.furniture-tray .tray-surfaces{gap:12px;align-items:flex-start}
+.furniture-tray .tray-group{display:flex;flex-direction:column;gap:4px;font-size:11px;color:#6f8460}
+.furniture-tray .tray-group strong{font-weight:600;padding-left:2px}
+.furniture-tray .tray-row{display:flex;gap:6px}
+.furniture-tray .surface-cell{min-width:64px;min-height:60px}
+.furniture-tray .surface-cell.on{border-color:#7e9a64;box-shadow:0 0 0 2px #b9cfa0 inset}
+.furniture-tray .swatch{display:block;width:30px;height:20px;border-radius:6px;border:1px solid #d6c8a8;background:#e6d6b8}
+.furniture-tray .swatch-tile-path{background:#d9c7a4}.furniture-tray .swatch-tile-stone{background:radial-gradient(circle at 35% 50%,#e8dec6 0 6px,transparent 7px),radial-gradient(circle at 72% 45%,#e8dec6 0 5px,transparent 6px),#b9cd9c}
+.furniture-tray .swatch-tile-flower{background:radial-gradient(circle at 30% 45%,#e7a99c 0 3px,transparent 4px),radial-gradient(circle at 65% 55%,#f3d7a9 0 3px,transparent 4px),#8fab7e}.furniture-tray .swatch-tile-grass{background:#b9cd9c}
+.furniture-tray .swatch-exterior{background-size:contain;background-position:center;background-repeat:no-repeat;background-color:#e7efdc}
+.furniture-tray .tray-cell.dim{opacity:.45}
+.furniture-tray .tray-note{margin:0;font-size:11px;color:#6f8460;align-self:center;max-width:150px;white-space:normal}
+.cushion-icon{display:block;width:30px;height:16px;border-radius:50%;background:#e7b7b0;border:1.5px solid #c98f88}
+.bench-icon{display:block;width:34px;height:14px;border-radius:3px;background:linear-gradient(#a9845c 0 40%,#c9a477 40%);border-bottom:3px solid #8a6c4c}
+@media(max-width:600px){.furniture-tray .tray-tabs{display:none}.furniture-tray.open .tray-tabs{display:flex}.furniture-tray .tray-surfaces{flex-wrap:wrap;max-height:46vh;overflow-y:auto}.furniture-tray .tray-row{flex-wrap:wrap}}
+/* 7장 sound: the one-time 소리를 켤까? note (no overlay, the garden stays pressable) and the drawer's 설정 tab */
+.sound-ask{position:absolute;right:20px;bottom:20px;z-index:12;display:flex;align-items:center;gap:8px;padding:10px 12px 10px 16px;border-radius:18px;background:#fff8df;box-shadow:0 6px 18px #43594626}.sound-ask button{min-height:36px;padding:0 14px;border-radius:14px;background:var(--green);color:#fff}.sound-ask button.secondary{background:#efe7cf;color:var(--ink)}
+.settings{display:flex;flex-direction:column;gap:10px}.setting-row{display:grid;grid-template-columns:96px 1fr 28px;align-items:center;gap:10px;min-height:40px;padding:4px 12px;border-radius:12px;background:#fffaf0b3}.setting-row.toggle{grid-template-columns:1fr auto}.setting-row small{grid-column:2/4;color:var(--muted)}.setting-row input[type=range]{width:100%;height:24px;margin:0;padding:0;border:0;background:none;box-shadow:none;accent-color:var(--green)}.setting-row input[type=checkbox]{width:22px;height:22px;accent-color:var(--green)}.setting-row output{text-align:right;color:var(--muted)}.setting-note{color:var(--muted);padding:0 12px}
+@media(max-width:600px){.sound-ask{right:12px;left:12px;bottom:12px;justify-content:space-between}}
