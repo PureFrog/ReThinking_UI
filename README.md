@@ -81,7 +81,7 @@ worker/ · lib/ · .openai/   배포용 (건드리지 않는다)
 | `docs/deferred.md` | 기능 구현을 먼저 하느라 뒤로 미룬 것 |
 | `docs/sound-map.md` | 소리가 날 자리 75곳. `app/core/sound.ts`의 `SLOTS`와 같아야 한다 (단위 테스트가 검사) |
 | `docs/characters.md` | 세 친구의 성격·말투 요약 |
-| `docs/COLLABORATION.md` | 사람과 AI(Claude, GPT 그림, Codex 테스트)가 나눠 일하는 방식 |
+| `docs/COLLABORATION.md` | 사용자·팀원·AI(Claude 코드, GPT 그림, Codex)가 나눠 일하는 방식 |
 | `collab/log.md` | 작업 기록. 무엇을 언제 왜 바꿨는지 한 줄씩 |
 | `CLAUDE.md` · `AGENTS.md` | AI 도구가 매번 읽는 규칙 |
 | `docs/archive/` | 옛 기록. 처음 GPT가 만든 프로토타입 인수인계서 등. 더 고치지 않는다 |
@@ -99,6 +99,7 @@ worker/ · lib/ · .openai/   배포용 (건드리지 않는다)
 
 ## 작업 흐름
 
+0. 저장소는 한 사람에게 맡겨서 넘긴다. 받으면 `git pull` 후 `collab/log.md`를 읽고 시작하고, 넘길 때는 커밋·푸시하고 log에 한 줄 남긴다.
 1. 한 번에 한 단계만 한다. 시작 전에 바꿀 것을 3~5줄로 정리해서 합의한다.
 2. 단계마다 핵심 동작을 `tests/e2e/`에 테스트로 남기고, 새 계산 로직에는 단위 테스트를 붙인다.
 3. 끝나면 검사 네 가지를 통과시키고, 데스크톱 1400px·모바일 375px 화면을 확인한다.
@@ -113,4 +114,4 @@ worker/ · lib/ · .openai/   배포용 (건드리지 않는다)
 - `public/assets/incoming/` GPT가 처음 넘긴 원본 그림
 - `collab/to-gpt/*/`, `collab/to-nanobanana/*/` 그림 요청서의 첨부 그림 (요청서 글은 git에 있다)
 
-예전 커밋에는 이 파일들이 남아 있어서 저장소를 처음 받을 때 크기가 크다(약 260MB).
+예전 커밋에는 이 파일들이 남아 있어서 저장소를 처음 받을 때 크기가 크다(약 265MB).
