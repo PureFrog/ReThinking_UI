@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { openGarden, pickWelcomeGift, openDrawer, clickWorld, enterHouse } from "./helpers";
 
 test.describe.configure({ timeout: 90_000 });

@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 // 0단계 기준선: 고치기 전 현재 화면이 뜨는지만 확인하고 스크린샷을 남긴다.
 // 스크린샷은 test-results/baseline/에 저장되고 커밋하지 않는다.

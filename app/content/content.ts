@@ -14,12 +14,23 @@ export type FriendLines={greet:string;talk:string;bye:string;farewell:string;bus
  // opens a reply to the player's memo in a tree talk
  agree:string;
  // congratulates a week that reached the calendar aim (12.2)
- cheer:string};
+ cheer:string;
+ // 13.7-10 after a stop-loss signal: asks why the player bought {stock}; reads the answer {reason} back
+ ask:string;heard:string;
+ // 13.7-11 a quiz run about to break: the one last chance ({run} days, {left} quizzes to go), or the run lost
+ rescue:string;reset:string;
+ // ux-spec 4장 the note left by a friend who came while the player was away (it watered {stock}, or no tree)
+ away:string;awayPlain:string;
+ // ux-spec 4장 realtime mode: said on the way out, the next visit ("내일 또 올게")
+ tomorrow:string};
 export type Line={text:string;minStage?:number;maxStage?:number;placed?:string;priority?:number};
 // memory: greeting templates per thing remembered (app/core/memory.ts) · gifts: how a gift from the player lands
 // (returned = something the friend gave in the first place)
 export type DialogueBook={lines:Record<keyof FriendLines,Line[]>;tasks:Partial<Record<TaskId,Line[]>>;scenes:Record<string,string[]>;letter?:string[];
- memory?:Partial<Record<MemoryKind,Line[]>>;gifts?:Partial<Record<Reaction|'returned',Line[]>>};
+ memory?:Partial<Record<MemoryKind,Line[]>>;gifts?:Partial<Record<Reaction|'returned',Line[]>>;
+ // ux-spec 8장 onboarding: the friend who shows a new player round (moa) says these in order
+ onboard?:Partial<Record<OnboardLine,string>>};
+export type OnboardLine='welcome'|'capture'|'water'|'bye';
 // a new friend = one more file here
 export const DIALOGUE:Record<string,DialogueBook>={moa,tori,luon} as Record<string,DialogueBook>;
 export type LineContext={stage:number;placed:string[]};
@@ -55,6 +66,12 @@ export function memoryLine(friendId:string){
  // a template whose variable is empty here (no reason written, say) is skipped
  const text=say(friendId,'memory:'+t.kind,book.memory[t.kind]!.filter(l=>fill(l.text,t.vars)));if(!text)return '';
  world.told={...world.told,[friendId]:rememberKey(told,t.key)};onTold(friendId,t.key);return fill(text,t.vars)}
+// 13.7-10 the ask after a stop-loss signal and the line that reads the reason back (a long reason is cut short)
+export const askLine=(friendId:string,stock:string)=>fill(friendLine(friendId,'ask'),{stock});
+export const heardLine=(friendId:string,reason:string)=>fill(friendLine(friendId,'heard'),{reason:reason.length>24?reason.slice(0,23)+'…':reason});
+export const streakLine=(friendId:string,kind:'rescue'|'reset',run:number,left:number)=>fill(friendLine(friendId,kind),{run:String(run),left:String(left)});
+export const awayLine=(friendId:string,stock:string|null)=>stock?fill(friendLine(friendId,'away'),{stock}):friendLine(friendId,'awayPlain');
+export const onboardLine=(friendId:string,kind:OnboardLine,stock='')=>fill(DIALOGUE[friendId]?.onboard?.[kind]??'',{stock});
 export const greetLine=(friendId:string)=>memoryLine(friendId)||friendLine(friendId,'greet');
 export function giftLine(friendId:string,kind:Reaction|'returned',item:string){const b=DIALOGUE[friendId]?.gifts;const options=(b?.[kind]??b?.awkward)?.filter(l=>fill(l.text,{item}));return fill(say(friendId,'gift:'+kind,options)??'',{item})}
 // After decorating, a friend looks at the newest piece (the memory "decor" lines, told once).

@@ -38,3 +38,5 @@ export function mockQuizFor(items:NewsItem[],company:string,day:string,answered:
 }
 export const newsProvider:NewsProvider={quizFor:(company,day,answered)=>mockQuizFor(MOCK_NEWS,company,day,answered)};
 export const NEWS_ITEMS=MOCK_NEWS;
+// The one mock event the friends talk through in a tree story (the 근거 panel) is about this company (ux-spec 4장 visit reason).
+export const MOCK_EVENT_COMPANY='새봄반도체';

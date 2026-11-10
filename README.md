@@ -47,6 +47,10 @@ app/
 │   ├── model.ts        나무 상태, 길찾기 같은 기본 모델
 │   ├── timing.ts       모든 시간값 (여기 한 곳에만 둔다)
 │   ├── care.ts · vitality.ts · retro.ts · letters.ts · achievements.ts · quiz-books.ts
+│   ├── streak.ts · stop-loss.ts       퀴즈 연속일, 손절 대화
+│   ├── visit-reason.ts · traces.ts · daypart.ts   시간 구조: 하루 첫 친구, 비운 사이 흔적, 낮·저녁·밤
+│   ├── onboarding.ts · portfolio.ts   온보딩 단계, 캡처를 나무로 반영
+│   ├── shop.ts · reading.ts           행상 수레, 글자 크기·대사 속도
 │   ├── relationships.ts · memory.ts · gifts.ts · items.ts · decorate.ts
 │   ├── visitor-machine.ts · visitor-tasks.ts · interaction-mode.ts · dialogue-pages.ts
 │   └── sound.ts        효과음·목소리 합성과 소리 자리 목록 (docs/sound-map.md)
@@ -55,7 +59,9 @@ app/
 │   ├── dialogue/       친구별 대사 JSON
 │   ├── friends.ts      친구 명부 (새 친구 = 여기 한 덩어리 + 대사 JSON)
 │   ├── personas.ts     친구 성격 프리셋
-│   └── news.ts         뉴스 OX 퀴즈 공급자 (지금은 모의 뉴스)
+│   ├── news.ts         뉴스 OX 퀴즈 공급자 (지금은 모의 뉴스)
+│   ├── portfolio.ts    포트폴리오 캡처 판독 (지금은 모의)
+│   └── detection.ts    손절 신호 (지금은 주소 ?detect= 모의)
 ├── scene/            Phaser 게임 화면
 │   ├── game.ts         장면 본체
 │   ├── assets.ts       그림 목록 (없는 그림은 도형으로 대신 그린다)
@@ -66,7 +72,7 @@ app/
 public/assets/        게임이 쓰는 그림
 tests/
 ├── *.test.mjs        단위 테스트 (load-app.mjs가 app/의 TypeScript를 불러온다)
-└── e2e/              Playwright 테스트 (stage-<n>-<이름>.spec.ts)
+└── e2e/              Playwright 테스트 (stage-<n>-<이름>.spec.ts, test는 fixtures.ts에서 가져온다)
 docs/                 설계와 기록 (아래 표)
 collab/               그림 요청서와 작업 로그
 scripts/              빌드 스크립트, scripts/art/ 그림 손질 도구, gpt-handoff.sh
@@ -77,9 +83,11 @@ worker/ · lib/ · .openai/   배포용 (건드리지 않는다)
 
 | 문서 | 무엇 |
 | --- | --- |
+| `docs/features.md` | **이어받는 사람이 처음 읽을 것.** 만든 기능 전부, 백엔드로 바꿔 끼울 곳, 체험용 주소, 남은 일(디자인·소리 포함) |
+| `docs/game-guide.md` | 구현한 기능이 게임 화면에서 실제로 어떻게 보이는지, 숫자·문구까지 자세히 |
 | `docs/ux-spec.md` | **유일한 설계서.** 13.7 '사용자 결정 기록'이 같은 주제의 다른 결정보다 우선한다. 11.16은 금지 목록이다 |
 | `docs/deferred.md` | 기능 구현을 먼저 하느라 뒤로 미룬 것 |
-| `docs/sound-map.md` | 소리가 날 자리 75곳. `app/core/sound.ts`의 `SLOTS`와 같아야 한다 (단위 테스트가 검사) |
+| `docs/sound-map.md` | 소리가 날 자리 79곳. `app/core/sound.ts`의 `SLOTS`와 같아야 한다 (단위 테스트가 검사) |
 | `docs/characters.md` | 세 친구의 성격·말투 요약 |
 | `docs/COLLABORATION.md` | 사용자·팀원·AI(Claude 코드, GPT 그림, Codex)가 나눠 일하는 방식 |
 | `collab/log.md` | 작업 기록. 무엇을 언제 왜 바꿨는지 한 줄씩 |
@@ -99,7 +107,7 @@ worker/ · lib/ · .openai/   배포용 (건드리지 않는다)
 
 ## 작업 흐름
 
-0. 저장소는 한 사람에게 맡겨서 넘긴다. 받으면 `git pull` 후 `collab/log.md`를 읽고 시작하고, 넘길 때는 커밋·푸시하고 log에 한 줄 남긴다.
+0. 저장소는 한 사람에게 맡겨서 넘긴다. 받으면 `git pull` 후 `docs/features.md`와 `collab/log.md`를 읽고 시작하고, 넘길 때는 커밋·푸시하고 log에 한 줄 남긴다.
 1. 한 번에 한 단계만 한다. 시작 전에 바꿀 것을 3~5줄로 정리해서 합의한다.
 2. 단계마다 핵심 동작을 `tests/e2e/`에 테스트로 남기고, 새 계산 로직에는 단위 테스트를 붙인다.
 3. 끝나면 검사 네 가지를 통과시키고, 데스크톱 1400px·모바일 375px 화면을 확인한다.

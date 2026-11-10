@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures";
 import { clickWorld, openGarden, openDrawer } from "./helpers";
 
 // 3단계: 사물 패널 공통 틀 (11.6) + 사물마다 그 사물을 연 느낌 (11.16-5).

@@ -17,7 +17,10 @@ test('interaction ends beside blocked object and impossible routes fail',()=>{co
 test('cancelled placement cannot commit after player arrival',()=>{const gate=new ActionGate();const old=gate.begin();gate.cancel();assert.equal(gate.complete(old),false);assert.equal(gate.active,false)});
 test('a newer placement replaces the prior one and can only commit once',()=>{const gate=new ActionGate();const a=gate.begin();const b=gate.begin();assert.equal(gate.complete(a),false);assert.equal(gate.complete(b),true);assert.equal(gate.complete(b),false)});
 test('dialogue choices stay beside the character and inside narrow frames',()=>{for(const w of [320,375,600,1100]){for(const x of [8,45,75,95]){const d=dialogueLayout(x,70,w,w/1.375);assert.ok(d.choiceX>=12);assert.ok(d.choiceX+d.choicesWidth<=w-12);assert.ok(d.bubbleX-d.bubbleWidth/2>=12);assert.ok(d.bubbleX+d.bubbleWidth/2<=w-12)}}});
-test('uncollected visitor gifts use separate floor positions',()=>{const gifts=[{id:'a',x:6,y:7},{id:'b',x:4,y:7}];assert.deepEqual(giftPosition(gifts,[]),{x:5,y:8});assert.deepEqual(giftPosition(gifts,['a']),{x:6,y:7})});
+test('uncollected visitor gifts use separate floor positions',()=>{const gifts=[{id:'a',x:6,y:7},{id:'b',x:4,y:7}];assert.deepEqual(giftPosition(gifts,[]),{x:6,y:8});assert.deepEqual(giftPosition(gifts,['a']),{x:6,y:7})});
+// three boxes waiting with the welcome parcel still unopened: the front door is never boxed in
+test('gift boxes never shut the front door',()=>{const gifts=[{id:'w',x:5,y:6}];for(let i=0;i<3;i++){const p=giftPosition(gifts,[]);assert.notDeepEqual(p,{x:5,y:8});gifts.push({id:'g'+i,...p})}
+ assert.ok([[4,7],[6,7],[5,6]].some(([x,y])=>!gifts.some(g=>g.x===x&&g.y===y)),'a way from the door inside')});
 test('Korean names use appropriate subject particle',()=>{assert.equal(subject('모아'),'모아가');assert.equal(subject('루온'),'루온이')});
 test('expanded yard is walkable through its far corner and rejects outside bounds',()=>{const path=route({x:4,y:4},{x:16,y:14},new Set());assert.deepEqual(path.at(-1),{x:16,y:14});assert.equal(route({x:4,y:4},{x:17,y:14},new Set()),null)});
 

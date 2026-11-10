@@ -5,6 +5,7 @@
 ## 먼저 읽을 것
 
 1. `README.md` — 실행 방법, 폴더 구조, 꼭 지킬 것
+   - `docs/features.md` — 만든 기능 전부, 바꿔 끼울 곳, 체험용 주소, 남은 일
 2. `docs/ux-spec.md` — 13.7 사용자 결정 기록, 11.16 금지 목록
 3. `collab/log.md`의 최근 기록, `docs/deferred.md`
 

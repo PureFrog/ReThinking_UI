@@ -54,8 +54,10 @@ export function dialogueLayout(x:number,y:number,width:number,height:number){
  const tailX=Math.max(-bubbleWidth/2+18,Math.min(bubbleWidth/2-18,px-bubbleX));
  return {bubbleX,bubbleY:Math.max(0,py-height*.12),choiceX,choiceY:Math.max(0,py-height*.02),bubbleWidth,choicesWidth,tailX};
 }
+// Spots for boxes friends bring, around the front door but never on its outside cell (5,8), and filled so the door's
+// inside cell (5,7) keeps a way through while the welcome parcel (5,6) is still there.
 export function giftPosition(gifts:GiftBox[],claimed:string[]){
  const occupied=new Set(gifts.filter(g=>!claimed.includes(g.id)).map(g=>`${g.x},${g.y}`));
- return [{x:6,y:7},{x:4,y:7},{x:5,y:8},{x:6,y:8},{x:4,y:8}].find(p=>!occupied.has(`${p.x},${p.y}`))??null;
+ return [{x:6,y:7},{x:6,y:8},{x:4,y:8},{x:4,y:7}].find(p=>!occupied.has(`${p.x},${p.y}`))??null;
 }
 export function subject(name:string){const code=name.charCodeAt(name.length-1)-0xac00;return name+(code>=0&&code<=11171&&code%28!==0?'이':'가')}

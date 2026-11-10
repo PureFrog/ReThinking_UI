@@ -4,7 +4,8 @@
 export type Mood='sunny'|'calm'|'curious'|'worried'|'tired';
 export const MOODS:{id:Mood;label:string;color:string}[]=[
  {id:'sunny',label:'맑음',color:'#f2c766'},{id:'calm',label:'잔잔',color:'#9cc3a4'},{id:'curious',label:'궁금',color:'#9fb7dd'},{id:'worried',label:'걱정',color:'#d9a08f'},{id:'tired',label:'지침',color:'#b9ad9b'}];
-export type JournalEntry={id:string;holdingId:number;name:string;day:string;saw:string;think:string;mood:Mood|''};
+// asked: the friend who asked for this page (13.7-10, a reason given after a stop-loss signal)
+export type JournalEntry={id:string;holdingId:number;name:string;day:string;saw:string;think:string;mood:Mood|'';asked?:string};
 export type TreeCare={water?:string;feed?:string;answered?:string[]};
 export type Care=Record<string,TreeCare>;
 

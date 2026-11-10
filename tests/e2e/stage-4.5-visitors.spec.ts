@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures";
 import { openGarden, inviteMoa, clickWorld } from "./helpers";
 
 test.describe.configure({ timeout: 120_000 });

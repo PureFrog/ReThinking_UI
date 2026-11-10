@@ -45,7 +45,7 @@ export function PlayerPreview({slots}:{slots:Slots}){const s=SPRITES.player.size
 export function HoldButton({onDone,children,className=''}:{onDone:()=>void;children:ReactNode;className?:string}){const [holding,setHolding]=useState(false);const t=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);const done=useRef(onDone);done.current=onDone;const start=()=>{clearTimeout(t.current);setHolding(true);t.current=setTimeout(()=>{setHolding(false);done.current()},TIMING.hold)};const stop=()=>{clearTimeout(t.current);setHolding(false)};useEffect(()=>()=>clearTimeout(t.current),[]);return <button type="button" className={'hold-button '+(holding?'holding ':'')+className} style={{['--hold' as string]:TIMING.hold+'ms'}} onPointerDown={start} onPointerUp={stop} onPointerLeave={stop} onPointerCancel={stop} onKeyDown={e=>{if((e.key===' '||e.key==='Enter')&&!e.repeat){e.preventDefault();start()}}} onKeyUp={stop}><span className="hold-fill" aria-hidden="true"/>{children}</button>}
 
 // an anonymous friend found out in its 단짝 scene is named, with a 'maybe' (ux-spec 3장)
-export const senderLine=(g:GiftBox,revealed:string[]=[])=>g.anonymous?(revealed.includes(g.sender)?friendById(g.sender).name+'(아마도)':'누군가 두고 갔어'):subject(friendById(g.sender).name)+' 줬어';
+export const senderLine=(g:GiftBox,revealed:string[]=[])=>g.sender==='cart'?'행상 수레에서 샀어':g.anonymous?(revealed.includes(g.sender)?friendById(g.sender).name+'(아마도)':'누군가 두고 갔어'):subject(friendById(g.sender).name)+' 줬어';
 const sender=(g:GiftBox|undefined,revealed:string[])=>!g?'처음부터 있던 옷':senderLine(g,revealed);
 type Filter='all'|ItemKind;
 // 보유함: picture grid + filter tabs + detail area (11.8-③).

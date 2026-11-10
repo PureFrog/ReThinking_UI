@@ -189,7 +189,7 @@ scripts/art/               시트 자르기·나무 자리 재기 같은 기계�
 - 커밋하지 않는 것: `node_modules/`, 빌드 결과물, `test-results/`, `.env*`, 토큰.
 - **맡기는 방식.** 한 번에 한 사람(또는 한 AI)만 작업한다. 브랜치는 따로 쓰지 않고 `main` 하나를 쓴다.
   - 넘기는 사람: 작업을 커밋하고 푸시한 뒤 `collab/log.md`에 어디까지 했는지 한 줄 남긴다.
-  - 받는 사람: `git pull`로 최신을 받고, `collab/log.md`와 `docs/deferred.md`를 읽고 시작한다.
+  - 받는 사람: `git pull`로 최신을 받고, `docs/features.md`(만든 기능·남은 일 한눈에), `collab/log.md`, `docs/deferred.md`를 읽고 시작한다.
 
 ---
 

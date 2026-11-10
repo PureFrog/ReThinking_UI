@@ -109,7 +109,7 @@ export const BLOCKED_CELLS:string[]=[
  // the attic ladder and the hatch it comes up through
  `${LADDER.x},${LADDER.y}`,`${HATCH.x},${HATCH.y}`,
  // garden: mailbox, seed box, shovel, well, shed, fertilizer, compost, cart, scarecrow
- '5,10','2,10','3,10','5,14','1,15','2,15','1,16','2,16','3,15','3,19','6,19','13,24',
+ '5,10','4,10'/* the peddler's cart (5장) */,'2,10','3,10','5,14','1,15','2,15','1,16','2,16','3,15','3,19','6,19','13,24',
 ];
 // The farm fence keeps people out of the rows except through the gate at the north-west corner (8,10):
 // each fence line blocks the row of cells nearest to it.

@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { clickWorld, openGarden, pickWelcomeGift } from "./helpers";
 
 // 002 reference sheet: back view when walking away from the camera, faces + effects on feelings.

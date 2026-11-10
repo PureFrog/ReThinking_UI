@@ -61,7 +61,7 @@ export const SLOTS={
  // 대화
  'voice':null/* per letter, see voice() */,'talk-start':null,'talk-next':null,'talk-end':null,'memo-send':null,
  // 친구
- 'invite-send':null,'friend-arrive':null,'door-knock':null,'friend-leave':null,'heart':'heart','stage-up':null,'gift-give':null,'gift-arrive':null,'letter-open':'letter',
+ 'invite-send':null,'friend-arrive':null,'door-knock':null,'friend-leave':null,'heart':'heart','stage-up':null,'gift-give':null,'gift-arrive':null,'letter-open':'letter','away-traces':null,
  // 정원·나무
  'plant':null,'water':'water','feed':null,'care-done':null,'sun-pieces':null,'uproot':null,'tree-tap':null,'promise':null,'calendar':null,'land-open':null,'cheer':null,
  // 선물·서랍·옷
@@ -71,7 +71,7 @@ export const SLOTS={
  // 집
  'door':'door','stairs':null,'sit':null,'stand':null,'lamp-toggle':null,'furniture-use':null,'house-grow':null,'attic-open':null,'shelf-grow':null,
  // 일지·퀴즈
- 'journal-save':null,'quiz-right':null,'quiz-wrong':null,'quiz-gold':null,'retro-save':null,
+ 'journal-save':null,'quiz-right':null,'quiz-wrong':null,'quiz-gold':null,'retro-save':null,'streak-day':null,'streak-saved':null,'streak-bonus':null,
 } as const satisfies Record<string,Effect|null>;
 export type Slot=keyof typeof SLOTS;
 export function cue(slot:Slot){if(typeof document!=='undefined')document.documentElement.dataset.lastSlot=slot;const e=SLOTS[slot];if(e)play(e)}

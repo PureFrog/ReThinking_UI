@@ -63,7 +63,18 @@ export const treeArt=(name:string)=>({key:`tree-${name}`,url:`/assets/trees/${na
 const care=(n:string)=>({key:`care-${n}`,url:`/assets/care/${n}.png`});
 export const CARE_IMAGES={jar:[0,1,2,3].map(i=>care(`sunlight_jar_${i}`)),sunPiece:care('sun_piece'),wateringCan:care('tool_watering_can'),fertilizerBag:care('tool_fertilizer_bag'),calendar:care('wall_calendar'),
  // 019 the care axis (ux-spec 2장) and the week ribbon (12.2): drawn at 2×, used at half size
- flowers:[care('care_flowers_1'),care('care_flowers_2')],butterfly:[care('butterfly_open'),care('butterfly_closed')],promiseRibbon:care('promise_ribbon'),promiseKnot:care('promise_knot'),weekRibbon:care('week_ribbon')};
+ flowers:[care('care_flowers_1'),care('care_flowers_2')],butterfly:[care('butterfly_open'),care('butterfly_closed')],promiseRibbon:care('promise_ribbon'),promiseKnot:care('promise_knot'),weekRibbon:care('week_ribbon'),
+ // 023 traces of a friend who came while the player was away (ux-spec 4장): drawn at 2×, used at half size
+ paws:[care('trace_paw_left'),care('trace_paw_right')],wetSoil:care('trace_wet_soil')};
+// ux-spec 4장 evening and night pictures (024, Nano Banana): the same picture in other light, kept next to the day one
+// as public/assets/<folder>/<part>/<same file name>. Listed here (by the day picture's path) once delivered; a picture
+// not listed keeps its day look at every hour.
+// 024 delivered 2026-11-10. The four grass tiles came back each in its own light (a checkerboard when laid), so every
+// grass tile uses the most even one of them (night 1, evening 4), and the right yard edge is the left one mirrored
+// (the right one carried the model's watermark).
+const DAYPART_024=['/assets/house/farm_cart.png','/assets/house/farm_compost.png','/assets/house/farm_fence_a.png','/assets/house/farm_fence_b.png','/assets/house/farm_fertilizer.png','/assets/house/farm_gate.png','/assets/house/farm_plot.png','/assets/house/farm_plot_empty.png','/assets/house/farm_scarecrow.png','/assets/house/farm_shed.png','/assets/house/farm_sign.png','/assets/house/farm_well.png','/assets/house/yard_flower_patch_1.png','/assets/house/yard_flower_patch_2.png','/assets/house/yard_mailbox.png','/assets/house/yard_seedbox.png','/assets/house/yard_shovel.png','/assets/house9/house_exterior.webp','/assets/house9/house_exterior_grown.webp','/assets/house9/house_exterior_grown_rose.webp','/assets/house9/house_exterior_rose.webp','/assets/ground/ground_grass_1.png','/assets/ground/ground_grass_2.png','/assets/ground/ground_grass_3.png','/assets/ground/ground_grass_4.png','/assets/ground/ground_path.png','/assets/ground/ground_stepping_stone.png','/assets/ground/ground_edge_left.png','/assets/ground/ground_edge_right.png'];
+export const DAYPART_ART:Record<'evening'|'night',string[]>={evening:DAYPART_024,night:DAYPART_024};
+export const daypartUrl=(path:string,part:'evening'|'night')=>path.replace(/\/([^/]+)$/,`/${part}/$1`);
 // Mood stickers (011 E), 128×128 round stickers for the journal form and the calendar panel.
 export const MOOD_IMAGES:Partial<Record<string,string>>={sunny:'/assets/ui/moods/mood_sunny.png',calm:'/assets/ui/moods/mood_calm.png',curious:'/assets/ui/moods/mood_curious.png',worried:'/assets/ui/moods/mood_worried.png',tired:'/assets/ui/moods/mood_tired.png'};
 // Milestone gifts (011 F): 512×512 drawn at 2× (one cell = 172×86), footprint centred 18px up — shown at 256.

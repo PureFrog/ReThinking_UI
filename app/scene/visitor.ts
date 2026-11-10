@@ -4,7 +4,8 @@ import {cue} from '../core/sound';
 import type * as Phaser from 'phaser';
 import type {GardenScene} from './game';
 import {pickTask,mayTalk,stepAside,near,dist,cornerCell,fleeCell,TASKS,FLOWER_CELLS,type TaskId,type Emote} from '../core/visitor-tasks';
-import {friendById} from '../content/friends';
+import {friendById,FRIENDS} from '../content/friends';
+const FRIENDS_GUIDE=FRIENDS[0].id;
 import {personaOf} from '../content/personas';
 import {friendLine,taskLine} from '../content/content';
 import {VisitorMachine} from '../core/visitor-machine';
@@ -42,7 +43,7 @@ export class Visitor{
   const taken=(c:Cell)=>s.guests.some(o=>o!==this&&(o.goal?.x===c.x&&o.goal?.y===c.y||o.actor.cell.x===c.x&&o.actor.cell.y===c.y));
   let id:TaskId='stretch';let t=TASKS.stretch;let goal:Cell|null=null;let tree;
   for(let attempt=0;attempt<4;attempt++){
-   id=attempt===0&&opening&&(opening!=='water'||dry.length)?opening:pickTask(persona,{recent:this.tasksDone,dryTree:dry.length>0,newThing:!!fresh,closeness:s.closeness[this.id]});t=TASKS[id];
+   id=s.onboarding&&this.id===FRIENDS_GUIDE?'follow'/* ux-spec 8장: the guide keeps near the new player */:attempt===0&&opening&&(opening!=='water'||dry.length)?opening:pickTask(persona,{recent:this.tasksDone,dryTree:dry.length>0,newThing:!!fresh,closeness:s.closeness[this.id],night:s.daypart==='night'});t=TASKS[id];
    tree=id==='water'?dry[Math.floor(Math.random()*dry.length)]:undefined;goal=null;
    if(typeof t.spot==='object')goal=t.spot;
    else if(t.spot==='player')goal={...s.player.cell};
@@ -135,5 +136,6 @@ export class Visitor{
  scheduleDeparture(delay:number){this.departTimer?.remove();this.departTimer=this.scene.time.delayedCall(delay,()=>{if(!this.present)return;if(this.engaged||this.scene.locked||this.busy)this.scheduleDeparture(TIMING.visitRetry);else this.depart()})}
  depart(){const s=this.scene,g=this.actor;if(!this.present||this.leaving)return;if(s.mode!=='free'){s.worldQueue.enqueue('departure',()=>this.depart());return}
   if(this.engaged){++s.talkRequest;s.talkWith=null;s.emote(null);emit('close-talk')}this.gesture(null);s.feel('sad');this.machine.transition('leaving');this.leaving=true;this.activityTimer?.remove();this.departTimer?.remove();if(s.bubble.id===this.id){emit('ambient',null);s.bubble={id:'',until:0}}
+  if(s.live)this.says(friendLine(this.id,'tomorrow'))/* ux-spec 4장 세션 루프 4: the next visit, said on the way out */;
   const gone=s.walk(g,DOOR,()=>{g.node.destroy();this.machine.reset();s.visitorGone(this)});if(!gone){this.leaving=false;this.machine.transition('idle');this.scheduleDeparture(TIMING.visitRetry);this.schedule()}}
 }
