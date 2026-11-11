@@ -19,7 +19,7 @@ pnpm exec playwright install chromium   # e2e 테스트를 돌릴 사람만
 pnpm dev
 ```
 
-브라우저에서 http://127.0.0.1:5173 을 연다. 저장은 브라우저 localStorage(`little-garden-v3`)에만 된다. 처음부터 다시 보고 싶으면 개발자 도구에서 이 키를 지운다.
+브라우저에서 http://127.0.0.1:5173 을 연다. 휴대폰 앱 시안은 http://127.0.0.1:5173/app (방 하나씩, 아래 탭, `app/proto/`). 저장은 브라우저 localStorage(`little-garden-v3`)에만 된다. 처음부터 다시 보고 싶으면 개발자 도구에서 이 키를 지운다.
 
 ## 검사
 
@@ -67,7 +67,9 @@ app/
 │   ├── assets.ts       그림 목록 (없는 그림은 도형으로 대신 그린다)
 │   ├── layout.ts       집·농장 칸 배치
 │   └── visitor.ts · trees.ts · surfaces.ts · effects.ts · world.ts …
-└── ui/               React 화면 조각 (말풍선, 서랍, 돌봄, 꾸미기 줄, 설정 …)
+├── ui/               React 화면 조각 (말풍선, 서랍, 돌봄, 꾸미기 줄, 설정 …)
+├── proto/            휴대폰 앱 시안 (/app): 공간 그림·누를 자리 데이터(rooms.ts)와 화면(ProtoApp.tsx)
+└── app/page.tsx      /app 주소
 
 public/assets/        게임이 쓰는 그림
 tests/
