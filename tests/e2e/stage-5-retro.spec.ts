@@ -55,7 +55,7 @@ test("12.4 회고는 30일이 지나야 온다 · ?ahead=30이면 오늘 쓴 일
   await openGarden(page);
   await page.waitForTimeout(1_000);
   expect(await flag(page, "retro")).toBe("0");
-  await page.goto("/?ahead=30");
+  await page.goto("/classic?ahead=30");
   await expect(page.locator(".loading")).toHaveCount(0, { timeout: 30_000 });
   await expect.poll(() => flag(page, "retro"), { timeout: 10_000 }).toBe("1");
 });

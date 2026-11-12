@@ -14,7 +14,7 @@ export async function clickWorld(page: Page, x: number, y: number) {
 export const iso = (x: number, y: number, lift = 0) => ({ x: 700 + (x - y) * 43, y: 235 + (x + y) * 21.5 - lift });
 
 export async function openGarden(page: Page) {
-  await page.goto("/");
+  await page.goto("/classic");
   await expect(page.locator(".game canvas")).toBeVisible({ timeout: 30_000 });
   await expect(page.locator(".loading")).toHaveCount(0);
 }

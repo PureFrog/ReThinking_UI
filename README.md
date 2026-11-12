@@ -19,7 +19,7 @@ pnpm exec playwright install chromium   # e2e 테스트를 돌릴 사람만
 pnpm dev
 ```
 
-브라우저에서 http://127.0.0.1:5173 을 연다. 휴대폰 앱 시안은 http://127.0.0.1:5173/app (방 하나씩, 아래 탭, `app/proto/`). 저장은 브라우저 localStorage(`little-garden-v3`)에만 된다. 처음부터 다시 보고 싶으면 개발자 도구에서 이 키를 지운다.
+브라우저에서 http://127.0.0.1:5173 을 연다. **메인은 3D 정원(ReThink Garden, `app/proto3d/`, 설계 `docs/redesign.md`)**이고, 저장은 `rethink-garden-v1`, 확인용 주소는 `?reset`(처음부터, 온보딩부터)·`?demo`(예시 7종목 정원)·`?ahead=N`·`?weather=`. 예전 2D 정원은 http://127.0.0.1:5173/classic. 휴대폰 앱 시안은 http://127.0.0.1:5173/app (방 하나씩, 아래 탭, `app/proto/`). 2D 정원 저장은 브라우저 localStorage(`little-garden-v3`)에만 된다. 처음부터 다시 보고 싶으면 개발자 도구에서 이 키를 지운다.
 
 ## 검사
 

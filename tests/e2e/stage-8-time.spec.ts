@@ -7,7 +7,7 @@ import { clickWorld } from "./helpers";
 test.describe.configure({ timeout: 90_000 });
 const data = (page: Page, k: string) => page.locator(".game canvas").evaluate((c, k) => (c as HTMLCanvasElement).dataset[k] ?? "", k);
 const saved = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem("little-garden-v3") ?? "{}"));
-async function open(page: Page, state: object, url = "/") {
+async function open(page: Page, state: object, url = "/classic") {
   await page.addInitScript(([s]) => {
     if (sessionStorage.getItem("seeded")) return;
     sessionStorage.setItem("seeded", "1");
@@ -61,7 +61,7 @@ test("realtime: back after hours away — tori comes for the mock event, another
 
 test("realtime: '?away=N' opens as if away N hours; a journal left long brings luon", async ({ page }) => {
   const old = new Date(Date.now() - 20 * 86400_000), day = old.getFullYear() + "-" + String(old.getMonth() + 1).padStart(2, "0") + "-" + String(old.getDate()).padStart(2, "0");
-  await open(page, { ...live, lossSeen: [3, 4], decision: "유지", journal: [{ id: "j", holdingId: 2, name: "별숲게임즈", day, saw: "", think: "신작 기대", mood: "" }] }, "/?away=7");
+  await open(page, { ...live, lossSeen: [3, 4], decision: "유지", journal: [{ id: "j", holdingId: 2, name: "별숲게임즈", day, saw: "", think: "신작 기대", mood: "" }] }, "/classic?away=7");
   await expect.poll(() => data(page, "firstVisit"), { timeout: 10_000 }).toBe("luon");
   await expect.poll(() => data(page, "traces"), { timeout: 10_000 }).toMatch(/^footprints/);
 });
@@ -95,7 +95,7 @@ test("the 시연 모드 switch sits in the journal's 성장 기준 page and is s
 // ux-spec 4장 day, evening, night by Seoul time ('?hour=N' fixes the hour)
 for (const [hour, part, label] of [[10, "day", "포근한 낮"], [18, "evening", "노을 지는 저녁"], [23, "night", "조용한 밤"]] as const) {
   test(`time of day: ${hour}시 is ${part}`, async ({ page }) => {
-    await open(page, live, `/?hour=${hour}`);
+    await open(page, live, `/classic?hour=${hour}`);
     await expect(page.locator(".world-weather .daypart")).toHaveText(label);
     await expect.poll(() => data(page, "daypart"), { timeout: 10_000 }).toBe(part);
   });

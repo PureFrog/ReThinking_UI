@@ -20,7 +20,7 @@ async function openSeedbox(page: Page) {
 const PNG = { name: "portfolio.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") };
 
 test("a new player: name, moa, a capture becomes trees, first journal, candy and goodbye", async ({ page }) => {
-  await page.goto("/?fresh");
+  await page.goto("/classic?fresh");
   await expect(page.locator(".game canvas")).toBeVisible({ timeout: 30_000 });
   // an empty garden and the name first (no explanation popup)
   const name = page.getByRole("dialog", { name: "이름 정하기" });
@@ -67,7 +67,7 @@ test("a new player: name, moa, a capture becomes trees, first journal, candy and
 });
 
 test("a save from before skips the onboarding", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/classic");
   await expect(page.locator(".game canvas")).toBeVisible({ timeout: 30_000 });
   await page.waitForTimeout(2_000);
   await expect(page.getByRole("dialog", { name: "이름 정하기" })).toHaveCount(0);
@@ -83,7 +83,7 @@ test("a later capture: new rates, a new tree, and a tree missing from it is aske
       { id: 9, name: "푸른칩테크", kind: 0, price: 10000, quantity: 5, date: "2026-07-01", rate: -2, plot: 4, lossDays: 0 },
     ] }));
   });
-  await page.goto("/");
+  await page.goto("/classic");
   await expect(page.locator(".game canvas")).toBeVisible({ timeout: 30_000 });
   await openSeedbox(page);
   await page.getByLabel("내 주식 화면 캡처 올리기").setInputFiles(PNG);

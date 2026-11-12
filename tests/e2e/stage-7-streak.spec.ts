@@ -12,7 +12,7 @@ async function seedRun(page: Page, count: number, ago: number) {
     const day = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
     localStorage.setItem("little-garden-v3", JSON.stringify({ streak: { count, last: day, best: count, rescued: false, rescue: null, notice: null } }));
   }, [count, ago]);
-  await page.goto("/");
+  await page.goto("/classic");
   await expect(page.locator(".game canvas")).toBeVisible({ timeout: 30_000 });
 }
 const streak = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem("little-garden-v3") ?? "{}").streak);

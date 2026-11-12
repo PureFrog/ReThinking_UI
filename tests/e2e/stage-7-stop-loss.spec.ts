@@ -7,7 +7,7 @@ const canvas = (page: import("@playwright/test").Page) => page.locator(".game ca
 const saved = (page: import("@playwright/test").Page) => page.evaluate(() => JSON.parse(localStorage.getItem("little-garden-v3") ?? "{}"));
 
 test("a stop-loss signal brings a friend who asks why, and keeps the answer", async ({ page }) => {
-  await page.goto("/?detect=3");
+  await page.goto("/classic?detect=3");
   await expect(canvas(page)).toBeVisible({ timeout: 30_000 });
   // nobody pressed anything: the friend walks in and up to the player
   const bubble = page.locator(".formal-bubble");
@@ -39,7 +39,7 @@ test("a stop-loss signal brings a friend who asks why, and keeps the answer", as
 });
 
 test("without a signal no friend comes to ask", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/classic");
   await expect(canvas(page)).toBeVisible({ timeout: 30_000 });
   await page.waitForTimeout(6_000);
   await expect(page.locator(".formal-bubble")).toHaveCount(0);

@@ -6,7 +6,7 @@ test.describe.configure({ timeout: 90_000 });
 const saved = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem("little-garden-v3") ?? "{}"));
 
 test("8장 설정: 글자 크기와 대사 속도를 고르면 저장되고 바로 반영된다", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/classic");
   await expect(page.locator(".game canvas")).toBeVisible({ timeout: 30_000 });
   await openDrawer(page);
   await page.getByRole("button", { name: "설정" }).click();
@@ -24,7 +24,7 @@ test("8장 설정: 글자 크기와 대사 속도를 고르면 저장되고 바�
 
 test("8장 모바일: 패널과 설정의 누를 곳은 모두 44px 이상", async ({ page, isMobile }) => {
   test.skip(!isMobile, "touch sizes are for phones");
-  await page.goto("/");
+  await page.goto("/classic");
   await expect(page.locator(".game canvas")).toBeVisible({ timeout: 30_000 });
   await openDrawer(page);
   for (const tab of ["보유함", "옷장", "설정"]) {

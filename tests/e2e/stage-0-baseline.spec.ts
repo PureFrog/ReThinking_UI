@@ -6,7 +6,7 @@ test("13.3 기준선 — 정원 화면이 오류 없이 뜬다", async ({ page }
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
 
-  await page.goto("/");
+  await page.goto("/classic");
   await expect(page.locator(".game canvas")).toBeVisible({ timeout: 30_000 });
   await expect(page.locator(".loading")).toHaveCount(0);
   // Phaser 첫 프레임과 첫 친구 등장 전 화면이 안정될 시간을 준다.

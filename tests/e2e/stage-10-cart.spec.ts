@@ -20,7 +20,7 @@ async function seed(page: Page, sunlight: number) {
     sessionStorage.setItem("seeded", "1");
     localStorage.setItem("little-garden-v3", JSON.stringify({ sunlight: s }));
   }, [sunlight] as const);
-  await page.goto("/");
+  await page.goto("/classic");
   await expect(page.locator(".game canvas")).toBeVisible({ timeout: 30_000 });
 }
 

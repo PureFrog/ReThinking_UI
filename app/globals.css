@@ -368,3 +368,14 @@ html[data-text-size="large"] :is(.npc-bubble>*,.npc-choices>*,.panel-body,.panel
 .proto-phone .care-journal label{margin-top:12px}
 .proto-phone textarea,.proto-phone input[type=text]{width:100%;padding:10px 12px;border-radius:12px;border:1.5px solid #e0cfa8;background:#fffef7;font:inherit;font-size:15px;color:#5b4636;resize:none;box-sizing:border-box}
 .proto-phone .care-journal label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#8c7a62}
+
+/* proto3d · 3D 룩 시안 (/proto3d) */
+.proto3d{position:fixed;inset:0;overflow:hidden;touch-action:none;background:linear-gradient(180deg,#7fd2f3 0%,#bfe9f5 38%,#e9f6e4 100%)}
+.proto3d-top{position:absolute;left:16px;right:16px;top:16px;display:flex;justify-content:space-between;pointer-events:none}
+.proto3d-chip{border-radius:20px;background:#ffffffc4;padding:9px 16px;font-size:13px;font-weight:600;color:#2f5a3c;box-shadow:0 2px 10px #3a6a5a1f;backdrop-filter:blur(6px)}
+.proto3d-hint{position:absolute;left:16px;right:16px;top:64px;text-align:center;font-size:11px;color:#2f5a3cb3;pointer-events:none}
+.proto3d-locate{position:absolute;right:16px;bottom:24px;display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:#ffffffb3;color:#2f5a3c;box-shadow:0 2px 10px #3a6a5a26;backdrop-filter:blur(6px)}
+.proto3d-card{position:absolute;left:16px;right:16px;bottom:88px;margin:0 auto;max-width:360px;display:flex;justify-content:space-between;gap:8px;border-radius:24px;background:#ffffffe6;padding:16px 8px 16px 18px;box-shadow:0 8px 30px #3a6a5a2e;backdrop-filter:blur(8px);animation:appear .2s}
+.proto3d-card h2{font-size:16px;line-height:1.4;color:#24452f}.proto3d-card p{font-size:13px;color:#3d6648;margin-top:4px}.proto3d-card small{display:block;font-size:11px;color:#5b7d64;margin-top:4px}
+.proto3d-card button{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;color:#5b7d64}
+.proto3d-sun{position:absolute;left:0;top:0;transform:translate(-45%,-45%);pointer-events:none;mix-blend-mode:screen}

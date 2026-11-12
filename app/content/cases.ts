@@ -1,0 +1,43 @@
+// Today's case (app/core/cases.ts): real past cases, company name hidden until answered. Facts are kept qualitative
+// and limited to what was widely reported at the time; check each against its source before a public demo, and
+// swap in the team's verified case data (R5 server) when it is ready.
+import type {PastCase} from '../core/cases';
+const C3=(collapse:string,flat:string,recover:string)=>[{id:'collapse',label:collapse},{id:'flat',label:flat},{id:'recover',label:recover}];
+export const CASES:PastCase[]=[
+  {id:'shipping-2016',sector:'해운',when:'2015년 말',
+    facts:[{k:'업황',v:'운임이 수년째 하락'},{k:'부채',v:'부채비율 수백 %대'},{k:'자금',v:'채권단 지원 협상 중'},{k:'주가',v:'수년째 저점을 낮춤'}],
+    question:'다음 1년, 이 회사는?',choices:C3('상장폐지까지 감','구조조정 후 버팀','업황 회복으로 반등'),answer:'collapse',
+    hints:[{model:'ohlson',text:'부도 확률이 최상위 구간에 있었어.'},{model:'gradual',text:'몇 년째 저점이 낮아지는 추세였어.'}],
+    reveal:{name:'한진해운',year:'2016–2017',what:'2016년 8월 법정관리 신청, 2017년 2월 파산 선고.',firstCaught:'ohlson',lesson:'업계 1위라는 이유가 부채를 못 이겼어.'},
+    source:'국내 보도: 법정관리 신청(2016.8), 파산 선고(2017.2)'},
+  {id:'biotech-2019',sector:'바이오',when:'2019년 상반기',
+    facts:[{k:'사업',v:'항암 신약 하나에 집중'},{k:'단계',v:'임상 3상 진행 중'},{k:'실적',v:'매출 거의 없음, 적자'},{k:'주가',v:'기대감으로 크게 오른 뒤 등락'}],
+    question:'그해 여름 이후 주가는?',choices:C3('크게 무너짐','큰 변화 없음','신고가'),answer:'collapse',
+    hints:[{model:'rebuttal',text:'매수 이유가 임상 하나뿐이었어.'},{model:'fscore',text:'현금흐름 적자, 이익 없음.'}],
+    reveal:{name:'신라젠',year:'2019',what:'2019년 8월 임상 3상 중단 권고 발표 후 급락.',firstCaught:'rebuttal',lesson:'이유가 하나면 반박도 하나로 끝나.'},
+    source:'국내 보도: 펙사벡 임상 3상 무용성 평가 결과(2019.8)'},
+  {id:'shipbuilder-2015',sector:'조선',when:'2014년 말',
+    facts:[{k:'실적',v:'흑자 발표'},{k:'현금',v:'영업현금흐름은 마이너스'},{k:'장부',v:'받을 돈(미청구공사) 급증'},{k:'수주',v:'해양플랜트 대형 수주'}],
+    question:'다음 해, 이 회사는?',choices:C3('대규모 손실이 드러남','실적 유지','수주로 성장'),answer:'collapse',
+    hints:[{model:'fscore',text:'이익은 흑자인데 현금이 안 들어왔어.'},{model:'dupont',text:'이익의 출처가 장부상 매출이었어.'}],
+    reveal:{name:'대우조선해양',year:'2015',what:'2015년 대규모 손실 공개, 이후 회계 부정으로 재무제표 수정.',firstCaught:'fscore',lesson:'이익과 현금이 반대로 가면 이익을 의심해.'},
+    source:'국내 보도: 2015년 손실 공개, 이후 분식회계 수사와 재무제표 정정'},
+  {id:'energy-2001',sector:'에너지·트레이딩',when:'2001년 초',
+    facts:[{k:'실적',v:'이익이 매년 늘었다고 발표'},{k:'구조',v:'설명하기 어려운 특수 거래 다수'},{k:'현금',v:'이익에 비해 현금흐름이 약함'},{k:'평판',v:'혁신 기업으로 꼽힘'}],
+    question:'그해 말, 이 회사는?',choices:C3('파산','조정 후 유지','계속 성장'),answer:'collapse',
+    hints:[{model:'fscore',text:'현금흐름이 이익을 못 따라갔어.'},{model:'rebuttal',text:'구조를 설명 못 하는 회사였어.'}],
+    reveal:{name:'엔론',year:'2001',what:'2001년 10월 손실과 부채 은폐가 드러나고, 12월 파산 신청.',firstCaught:'fscore',lesson:'설명 못 하는 이익은 이익이 아니야.'},
+    source:'미국 보도와 공시: 파산 신청(2001.12)'},
+  {id:'streaming-2011',sector:'스트리밍',when:'2011년 말',
+    facts:[{k:'사건',v:'가격 인상과 서비스 분리 발표'},{k:'반응',v:'가입자 이탈, 비판 집중'},{k:'주가',v:'고점 대비 70% 넘게 하락'},{k:'사업',v:'해외 확장, 자체 콘텐츠 투자 계획'}],
+    question:'다음 2년, 주가는?',choices:C3('더 무너짐','그 자리','고점을 넘어 회복'),answer:'recover',
+    hints:[{model:'gradual',text:'하락 추세 신호가 몇 달째 켜져 있었어.'},{model:'rebuttal',text:'산 이유(스트리밍) 자체는 그대로였어.'}],
+    reveal:{name:'넷플릭스',year:'2011–2013',what:'2013년 주가가 2011년 고점을 넘어섬.',firstCaught:'gradual',lesson:'신호는 질문이지 답이 아니야. 이번엔 틀렸어.'},
+    source:'미국 주가 기록(2011–2013)'},
+  {id:'bank-2008',sector:'투자은행',when:'2008년 초',
+    facts:[{k:'레버리지',v:'자기자본의 30배 안팎'},{k:'자산',v:'부동산 관련 비중 큼'},{k:'업계',v:'같은 업종 한 곳이 3월에 매각됨'},{k:'경영진',v:'자본은 충분하다고 발표'}],
+    question:'그해 가을, 이 회사는?',choices:C3('파산','매각돼 살아남음','위기 넘기고 반등'),answer:'collapse',
+    hints:[{model:'ohlson',text:'부채 구조가 부도 확률 상위였어.'},{model:'crash',text:'여름부터 급락이 반복됐어.'}],
+    reveal:{name:'리먼 브라더스',year:'2008',what:'2008년 9월 15일 파산 보호 신청.',firstCaught:'ohlson',lesson:'경영진 발표는 근거가 아니야.'},
+    source:'미국 보도와 법원 기록: 파산 보호 신청(2008.9.15)'},
+];
