@@ -8,15 +8,17 @@ import {useGLTF} from '@react-three/drei';
 import * as THREE from 'three';
 import {soft} from './materials';
 import {MODELS} from './models';
+import {route} from './places';
 import type {AnalystId} from '../content/analysts';
 
 export type AnalystSpot={x:number;z:number};
-type Props={id:AnalystId;to:AnalystSpot;from?:AnalystSpot|null;face:React.MutableRefObject<THREE.Vector3>;surface:(x:number,z:number)=>number;tilt:(x:number,z:number)=>THREE.Quaternion;
+// act: what they do where their day has them (core/routine.ts) · faceTo: which way they look while doing it
+type Props={id:AnalystId;to:AnalystSpot;from?:AnalystSpot|null;act?:string;faceTo?:number;face:React.MutableRefObject<THREE.Vector3>;surface:(x:number,z:number)=>number;tilt:(x:number,z:number)=>THREE.Quaternion;
   bubble:{text:string;alert:boolean}|null;onPick:()=>void;report:(id:AnalystId,v:THREE.Vector3)=>void};
 const SPEED=2.2;
 const eyeMat=new THREE.MeshStandardMaterial({color:'#1d1f24',roughness:0.3});
 
-export function Analyst({id,to,from,face,surface,tilt,bubble,onPick,report}:Props){
+export function Analyst({id,to,from,act,faceTo,face,surface,tilt,bubble,onPick,report}:Props){
   const {scene}=useGLTF(MODELS.analyst(id));
   const model=useMemo(()=>{const root=scene.clone(true);
     root.traverse(o=>{const m=o as THREE.Mesh;if(!m.isMesh)return;m.castShadow=true;m.receiveShadow=true;
@@ -30,19 +32,27 @@ export function Analyst({id,to,from,face,surface,tilt,bubble,onPick,report}:Prop
   const pos=useRef(new THREE.Vector3((from??to).x,0,(from??to).z)),heading=useRef(0),blink=useRef(2+Math.random()*3);
   const v=useMemo(()=>new THREE.Vector3(),[]);
   useEffect(()=>{if(g.current)g.current.name=`analyst-${id}`},[id]);
-  useFrame(({clock},dt)=>{const gr=g.current,tr=turn.current;if(!gr||!tr)return;const t=clock.elapsedTime,d=Math.min(dt,0.05),p=pos.current;
-    const dx=to.x-p.x,dz=to.z-p.z,dist=Math.hypot(dx,dz),moving=dist>0.05;
+  // a new place to go: by the bridge if it is across the stream (places.ts route)
+  const stops=useRef<AnalystSpot[]>([]),goal=useRef<AnalystSpot>(to);
+  useEffect(()=>{const r=route(pos.current,to,()=>false);stops.current=r?r.slice(1):[];goal.current=r?r[0]:to},[to.x,to.z]);// eslint-disable-line react-hooks/exhaustive-deps
+  useFrame(({clock},dt)=>{const gr=g.current,tr=turn.current;if(!gr||!tr)return;const t=clock.elapsedTime,d=Math.min(dt,0.25)/* by time */,p=pos.current;
+    let gl=goal.current;if(Math.hypot(gl.x-p.x,gl.z-p.z)<0.05&&stops.current.length){gl=goal.current=stops.current.shift()!}
+    const dx=gl.x-p.x,dz=gl.z-p.z,dist=Math.hypot(dx,dz),moving=dist>0.05;
     if(moving){const step=Math.min(dist,SPEED*d);p.x+=dx/dist*step;p.z+=dz/dist*step;heading.current=Math.atan2(dx,dz)}
-    else{// face the player when standing
-      heading.current=THREE.MathUtils.lerp(heading.current,Math.atan2(face.current.x-p.x,face.current.z-p.z),0.04)}
+    else{// standing: face the way their act points, or the player
+      heading.current=THREE.MathUtils.lerp(heading.current,faceTo!==undefined&&act&&act!=='stand'?faceTo:Math.atan2(face.current.x-p.x,face.current.z-p.z),0.04)}
     gr.position.set(p.x,surface(p.x,p.z),p.z);gr.quaternion.copy(tilt(p.x,p.z));
     tr.rotation.y=THREE.MathUtils.lerp(tr.rotation.y,heading.current,moving?0.2:1);
     const {body,head,armL,armR,eyes,rest}=parts;
     if(body){body.position.y=0.42+(moving?Math.abs(Math.sin(t*9))*0.08:Math.sin(t*2+id.length)*0.012);body.rotation.z=moving?Math.sin(t*9)*0.06:0}
-    if(head){head.rotation.x=bubble?.alert?Math.sin(t*3)*0.06-0.05:Math.sin(t*0.7)*0.04;head.rotation.y=moving?0:Math.sin(t*0.4+id.length)*0.25}
+    // what they do at their spot (core/routine.ts Act), only while standing there
+    const doing=moving?'':act??'';
+    const headDown=doing==='read'||doing==='note'?0.32:doing==='scope'?-0.25:0;
+    if(head){head.rotation.x=headDown+(bubble?.alert?Math.sin(t*3)*0.06-0.05:Math.sin(t*0.7)*0.04);head.rotation.y=moving?0:doing==='look'?Math.sin(t*0.45+id.length)*0.6:Math.sin(t*0.4+id.length)*0.25}
     const swing=moving?Math.sin(t*9)*0.6:Math.sin(t*1.6)*0.05;
-    if(armL&&rest.armL)armL.rotation.x=rest.armL.x+swing;
-    if(armR&&rest.armR)armR.rotation.x=rest.armR.x-swing+(bubble?.alert&&!moving&&id==='tori'?-0.5:0);
+    const l=doing==='read'?-0.7:doing==='scope'?-1.7:doing==='arms'?-0.55:0,r=doing==='read'?-0.7:doing==='board'?-1.25+Math.sin(t*1.3)*0.15:doing==='note'?-0.8+Math.sin(t*6)*0.08:doing==='arms'?-0.55:0;
+    if(armL&&rest.armL){armL.rotation.x=rest.armL.x+swing+l;armL.rotation.z=(rest.armL.z??0)+(doing==='arms'?0.6:0)}
+    if(armR&&rest.armR){armR.rotation.x=rest.armR.x-swing+r+(bubble?.alert&&!moving&&id==='tori'?-0.5:0);armR.rotation.z=(rest.armR.z??0)+(doing==='arms'?-0.6:0)}
     // blink every few seconds
     blink.current-=d;const shut=blink.current<0.12;if(blink.current<0)blink.current=2.5+Math.random()*3;
     for(const e of eyes)e.scale.y=rest.eyeY*(shut?0.15:1);

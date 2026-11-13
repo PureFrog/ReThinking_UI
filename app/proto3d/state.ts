@@ -20,11 +20,14 @@ import {giftOf,itemById,rankItem,type GardenItem} from '../content/garden-items'
 import {analystById,UI,line,type AnalystId} from '../content/analysts';
 import {DEMO_HOLDINGS} from '../content/demo-garden';
 import type {Holding} from '../core/model';
+import {DEFAULT_LOOK,type Look} from '../core/wardrobe';
+import {stampById,type StampId} from '../core/stamps';
 
 export type Owned={uid:string;itemId:string;got:string;slot:string|null};
 // seen: how many times each long scene was played (docs/brief-wow.md: long the first time, short after)
 export type Seen={birth:number;cutaway:number;bury:number};
-export type GardenSave={v:1;holdings:Holding[];onboarded:boolean;lookedBack:boolean;sound:boolean;seen:Seen;rewinds:RewindRound[];daysDone:string[];rankSeen:number;judgments:Judgment[];graded:Graded[];cooldowns:Cooldown[];cases:CaseAnswer[];streak:Streak;currency:number;
+// name, look: the player's observer (ui/MyPage.tsx) · stamps: achievements and the day each was earned · wardrobe: pieces bought
+export type GardenSave={v:1;holdings:Holding[];onboarded:boolean;lookedBack:boolean;sound:boolean;seen:Seen;name:string;look:Look;stamps:{id:StampId;day:string}[];wardrobe:string[];rewinds:RewindRound[];daysDone:string[];rankSeen:number;judgments:Judgment[];graded:Graded[];cooldowns:Cooldown[];cases:CaseAnswer[];streak:Streak;currency:number;
   trust:Record<AnalystId,Relation>;owned:Owned[];gifted:AnalystId[];bought:{itemId:string;day:string}[]};
 export const SAVE_KEY='rethink-garden-v1';
 
@@ -37,7 +40,7 @@ export function clock(){
 // A new player starts with an empty garden and the onboarding (ui/Onboarding.tsx) asks for their holdings.
 export function blankSave():GardenSave{
   const trust={tori:blankRelation(),moa:blankRelation(),luon:blankRelation()};
-  return {v:1,holdings:[],onboarded:false,lookedBack:false,sound:true,seen:{birth:0,cutaway:0,bury:0},rewinds:[],daysDone:[],rankSeen:0,judgments:[],graded:[],cooldowns:[],cases:[],streak:blankStreak(),currency:0,trust,owned:[],gifted:[],bought:[]};
+  return {v:1,holdings:[],onboarded:false,lookedBack:false,sound:true,seen:{birth:0,cutaway:0,bury:0},name:'',look:DEFAULT_LOOK,stamps:[],wardrobe:[],rewinds:[],daysDone:[],rankSeen:0,judgments:[],graded:[],cooldowns:[],cases:[],streak:blankStreak(),currency:0,trust,owned:[],gifted:[],bought:[]};
 }
 // The demo garden opens with two judgments made months ago, so the first visit already has grades to open (the moment
 // the whole loop is built around). Both are on the demo holdings.
@@ -130,6 +133,12 @@ export function useGarden(){
       for(let k=p.rankSeen+1;k<=index;k++){const it=rankItem(k);if(it&&!owned.some(o=>o.itemId===it.id)){owned=[...owned,{uid:`rank-${k}`,itemId:it.id,got:c.today,slot:null}];got.push(it.name)}}
       return {...p,rankSeen:index,owned}});if(got.length)say(line(UI.rankUp,{rank:name,item:got.join(', ')}))},
     setSound(on:boolean){setS(p=>({...p,sound:on}))},
+    setName(name:string){setS(p=>({...p,name}))},
+    setLook(look:Look){setS(p=>({...p,look}))},
+    // a piece of clothing from the cart's currency (core/wardrobe.ts unlock buy)
+    buyWear(id:string,price:number){let ok=false;setS(p=>{if(p.wardrobe.includes(id)||p.currency<price)return p;ok=true;return {...p,currency:p.currency-price,wardrobe:[...p.wardrobe,id]}});return ok},
+    // stamps newly earned (core/stamps.ts newStamps): kept with today's date, said once
+    stamp(ids:StampId[]){if(!ids.length)return;setS(p=>({...p,stamps:[...p.stamps,...ids.filter(i=>!p.stamps.some(x=>x.id===i)).map(id=>({id,day:c.today}))]}));say(line(UI.stamped,{name:ids.map(i=>stampById(i).name).join(', ')}))},
     saw(k:keyof Seen){setS(p=>({...p,seen:{...p.seen,[k]:p.seen[k]+1}}))},
     // 되감기: a practice round graded at once; the first few a day pay a little (core/rewind.ts)
     playRewind(rc:RewindCase,choice:Choice,confidence:Confidence){let round=null as RewindRound|null;

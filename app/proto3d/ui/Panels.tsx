@@ -24,7 +24,7 @@ import {Sheet,Face,pct} from './Sheet';
 import type {useGarden} from '../state';
 type G=ReturnType<typeof useGarden>;
 
-const SLOT_LABEL:Record<string,string>={'door-l':'현관 왼쪽','door-r':'현관 오른쪽',fire:'모닥불 옆',pond:'연못 가',path:'뒷길',field:'풀밭'};
+const SLOT_LABEL:Record<string,string>={'door-l':'현관 왼쪽','door-r':'현관 오른쪽',fire:'모닥불 옆',pond:'연못 가',path:'뒷길',field:'풀밭','in-corner':'집 안 구석','in-window':'집 안 창가','in-rug':'집 안 깔개'};
 
 // onLapse: the garden's year as a timelapse (W5)
 export function Records({g,onClose,onHoldings,onLapse}:{g:G;onClose:()=>void;onHoldings:()=>void;onLapse?:()=>void}){
@@ -137,5 +137,15 @@ export function TodaySheet({g,tasks,onGo,onClose}:{g:G;tasks:TodayTask[];onGo:(t
       <span className="rt-num rt-hint">{r.next?`${r.next.name}까지 ${r.next.left}`:'최고 등급'}</span></div>
     <div className="rt-bar"><i style={{width:`${Math.round(r.progress*100)}%`}}/></div>
     <p className="rt-hint" style={{marginTop:8}}>판정을 열고, 케이스를 풀고, 되감기를 하면 올라가. 수익률과는 상관없어.</p>
+  </Sheet>;
+}
+
+// 사례 서고 (the library up the north path, World3D.tsx): the two ways to practise reading past cases
+export function LibrarySheet({caseDone,rewindLeft,onCase,onRewind,onClose}:{caseDone:boolean;rewindLeft:number;onCase:()=>void;onRewind:()=>void;onClose:()=>void}){
+  return <Sheet kicker="사례 서고" title="옛 사례를 읽는 곳" label="사례 서고" onClose={onClose}>
+    <button type="button" className="rt-row" onClick={onCase}><div><strong>오늘의 케이스</strong><small>실제 과거 사례 · 30초 · 하루 한 장</small></div>
+      <span className={`rt-tag ${caseDone?'ok':'signal'}`}>{caseDone?'풀었어':'오늘 것 있음'}</span></button>
+    <button type="button" className="rt-row" onClick={onRewind}><div><strong>되감기</strong><small>가상 회사의 그때 · 30일 뒤가 바로</small></div>
+      <span className="rt-tag">{rewindLeft?`보상 ${rewindLeft}판`:'연습'}</span></button>
   </Sheet>;
 }

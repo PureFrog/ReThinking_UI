@@ -496,3 +496,27 @@ button.rt-row:hover{filter:none;background:#16211b05}
 .rt-lapse-range{width:100%;margin:12px 0 2px;accent-color:var(--rt-ink);height:24px}
 .rt-lapse-scale{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--rt-mute);
   background:linear-gradient(90deg,var(--rt-rule) 1px,transparent 1px) 0 0/calc(100% / 12) 5px repeat-x;padding-top:6px}
+/* the garden map (ui/MapSheet.tsx): drawn on the notebook page */
+.rt-map{display:block;width:100%;max-height:min(42dvh,380px);background:var(--rt-paper2);border:1px solid var(--rt-rule)}
+.rt-map-land{fill:#dfe6c8;stroke:var(--rt-rule);stroke-width:2}
+.rt-map-water{fill:none;stroke:#7fb0d8;stroke-width:12;stroke-linecap:round;stroke-linejoin:round}
+.rt-map-bridge{stroke:#946c4b;stroke-width:9}
+.rt-map-path{fill:none;stroke:#c9b98f;stroke-width:3;stroke-dasharray:2 6;stroke-linecap:round}
+.rt-map-plot{fill:#4b6638}
+.rt-map-me{fill:var(--rt-seal);stroke:#fffaf0;stroke-width:3}
+.rt-map-places{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.rt-map-places .rt-btn{min-height:36px;font-size:13px;padding:0 12px}
+/* the map button sits right above the locate button */
+.proto3d-locate.proto3d-map{bottom:80px}
+@media(max-width:700px){.proto3d-locate.proto3d-map{bottom:calc(142px + env(safe-area-inset-bottom,0px))}}
+@media(orientation:landscape) and (max-height:520px){.proto3d-locate.proto3d-map{bottom:calc(68px + env(safe-area-inset-bottom,0px))}}
+/* inside the house: the fade between garden and room, and the tags pinned over the room's things */
+.rt-room-fade{position:absolute;inset:0;z-index:20;background:var(--rt-paper);animation:rt-room-fade .38s ease-out both;pointer-events:none}
+@keyframes rt-room-fade{from{opacity:0}to{opacity:1}}
+.rt-room-tag{position:absolute;left:0;top:0;z-index:4;font-family:'Gowun Batang',serif;font-weight:700;font-size:12px;padding:5px 10px;white-space:nowrap;
+  background:var(--rt-paper);color:var(--rt-ink);border:1px solid var(--rt-rule);border-radius:2px;outline:1px solid var(--rt-rule);outline-offset:-4px;box-shadow:var(--rt-shadow)}
+.rt-room-tag[data-alert=true]{color:var(--rt-seal);border-color:var(--rt-seal)}
+@media(prefers-reduced-motion:reduce){.rt-room-fade{animation:none}}
+.rt-exit{position:absolute;right:16px;bottom:22px;z-index:6;min-height:40px;font-family:'Gowun Batang',serif;font-weight:700}
+@media(max-width:700px){.rt-exit{right:auto;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
+@media(orientation:landscape) and (max-height:520px){.rt-exit{right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px))}}

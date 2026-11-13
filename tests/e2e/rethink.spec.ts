@@ -3,7 +3,7 @@ import { test, expect, type Page } from "./fixtures";
 // R3–R6 ReThink Garden on /proto3d: the analysts, the judgment loop, grades, cooldown, today's case, track record,
 // league, the game door, cart and drawer. Every test starts from a fresh demo save (?demo) under a fixed sky.
 // The demo save holds two old judgments, so grades are due on the first visit (app/proto3d/state.ts demoSave).
-test.describe.configure({ timeout: 120_000 });
+test.describe.configure({ timeout: 180_000 });
 type Hooks = { frames: number; treeModels: number; trees: Record<number, { x: number; y: number }>; points: Record<string, { x: number; y: number }> };
 const hooks = (page: Page) => page.evaluate(() => (window as unknown as { __proto3d?: Hooks }).__proto3d ?? null);
 const BANNED = /괜찮|천천히|마음|네 속도|옆에 있|팔아|사세요|매수하세요|매도하세요|오를 거/;
@@ -473,5 +473,124 @@ test("tilting the phone leans the view", async ({ page }) => {
   await expect.poll(async () => { const now = (await hooks(page))!.trees; const k = Object.keys(now)[0]; return Math.abs(now[Number(k)].x - before[Number(k)].x) }).toBeGreaterThan(4);
   await tilt(40, 0);
   expect((await t()).x).toBe(0);
+  clean(errors);
+});
+
+// The wider map (app/proto3d/places.ts, World3D.tsx): the map sends the player walking; the case library up the north
+// path and the league square across the stream (over the bridge) open their sheets when tapped.
+type Pt = { x: number; z: number };
+const player = async (page: Page) => (await page.evaluate(() => (window as unknown as { __proto3d: { player: Pt } }).__proto3d.player));
+async function walkTo(page: Page, label: string, to: Pt) {
+  await page.getByRole("button", { name: "지도" }).click();
+  await sheet(page, "정원 지도").getByRole("button", { name: label, exact: true }).click();
+  await expect.poll(async () => { const p = await player(page); return Math.hypot(p.x - to.x, p.z - to.z) }, { timeout: 60_000 }).toBeLessThan(0.2);
+  await settled(page);
+}
+test("the map walks to the library and over the bridge to the league square", async ({ page }) => {
+  const errors: string[] = [];
+  await open(page, errors, "&demo");
+  const vp = page.viewportSize()!;
+  await walkTo(page, "사례 서고", { x: 1, z: -13.6 });
+  const lib = (await hooks(page))!.points.library;
+  expect(await tappable(page, lib, vp)).toBe(true);
+  await page.mouse.click(lib.x, lib.y);
+  const library = sheet(page, "사례 서고");
+  await expect(library).toContainText("오늘의 케이스");
+  await library.getByRole("button", { name: /오늘의 케이스/ }).click();
+  await expect(sheet(page, "오늘의 케이스")).toBeVisible();
+  await sheet(page, "오늘의 케이스").getByRole("button", { name: "닫기" }).first().click();
+  // across the stream: the walk goes by the bridge
+  await walkTo(page, "리그 광장", { x: -2, z: 17.4 });
+  const sq = (await hooks(page))!.points.plaza;
+  expect(await tappable(page, sq, vp)).toBe(true);
+  await page.mouse.click(sq.x, sq.y);
+  await expect(page.getByRole("dialog", { name: /리그/ })).toContainText("판단 점수");
+  clean(errors);
+});
+
+// Inside the house (Interior3D.tsx): the workroom. The desk is today's three, the shelf the track record, the board the
+// buried capsules; the door (or the button) goes back out.
+test("the house opens into the analysts' workroom and back out", async ({ page }) => {
+  const errors: string[] = [];
+  await open(page, errors, "&demo");
+  const vp = page.viewportSize()!;
+  await walkTo(page, "집", { x: -4.3, z: -0.8 });
+  const house = (await hooks(page))!.points.house;
+  expect(await tappable(page, house, vp)).toBe(true);
+  await page.mouse.click(house.x, house.y);
+  await expect.poll(async () => (await page.evaluate(() => (window as unknown as { __proto3d: { inside?: boolean } }).__proto3d.inside))).toBe(true);
+  await expect(page.getByRole("navigation", { name: "메뉴" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "지도" })).toHaveCount(0);
+  // the demo's two judgments are two books; both of their grades have arrived, so the board says so
+  await expect(page.getByRole("button", { name: "판단 2권" })).toHaveCount(1);
+  await expect(page.getByRole("button", { name: /판정 도착 2/ })).toHaveCount(1);
+  await page.getByRole("button", { name: /^책상/ }).dispatchEvent("click");
+  await expect(sheet(page, /오늘 할 일/)).toBeVisible();
+  await sheet(page, /오늘 할 일/).getByRole("button", { name: "닫기" }).first().click();
+  await page.getByRole("button", { name: "밖으로 나가기" }).click();
+  await expect.poll(async () => (await page.evaluate(() => (window as unknown as { __proto3d: { inside?: boolean } }).__proto3d.inside))).toBe(false);
+  await expect(page.getByRole("button", { name: "지도" })).toBeVisible();
+  clean(errors);
+});
+
+// The analysts' day (core/routine.ts): with nothing flagged they go to their own spots by the clock ('?hour=' holds
+// it), two of them meet now and then and talk, and at night they are home (not out in the garden).
+async function quietGarden(page: Page, errors: string[], hour: string) {
+  page.on("pageerror", e => errors.push(e.message));
+  await page.goto(`/proto3d?reset&weather=clear&hour=${hour}`);
+  await expect.poll(async () => (await hooks(page))?.frames ?? 0, { timeout: 60_000 }).toBeGreaterThan(10);
+  await page.getByRole("button", { name: /직접 입력/ }).click();
+  const list = sheet(page, "종목 확인");
+  await list.getByLabel("1번 종목 이름").fill("나래식품");// a small gain: nothing is flagged
+  await list.getByLabel("나래식품 수익률").fill("6.5");
+  await list.getByRole("button", { name: /심기/ }).click();
+  await page.getByRole("button", { name: "건너뛰기" }).click({ timeout: 4_000 }).catch(() => {});
+}
+test("with nothing flagged the analysts go about their day, meet and talk, and go home at night", async ({ page }) => {
+  const errors: string[] = [];
+  await quietGarden(page, errors, "14");// 14:00 is a meeting slot
+  await expect(page.locator(".rt-bubble")).toHaveCount(2, { timeout: 30_000 });
+  const talk = await page.locator(".rt-bubble").allTextContents();
+  expect(talk.every(t => !/팔아|사라|매수|매도/.test(t))).toBe(true);
+  await page.goto("/proto3d?weather=clear&hour=23");
+  await expect.poll(async () => (await hooks(page))?.frames ?? 0, { timeout: 60_000 }).toBeGreaterThan(10);
+  await page.waitForTimeout(1500);
+  // at night nobody is out: no analyst reports a point in the garden
+  const pts = (await hooks(page))!.points;
+  expect(Object.keys(pts).some(k => k.startsWith("analyst-"))).toBe(false);
+  clean(errors);
+});
+
+// My observer (ui/MyPage.tsx, Showroom3D.tsx): the chip opens the stage; a piece put on is saved and worn in the garden;
+// locked pieces say how to get them; the record and the stamps are there.
+test("my observer's stage: dress up, see my record and stamps, back to the garden", async ({ page }) => {
+  const errors: string[] = [];
+  await open(page, errors, "&demo");
+  await page.getByRole("button", { name: "내 관찰자" }).click();
+  const me = page.getByRole("dialog", { name: "내 관찰자" });
+  await expect(me).toBeVisible();
+  await expect.poll(async () => (await page.evaluate(() => (window as unknown as { __proto3d: { stage?: boolean } }).__proto3d.stage))).toBe(true);
+  await expect(page.getByRole("navigation", { name: "메뉴" })).toBeHidden();
+  // the name
+  await me.getByRole("button", { name: "이름 바꾸기" }).click();
+  await me.getByLabel("내 이름").fill("새벽");
+  await me.getByLabel("내 이름").press("Enter");
+  await expect(me).toContainText("새벽");
+  // a locked piece says how; an open one is put on and saved
+  await me.getByRole("button", { name: "모자" }).click();
+  await expect(me.getByRole("button", { name: /헤드램프/ })).toContainText("확신 적중");
+  await me.getByRole("button", { name: /^없음/ }).click();
+  await me.getByRole("button", { name: "색" }).click();
+  await me.getByRole("button", { name: /먹/ }).click();
+  const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem("rethink-garden-v1")!));
+  await expect.poll(async () => (await saved()).look).toMatchObject({ hat: null, palette: "ink" });
+  await me.getByRole("tab", { name: "기록" }).click();
+  await expect(me).toContainText("확신도별 실제 적중");
+  await me.getByRole("tab", { name: "도장첩" }).click();
+  await expect(me).toContainText("첫 기록");
+  expect((await saved()).stamps.map((s: { id: string }) => s.id)).toContain("first-judgment");
+  await me.getByRole("button", { name: "정원으로" }).click();
+  await expect(me).toBeHidden();
+  await expect(page.getByRole("button", { name: /새벽/ })).toBeVisible();
   clean(errors);
 });

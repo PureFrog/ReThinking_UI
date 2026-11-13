@@ -5,7 +5,7 @@
 // cart and drawer.
 import {useEffect,useMemo,useState} from 'react';
 import {Canvas} from '@react-three/fiber';
-import {Pin,Cross,Loupe,Specimen,Ledger,Drawer as DrawerIcon,Rosette,Scope,Sound,Mute,Hourglass,Tilt} from './ui/Icons';
+import {Pin,Cross,Loupe,Specimen,Ledger,Drawer as DrawerIcon,Rosette,Scope,Sound,Mute,Hourglass,Tilt,MapIcon} from './ui/Icons';
 import {tiltOffset} from '../core/tilt';
 import {tilt as tiltNow} from './screen';
 import {configure,unlock,cue,DEFAULT_SOUND} from '../core/sound';
@@ -30,7 +30,15 @@ import {Briefing,Grades,CaseView,LookBack,RewindView} from './ui/Loop';
 import {paidLeft} from '../core/rewind';
 import {todayTasks,dayDone,type TaskId} from '../core/today';
 import {rankOf,xpOf} from '../core/rank';
-import {Records,League,GameDoor,CartView,Drawer,AnalystCard,TodaySheet} from './ui/Panels';
+import {Records,League,GameDoor,CartView,Drawer,AnalystCard,TodaySheet,LibrarySheet} from './ui/Panels';
+import {MapSheet} from './ui/MapSheet';
+import {RoomTags} from './ui/RoomTags';
+import {routineOf} from '../core/routine';
+import {chatOf} from '../content/routine-lines';
+import {MyPage,wearCtx} from './ui/MyPage';
+import {fitLook} from '../core/wardrobe';
+import {newStamps} from '../core/stamps';
+import {place,type PlaceId} from './places';
 import {Bubbles} from './ui/Bubbles';
 import {Onboarding} from './ui/Onboarding';
 import {BirthCards} from './ui/Birth';
@@ -74,8 +82,10 @@ function useWeather(){
     setW({weather:isWeather(q)?q:weatherOf(m),index:m.index})},[]);
   return w;
 }
-type SheetState={kind:'onboard'}|{kind:'grades';start:string}|{kind:'deep';holdingId:number;back:SheetState}|{kind:'lookback'}|{kind:'brief';start:{signalId?:string;holdingId?:number}|null}|{kind:'grades'|'case'|'rewind'|'today'|'records'|'drawer'|'cart'|'league'|'game'}|{kind:'analyst';id:AnalystId}|null;
+type SheetState={kind:'onboard'}|{kind:'map'}|{kind:'library'}|{kind:'grades';start:string}|{kind:'deep';holdingId:number;back:SheetState}|{kind:'lookback'}|{kind:'brief';start:{signalId?:string;holdingId?:number}|null}|{kind:'grades'|'case'|'rewind'|'today'|'records'|'drawer'|'cart'|'league'|'game'}|{kind:'analyst';id:AnalystId}|null;
 const CART_FLAGS=['#c4452f','#36557e','#1e6b4a','#b9801a','#6a5aa8'];
+// this week's league group on the square's flagpoles (the first is mine)
+const LEAGUE_FLAGS=['#b8372b','#36557e','#4b6638','#b9801a','#6a5aa8','#c4652e','#2c5c92','#7a5238','#5c5447','#9c6c12','#4d4a8a','#1e6b4a'];
 // the analysts come out of the house door when the garden is first born (W1)
 const DOOR={x:-4.2,z:-1.0};
 type Birth={ids:number[];t0:number;plan:BirthPlan;after?:()=>void};
@@ -104,12 +114,25 @@ export default function Proto3D(){
       raf=requestAnimationFrame(tick)};
     tick();return()=>cancelAnimationFrame(raf)},[birth]);// eslint-disable-line react-hooks/exhaustive-deps
   const calm=!!birth;
+  // the analysts' day (core/routine.ts) follows the real clock; '?hour=14' (or 14.5) holds it at that time (screens and tests)
+  const [minutes,setMinutes]=useState(()=>{const d=new Date();return d.getHours()*60+d.getMinutes()});
+  useEffect(()=>{const q=Number(new URLSearchParams(location.search).get('hour'));const fixed=new URLSearchParams(location.search).has('hour')&&Number.isFinite(q);const at=()=>{if(fixed)return Math.round(q*60);const d=new Date();return d.getHours()*60+d.getMinutes()};
+    setMinutes(at());const t=setInterval(()=>setMinutes(at()),20000);return()=>clearInterval(t)},[]);
+  // my observer's page (ui/MyPage.tsx): the garden is put away for the stage while it is open
+  const [me,setMe]=useState(false);
+  // inside the house (Interior3D.tsx): a paper-coloured fade covers the swap between the garden and the room
+  const [inside,setInside]=useState(false),[fading,setFading]=useState(false);
+  const swapRoom=(into:boolean)=>{setPicked(null);setSheet(null);setFading(true);cue('door');setTimeout(()=>{setInside(into);setTimeout(()=>setFading(false),80)},TIMING.roomFade)};
+  const enterHouse=()=>swapRoom(true);
+  // the map (ui/MapSheet.tsx) sends the player walking to a place
+  const [goTo,setGoTo]=useState<World['goTo']>(null);
+  const goPlace=(id:PlaceId)=>{const p=place(id);setGoTo({...p.walk,at:Date.now()});setSheet(null)};
   // W5 타임랩스 (core/history.ts): which weekly frame is shown, and whether it plays on by itself
   const [lapse,setLapse]=useState<{i:number;playing:boolean}|null>(null);
   const frames=useMemo(lapseFrames,[]);
   useEffect(()=>{if(!lapse?.playing)return;const t=setTimeout(()=>setLapse(l=>l&&(l.i>=frames.length-1?{...l,playing:false}:{...l,i:l.i+1})),TIMING.lapseStep);return()=>clearTimeout(t)},[lapse,frames.length]);
   // the garden at rest: no menus, bubbles or tags over a scene that plays by itself
-  const quiet=calm||!!lapse;
+  const quiet=calm||!!lapse||me;
   // W3 time capsules (core/capsule.ts): one marker per tree; burying after a judgment, digging up as a grade opens
   const capsules=useMemo(()=>capsulesOf(s.judgments,s.graded,clock.today,s.holdings.map(x=>x.id)),[s.judgments,s.graded,clock.today,s.holdings]);
   const [capFx,setCapFx]=useState<World['capsuleFx']>(null),[jump,setJump]=useState(false);
@@ -166,14 +189,27 @@ export default function Proto3D(){
   // a run of days that was rescued or lost is said once, as the garden opens
   useEffect(()=>{const n=s.streak.notice;if(n&&n.day===clock.today)g.say(n.kind==='reset'?line(UI.streakReset,{run:n.run}):UI.streakRescue)},[]);// eslint-disable-line react-hooks/exhaustive-deps
 
+  // where the day has each analyst (signals first, luon by an arrived grade's capsule, then their own spots, home at night)
+  const dueTree=g.due.find(d=>holdings.some(h=>h.id===d.judgment.holdingId))?.judgment.holdingId??null;
+  const day=routineOf(minutes,{tori:open.filter(x=>x.analyst==='tori').map(x=>x.holdingId),moa:open.filter(x=>x.analyst==='moa').map(x=>x.holdingId),luon:[]},dueTree);
+  const ctx=wearCtx(g),look=fitLook(s.look,ctx);
+  // stamps (core/stamps.ts): whatever newly holds is stamped once, with today's date
+  const fresh=ready?newStamps({judgments:s.judgments.length,graded:s.graded.map(x=>({hit:x.hit,confidence:s.judgments.find(j=>j.id===x.judgmentId)?.confidence??3})),
+    bestStreak:s.streak.best,rewinds:s.rewinds.length,cases:s.cases.length,daysDone:s.daysDone.length,seen:s.seen,calibration:track.calibration},s.stamps.map(x=>x.id)):[];
+  useEffect(()=>{if(fresh.length)g.ops.stamp(fresh)},[fresh.join(',')]);// eslint-disable-line react-hooks/exhaustive-deps
   const world:World={
     // the three come in with the first trees
     analysts:!ready||lapse||(calm&&(bStage==='trees'||bStage==='orbit'))?[]:ANALYSTS.map(a=>{
       // tori comes over to the open ground
       if(a.id==='tori'&&cut&&!cut.closing)return {id:a.id,at:cut.holdingId,bubble:null};
-      if(a.id==='luon')return {id:a.id,at:null,bubble:g.due.length?{text:`판정 ${g.due.length}건`,alert:true}:null};
-      const sig=open.find(x=>x.analyst===a.id),h=sig&&holdings.find(x=>x.id===sig.holdingId);
-      return {id:a.id,at:sig?.holdingId??null,bubble:h?{text:`${h.name} · ${sig!.headline}`,alert:sig!.loss}:null};
+      const r=day[a.id];
+      if(r.kind==='signal'){const sig=open.find(x=>x.analyst===a.id&&x.holdingId===r.holdingId)!,h=holdings.find(x=>x.id===sig.holdingId);return {id:a.id,at:r.holdingId,bubble:h?{text:`${h.name} · ${sig.headline}`,alert:sig.loss}:null}}
+      if(r.kind==='grade')return {id:a.id,at:r.holdingId,near:true,bubble:{text:`판정 ${g.due.length}건`,alert:true}};
+      if(r.kind==='home')return {id:a.id,at:null,home:true,bubble:null};
+      // two of them met: one says something, the other answers
+      const talk=r.with?(()=>{const first=a.id<r.with!?a.id:r.with!,second=first===a.id?r.with!:a.id,c=chatOf(first as 'tori',second as 'tori',Math.floor(minutes/4));return first===a.id?c.a:c.b})():null;
+      const dueBubble=a.id==='luon'&&g.due.length?{text:`판정 ${g.due.length}건`,alert:true}:null;
+      return {id:a.id,at:null,spot:r.spot,bubble:talk?{text:talk,alert:false}:dueBubble};
     }),
     pots:holdings.map(h=>({holdingId:h.id,open:!!openFor(s.cooldowns,h.id),flowers:flowersOn(s.cooldowns,h.id)})).filter(p=>p.open||p.flowers),
     decor:s.owned.filter(o=>o.slot).map(o=>({slot:o.slot!,shape:itemById(o.itemId)!.shape})),
@@ -181,7 +217,13 @@ export default function Proto3D(){
     capsules:lapse?pinsAt(s.judgments,lapseDay,shown.map(x=>x.id)).map(id=>({holdingId:id,due:false})):capsules.map(c=>({holdingId:c.holdingId,due:c.due})),capsuleFx:capFx,onCapsule:id=>{if(!calm)onCapsule(id)},hitRate:track.hitRate,cartFlag:CART_FLAGS[Number(clock.today.slice(-2))%CART_FLAGS.length],gameLit:true,
     onAnalyst:id=>{if(id==='luon'&&g.due.length){setSheet({kind:'grades'});return}const sig=open.find(x=>x.analyst===id);
       setSheet(sig?{kind:'brief',start:{signalId:sig.id}}:{kind:'analyst',id})},
-    onLandmark:k=>setSheet({kind:k==='observatory'?'game':k==='signpost'?'records':'cart'}),
+    flags:LEAGUE_FLAGS,myFlag:0,caseOpen:!caseDone,goTo,inside,look,stage:me,
+    room:{books:s.judgments.slice(-36).map(j=>{const gr=s.graded.filter(x=>x.judgmentId===j.id).at(-1);return {state:gr?(gr.hit?'hit':'miss'):'waiting'} as const}),
+      notes:capsules.map(c=>({holdingId:c.holdingId,due:c.due})),
+      resting:ANALYSTS.filter(a=>day[a.id].kind==='home'||day[a.id].kind==='spot').map(a=>a.id),
+      onDesk:()=>setSheet({kind:'today'}),onShelf:()=>setSheet({kind:'records'}),
+      onBoard:()=>{if(g.due.length)setSheet({kind:'grades'});else g.say(capsules.length?line(UI.boardWait,{n:capsules.length}):UI.boardEmpty)},onDoor:()=>swapRoom(false)},
+    onLandmark:k=>{if(k==='house'){enterHouse();return}setPicked(null);setSheet({kind:k==='observatory'?'game':k==='signpost'?'records':k==='library'?'library':k==='plaza'?'league':'cart'})},
   };
 
   const h=holdings.find(t=>t.id===picked);
@@ -214,6 +256,7 @@ export default function Proto3D(){
         </div>}
         {ready&&!quiet&&<button type="button" className="rt-today" data-done={allDone} aria-label={`오늘 할 일 ${tasksDone}/${tasks.length}`} onClick={()=>setSheet({kind:'today'})}>
           <span className="rt-today-dots" aria-hidden>{tasks.map((t,i)=><i key={i} data-on={t.done}/>)}</span>{allDone?'오늘 끝':`오늘 ${tasksDone}/${tasks.length}`}</button>}
+        {ready&&!quiet&&<button type="button" className="rt-me-chip" aria-label={`내 관찰자 · ${s.name||'이름 없음'} · ${rank.name}`} onClick={()=>{setPicked(null);setSheet(null);setMe(true)}}><span className="rt-me-chip-face" aria-hidden/>{s.name||'내 관찰자'} · {rank.name}</button>}
         </div>
         {ready&&!quiet&&<div className="rt-hud" aria-label="내 숫자">
           {tiltCtl.need&&<button type="button" className="rt-sound" aria-label="기울이기 켜기" onClick={tiltCtl.ask}><Tilt size={18}/></button>}
@@ -223,15 +266,23 @@ export default function Proto3D(){
           <div className="rt-stat"><span>이번 주</span><b className="rt-num">{weekPoints(s.graded,s.cases,clock.today)}</b></div>
         </div>}
       </div>
-      {ready&&!h&&!quiet&&!sheet&&!capFx&&<CapsuleTags items={capsules} names={Object.fromEntries(holdings.map(x=>[x.id,x.name]))} onPick={onCapsule}/>}
+      {ready&&!h&&!quiet&&!inside&&!sheet&&!capFx&&<CapsuleTags items={capsules} names={Object.fromEntries(holdings.map(x=>[x.id,x.name]))} onPick={onCapsule}/>}
       {jump&&<div className="rt-jump" role="status">{UI.jump}</div>}
-      {!h&&!quiet&&<Bubbles items={world.analysts.flatMap(a=>a.bubble?[{id:a.id,...a.bubble}]:[])} onPick={world.onAnalyst}/>}
+      {!h&&!quiet&&!inside&&<Bubbles items={world.analysts.flatMap(a=>a.bubble?[{id:a.id,...a.bubble}]:[])} onPick={world.onAnalyst}/>}
       {!ready&&!sheet&&<button type="button" className="rt-banner" onClick={()=>setSheet({kind:'onboard'})}><span>정원이 비어 있어</span><b>내 종목 넣기</b></button>}
       {g.due.length>0&&!sheet&&!quiet&&!capFx&&!jump&&<button type="button" className="rt-banner" onClick={()=>setSheet({kind:'grades'})}>
         <span className="rt-face luon sm" aria-hidden>루</span><span>판정 <b className="rt-num">{g.due.length}</b>건 도착</span><b>열기</b></button>}
-      {ready&&!sheet&&!h&&!quiet&&<p className="proto3d-hint">끌어서 둘러보기 · 땅을 눌러 걷기 · 나무와 분석가를 눌러 보기</p>}
+      {inside&&!sheet&&<RoomTags items={[{k:'room-desk',text:`책상 · 오늘 ${tasksDone}/${tasks.length}`,onClick:()=>setSheet({kind:'today'})},
+        {k:'room-shelf',text:`판단 ${s.judgments.length}권`,onClick:()=>setSheet({kind:'records'})},
+        {k:'room-board',text:g.due.length?`판정 도착 ${g.due.length}`:`묻은 캡슐 ${capsules.length}`,alert:g.due.length>0,onClick:()=>g.due.length?setSheet({kind:'grades'}):g.say(capsules.length?line(UI.boardWait,{n:capsules.length}):UI.boardEmpty)},
+        {k:'room-door',text:'밖으로',onClick:()=>swapRoom(false)}]}/>}
+      {inside&&!sheet&&<button type="button" className="rt-btn rt-exit" onClick={()=>swapRoom(false)}>밖으로 나가기</button>}
+      {fading&&<div className="rt-room-fade" aria-hidden/>}
+      {me&&!sheet&&<MyPage g={g} onClose={()=>setMe(false)} onRecords={()=>setSheet({kind:'records'})}/>}
+      {ready&&!sheet&&!h&&!quiet&&!inside&&<p className="proto3d-hint">끌어서 둘러보기 · 땅을 눌러 걷기 · 나무와 분석가를 눌러 보기</p>}
 
-      {ready&&!quiet&&<button type="button" className="proto3d-locate" aria-label="내 위치로" onClick={()=>setRecenter(n=>n+1)}><Pin size={20}/></button>}
+      {ready&&!quiet&&!inside&&<button type="button" className="proto3d-locate proto3d-map" aria-label="지도" onClick={()=>{setPicked(null);setSheet({kind:'map'})}}><MapIcon size={20}/></button>}
+      {ready&&!quiet&&!inside&&<button type="button" className="proto3d-locate" aria-label="내 위치로" onClick={()=>setRecenter(n=>n+1)}><Pin size={20}/></button>}
 
       {ready&&!quiet&&<nav className="rt-dock" aria-label="메뉴">
         {dock.map(([k,label,Icon,dot])=><button key={k} type="button" aria-pressed={sheet?.kind===k} onClick={()=>{setPicked(null);setSheet(sheet?.kind===k?null:k==='brief'?{kind:'brief',start:null}:{kind:k} as SheetState)}}>
@@ -277,6 +328,8 @@ export default function Proto3D(){
       {lapse&&<TimelapseBar i={lapse.i} n={frames.length} day={lapseDay} back={lapseBack} playing={lapse.playing}
         onSeek={i=>setLapse({i,playing:false})} onPlay={()=>setLapse(l=>l&&{i:l.playing||l.i<frames.length-1?l.i:0,playing:!l.playing})} onClose={()=>setLapse(null)}/>}
       {sheet?.kind==='league'&&<League g={g} onClose={close}/>}
+      {sheet?.kind==='map'&&<MapSheet me={(window as unknown as {__proto3d?:{player?:{x:number;z:number}}}).__proto3d?.player??{x:0,z:0}} onGo={goPlace} onClose={close}/>}
+      {sheet?.kind==='library'&&<LibrarySheet caseDone={caseDone} rewindLeft={paidLeft(s.rewinds,clock.today)} onCase={()=>setSheet({kind:'case'})} onRewind={()=>setSheet({kind:'rewind'})} onClose={close}/>}
       {sheet?.kind==='game'&&<GameDoor onClose={close}/>}
       {sheet?.kind==='cart'&&<CartView g={g} onClose={close}/>}
       {sheet?.kind==='drawer'&&<Drawer g={g} onClose={close} onCart={()=>setSheet({kind:'cart'})}/>}

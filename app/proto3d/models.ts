@@ -10,6 +10,9 @@ export const MODELS={
   stump:'/models/trees/stump.glb',
   // tools/blender/analysts.py: node names body, head, arm_l, arm_r, eye_l, eye_r
   analyst:(id:string)=>`/models/analysts/${id}.glb`,
+  // tools/blender/explorer.py: the player's observer (sockets hat, back, hand) and each thing it can wear
+  explorer:'/models/explorer/explorer.glb',
+  wear:(id:string)=>`/models/explorer/${id}.glb`,
 };
 export const ALL_TREE_FILES=[...GROWTHS.flatMap(g=>Array.from({length:TREE_VARIANTS},(_,v)=>MODELS.tree(g,v))),MODELS.stump];
 

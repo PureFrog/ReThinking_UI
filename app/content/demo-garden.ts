@@ -2,7 +2,7 @@
 // Mock companies and numbers. The capture onboarding (app/core/portfolio.ts) replaces these with the player's own.
 import type {Holding,Condition,Growth} from '../core/model';
 // how many plots the 3D garden has (app/proto3d/Scene3D.tsx FARM)
-export const GARDEN_PLOTS=7;
+export const GARDEN_PLOTS=14;// the farm's seven and the orchard's seven (app/proto3d/places.ts PLOTS)
 export const DEMO_HOLDINGS:Holding[]=[
   {id:1,name:'새봄반도체',kind:0,price:52000,quantity:12,date:'2026-08-01',rate:12.4,plot:0,lossDays:0},
   {id:2,name:'별숲게임즈',kind:2,price:34000,quantity:8,date:'2025-06-01',rate:7.2,plot:1,lossDays:0},

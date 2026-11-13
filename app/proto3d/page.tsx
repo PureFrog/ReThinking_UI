@@ -4,6 +4,7 @@
 import {useEffect,useState} from 'react';
 import Proto3D from './Proto3D';
 import './rethink.css';
+import './me.css';
 export default function Proto3DPage(){
   const [mounted,setMounted]=useState(false);
   useEffect(()=>setMounted(true),[]);

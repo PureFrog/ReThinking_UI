@@ -3,7 +3,7 @@
 export const LOOK={
   // sky gradient behind the transparent canvas, and the fog the far ground fades into
   sky:{top:'#78cff2',mid:'#bde8f6',bottom:'#eef8e2'},
-  fog:{color:'#cfeef0',near:20,far:46},
+  fog:{color:'#cfeef0',near:22,far:54},
   // a warm haze in the top-left corner, like sun through the trees (DOM overlay, screen blend)
   sunGlow:{color:'#fff4c8',opacity:0.5,size:'70vmax'},
 
@@ -35,6 +35,17 @@ export const LOOK={
 
   // the grade reveal reaching the tree (Scene3D Burst): sparks for a hit, autumn leaves for a miss
   burst:{hit:'#fff3a8',miss:'#d39a3a'},
+  // the wider map (World3D.tsx, places.ts): water and its banks, bridge wood, path stones, the league square's paving,
+  // how many trees in the forest ring
+  map:{water:'#2c86d6',bank:'#c9b98f',plank:'#a77d58',plank2:'#946c4b',rail:'#6c5b53',stone:'#d9c79c',paving:'#e3d8c4',forest:64},
+  // inside the house (Interior3D.tsx): surfaces, books by how the judgment came out, the window's sky, the camera
+  interior:{floor:'#b48a62',floorLine:'#8a6448',wall:'#efe6d2',wall2:'#e6dac2',trim:'#8a6448',wood:'#a77d58',woodDark:'#6f5040',cork:'#c9a26e',rug:'#7b8f5e',
+    sky:'#cfe9f2',outside:'#3b3128',under:'#4a3c30',bookHit:'#4b6638',bookMiss:'#5c5447',bookWait:'#d8ccae',camDist:10.5,camPitch:0.92},
+  // the observer's stage (Showroom3D.tsx, ui/MyPage.tsx): the dome dark above and warm below, the spotlight and rim light,
+  // the floor and pedestal, how big the observer stands there
+  stage:{top:'#141b16',bottom:'#3b3128',spot:'#ffe7b0',rim:'#9fc6ff',floor:'#2b2620',wood:'#6f5040',top2:'#d9ccb0',scale:1.55,spotPower:55,camTall:14,camWide:8.4},
+  // the player's observer in the garden (Explorer3D.tsx)
+  explorer:{scale:1.05},
   // W6 tilting the phone moves the camera this many world units sideways and up at most (core/tilt.ts)
   tilt:{amount:0.9},
   // W1 a holding being born (Scene3D BirthDust): the crack in the ground and the soil it throws up

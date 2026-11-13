@@ -109,6 +109,10 @@ export const UI={
   capsuleWait:'{name} 캡슐 · {mark}일 판정까지 {d}일',
   capsuleMemo:'캡슐에서 꺼낸 메모 · {when} 기록',
   jump:'30일 뒤',
+  // inside the house: the cork board
+  stamped:'도장 받음 · {name}',
+  boardWait:'묻어 둔 캡슐 {n}개 · 판정일이 오면 여기 빨간 핀이 켜져',
+  boardEmpty:'아직 묻은 캡슐 없음 · 판단을 남기면 여기 꽂혀',
   // today's three (core/today.ts)
   today:{judge:'신호 하나에 판단 남기기',case:'오늘의 케이스 풀기',grade:'도착한 판정 열기',rewind:'되감기 한 판'} as Record<'judge'|'case'|'grade'|'rewind',string>,
   dayDone:'오늘 할 거 끝. +{n} 근거.',

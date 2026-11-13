@@ -26,7 +26,9 @@ export const CART_STOCK=GARDEN_ITEMS.filter(i=>i.price);
 export const rankItem=(rank:number)=>GARDEN_ITEMS.find(i=>i.rank===rank);
 export const giftOf=(a:AnalystId)=>GARDEN_ITEMS.find(i=>i.from===a)!;
 // the places an item can stand, around the house and the path (x,z on the garden sphere)
-export const DECOR_SLOTS:{id:string;x:number;z:number;rot:number}[]=[
+// room: 'in' = inside the house (app/proto3d/Interior3D.tsx, room coordinates); outdoor slots have none
+export const DECOR_SLOTS:{id:string;x:number;z:number;rot:number;room?:'in'}[]=[
   {id:'door-l',x:-3.4,z:-0.6,rot:0.6},{id:'door-r',x:-6.8,z:0.4,rot:-0.4},{id:'fire',x:-2.6,z:0.6,rot:0.3},
   {id:'pond',x:2.8,z:6.6,rot:-0.5},{id:'path',x:0.8,z:-3.6,rot:0.1},{id:'field',x:-3.6,z:3.6,rot:0.8},
+  {id:'in-corner',x:3.4,z:1.4,rot:-0.6,room:'in'},{id:'in-window',x:-0.6,z:-2.6,rot:0,room:'in'},{id:'in-rug',x:1.2,z:0.6,rot:0.3,room:'in'},
 ];

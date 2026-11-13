@@ -27,38 +27,34 @@ import type {AnalystId} from '../content/analysts';
 import {LOOK} from './look';
 import {soft} from './materials';
 import {MODELS,ALL_TREE_FILES,CANOPY,BARK,STUMP_CUT} from './models';
+import {OnGround,surfaceY,tiltAt,rng,UP} from './ground';
+import {PLOTS,PATHS,place,inStream,route,WORLD} from './places';
+import {Stream,Bridge,Paths,Forest,Library,Plaza} from './World3D';
+import {Interior,type Book,type Note} from './Interior3D';
+import {Explorer} from './Explorer3D';
+import {Showroom} from './Showroom3D';
+import type {Look} from '../core/wardrobe';
 
-// The world is the top of a big sphere, so the far side curves away into the fog (a small-planet feel).
-const R=38;
-const WALK=12.5;// how far from the centre the player may walk
+// The ground (a big sphere's top) is ground.tsx; where everything is, places.ts.
 const SPEED=3.2;// player walking speed, units per second
 const PLAYER_START=new THREE.Vector3(0,0,2.5);
-export const surfaceY=(x:number,z:number)=>Math.sqrt(Math.max(0,R*R-x*x-z*z))-R;
-const normalAt=(x:number,z:number)=>new THREE.Vector3(x,surfaceY(x,z)+R,z).normalize();
-const UP=new THREE.Vector3(0,1,0);
-const tiltAt=(x:number,z:number)=>new THREE.Quaternion().setFromUnitVectors(UP,normalAt(x,z));
+export {surfaceY};
 
-type Hooks={frames:number;ready:boolean;player:{x:number;z:number};trees:Record<number,{x:number;y:number}>;softMeshes:number;meshes:number;treeModels:number;weather?:Weather;points:Record<string,{x:number;y:number}>;camera?:{fov:number;dist:number;turn:number;pitch:number;blur:number;lead:number};burst?:{holdingId:number;hit:boolean};births?:{active:boolean;stage:string;long:boolean;n:number;ms:number};cutaway?:{open:boolean;holdingId:number|null;roots:Roots|null};capsules?:{holdingId:number;due:boolean}[];capsuleFx?:{kind:string;holdingId:number}|null};
+type Hooks={frames:number;ready:boolean;player:{x:number;z:number};trees:Record<number,{x:number;y:number}>;softMeshes:number;meshes:number;treeModels:number;weather?:Weather;points:Record<string,{x:number;y:number}>;camera?:{fov:number;dist:number;turn:number;pitch:number;blur:number;lead:number};burst?:{holdingId:number;hit:boolean};births?:{active:boolean;stage:string;long:boolean;n:number;ms:number};cutaway?:{open:boolean;holdingId:number|null;roots:Roots|null};inside?:boolean;stage?:boolean;capsules?:{holdingId:number;due:boolean}[];capsuleFx?:{kind:string;holdingId:number}|null};
 declare global{interface Window{__proto3d?:Hooks}}
 // the overlay may write its own entries (births, lapse) first: fill in whatever the scene needs that is missing
 const testHooks=()=>{const h=(window.__proto3d??={} as Hooks);h.frames??=0;h.ready??=false;h.player??={x:0,z:0};h.trees??={};h.softMeshes??=0;h.meshes??=0;h.treeModels??=0;h.points??={};return h};
 
-function rng(seed:number){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
-
-// A piece standing on the ground at (x,z), tilted to the sphere.
-function OnGround({x,z,lift=0,rot=0,children}:{x:number;z:number;lift?:number;rot?:number;children:ReactNode}){
-  const q=useMemo(()=>tiltAt(x,z).multiply(new THREE.Quaternion().setFromAxisAngle(UP,rot)),[x,z,rot]);
-  return <group position={[x,surfaceY(x,z)+lift,z]} quaternion={q}>{children}</group>;
-}
 
 const POND:[number,number,number][]=[[0.2,7.6,1.8],[2,8.1,1.4],[-1.6,8.3,1.3],[0.9,9.3,1.3],[-0.5,6.5,1]];
 const inPond=(x:number,z:number,pad=0)=>POND.some(([px,pz,r])=>Math.hypot(x-px,z-pz)<r+pad);
-const HOUSE={x:-5.5,z:-3};
-const FARM:[number,number][]=[[2.6,-1.8],[5,-0.4],[3.4,1.5],[5.8,2.3],[7.4,-2.4],[1.6,4.4],[7.6,4.4]];
-// landmarks (R4–R6, Garden3D.tsx) and where grass tufts and flowers keep away from
-const SPOTS={observatory:{x:-9,z:1.2,rot:1.25},signpost:{x:-1.9,z:3.5,rot:0.35},cart:{x:-3.6,z:5.3,rot:0.5}};
-const KEEP_CLEAR:[number,number,number][]=[[SPOTS.observatory.x,SPOTS.observatory.z,2.2],[SPOTS.cart.x,SPOTS.cart.z,1.3],[SPOTS.signpost.x,SPOTS.signpost.z,0.6],...DECOR_SLOTS.map(d=>[d.x,d.z,0.8] as [number,number,number])];
-const clearOf=(x:number,z:number)=>KEEP_CLEAR.some(([cx,cz,r])=>Math.hypot(x-cx,z-cz)<r);
+const HOUSE=place('home');
+const FARM=PLOTS;
+// landmarks (R4–R6, Garden3D.tsx; World3D.tsx) and where grass tufts and flowers keep away from
+const SPOTS={observatory:place('observatory'),signpost:{x:-1.9,z:3.5,rot:0.35},cart:place('cart')};
+const LIB=place('library'),PLAZA=place('plaza');
+const KEEP_CLEAR:[number,number,number][]=[[SPOTS.observatory.x,SPOTS.observatory.z,2.2],[SPOTS.cart.x,SPOTS.cart.z,1.3],[SPOTS.signpost.x,SPOTS.signpost.z,0.6],[LIB.x,LIB.z,3.6],[PLAZA.x,PLAZA.z,3.8],...DECOR_SLOTS.filter(d=>!d.room).map(d=>[d.x,d.z,0.8] as [number,number,number])];
+const clearOf=(x:number,z:number)=>KEEP_CLEAR.some(([cx,cz,r])=>Math.hypot(x-cx,z-cz)<r)||inStream(x,z,0.6)||PATHS.some(l=>l.some(([px,pz])=>Math.hypot(x-px,z-pz)<0.5));
 // analysts idle around the campfire when nothing is flagged
 const IDLE:Record<AnalystId,{x:number;z:number}>={tori:{x:-3.1,z:-0.2},moa:{x:-0.2,z:-2.3},luon:{x:-1.0,z:-2.9}};
 
@@ -66,7 +62,7 @@ const IDLE:Record<AnalystId,{x:number;z:number}>={tori:{x:-3.1,z:-0.2},moa:{x:-0
 const patchNoise=(x:number,z:number,k:number)=>
   Math.sin(x*k*3.1+Math.sin(z*k*1.9)*1.4)*0.5+Math.sin(z*k*4.2-x*k*1.3)*0.33+Math.sin((x+z)*k*7.7)*0.17;
 function groundGeometry(){
-  const g=new THREE.SphereGeometry(R,160,110),p=g.attributes.position,col=new Float32Array(p.count*3);
+  const g=new THREE.SphereGeometry(WORLD.R,220,150),p=g.attributes.position,col=new Float32Array(p.count*3);
   const {base,light,dark,warm,patchScale:k}=LOOK.ground,cb=new THREE.Color(base),cl=new THREE.Color(light),cd=new THREE.Color(dark),cw=new THREE.Color(warm),c=new THREE.Color();
   for(let i=0;i<p.count;i++){const x=p.getX(i),z=p.getZ(i),n=patchNoise(x,z,k),w=patchNoise(z+40,x-17,k*0.8);
     c.copy(cb);
@@ -81,7 +77,7 @@ function Ground({onWalk}:{onWalk:(p:THREE.Vector3)=>void}){
   const geo=useMemo(groundGeometry,[]);
   useEffect(()=>()=>geo.dispose(),[geo]);
   return (
-    <mesh position={[0,-R,0]} receiveShadow onClick={click} geometry={geo}>
+    <mesh position={[0,-WORLD.R,0]} receiveShadow onClick={click} geometry={geo}>
       <primitive object={soft('#ffffff',{vertexColors:true})} attach="material"/>
     </mesh>
   );
@@ -91,7 +87,7 @@ function Ground({onWalk}:{onWalk:(p:THREE.Vector3)=>void}){
 function Tufts(){
   const ref=useRef<THREE.InstancedMesh>(null);
   const items=useMemo(()=>{const r=rng(7),out:{x:number;z:number;s:number;c:string}[]=[],T=LOOK.tufts;
-    while(out.length<T.count){const a=r()*Math.PI*2,d=Math.sqrt(r())*17,x=Math.cos(a)*d,z=Math.sin(a)*d;
+    while(out.length<T.count){const a=r()*Math.PI*2,d=Math.sqrt(r())*(WORLD.walk+2),x=Math.cos(a)*d,z=Math.sin(a)*d;
       if(inPond(x,z,0.4)||clearOf(x,z)||Math.hypot(x-HOUSE.x,z-HOUSE.z)<2.8||FARM.some(([fx,fz])=>Math.hypot(x-fx,z-fz)<1.2))continue;
       // mostly small, a few big; small ones cluster near big ones
       const big=r()<0.2,s=big?0.75+r()*0.6:0.25+r()*0.4,q=r();
@@ -122,8 +118,10 @@ function Rock({x,z,s=1,rot=0}:{x:number;z:number;s?:number;rot?:number}){
     <sphereGeometry args={[1,24,16]}/><primitive object={soft('#cdbfb0')} attach="material"/></mesh></OnGround>;
 }
 
-function House(){
-  return <OnGround x={HOUSE.x} z={HOUSE.z} rot={0.5}>
+// the house: tapping it (or its door) goes inside (Interior3D.tsx)
+function House({onEnter}:{onEnter:()=>void}){
+  const enter=(e:ThreeEvent<MouseEvent>)=>{e.stopPropagation();onEnter()};
+  return <OnGround x={HOUSE.x} z={HOUSE.z} rot={HOUSE.rot}><group onClick={enter} name="house">
     <mesh scale={[2.3,2.7,2.2]} position-y={1.9} castShadow receiveShadow><sphereGeometry args={[1,48,32]}/><primitive object={soft('#ebe0d2')} attach="material"/></mesh>
     {/* the thumb-like stone on top */}
     <mesh position={[-1,4.1,-0.4]} rotation-z={0.35} castShadow><capsuleGeometry args={[0.55,1.2,8,16]}/><primitive object={soft('#b7a29a')} attach="material"/></mesh>
@@ -138,7 +136,7 @@ function House(){
     {/* speckles */}
     {Array.from({length:14},(_,i)=>{const a=i*2.39,y=1+((i*37)%25)/10;const rr=2.25*Math.sqrt(Math.max(0.05,1-((y-1.9)/2.7)**2));
       return <mesh key={'d'+i} position={[Math.sin(a)*rr*1.0,y,Math.cos(a)*rr*0.96]} scale={0.07+((i*13)%5)/60}><sphereGeometry args={[1,8,6]}/><primitive object={soft('#b9a999')} attach="material"/></mesh>})}
-  </OnGround>;
+  </group></OnGround>;
 }
 
 function Campfire(){
@@ -249,7 +247,7 @@ function Flowers(){
   const ref=useRef<THREE.InstancedMesh>(null);
   const items=useMemo(()=>{const r=rng(21),out:{x:number;z:number;c:string}[]=[],colors=['#ff8fc6','#ffd23f','#5aa8ff','#ffffff','#ff6fa1','#ffe066'];
     // flowers grow in little clusters, like the reference
-    for(let k=0;k<48;k++){const a=r()*Math.PI*2,d=2+Math.sqrt(r())*13,cx=Math.cos(a)*d,cz=Math.sin(a)*d,c=colors[Math.floor(r()*colors.length)];
+    for(let k=0;k<84;k++){const a=r()*Math.PI*2,d=2+Math.sqrt(r())*(WORLD.walk-1),cx=Math.cos(a)*d,cz=Math.sin(a)*d,c=colors[Math.floor(r()*colors.length)];
       for(let j=0;j<9;j++){const x=cx+(r()-0.5)*1.4,z=cz+(r()-0.5)*1.4;if(inPond(x,z,0.3)||clearOf(x,z)||Math.hypot(x-HOUSE.x,z-HOUSE.z)<2.6||FARM.some(([fx,fz])=>Math.hypot(x-fx,z-fz)<1.3))continue;out.push({x,z,c})}}
     return out},[]);
   useLayoutEffect(()=>{const m=ref.current;if(!m)return;const o=new THREE.Object3D(),c=new THREE.Color();
@@ -274,19 +272,17 @@ function Butterflies({count=14}:{count?:number}){
 }
 
 // A placeholder player: coat, round head, a fluffy two-tone hair puff.
-function Player({target,pos,hidden}:{target:React.MutableRefObject<THREE.Vector3>;pos:React.MutableRefObject<THREE.Vector3>;hidden?:boolean}){
-  const g=useRef<THREE.Group>(null),body=useRef<THREE.Group>(null);
-  useFrame(({clock},dt)=>{const p=pos.current,tg=target.current,gr=g.current,b=body.current;if(!gr||!b)return;
-    const dx=tg.x-p.x,dz=tg.z-p.z,d=Math.hypot(dx,dz),step=Math.min(d,SPEED*Math.min(dt,0.05)),moving=d>0.05;
-    if(moving){p.x+=dx/d*step;p.z+=dz/d*step;b.rotation.y=Math.atan2(dx,dz)}
-    gr.position.set(p.x,surfaceY(p.x,p.z),p.z);gr.quaternion.copy(tiltAt(p.x,p.z));
-    b.position.y=moving?Math.abs(Math.sin(clock.elapsedTime*10))*0.12:Math.sin(clock.elapsedTime*2)*0.02});
-  return <group ref={g} visible={!hidden}><group ref={body}>
-    <mesh position-y={0.55} castShadow><capsuleGeometry args={[0.32,0.45,8,16]}/><primitive object={soft('#f6f1e6')} attach="material"/></mesh>
-    <mesh position-y={1.2} castShadow><sphereGeometry args={[0.3,24,16]}/><primitive object={soft('#9fd8cf')} attach="material"/></mesh>
-    {[[0,1.5,-0.05,0.3,'#4a8dff'],[0.2,1.45,-0.15,0.22,'#ff9fd6'],[-0.2,1.42,-0.12,0.22,'#ff9fd6'],[0,1.3,-0.28,0.24,'#4a8dff']].map(([x,y,z,r,c],i)=>(
-      <mesh key={i} position={[x as number,y as number,z as number]} scale={r as number} castShadow><sphereGeometry args={[1,16,12]}/><primitive object={soft(c as string)} attach="material"/></mesh>))}
-    {[-0.14,0.14].map(x=><mesh key={x} position={[x,0.1,0.04]} scale={[0.12,0.1,0.18]}><sphereGeometry args={[1,12,8]}/><primitive object={soft('#ff6f8f')} attach="material"/></mesh>)}
+// stops: where to go after the current target (places.ts route: the bridge's near and far end, then the tap)
+// the player: my observer as I dressed it (Explorer3D.tsx, core/wardrobe.ts), walking where I tap
+function Player({target,stops,pos,hidden,look}:{target:React.MutableRefObject<THREE.Vector3>;stops:React.MutableRefObject<{x:number;z:number}[]>;pos:React.MutableRefObject<THREE.Vector3>;hidden?:boolean;look:Look}){
+  const g=useRef<THREE.Group>(null),body=useRef<THREE.Group>(null),moving=useRef(false);
+  useFrame((_,dt)=>{const p=pos.current,tg=target.current,gr=g.current,b=body.current;if(!gr||!b)return;
+    const dx=tg.x-p.x,dz=tg.z-p.z,d=Math.hypot(dx,dz),step=Math.min(d,SPEED*Math.min(dt,0.25))/* by time: a slow phone walks as fast */;moving.current=d>0.05;
+    if(moving.current){p.x+=dx/d*step;p.z+=dz/d*step;b.rotation.y=Math.atan2(dx,dz)}
+    else if(stops.current.length){const n=stops.current.shift()!;tg.set(n.x,0,n.z)}
+    gr.position.set(p.x,surfaceY(p.x,p.z),p.z);gr.quaternion.copy(tiltAt(p.x,p.z))});
+  return <group ref={g} visible={!hidden}><group ref={body} scale={LOOK.explorer.scale}>
+    <Suspense fallback={null}><Explorer look={look} moving={moving}/></Suspense>
   </group></group>;
 }
 
@@ -387,6 +383,14 @@ function BirthDust({born}:{born:Born}){
   </>;
 }
 
+// the sun (and its shadow box) moves with the player, so the wider map has shadows wherever the player is
+function SunFollow({pos,sun}:{pos:React.MutableRefObject<THREE.Vector3>;sun:React.RefObject<THREE.DirectionalLight|null>}){
+  const {scene}=useThree();
+  useEffect(()=>{const l=sun.current;if(l&&!l.target.parent)scene.add(l.target)},[scene,sun]);
+  useFrame(()=>{const l=sun.current;if(!l)return;const p=pos.current,[sx,sy,sz]=LOOK.sun.position;l.position.set(p.x+sx,sy,p.z+sz);l.target.position.set(p.x,surfaceY(p.x,p.z),p.z)});
+  return null;
+}
+
 // Test hooks for e2e (tests/e2e/proto3d.spec.ts): frame count, player position, tree screen points.
 function Hooks({pos,treePos,points}:{pos:React.MutableRefObject<THREE.Vector3>;treePos:{id:number;v:THREE.Vector3}[];points:Map<string,THREE.Vector3>}){
   const {camera,size,scene,gl}=useThree(),v=useMemo(()=>new THREE.Vector3(),[]);
@@ -407,8 +411,11 @@ function Hooks({pos,treePos,points}:{pos:React.MutableRefObject<THREE.Vector3>;t
 
 // What the overlay tells the world (Proto3D.tsx): where each analyst should be and what their bubble says, cooldown pots,
 // placed items, and what the landmarks show.
+export type Landmark='observatory'|'signpost'|'cart'|'library'|'plaza'|'house';
 export type World={
-  analysts:{id:AnalystId;at:number|null;bubble:{text:string;alert:boolean}|null}[];
+  // at: the tree they stand at (a signal) · near: luon waiting by that tree's capsule marker · spot: where their day has
+  // them (core/routine.ts), facing `face`, doing `act` · home: indoors (not drawn out here)
+  analysts:{id:AnalystId;at:number|null;near?:boolean;spot?:{x:number;z:number;face:number;act:string}|null;home?:boolean;bubble:{text:string;alert:boolean}|null}[];
   pots:{holdingId:number;open:boolean;flowers:number}[];
   decor:{slot:string;shape:Shape}[];
   hitRate:number|null;cartFlag:string;gameLit:boolean;
@@ -424,17 +431,28 @@ export type World={
   capsules:{holdingId:number;due:boolean}[];
   capsuleFx:{kind:'bury'|'dig';holdingId:number;t0:number;len:number}|null;
   onCapsule:(holdingId:number)=>void;
-  onAnalyst:(id:AnalystId)=>void;onLandmark:(k:'observatory'|'signpost'|'cart')=>void;
+  onAnalyst:(id:AnalystId)=>void;onLandmark:(k:Landmark)=>void;
+  // the wider map: the league square's flags (this week's group, mine marked), today's case still open, where to walk
+  flags:string[];myFlag:number;caseOpen:boolean;goTo:{x:number;z:number;at:number}|null;
+  // inside the house (Interior3D.tsx): the garden is put away and the workroom drawn instead
+  // my observer: how it is dressed (core/wardrobe.ts), and whether its stage (ui/MyPage.tsx) is open instead of the garden
+  look:Look;stage:boolean;
+  inside:boolean;room:{books:Book[];notes:Note[];resting:AnalystId[];onDesk:()=>void;onShelf:()=>void;onBoard:()=>void;onDoor:()=>void};
 };
 export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:{holdings:Holding[];picked:number|null;onPick:(id:number|null)=>void;recenter:number;weather:Weather;world:World}){
   const wl=LOOK.weather[weather],hemi=useRef<THREE.HemisphereLight>(null);
   const {size,camera}=useThree(),blur=frameFor(LOOK.camera.frames,size.width/Math.max(1,size.height)).blur;
   useEffect(()=>{testHooks().weather=weather},[weather]);
   useEffect(()=>{if(world.burst)testHooks().burst={holdingId:world.burst.holdingId,hit:world.burst.hit}},[world.burst]);
-  const pos=useRef(PLAYER_START.clone()),target=useRef(PLAYER_START.clone());
+  const sun=useRef<THREE.DirectionalLight>(null);
+  const pos=useRef(PLAYER_START.clone()),target=useRef(PLAYER_START.clone()),stops=useRef<{x:number;z:number}[]>([]);
+  // the map (ui/MapSheet.tsx) sends the player to a place
+  useEffect(()=>{if(!world.goTo)return;const r=route(pos.current,world.goTo,(x,z)=>inPond(x,z,0.2));if(!r)return;const [first,...rest]=r;target.current.set(first.x,0,first.z);stops.current=rest},[world.goTo]);
   // each holding grows on its own plot (app/core/portfolio.ts gives every new tree an empty one)
   const trees=useMemo(()=>holdings.filter(h=>h.plot>=0&&h.plot<FARM.length).map(h=>({h,st:treeState(h,defaultRules),x:FARM[h.plot][0],z:FARM[h.plot][1]})),[holdings]);
-  const points=useMemo(()=>{const m=new Map<string,THREE.Vector3>();for(const [k,p] of Object.entries(SPOTS))m.set(k,new THREE.Vector3(p.x,surfaceY(p.x,p.z)+1.2,p.z));return m},[]);
+  const points=useMemo(()=>{const m=new Map<string,THREE.Vector3>();for(const [k,p] of Object.entries(SPOTS))m.set(k,new THREE.Vector3(p.x,surfaceY(p.x,p.z)+1.2,p.z));
+    // the house, the library and the square: points to tap (e2e) and to pin tags to
+    for(const [k,p,y] of [['house',HOUSE,1.6],['library',LIB,1.6],['plaza',PLAZA,1.3]] as const)m.set(k,new THREE.Vector3(p.x,surfaceY(p.x,p.z)+y,p.z));return m},[]);
   // the point the e2e test taps: a little below the top of each tree, updated once its model has loaded
   const birthFocus=useMemo(()=>{const b=world.birth;if(!b)return null;const ts=trees.filter(t=>b.ids.includes(t.h.id));if(!ts.length)return null;
     const c=new THREE.Vector3();for(const t of ts)c.add(new THREE.Vector3(t.x,surfaceY(t.x,t.z)+0.8,t.z));return c.divideScalar(ts.length)},[trees,world.birth]);
@@ -462,22 +480,30 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
   // each analyst reports its head top: the body point is for tapping it, the bubble point sits above the head
   const reportAnalyst=useCallback((id:AnalystId,v:THREE.Vector3)=>{for(const [k,dy] of [['analyst-'+id,-1.2],['bubble-'+id,0.55]] as const){let p=points.get(k);if(!p){p=new THREE.Vector3();points.set(k,p)}p.copy(v).y+=dy}},[points]);
   // an analyst with a flag stands in front of that tree, a little to one side (so two on one tree do not overlap)
-  const spotFor=(id:AnalystId,at:number|null)=>{const t=at===null?null:trees.find(x=>x.h.id===at);if(!t)return IDLE[id];const side=id==='moa'?-1:1;
+  const spotFor=(id:AnalystId,at:number|null,near?:boolean,spot?:{x:number;z:number}|null)=>{const t=at===null?null:trees.find(x=>x.h.id===at);
+    if(!t)return spot??IDLE[id];const side=id==='moa'?-1:1;
+    if(near){const c=capSpot(t);return {x:c.x+0.9,z:c.z+0.5}}
     if(cut&&cut.t===t){const lx=side*(LOOK.roots.width+0.65),lz=0.6,c=Math.cos(cut.yaw),s=Math.sin(cut.yaw);return {x:t.x+lx*c+lz*s,z:t.z-lx*s+lz*c}}
     return {x:t.x+side*1.05,z:t.z+1.15}};
-  const walk=(p:THREE.Vector3)=>{const d=Math.hypot(p.x,p.z),k=d>WALK?WALK/d:1,x=p.x*k,z=p.z*k;if(inPond(x,z,0.2))return;target.current.set(x,0,z);onPick(null)};
+  const walk=(p:THREE.Vector3)=>{const r=route(pos.current,p,(x,z)=>inPond(x,z,0.2));if(!r)return;const [first,...rest]=r;target.current.set(first.x,0,first.z);stops.current=rest;onPick(null)};
+  const reportPoint=useCallback((k:string,v:THREE.Vector3)=>{let p=points.get(k);if(!p){p=new THREE.Vector3();points.set(k,p)}p.copy(v)},[points]);
+  useEffect(()=>{testHooks().inside=world.inside;testHooks().stage=world.stage},[world.inside,world.stage]);
   return <>
-    <fog attach="fog" args={[wl.fog,LOOK.fog.near,LOOK.fog.far]}/>
+    {!world.inside&&!world.stage&&<fog attach="fog" args={[wl.fog,LOOK.fog.near,LOOK.fog.far]}/>}
     <hemisphereLight ref={hemi} args={[LOOK.hemi.sky,LOOK.hemi.ground,LOOK.hemi.intensity*wl.hemi]}/>
-    <directionalLight position={LOOK.sun.position} intensity={wl.sun.intensity} color={wl.sun.color} castShadow
+    <SunFollow pos={pos} sun={sun}/>
+    <directionalLight ref={sun} position={LOOK.sun.position} intensity={wl.sun.intensity} color={wl.sun.color} castShadow
       shadow-mapSize={[LOOK.shadow.mapSize,LOOK.shadow.mapSize]} shadow-radius={LOOK.shadow.radius} shadow-bias={-0.0004} shadow-normalBias={0.04}
       shadow-camera-left={-16} shadow-camera-right={16} shadow-camera-top={16} shadow-camera-bottom={-16} shadow-camera-near={1} shadow-camera-far={50}/>
 
+    {world.stage?<Showroom look={world.look}/>:world.inside?<Interior books={world.room.books} notes={world.room.notes} resting={world.room.resting} decor={world.decor}
+      onDesk={world.room.onDesk} onShelf={world.room.onShelf} onBoard={world.room.onBoard} onDoor={world.room.onDoor} onAnalyst={world.onAnalyst}
+      report={reportPoint} reportAnalyst={reportAnalyst}/>:<>
     <Ground onWalk={walk}/>
     <Tufts/>
     <Pond/>
     <Flowers/>
-    <House/>
+    <House onEnter={()=>world.onLandmark('house')}/>
     <Campfire/>
     <Rock x={-6.4} z={3.2} s={1.1} rot={0.4}/><Rock x={-5} z={4.4} s={0.7}/><Rock x={-7.2} z={4.6} s={0.55}/><Rock x={8.4} z={6} s={0.9}/><Rock x={3.4} z={5.2} s={0.5}/>
     {trees.map((t,i)=>{const b=world.birth,k=b?b.ids.indexOf(t.h.id):-1;return <HoldingTree key={t.h.id} id={t.h.id} x={t.x} z={t.z} growth={t.st.growth} condition={t.st.condition} picked={picked===t.h.id} onPick={id=>onPick(id)} onTop={onTops[i]} wind={wl.wind}
@@ -487,28 +513,32 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
     {world.capsuleFx&&(()=>{const fx=world.capsuleFx,t=trees.find(x=>x.h.id===fx.holdingId);if(!t)return null;const p=capSpot(t);
       return <OnGround key={'fx'+fx.t0} x={p.x} z={p.z}><CapsuleFx kind={fx.kind} t0={fx.t0} len={fx.len}/></OnGround>})()}
     {cut&&<CutAway key={cut.c.t0} pos={cut.base} quat={cut.quat} roots={cut.c.roots} seed={cut.c.holdingId} t0={cut.c.t0} closing={cut.c.closing}/>}
-    <Cypress x={-3} z={-8.5} s={1.1}/><Cypress x={-1} z={-9.6}/><Cypress x={5.5} z={-8.8} s={1.2}/><Cypress x={9.6} z={-4.8}/><Cypress x={-10.6} z={-3} s={0.9}/>
-    <RoundTree x={1.8} z={-9.2} s={1.1}/><RoundTree x={-7.6} z={-6.4}/><RoundTree x={10.6} z={0.4} s={0.9}/><RoundTree x={-11} z={4} s={0.8}/>
+    <Cypress x={-3} z={-8.5} s={1.1}/><Cypress x={-3.6} z={-11.2}/><Cypress x={5.5} z={-8.8} s={1.2}/><Cypress x={9.2} z={-6.2}/><Cypress x={-6.2} z={-14.5} s={1.2}/><Cypress x={5.8} z={-17} s={1.1}/><Cypress x={-4} z={-18.2}/><Cypress x={-10.6} z={-3} s={0.9}/>
+    <RoundTree x={5} z={-10.4} s={1.1}/><RoundTree x={-7.6} z={-6.4}/><RoundTree x={17.4} z={-5.2} s={0.9}/><RoundTree x={16.6} z={8.2} s={1.1}/><RoundTree x={-14} z={-10} s={1.2}/><RoundTree x={7} z={-13.5}/><RoundTree x={-11} z={4} s={0.8}/>
     {weather!=='storm'&&<Butterflies count={weather==='cloudy'?5:14}/>}
     <WeatherFx weather={weather} center={pos} hemi={hemi}/>
     <OnGround x={SPOTS.observatory.x} z={SPOTS.observatory.z} rot={SPOTS.observatory.rot}><Observatory lit={world.gameLit} onPick={()=>world.onLandmark('observatory')}/></OnGround>
     <OnGround x={SPOTS.signpost.x} z={SPOTS.signpost.z} rot={SPOTS.signpost.rot}><Signpost hitRate={world.hitRate} onPick={()=>world.onLandmark('signpost')}/></OnGround>
     <OnGround x={SPOTS.cart.x} z={SPOTS.cart.z} rot={SPOTS.cart.rot}><Cart flag={world.cartFlag} onPick={()=>world.onLandmark('cart')}/></OnGround>
+    <Stream/><Bridge/><Paths/><Forest/>
+    <Library open={world.caseOpen} onPick={()=>world.onLandmark('library')}/>
+    <Plaza flags={world.flags} me={world.myFlag} onPick={()=>world.onLandmark('plaza')}/>
     {world.pots.map(p=>{const t=trees.find(x=>x.h.id===p.holdingId);return t&&<OnGround key={p.holdingId} x={t.x-0.85} z={t.z+0.55}><Pot open={p.open} flowers={p.flowers}/></OnGround>})}
     {world.burst&&(()=>{const b=world.burst,t=trees.find(x=>x.h.id===b.holdingId);return t&&<Burst key={b.stamp} x={t.x} z={t.z} hit={b.hit} stamp={b.stamp}/>})()}
-    {world.decor.map(d=>{const sl=DECOR_SLOTS.find(x=>x.id===d.slot);return sl&&<OnGround key={d.slot} x={sl.x} z={sl.z} rot={sl.rot}><Decor shape={d.shape}/></OnGround>})}
+    {world.decor.map(d=>{const sl=DECOR_SLOTS.find(x=>x.id===d.slot&&!x.room);return sl&&<OnGround key={d.slot} x={sl.x} z={sl.z} rot={sl.rot}><Decor shape={d.shape}/></OnGround>})}
     <Suspense fallback={null}>
-      {world.analysts.map(a=><Analyst key={a.id} id={a.id} to={spotFor(a.id,a.at)} from={world.enterFrom} face={pos} surface={surfaceY} tilt={tiltAt} bubble={a.bubble}
+      {world.analysts.filter(a=>!a.home).map(a=><Analyst key={a.id} id={a.id} to={spotFor(a.id,a.at,a.near,a.spot)} act={a.at===null&&a.spot?a.spot.act:a.at!==null&&!a.near?'look':undefined} faceTo={a.at===null&&a.spot?a.spot.face:undefined} from={world.enterFrom} face={pos} surface={surfaceY} tilt={tiltAt} bubble={a.bubble}
         onPick={()=>world.onAnalyst(a.id)} report={reportAnalyst}/>)}
     </Suspense>
     {/* out of the way while the camera looks into the open ground */}
-    <Player target={target} pos={pos} hidden={(!!cut&&!cut.c.closing)||!!world.capsuleFx}/>
+    <Player look={world.look} target={target} stops={stops} pos={pos} hidden={(!!cut&&!cut.c.closing)||!!world.capsuleFx}/>
     <FollowCam pos={pos} recenter={recenter} focus={focusPos} orbit={orbit} near={!!world.capsuleFx} low={cut&&!cut.c.closing?cut.yaw:null}/>
+    </>}
     <Hooks pos={pos} treePos={treePos} points={points}/>
 
     <EffectComposer multisampling={0}>
       <Bloom mipmapBlur luminanceThreshold={LOOK.post.bloom.threshold} luminanceSmoothing={LOOK.post.bloom.smoothing} intensity={LOOK.post.bloom.intensity} radius={LOOK.post.bloom.radius}/>
-      <TiltShift2 blur={blur} taper={LOOK.post.tiltShift.taper}/>
+      <TiltShift2 blur={world.stage?0:world.inside?blur*0.35:blur} taper={LOOK.post.tiltShift.taper}/>
       <HueSaturation saturation={wl.saturation}/>
       <Vignette offset={LOOK.post.vignette.offset} darkness={LOOK.post.vignette.darkness}/>
       <Noise premultiply blendFunction={BlendFunction.SOFT_LIGHT} opacity={LOOK.post.grain.opacity}/>
