@@ -111,6 +111,7 @@ export const UI={
   jump:'30일 뒤',
   // inside the house: the cork board
   stamped:'도장 받음 · {name}',
+  weekDone:'이번 주 목표 끝. +{n} 근거.',
   boardWait:'묻어 둔 캡슐 {n}개 · 판정일이 오면 여기 빨간 핀이 켜져',
   boardEmpty:'아직 묻은 캡슐 없음 · 판단을 남기면 여기 꽂혀',
   // today's three (core/today.ts)

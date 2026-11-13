@@ -15,7 +15,8 @@
 .rt-me-xp{position:relative;height:16px;margin-top:10px;background:var(--rt-rule)}
 .rt-me-xp i{position:absolute;inset:0 auto 0 0;background:var(--rt-accent);transition:width .8s ease-out}
 .rt-me-xp span{position:relative;display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:16px;padding-left:6px;color:#fff;mix-blend-mode:difference}
-.rt-me-close{position:absolute;right:16px;top:calc(16px + env(safe-area-inset-top,0px));min-height:40px;font-family:'Gowun Batang',serif;font-weight:700}
+.rt-me-top{position:absolute;right:16px;top:calc(16px + env(safe-area-inset-top,0px));display:flex;gap:6px}
+.rt-me-top .rt-btn{min-height:40px;font-family:'Gowun Batang',serif;font-weight:700}
 .rt-me-panel{position:absolute;right:16px;top:80px;bottom:16px;width:380px;display:flex;flex-direction:column;padding:16px;background:var(--rt-paper);border:1px solid var(--rt-rule);
   border-radius:2px;box-shadow:0 24px 60px #00000080;overflow:auto;animation:rt-in .45s .1s ease-out both}
 .rt-me-slots{display:flex;gap:6px;margin-bottom:10px}
@@ -49,11 +50,25 @@
 @media(max-width:700px){
   .rt-me-plate{left:12px;right:auto;max-width:calc(100vw - 120px);padding:10px 12px}
   .rt-me-name{font-size:22px}
-  .rt-me-close{right:12px}
+  .rt-me-top{right:12px;flex-direction:column;align-items:flex-end}
   .rt-me-panel{left:8px;right:8px;top:auto;bottom:calc(8px + env(safe-area-inset-bottom,0px));width:auto;height:40dvh}
 }
 @media(orientation:landscape) and (max-height:520px){
   .rt-me-plate{max-width:300px;padding:8px 12px}.rt-me-name{font-size:20px}.rt-me-habit small,.rt-me-xp{display:none}
-  .rt-me-panel{top:8px;bottom:8px;right:8px;width:min(400px,52vw)}.rt-me-close{right:auto;left:16px;top:auto;bottom:12px}
+  .rt-me-panel{top:8px;bottom:8px;right:8px;width:min(400px,52vw)}.rt-me-top{right:auto;left:16px;top:auto;bottom:12px}
 }
 @media(prefers-reduced-motion:reduce){.rt-me-plate,.rt-me-panel{animation:none}}
+/* a first-time pointer (ui/Tip.tsx): a paper slip with a little arrow toward what it points at */
+.rt-tip{position:absolute;z-index:8;max-width:260px;display:flex;align-items:center;gap:10px;padding:10px 10px 10px 14px;background:var(--rt-paper);border:1px solid var(--rt-ink);
+  border-radius:2px;box-shadow:0 10px 30px #2a262040;animation:rt-in .3s ease-out both}
+.rt-tip p{font-size:13px;line-height:1.45;font-family:'Gowun Batang',serif;font-weight:700}
+.rt-tip .rt-btn{min-height:34px;padding:0 10px;font-size:12px;flex:none}
+.rt-tip::after{content:'';position:absolute;left:var(--arrow,50%);bottom:-7px;width:12px;height:12px;margin-left:-6px;background:var(--rt-paper);border-right:1px solid var(--rt-ink);border-bottom:1px solid var(--rt-ink);transform:rotate(45deg)}
+.rt-tip[data-below=true]::after{bottom:auto;top:-7px;transform:rotate(225deg)}
+
+/* settings (ui/Settings.tsx) on <html>: keep still turns every animation off; bigger text scales the panels */
+html[data-still="1"] .proto3d *,html[data-still="1"] .proto3d *::before,html[data-still="1"] .proto3d *::after{animation:none!important;transition:none!important}
+html[data-text="l"] .proto3d :is(.rt-sheet,.rt-me-panel,.rt-me-plate,.proto3d-top,.rt-dock,.rt-tip,.rt-toast,.rt-banner){zoom:1.12}
+html[data-text="xl"] .proto3d :is(.rt-sheet,.rt-me-panel,.rt-me-plate,.proto3d-top,.rt-dock,.rt-tip,.rt-toast,.rt-banner){zoom:1.25}
+.rt-me-chip{white-space:nowrap}
+.proto3d input[type=range]{accent-color:var(--rt-ink);width:100%}

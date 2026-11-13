@@ -24,10 +24,13 @@ import {DEFAULT_LOOK,type Look} from '../core/wardrobe';
 import {stampById,type StampId} from '../core/stamps';
 
 export type Owned={uid:string;itemId:string;got:string;slot:string|null};
+// settings (ui/Settings.tsx): effect volume, keeping still, text size, tilt
+export type Settings={sfx:number;still:boolean;text:'m'|'l'|'xl';tilt:boolean};
+export const DEFAULT_SETTINGS:Settings={sfx:0.7,still:false,text:'m',tilt:true};
 // seen: how many times each long scene was played (docs/brief-wow.md: long the first time, short after)
 export type Seen={birth:number;cutaway:number;bury:number};
 // name, look: the player's observer (ui/MyPage.tsx) · stamps: achievements and the day each was earned · wardrobe: pieces bought
-export type GardenSave={v:1;holdings:Holding[];onboarded:boolean;lookedBack:boolean;sound:boolean;seen:Seen;name:string;look:Look;stamps:{id:StampId;day:string}[];wardrobe:string[];rewinds:RewindRound[];daysDone:string[];rankSeen:number;judgments:Judgment[];graded:Graded[];cooldowns:Cooldown[];cases:CaseAnswer[];streak:Streak;currency:number;
+export type GardenSave={v:1;holdings:Holding[];onboarded:boolean;lookedBack:boolean;sound:boolean;seen:Seen;name:string;look:Look;stamps:{id:StampId;day:string}[];wardrobe:string[];tips:string[];settings:Settings;letters:string[];weeksDone:string[];rewinds:RewindRound[];daysDone:string[];rankSeen:number;judgments:Judgment[];graded:Graded[];cooldowns:Cooldown[];cases:CaseAnswer[];streak:Streak;currency:number;
   trust:Record<AnalystId,Relation>;owned:Owned[];gifted:AnalystId[];bought:{itemId:string;day:string}[]};
 export const SAVE_KEY='rethink-garden-v1';
 
@@ -40,7 +43,7 @@ export function clock(){
 // A new player starts with an empty garden and the onboarding (ui/Onboarding.tsx) asks for their holdings.
 export function blankSave():GardenSave{
   const trust={tori:blankRelation(),moa:blankRelation(),luon:blankRelation()};
-  return {v:1,holdings:[],onboarded:false,lookedBack:false,sound:true,seen:{birth:0,cutaway:0,bury:0},name:'',look:DEFAULT_LOOK,stamps:[],wardrobe:[],rewinds:[],daysDone:[],rankSeen:0,judgments:[],graded:[],cooldowns:[],cases:[],streak:blankStreak(),currency:0,trust,owned:[],gifted:[],bought:[]};
+  return {v:1,holdings:[],onboarded:false,lookedBack:false,sound:true,seen:{birth:0,cutaway:0,bury:0},name:'',look:DEFAULT_LOOK,stamps:[],wardrobe:[],tips:[],settings:DEFAULT_SETTINGS,letters:[],weeksDone:[],rewinds:[],daysDone:[],rankSeen:0,judgments:[],graded:[],cooldowns:[],cases:[],streak:blankStreak(),currency:0,trust,owned:[],gifted:[],bought:[]};
 }
 // The demo garden opens with two judgments made months ago, so the first visit already has grades to open (the moment
 // the whole loop is built around). Both are on the demo holdings.
@@ -49,7 +52,8 @@ export function demoSave(today:string):GardenSave{
     signalId:'ohlson:7:demo',analyst:'tori',model:'ohlson',rebuttal:'kept'};
   const j2:Judgment={id:'demo-2',holdingId:6,name:'은하바이오',day:shiftDay(today,-35),choice:'watch',reason:'임상 발표까지만 본다.',confidence:2,rate:2.3,
     signalId:'crash:6:demo',analyst:'moa',model:'crash',rebuttal:'skipped'};
-  return {...blankSave(),holdings:DEMO_HOLDINGS,onboarded:true,lookedBack:true,judgments:[j1,j2],currency:4};
+  // the demo garden is for showing and testing the loop: the first-time pointers are taken as read
+  return {...blankSave(),holdings:DEMO_HOLDINGS,onboarded:true,lookedBack:true,judgments:[j1,j2],currency:4,tips:['map','me','house','lapse']};
 }
 function loadSave(today:string):GardenSave{
   try{
@@ -134,6 +138,14 @@ export function useGarden(){
       return {...p,rankSeen:index,owned}});if(got.length)say(line(UI.rankUp,{rank:name,item:got.join(', ')}))},
     setSound(on:boolean){setS(p=>({...p,sound:on}))},
     setName(name:string){setS(p=>({...p,name}))},
+    setSettings(settings:Settings){setS(p=>({...p,settings}))},
+    // start over: the save goes and the page opens on the onboarding
+    wipe(){try{localStorage.removeItem(SAVE_KEY)}catch{}location.replace(location.pathname+'?reset')},
+    // this week's three goals done (core/weekly.ts): paid once a week
+    closeWeek(start:string){let paid=false;setS(p=>{if(p.weeksDone.includes(start))return p;paid=true;return {...p,weeksDone:[...p.weeksDone.slice(-30),start],currency:p.currency+EARN.weekDone}});
+      if(paid)say(line(UI.weekDone,{n:EARN.weekDone}))},
+    letterRead(month:string){setS(p=>p.letters.includes(month)?p:{...p,letters:[...p.letters,month]})},
+    tipDone(id:string){setS(p=>p.tips.includes(id)?p:{...p,tips:[...p.tips,id]})},
     setLook(look:Look){setS(p=>({...p,look}))},
     // a piece of clothing from the cart's currency (core/wardrobe.ts unlock buy)
     buyWear(id:string,price:number){let ok=false;setS(p=>{if(p.wardrobe.includes(id)||p.currency<price)return p;ok=true;return {...p,currency:p.currency-price,wardrobe:[...p.wardrobe,id]}});return ok},

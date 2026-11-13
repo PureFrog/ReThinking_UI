@@ -35,6 +35,10 @@ export const LOOK={
 
   // the grade reveal reaching the tree (Scene3D Burst): sparks for a hit, autumn leaves for a miss
   burst:{hit:'#fff3a8',miss:'#d39a3a'},
+  // time of day (core/daylight.ts): the sky at dusk and at night (mixed over the weather's sky), the low sun, the night fog,
+  // how bright the light gets at its darkest, how much the windows glow at night
+  daylight:{dusk:{top:'#5a6aa0',mid:'#e7a07a',bottom:'#f6cf98'},night:{top:'#0b1226',mid:'#18264a',bottom:'#2c3b66'},lowSun:'#ffad6b',nightFog:'#22304e',
+    floor:0.28,windows:2.2},
   // the wider map (World3D.tsx, places.ts): water and its banks, bridge wood, path stones, the league square's paving,
   // how many trees in the forest ring
   map:{water:'#2c86d6',bank:'#c9b98f',plank:'#a77d58',plank2:'#946c4b',rail:'#6c5b53',stone:'#d9c79c',paving:'#e3d8c4',forest:64},

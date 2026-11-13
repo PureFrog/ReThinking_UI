@@ -7,7 +7,10 @@ import {madeSignal,type Signal} from './signals';
 import type {Holding} from '../core/model';
 export type RewindCase={id:string;name:string;sector:string;held:string;rate:number;sig:Signal;after:number;loss:boolean};
 const POOL:[string,string][]=[['한결물산','유통'],['도담전자','전자부품'],['새벽해운','해운'],['누리바이오','바이오'],['가온건설','건설'],['다솜식품','식품'],
-  ['미르소재','화학'],['별빛게임즈','게임'],['온새미로텍','소프트웨어'],['하람제약','제약'],['모래내철강','철강'],['바람길항공','항공']];
+  ['미르소재','화학'],['별빛게임즈','게임'],['온새미로텍','소프트웨어'],['하람제약','제약'],['모래내철강','철강'],['바람길항공','항공'],
+  ['너울에너지','에너지'],['초롱반도체','반도체'],['다온리테일','유통'],['아라은행','금융'],['푸른솔제지','제지'],['한빛모빌리티','자동차부품'],
+  ['소담화장품','화장품'],['이음통신','통신'],['보람기계','기계'],['가람엔터','엔터테인먼트'],['새솔바이오','바이오'],['참길물류','물류'],
+  ['해든전지','2차전지'],['나린식품','식품'],['비채건설','건설'],['라온로봇','로봇'],['여울조선','조선'],['다래헬스','의료기기']];
 const HELD=['3개월째','5개월째','반년째','8개월째','1년째','1년 반째'];
 function rng(seed:number){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 // how often the model's call holds up in these practice cases (a drop of 5% or more after a loss signal)

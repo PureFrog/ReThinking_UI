@@ -520,3 +520,12 @@ button.rt-row:hover{filter:none;background:#16211b05}
 .rt-exit{position:absolute;right:16px;bottom:22px;z-index:6;min-height:40px;font-family:'Gowun Batang',serif;font-weight:700}
 @media(max-width:700px){.rt-exit{right:auto;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
 @media(orientation:landscape) and (max-height:520px){.rt-exit{right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px))}}
+/* night (core/daylight.ts): stars behind the transparent canvas, a few twinkling */
+.proto3d-stars{position:absolute;inset:0 0 40% 0;pointer-events:none;
+  background:radial-gradient(1.2px 1.2px at 12% 18%,#fff 98%,transparent),radial-gradient(1px 1px at 28% 8%,#fff 98%,transparent),radial-gradient(1.4px 1.4px at 46% 22%,#fffbe6 98%,transparent),
+    radial-gradient(1px 1px at 63% 12%,#fff 98%,transparent),radial-gradient(1.2px 1.2px at 79% 26%,#fff 98%,transparent),radial-gradient(1px 1px at 91% 9%,#fff 98%,transparent),
+    radial-gradient(1px 1px at 7% 35%,#fff 98%,transparent),radial-gradient(1.3px 1.3px at 36% 38%,#fff 98%,transparent),radial-gradient(1px 1px at 55% 4%,#fff 98%,transparent),
+    radial-gradient(1px 1px at 71% 40%,#fff 98%,transparent),radial-gradient(1.6px 1.6px at 85% 44%,#ffe9b0 98%,transparent),radial-gradient(1px 1px at 20% 48%,#fff 98%,transparent);
+  animation:rt-twinkle 4s ease-in-out infinite alternate}
+@keyframes rt-twinkle{to{filter:brightness(.6)}}
+@media(prefers-reduced-motion:reduce){.proto3d-stars{animation:none}}

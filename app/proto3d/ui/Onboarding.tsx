@@ -44,7 +44,9 @@ export function Onboarding({g,onClose,onPlanted,onDemo}:{g:G;onClose:()=>void;on
   if(!rows)return <Sheet kicker="시작" title="내 종목부터" label="내 종목 넣기" onClose={onClose}
     foot={<button type="button" className="rt-btn wide" onClick={()=>{g.ops.useDemo();if(onDemo)onDemo();else onClose()}}>예시 정원으로 둘러보기</button>}>
     {picker}
-    <p className="rt-hint">종목 하나가 나무 하나야. 분석가 셋이 그 나무들에서 손실 신호를 찾아.</p>
+    <label className="rt-field" style={{marginTop:0}}>뭐라고 부를까 <span className="rt-hint">정원 관찰자의 이름 · 나중에 바꿀 수 있어</span>
+      <input className="rt-input" value={g.s.name} maxLength={12} placeholder="이름 (안 적어도 돼)" aria-label="내 이름" onChange={e=>g.ops.setName(e.target.value)}/></label>
+    <p className="rt-hint" style={{marginTop:14}}>종목 하나가 나무 하나야. 분석가 셋이 그 나무들에서 손실 신호를 찾아.</p>
     <div className="rt-pick">
       <button type="button" className="rt-pick-card" disabled={reading} onClick={()=>file.current?.click()}>
         <Lens size={20}/><strong>{reading?'읽는 중':'캡처 올리기'}</strong><small>증권 앱 보유 종목 화면. 이 기기 밖으로 안 나가.</small></button>

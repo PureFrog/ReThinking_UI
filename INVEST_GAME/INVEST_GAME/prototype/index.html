@@ -1,0 +1,1030 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>닌자 포트폴리오</title>
+<style>
+:root{
+  --bg:#0e0f14; --panel:rgba(16,18,28,.82); --line:rgba(255,255,255,.12);
+  --text:#f4f5f8; --muted:#a9adbd; --up:#ff5c5c; --down:#4d8dff; --warn:#ff2d2d;
+  --gold:#ffd43b; --accent:#7c5cff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif;
+  -webkit-tap-highlight-color:transparent;overflow:hidden}
+#app{position:relative;width:min(100vw,440px);height:100dvh;margin:0 auto;overflow:hidden;
+  touch-action:none;user-select:none;-webkit-user-select:none;background:#222}
+canvas#game{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hidden{display:none!important}
+
+/* HUD */
+#hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;
+  padding:calc(8px + env(safe-area-inset-top)) 10px 0;pointer-events:none;gap:8px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;backdrop-filter:blur(6px)}
+#graphBox{padding:6px 8px 4px;width:156px}
+#retText{font-size:18px;font-weight:800;letter-spacing:-.3px}
+#eqText{font-size:10px;color:var(--muted);margin-left:4px;font-weight:600}
+#graph{width:140px;height:44px;display:block;margin-top:2px}
+#info{padding:6px 10px;text-align:right;min-width:104px}
+#roomLabel{font-size:12px;color:var(--muted);font-weight:700}
+#roomTimer{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
+#totalTimer{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
+#levBadge{margin-top:3px;font-size:10px;font-weight:800;color:#111;background:var(--gold);border-radius:6px;padding:1px 5px;display:inline-block}
+
+/* news */
+#news{position:absolute;left:10px;right:10px;top:calc(84px + env(safe-area-inset-top));pointer-events:none;
+  padding:9px 12px 10px;border-radius:14px;background:rgba(255,255,255,.96);color:#14151c;
+  box-shadow:0 6px 24px rgba(0,0,0,.35);animation:pop .22s ease-out}
+@keyframes pop{from{transform:scale(.85) translateY(-8px);opacity:0}to{transform:none;opacity:1}}
+.n-head{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:800;color:#555}
+.n-chip{padding:1px 7px;border-radius:999px;color:#111;font-weight:800}
+.n-text{font-size:16px;font-weight:800;margin-top:4px;letter-spacing:-.4px;line-height:1.25}
+.n-sub{font-size:12px;color:#555;margin-top:2px}
+.n-bar{height:3px;background:#e4e4ea;border-radius:2px;margin-top:7px;overflow:hidden}
+.n-bar i{display:block;height:100%;background:var(--accent)}
+
+/* side buttons */
+#itemSlot{position:absolute;left:4px;top:52%;width:50px;padding:6px 4px;text-align:center;cursor:pointer;pointer-events:auto}
+#itemSlot .ic{font-size:22px;line-height:1}
+#itemSlot .lb{font-size:10px;font-weight:800;margin-top:2px}
+#itemSlot .cnt{font-size:11px;color:var(--gold);font-weight:800}
+#itemSlot.active{border-color:var(--gold);box-shadow:0 0 12px rgba(255,212,59,.6)}
+#itemSlot.disabled{opacity:.45}
+.gauge{display:flex;gap:2px;justify-content:center;margin-top:4px}
+.gauge i{width:6px;height:6px;border-radius:2px;background:rgba(255,255,255,.2)}
+.gauge i.on{background:var(--gold)}
+#recBtn{position:absolute;right:4px;top:52%;width:52px;height:52px;border-radius:10px;cursor:pointer;
+  background:linear-gradient(135deg,#7c5cff,#3fa9ff);display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-size:10px;font-weight:800;box-shadow:0 0 0 0 rgba(124,92,255,.7);animation:pulse 1.2s infinite}
+#recBtn b{font-size:18px}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(124,92,255,.7)}100%{box-shadow:0 0 0 14px rgba(124,92,255,0)}}
+#recBox{position:absolute;right:4px;top:calc(52% + 58px);width:120px;opacity:.94;padding:7px 8px;font-size:11px;pointer-events:none}
+#recBox .t{font-size:10px;color:#b9a8ff;font-weight:800}
+#recBox .m{font-size:13px;font-weight:800;margin-top:2px;line-height:1.25}
+#recBox .r{font-size:10px;color:var(--muted);margin-top:2px}
+
+/* tray */
+#tray{position:absolute;left:8%;right:8%;bottom:calc(10px + env(safe-area-inset-bottom));display:flex;justify-content:center;gap:4px}
+.pc{position:relative;flex:1 1 0;min-width:0;border-radius:10px;background:#1b1d28;border:2px solid var(--c);
+  padding:5px 3px 6px;text-align:center;cursor:pointer;transition:transform .15s}
+.pc-top{font-size:9px;font-weight:800;color:var(--c)}
+.pc-name{font-size:10.5px;font-weight:800;line-height:1.15;margin-top:2px;word-break:keep-all;min-height:24px;display:flex;align-items:center;justify-content:center}
+.pc-w{font-size:10px;color:var(--muted);margin-top:2px}
+.pc-r{font-size:11px;font-weight:800}
+.up{color:var(--up)} .down{color:var(--down)}
+.pc-stamp{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:15px;font-weight:900;
+  color:#fff;background:rgba(255,45,45,.55);border-radius:8px;transform:rotate(-12deg)}
+.pc.sel{transform:translateY(-6px);border-color:var(--warn);box-shadow:0 0 14px rgba(255,45,45,.7)}
+.pc.sel .pc-stamp{display:flex}
+.pc.sold{opacity:.35}
+.pc.sold .pc-stamp{display:flex;background:rgba(80,80,80,.6);transform:none}
+#tray.fanned .pc{animation:fan .35s ease-out backwards}
+#tray.fanned .pc:nth-child(1){animation-delay:0s}#tray.fanned .pc:nth-child(2){animation-delay:.04s}
+#tray.fanned .pc:nth-child(3){animation-delay:.08s}#tray.fanned .pc:nth-child(4){animation-delay:.12s}
+#tray.fanned .pc:nth-child(5){animation-delay:.16s}
+@keyframes fan{from{transform:translateY(40px) scale(.6);opacity:0}}
+#tray.compact{gap:0}
+#tray.compact .pc{flex:0 0 52px;height:36px;margin-left:-10px;padding:3px 2px;cursor:default;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+#tray.compact .pc:first-child{margin-left:0}
+#tray.compact .pc-top,#tray.compact .pc-w{display:none}
+#tray.compact .pc-name{font-size:9px;min-height:0;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tray.compact .pc-r{font-size:9px}
+
+/* decide bar */
+#decideBar{position:absolute;left:10px;right:10px;bottom:calc(122px + env(safe-area-inset-bottom));text-align:center;pointer-events:none}
+.drow{display:flex;align-items:center;gap:10px;padding:6px 6px 6px 14px;border-radius:16px;background:var(--panel);border:1px solid var(--line);pointer-events:auto}
+#dTime{font-size:30px;font-weight:900;line-height:1;min-width:22px;font-variant-numeric:tabular-nums}
+#dMsg{flex:1;text-align:left;font-size:12px;font-weight:700;line-height:1.3}
+#dCost{margin:0 auto 6px;display:inline-block;padding:6px 12px;border-radius:10px;background:var(--warn);color:#fff;
+  font-size:17px;font-weight:900;letter-spacing:-.3px;animation:shake .4s}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+#cutBtn{pointer-events:auto;white-space:nowrap;padding:10px 16px;border:0;border-radius:999px;font-size:15px;font-weight:900;
+  background:#fff;color:#111;cursor:pointer}
+#cutBtn.go{background:var(--warn);color:#fff}
+
+/* toast */
+#toasts{position:absolute;left:0;right:0;top:40%;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+.toast{padding:8px 14px;border-radius:12px;background:rgba(0,0,0,.75);font-size:14px;font-weight:800;animation:toast 1.9s forwards}
+.toast.red{background:rgba(220,30,30,.9)}
+.toast.gold{background:rgba(255,212,59,.95);color:#111}
+@keyframes toast{0%{opacity:0;transform:translateY(10px)}10%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0;transform:translateY(-12px)}}
+
+/* overlay */
+#overlay{position:absolute;inset:0;background:rgba(8,9,14,.94);overflow-y:auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));touch-action:pan-y}
+#overlay.modal{background:rgba(8,9,14,.7);display:flex;align-items:center;justify-content:center}
+.ov-h{font-size:22px;font-weight:900;letter-spacing:-.5px}
+.ov-sub{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
+.ov-timer{float:right;font-size:13px;font-weight:800;color:var(--gold);background:rgba(255,212,59,.12);padding:4px 10px;border-radius:999px;font-variant-numeric:tabular-nums}
+.cc{margin-top:10px;padding:12px;border-radius:14px;background:#1a1c27;border-left:5px solid var(--c)}
+.cc-top{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);font-weight:700}
+.cc-name{font-size:18px;font-weight:900;margin-top:2px}
+.cc-desc{font-size:13px;color:#d6d8e2;margin-top:4px;line-height:1.45}
+.cc.new{animation:pop .4s ease-out backwards}
+.legend{margin-top:14px;padding:10px 12px;border-radius:12px;background:#151722;font-size:12px;line-height:1.7;color:#d6d8e2}
+.btn{display:block;width:100%;margin-top:16px;padding:14px;border:0;border-radius:14px;font-size:16px;font-weight:900;cursor:pointer;
+  background:var(--accent);color:#fff}
+.btn.ghost{background:#252836;color:var(--text)}
+.btn:disabled{opacity:.4}
+.title-wrap{min-height:100%;display:flex;flex-direction:column;justify-content:center;text-align:center}
+.title-ninja{font-size:84px;line-height:1}
+.title-name{font-size:32px;font-weight:900;margin-top:10px;letter-spacing:-1px}
+.modal-box{width:min(320px,90%);padding:18px;border-radius:18px;background:#1a1c27;border:1px solid var(--line);text-align:center}
+.big-ret{font-size:46px;font-weight:900;letter-spacing:-1.5px;margin-top:6px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:12px}
+.stats div{background:#1a1c27;border-radius:10px;padding:8px;font-size:11px;color:var(--muted)}
+.stats b{display:block;font-size:15px;color:var(--text);margin-top:2px}
+.rank{margin-top:14px;border-radius:14px;background:#151722;padding:6px 0}
+.rank-row{display:flex;justify-content:space-between;padding:6px 14px;font-size:13px}
+.rank-row.me{background:rgba(124,92,255,.25);font-weight:900}
+.rank-row .no{width:36px;color:var(--muted);font-weight:800}
+.rank-row .nm{flex:1}
+#resGraph{width:100%;height:120px;display:block;margin-top:10px;background:#151722;border-radius:12px}
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="game"></canvas>
+  <div id="hud" class="hidden">
+    <div id="graphBox" class="panel">
+      <div><span id="retText">+0.00%</span><span id="eqText"></span></div>
+      <canvas id="graph" width="280" height="88"></canvas>
+    </div>
+    <div id="info" class="panel">
+      <div id="roomLabel">방 1/6</div>
+      <div id="roomTimer">60</div>
+      <div id="totalTimer">남은 7:00</div>
+      <div id="levBadge" class="hidden"></div>
+    </div>
+  </div>
+  <div id="news" class="hidden"></div>
+  <div id="itemSlot" class="panel hidden"></div>
+  <div id="recBtn" class="hidden"><b>🔮</b>추천</div>
+  <div id="recBox" class="panel hidden"></div>
+  <div id="decideBar" class="hidden">
+    <div id="dCost" class="hidden"></div>
+    <div class="drow"><div id="dTime">5</div><div id="dMsg"></div><button id="cutBtn">모두 유지 ▶</button></div>
+  </div>
+  <div id="tray" class="hidden compact"></div>
+  <div id="toasts"></div>
+  <div id="overlay"></div>
+</div>
+
+<script>
+'use strict';
+/* ============================================================
+   설정 (게임설계서 v1.1 확정값)
+   ============================================================ */
+const params = new URLSearchParams(location.search);
+const SPEED = Math.max(0.1, +params.get('speed') || 1);   // 테스트용 배속 (?speed=10)
+const CFG = {
+  ROOMS: 6, DAYS_PER_ROOM: 20, SEC_PER_DAY: 3,
+  RUN: 60, DECIDE: 5, SLASH: 5, SETTLE: 10,
+  INTRO: 90, NEW_INTRO: 20, CARD: 5,
+  COST: 0.03, INIT: 10_000_000, LANES: 5,
+  LEV_MULT: 2, LEV_DAYS: 20, LEV_LIQ: 0.8, GAUGE_MAX: 6, START_ITEMS: 1,
+  REC_PROB: 0.6, REC_FROM: 20, REC_TO: 45, REC_SHOW: 15, REC_GEMS: 30, START_GEMS: 100,
+  SPAWN_MIN: 1.0, SPAWN_MAX: 1.8, SPAWN_STOP: 54,
+  MON_WEIGHTS: { zombie: 0.4, mummy: 0.3, wolf: 0.3 },
+};
+const TOTAL_MAIN = (CFG.ROOMS - 1) * (CFG.RUN + CFG.DECIDE + CFG.SLASH) + CFG.RUN + CFG.SETTLE; // 420초
+const SLOT = {
+  color: ['#f783ac', '#ffa94d', '#ffd43b', '#63e6be', '#74c0fc'],
+  target: ['오이', '밧줄', '애호박', '대나무', '당근'],
+};
+const THEMES = [
+  { name: '던전',       base: '#3a3550', alt: '#433c5c', side: '#221e2e', deco: 'torch' },
+  { name: '숲',         base: '#4f7a3f', alt: '#588446', side: '#2c4d25', deco: 'tree' },
+  { name: '광활한 대지', base: '#a3b85c', alt: '#adc266', side: '#7a8f45', deco: 'grass' },
+  { name: '사막',       base: '#e0c07a', alt: '#e8ca88', side: '#c09650', deco: 'cactus' },
+  { name: '설원',       base: '#e6edf5', alt: '#dbe4ee', side: '#a9bcd2', deco: 'pine' },
+  { name: '화산',       base: '#4a2c2a', alt: '#56322f', side: '#26130f', deco: 'lava' },
+];
+const MON = {
+  zombie: { cat: '기업 소식', icon: '📰', color: '#8fbf6a' },
+  mummy:  { cat: '재무제표',  icon: '📊', color: '#e8dcc0' },
+  wolf:   { cat: '경제 뉴스', icon: '🌐', color: '#8a7766' },
+};
+
+/* ============================================================
+   샘플 데이터 (가상 기업 · 가상 수익률). 실제 서비스에서는 시나리오 JSON으로 교체
+   ============================================================ */
+const COMPANIES = [
+  ['한빛반도체','반도체','메모리 반도체 후공정 장비를 만드는 중견 기업.',1.4,2.6],
+  ['누리바이오','바이오','항암 신약 후보 물질 2종의 임상을 진행 중.',1.1,3.4],
+  ['청솔식품','음식료','라면·스낵 브랜드를 여럿 보유한 식품 회사.',0.6,1.3],
+  ['대해해운','해운','컨테이너선 40척을 운용하는 해운사.',1.2,3.0],
+  ['아라부품','전자부품','TV·가전 부품을 글로벌 제조사에 납품.',1.1,2.0],
+  ['별빛게임즈','게임','모바일 RPG 2종에서 매출 대부분이 나옴.',1.2,3.0],
+  ['새벽금융지주','금융','전국 지점망을 가진 은행 지주사.',0.9,1.4],
+  ['초록에너지','2차전지','배터리 양극재 생산 능력을 늘리는 중.',1.5,3.2],
+  ['미르건설','건설','주택·플랜트 수주 비중이 높은 건설사.',1.0,2.0],
+  ['한결텔레콤','통신','가입자 1,500만 명의 이동통신사.',0.5,1.0],
+  ['단비화학','화학','석유화학 기초 소재를 생산.',1.1,1.9],
+  ['바람모터스','자동차','중형 SUV 중심의 완성차 제조사.',1.1,1.9],
+  ['솔길항공','항공','국제선 비중이 높은 대형 항공사.',1.3,2.6],
+  ['다온리테일','유통','대형마트와 온라인몰을 함께 운영.',0.8,1.6],
+  ['가람제약','제약','복제약·일반의약품 매출이 안정적.',0.7,1.6],
+  ['해솔소프트','소프트웨어','기업용 클라우드 보안 솔루션 개발.',1.3,2.7],
+  ['노을엔터','엔터','아이돌 그룹 4팀을 보유한 기획사.',1.2,3.1],
+  ['든든생명','보험','생명보험 업계 상위권 보험사.',0.7,1.3],
+  ['강철조선','조선','LNG 운반선 수주 잔고가 많음.',1.3,2.5],
+  ['이음로보틱스','로봇','물류용 자율주행 로봇 제조사.',1.6,3.8],
+  ['푸른코스메틱','화장품','중국·동남아 수출 비중이 높음.',1.2,2.6],
+  ['한울스틸','철강','열연·냉연 강판을 생산하는 철강사.',1.1,2.0],
+  ['보라디스플레이','디스플레이','OLED 패널 소재를 공급.',1.3,2.6],
+  ['마루리츠','리츠','오피스 빌딩 임대 수익을 배당하는 리츠.',0.4,0.9],
+  ['빛고을솔라','신재생','태양광 모듈 제조와 발전소 운영.',1.4,3.2],
+  ['도담페이','핀테크','간편결제 플랫폼 운영사.',1.4,3.0],
+  ['하늘디펜스','방산','자주포·탄약을 생산하는 방산 기업.',0.8,2.2],
+  ['여울상사','종합상사','원자재 무역과 자원 개발 사업.',1.0,1.9],
+  ['다솜메디칼','의료기기','체외진단 키트와 영상 장비 제조.',1.1,2.6],
+  ['새길로지스','물류','택배·풀필먼트 센터 운영.',0.9,1.8],
+].map(([name, sector, desc, beta, vol], id) => ({ id, name, sector, desc, beta, vol }));
+
+// 방별 시장 일평균 수익률(%) — 상승장 / 폭락 후 반등 / 박스권
+const REGIMES = [
+  { key: 'A', M: [0.25, 0.15, 0.30, -0.10, 0.20, 0.25] },
+  { key: 'B', M: [0.05, -0.60, -0.90, 0.20, 0.50, 0.45] },
+  { key: 'C', M: [0.05, -0.15, 0.10, -0.05, 0.00, 0.05] },
+];
+
+const NEWS = {
+  compPos: [['{c}, 대형 공급계약 수주', '계약 규모 연매출의 {n}%'], ['{c}, 신제품 출시 첫 주 완판', '추가 생산 라인 가동 검토'],
+            ['{c}, 해외 진출 인허가 획득', '신규 시장 {n}개국 진입'], ['{c}, 대규모 자사주 매입 발표', '발행주식의 {n}% 규모']],
+  compNeg: [['{c}, 핵심 임원 돌연 사임', '후임 미정 · 경영 공백 우려'], ['{c}, 주력 제품 리콜 결정', '리콜 비용 연이익의 {n}% 추정'],
+            ['{c}, 최대 고객사 거래 중단', '매출 비중 {n}% 고객'], ['{c}, 규제 당국 조사 착수', '과징금 가능성 제기']],
+  finPos:  [['{c} 분기 매출 +{n}%', '영업이익 흑자 폭 확대'], ['{c} 영업이익률 {m}%로 개선', '전 분기 대비 +{k}%p'],
+            ['{c} 순현금 {n}00억 원 확보', '부채비율 하락']],
+  finNeg:  [['{c} 분기 영업손실 전환', '매출 −{n}% 감소'], ['{c} 부채비율 {m}0%로 급증', '단기 차입금 확대'],
+            ['{c} 재고자산 {n}% 증가', '수요 둔화 신호']],
+  ecoPos:  [['기준금리 동결 · 인하 기대', '시장 유동성 개선 전망'], ['수출 3개월 연속 증가', '반도체·자동차 호조'],
+            ['소비심리지수 반등', '내수 회복 기대감'], ['외국인 순매수 전환', '위험자산 선호 회복']],
+  ecoNeg:  [['기준금리 0.5%p 인상', '긴축 장기화 우려'], ['환율 급등 · 외국인 매도', '자금 이탈 가속'],
+            ['경기선행지수 하락 전환', '경기 둔화 신호'], ['물가 상승률 예상 상회', '추가 긴축 가능성']],
+};
+
+/* ============================================================
+   유틸
+   ============================================================ */
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+let rng = mulberry32((+params.get('seed')) || (Date.now() & 0x7fffffff));
+const randn = () => { let u = 0, v = 0; while (!u) u = rng(); while (!v) v = rng(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const pick = a => a[Math.floor(rng() * a.length)];
+const randInt = (a, b) => a + Math.floor(rng() * (b - a + 1));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+const won = v => Math.round(v).toLocaleString('ko-KR') + '원';
+const manwon = v => (v / 10000).toLocaleString('ko-KR', { maximumFractionDigits: 0 }) + '만';
+const pctTxt = (v, d = 2) => (v >= 0 ? '+' : '') + v.toFixed(d) + '%';
+const mmss = s => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+const $ = s => document.querySelector(s);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { } },
+};
+
+function genScenario() {
+  const reg = pick(REGIMES);
+  const days = CFG.ROOMS * CFG.DAYS_PER_ROOM;
+  const mkt = Array.from({ length: days }, (_, d) => reg.M[Math.floor(d / CFG.DAYS_PER_ROOM)] / 100 + 0.011 * randn());
+  const comps = COMPANIES.map(c => {
+    const mu = Array.from({ length: CFG.ROOMS }, () => randn() * 0.0035);
+    const r = mkt.map((m, d) => clamp(c.beta * m + mu[Math.floor(d / CFG.DAYS_PER_ROOM)] + c.vol / 100 * 0.75 * randn(), -0.29, 0.29));
+    return { mu, r };
+  });
+  return { reg, comps };
+}
+
+/* ============================================================
+   상태
+   ============================================================ */
+let G = null;
+let geo = {};
+const fx = { particles: [], floats: [], slashes: [], halves: [] };
+
+function newGame() {
+  const sc = genScenario();
+  const ids = COMPANIES.map(c => c.id).sort(() => rng() - .5).slice(0, 5);
+  G = {
+    sc, phase: 'intro', room: 0, runT: 0, dayInRoom: 0, dayTotal: 0, clock: 0, anim: 0, paused: false,
+    lane: 2, ninjaX: 0, ninjaY: 0, ninjaAlpha: 1, monsters: [], spawnT: 1.2, scroll: 0,
+    card: null, gauge: 0, items: CFG.START_ITEMS, gems: CFG.START_GEMS,
+    lev: { active: false, days: 0, startEq: 0 },
+    slots: ids.map(cid => ({ cid, value: CFG.INIT / 5, roomStart: CFG.INIT / 5, soldOut: false })),
+    cash: 0, debt: 0, sold: new Set(), selected: new Set(),
+    rec: { at: null, shown: false, visible: false, t: 0, text: null },
+    decideT: 0, slashT: 0, settleT: 0, introT: 0, kfs: null, cutEvents: [], targets: null, doorOpen: 0,
+    newcomers: [], hist: [{ d: 0, v: 0 }], histDirty: true,
+    stats: { kills: 0, news: 0, cuts: 0, cost: 0, levUsed: 0, liq: 0 },
+  };
+  fx.particles.length = fx.floats.length = fx.slashes.length = fx.halves.length = 0;
+  resize();
+  G.ninjaX = laneX(G.lane);
+  showIntro(G.slots.map((_, i) => i), CFG.INTRO, '보유 기업 소개', true);
+}
+
+/* ============================================================
+   회계: 보유 평가액 · 현금 · 레버리지 차입
+   ============================================================ */
+const holdSum = () => G.slots.reduce((s, x) => s + x.value, 0);
+const equityRaw = () => holdSum() + G.cash - G.debt;
+const equity = () => Math.max(0, equityRaw());
+const retPct = () => (equity() / CFG.INIT - 1) * 100;
+
+function pushHist() { G.hist.push({ d: G.dayTotal, v: retPct() }); G.histDirty = true; }
+
+function rebalance() {               // 무료 · 각 종목 V×20% (레버리지 중이면 노출 2V)
+  const E = equity();
+  const expo = G.lev.active ? E * CFG.LEV_MULT : E;
+  G.slots.forEach(s => { s.value = expo / 5; s.roomStart = s.value; s.soldOut = false; });
+  G.debt = expo - E; G.cash = 0;
+}
+
+function applyDay() {
+  const d = G.room * CFG.DAYS_PER_ROOM + G.dayInRoom;
+  G.slots.forEach(s => { s.value *= 1 + G.sc.comps[s.cid].r[d]; });
+  G.dayInRoom++; G.dayTotal++;
+  if (equityRaw() <= 0) {             // 자산 하한 0
+    G.slots.forEach(s => { s.value = 0; }); G.cash = 0; G.debt = 0;
+    if (G.lev.active) { G.lev.active = false; G.stats.liq++; toast('자산 소진 · 강제 청산', 'red'); }
+  }
+  if (G.lev.active) {
+    G.lev.days--;
+    if (equity() <= G.lev.startEq * CFG.LEV_LIQ) endLev(true);
+    else if (G.lev.days <= 0) endLev(false);
+  }
+  pushHist();
+  renderTray();
+}
+
+function activateLev() {
+  if (G.phase !== 'run' || G.paused || G.lev.active || G.items <= 0 || G.runT >= CFG.RUN) return;
+  const E = equity(), tot = holdSum();
+  if (tot <= 0) return;
+  const f = (tot + E * (CFG.LEV_MULT - 1)) / tot;
+  G.slots.forEach(s => { s.value *= f; s.roomStart *= f; });
+  G.debt += E * (CFG.LEV_MULT - 1);
+  G.items--; G.stats.levUsed++;
+  G.lev = { active: true, days: CFG.LEV_DAYS, startEq: E };
+  toast('⚡ 레버리지 2배 · 20거래일', 'gold');
+}
+
+function endLev(forced) {
+  const tot = holdSum();
+  if (tot > 0) { const f = Math.max(0, tot - G.debt) / tot; G.slots.forEach(s => { s.value *= f; s.roomStart *= f; }); }
+  G.debt = 0; G.lev.active = false;
+  if (forced) { G.stats.liq++; toast('💥 강제 청산! 레버리지 해제', 'red'); }
+  else toast('레버리지 종료');
+}
+
+/* ============================================================
+   페이즈 전환
+   ============================================================ */
+function startRoom() {
+  rebalance();
+  Object.assign(G, { phase: 'run', runT: 0, dayInRoom: 0, monsters: [], spawnT: 1.2, targets: null, kfs: null,
+    doorOpen: 0, ninjaAlpha: 1, ninjaY: geo.ninjaY, selected: new Set(), newcomers: [] });
+  G.ninjaX = laneX(G.lane);
+  G.rec = { at: (G.room < CFG.ROOMS - 1 && rng() < CFG.REC_PROB) ? CFG.REC_FROM + rng() * (CFG.REC_TO - CFG.REC_FROM) : null,
+            shown: false, visible: false, t: 0, text: null };
+  pushHist();
+  $('#overlay').className = 'hidden';
+  ['#hud', '#tray', '#itemSlot'].forEach(s => $(s).classList.remove('hidden'));
+  $('#recBox').classList.add('hidden');
+  $('#decideBar').classList.add('hidden');
+  setTray('compact');
+  toast(`방 ${G.room + 1} · ${THEMES[G.room].name}`);
+  if (G.room > 0) setTimeout(() => toast('리밸런싱 완료 · 5종목 각 20%'), 350);
+}
+
+function endRun() {
+  hideRec();
+  if (G.room === CFG.ROOMS - 1) { G.phase = 'settle'; G.settleT = 0; showSettle(); return; }
+  G.phase = 'decide'; G.decideT = CFG.DECIDE;
+  G.targets = SLOT.target.map(() => ({ cut: false }));
+  setTray('fanned');
+  $('#decideBar').classList.remove('hidden');
+  updDecideUI();
+}
+
+function toggleSel(i) {
+  if (G.phase !== 'decide' || G.paused) return;
+  G.selected.has(i) ? G.selected.delete(i) : G.selected.add(i);
+  document.querySelectorAll('#tray .pc').forEach((el, j) => el.classList.toggle('sel', G.selected.has(j)));
+  updDecideUI();
+}
+
+function updDecideUI() {
+  $('#dTime').textContent = Math.max(0, Math.ceil(G.decideT));
+  const n = G.selected.size;
+  const cost = [...G.selected].reduce((s, i) => s + G.slots[i].value * CFG.COST, 0);
+  $('#dMsg').innerHTML = n ? `${n}개 종목 전량 매도` : '자를 종목을 탭하세요<br>선택 안 하면 모두 유지';
+  const dc = $('#dCost');
+  if (n) { dc.classList.remove('hidden'); dc.textContent = `⚠ 거래비용 3% · −${won(cost)}`; }
+  else dc.classList.add('hidden');
+  const b = $('#cutBtn'); b.textContent = n ? `베기! (${n})` : '모두 유지 ▶'; b.classList.toggle('go', !!n);
+}
+
+function confirmCut() {
+  if (G.phase !== 'decide') return;
+  const sel = [...G.selected].sort((a, b) => a - b);
+  let cost = 0;
+  if (sel.length) {
+    let proceeds = 0;
+    sel.forEach(i => { const v = G.slots[i].value; proceeds += v; cost += v * CFG.COST; G.sold.add(G.slots[i].cid); G.slots[i].value = 0; G.slots[i].soldOut = true; });
+    G.cash += proceeds - cost; G.stats.cost += cost; G.stats.cuts += sel.length;
+    pushHist();
+  }
+  G.phase = 'slash'; G.slashT = 0; G.cutCost = cost;
+  $('#decideBar').classList.add('hidden');
+  G.selected = new Set(sel); renderTray();
+  document.querySelectorAll('#tray .pc').forEach(el => el.classList.remove('sel'));
+  // 베기 동선 키프레임
+  const { ninjaY, targetY, doorY, s } = geo;
+  const kfs = [{ t: 0, x: G.ninjaX, y: ninjaY }, { t: .15, x: G.ninjaX, y: ninjaY }];
+  const ev = []; let t = .15;
+  sel.forEach(i => { t += .25; kfs.push({ t, x: laneX(i), y: targetY + s * .55 }); ev.push({ t: t + .02, i }); t += .3; kfs.push({ t, x: laneX(i), y: targetY + s * .55 }); });
+  t += .4; kfs.push({ t, x: laneX(2), y: ninjaY });
+  kfs.push({ t: 4.0, x: laneX(2), y: ninjaY }, { t: 4.85, x: laneX(2), y: doorY - s * .4 });
+  G.kfs = kfs; G.cutEvents = ev; G.cutsDoneAt = t;
+  G.cutToastDone = false;
+}
+
+function updateSlash(dt) {
+  G.slashT += dt;
+  const t = G.slashT, k = G.kfs;
+  let j = 0; while (j < k.length - 1 && k[j + 1].t < t) j++;
+  const a = k[j], b = k[Math.min(j + 1, k.length - 1)];
+  const u = b.t > a.t ? ease(clamp((t - a.t) / (b.t - a.t), 0, 1)) : 1;
+  G.ninjaX = lerp(a.x, b.x, u); G.ninjaY = lerp(a.y, b.y, u);
+  G.cutEvents.forEach(e => { if (!e.done && t >= e.t) { e.done = true; doCut(e.i); } });
+  if (!G.cutToastDone && t >= G.cutsDoneAt) {
+    G.cutToastDone = true;
+    G.cutCost > 0 ? toast(`매도 완료 · 거래비용 −${won(G.cutCost)}`, 'red') : toast('모두 유지');
+  }
+  G.doorOpen = clamp((t - 3.6) / .4, 0, 1);
+  G.ninjaAlpha = t > 4.5 ? clamp(1 - (t - 4.5) / .35, 0, 1) : 1;
+  if (t >= CFG.SLASH) endSlash();
+}
+
+function doCut(i) {
+  G.targets[i].cut = true; G.targets[i].cutT = G.anim;
+  const x = laneX(i), y = geo.targetY;
+  fx.slashes.push({ x, y, life: .3, max: .3, ang: -.5 });
+  burst(x, y, SLOT.color[i], 14);
+}
+
+function endSlash() {
+  const sel = [...G.selected].sort((a, b) => a - b);
+  sel.forEach(i => {
+    const held = new Set(G.slots.map(s => s.cid));
+    let pool = COMPANIES.filter(c => !held.has(c.id) && !G.sold.has(c.id));
+    if (!pool.length) pool = COMPANIES.filter(c => !held.has(c.id));
+    G.slots[i].cid = pick(pool).id;
+    G.newcomers.push(i);
+  });
+  if (G.newcomers.length) { G.phase = 'newintro'; showIntro(G.newcomers, CFG.NEW_INTRO * G.newcomers.length, '새로 편입된 기업', false); }
+  else { G.room++; startRoom(); }
+}
+
+function endIntro() {
+  if (G.phase === 'intro') { startRoom(); }
+  else if (G.phase === 'newintro') { G.room++; startRoom(); }
+}
+
+/* ============================================================
+   달리기
+   ============================================================ */
+function spawnMonster() {
+  const r = rng(); const w = CFG.MON_WEIGHTS;
+  const type = r < w.zombie ? 'zombie' : r < w.zombie + w.mummy ? 'mummy' : 'wolf';
+  G.monsters.push({ type, lane: randInt(0, CFG.LANES - 1), y: -geo.s, seed: rng() * 10 });
+}
+
+function updateRun(dt) {
+  G.runT = Math.min(CFG.RUN, G.runT + dt); G.clock += dt;
+  while (G.dayInRoom < CFG.DAYS_PER_ROOM && G.runT >= CFG.SEC_PER_DAY * (G.dayInRoom + 1) - 1e-6) applyDay();
+  G.ninjaX += (laneX(G.lane) - G.ninjaX) * Math.min(1, dt * 18);
+  const sp = geo.speed * dt;
+  G.scroll += sp;
+  G.spawnT -= dt;
+  if (G.runT < CFG.SPAWN_STOP && G.spawnT <= 0) { spawnMonster(); G.spawnT = CFG.SPAWN_MIN + rng() * (CFG.SPAWN_MAX - CFG.SPAWN_MIN); }
+  for (const m of G.monsters) {
+    m.y += sp;
+    if (!m.dead && Math.abs(G.ninjaX - laneX(m.lane)) < geo.laneW * .45 && Math.abs(m.y - geo.ninjaY) < geo.s * .55) kill(m);
+  }
+  G.monsters = G.monsters.filter(m => !m.dead && m.y < geo.H + geo.s);
+  if (G.rec.at != null && !G.rec.shown && G.runT >= G.rec.at) { G.rec.shown = true; G.rec.visible = true; G.rec.t = CFG.REC_SHOW; $('#recBtn').classList.remove('hidden'); }
+  if (G.rec.visible) { G.rec.t -= dt; if (G.rec.t <= 0) hideRec(); }
+  if (G.runT >= CFG.RUN) endRun();
+}
+
+function kill(m) {
+  m.dead = true; G.stats.kills++;
+  const x = laneX(m.lane);
+  fx.slashes.push({ x, y: m.y, life: .25, max: .25, ang: rng() - .5 });
+  burst(x, m.y, MON[m.type].color, 10);
+  if (!G.card) { showNews(m.type); }
+  else {
+    G.gauge++;
+    fx.floats.push({ x, y: m.y - 20, text: '+⚡', life: .8, color: '#ffd43b' });
+    if (G.gauge >= CFG.GAUGE_MAX) { G.gauge = 0; G.items++; toast('⚡ 레버리지 아이템 획득!', 'gold'); }
+  }
+}
+
+function fill(tpl, c) {
+  return tpl.replace('{c}', c).replace('{n}', randInt(8, 35)).replace('{m}', randInt(9, 24)).replace('{k}', randInt(2, 6));
+}
+
+function showNews(type) {
+  const next = Math.min(G.room + 1, CFG.ROOMS - 1);
+  let card;
+  if (type === 'wolf') {
+    const truth = G.sc.reg.M[next] >= 0.05;
+    const pos = rng() < .72 ? truth : !truth;
+    const [h, s] = pick(pos ? NEWS.ecoPos : NEWS.ecoNeg);
+    card = { type, head: h, sub: s, slot: null };
+  } else {
+    const slot = randInt(0, 4); const c = COMPANIES[G.slots[slot].cid];
+    const truth = G.sc.comps[c.id].mu[next] >= 0;
+    const pos = rng() < .72 ? truth : !truth;
+    const list = type === 'zombie' ? (pos ? NEWS.compPos : NEWS.compNeg) : (pos ? NEWS.finPos : NEWS.finNeg);
+    const [h, s] = pick(list);
+    card = { type, head: fill(h, c.name), sub: fill(s, c.name), slot, name: c.name };
+  }
+  card.t = CFG.CARD; G.card = card; G.stats.news++;
+  const M = MON[type];
+  const chip = card.slot != null ? `<span class="n-chip" style="background:${SLOT.color[card.slot]}">${card.name}</span>` : '<span class="n-chip" style="background:#d0d4e4">시장 전체</span>';
+  const el = $('#news');
+  el.innerHTML = `<div class="n-head">${M.icon} ${M.cat} ${chip}</div><div class="n-text">${card.head}</div><div class="n-sub">${card.sub}</div><div class="n-bar"><i></i></div>`;
+  el.classList.remove('hidden'); el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+}
+
+function updateCard(dt) {
+  if (!G.card) return;
+  G.card.t -= dt;
+  const bar = $('#news .n-bar i'); if (bar) bar.style.width = clamp(G.card.t / CFG.CARD * 100, 0, 100) + '%';
+  if (G.card.t <= 0) { G.card = null; $('#news').classList.add('hidden'); }
+}
+
+/* ============================================================
+   서서히 모델 추천 (목업) — 실제 모델 API로 교체할 함수
+   ============================================================ */
+function modelRecommend() {
+  const next = G.room + 1;
+  const ex = G.slots.map((s, i) => ({ i, e: CFG.DAYS_PER_ROOM * G.sc.comps[s.cid].mu[next] + randn() * .025 })).sort((a, b) => a.e - b.e);
+  const cut = ex.filter(x => x.e < -0.04).slice(0, 2);
+  if (!cut.length) return { main: '모두 유지', reason: '교체 이득이 거래비용(3%)보다 작을 것으로 예상' };
+  return { main: cut.map(x => COMPANIES[G.slots[x.i].cid].name).join(', ') + ' 베기',
+           reason: '시장 대비 예상 ' + cut.map(x => pctTxt(x.e * 100, 1)).join(', ') };
+}
+
+function hideRec() { G.rec.visible = false; $('#recBtn').classList.add('hidden'); }
+
+function openRecModal() {
+  if (!G.rec.visible || G.paused) return;
+  G.paused = true;
+  const ov = $('#overlay'); ov.className = 'modal';
+  ov.innerHTML = `<div class="modal-box">
+    <div style="font-size:40px">🔮</div>
+    <div class="ov-h" style="margin-top:6px">서서히 모델 추천</div>
+    <div class="ov-sub">이번 방 끝에서 어떤 종목을 자를지 추천을 확인합니다.<br>결제·광고 중에는 게임이 멈춥니다.</div>
+    <button class="btn" id="payGem" ${G.gems < CFG.REC_GEMS ? 'disabled' : ''}>💎 ${CFG.REC_GEMS}개로 보기 (보유 ${G.gems})</button>
+    <button class="btn ghost" id="payAd">📺 광고 보고 무료로 보기</button>
+    <button class="btn ghost" id="payCancel" style="margin-top:8px;background:transparent">닫기</button></div>`;
+  $('#payGem').onclick = () => { G.gems -= CFG.REC_GEMS; revealRec(); };
+  $('#payAd').onclick = () => {
+    let n = 3; const box = ov.querySelector('.modal-box');
+    box.innerHTML = `<div class="ov-h">광고 재생 중</div><div class="ov-sub">(목업) 실제 서비스에서는 보상형 광고 SDK</div><div class="big-ret" id="adN">${n}</div>`;
+    const iv = setInterval(() => { n--; if (n <= 0) { clearInterval(iv); revealRec(); } else $('#adN').textContent = n; }, 1000);
+  };
+  $('#payCancel').onclick = closeModal;
+}
+function closeModal() { $('#overlay').className = 'hidden'; G.paused = false; }
+function revealRec() {
+  const r = modelRecommend(); G.rec.text = r; hideRec(); closeModal();
+  const b = $('#recBox'); b.innerHTML = `<div class="t">🔮 서서히 모델 추천</div><div class="m">${r.main}</div><div class="r">${r.reason}</div>`;
+  b.classList.remove('hidden');
+}
+
+/* ============================================================
+   UI: 트레이 · HUD · 오버레이
+   ============================================================ */
+function setTray(mode) {
+  const tr = $('#tray'); tr.className = mode; renderTray(true);
+}
+function renderTray() {
+  const tr = $('#tray'); if (!G || tr.classList.contains('hidden')) return;
+  const tot = holdSum() || 1;
+  tr.innerHTML = G.slots.map((s, i) => {
+    const c = COMPANIES[s.cid];
+    const r = s.roomStart > 0 ? (s.value / s.roomStart - 1) * 100 : 0;
+    return `<div class="pc ${G.selected.has(i) ? 'sel' : ''} ${s.soldOut ? 'sold' : ''}" data-i="${i}" style="--c:${SLOT.color[i]}">
+      <div class="pc-top">${i + 1} ${SLOT.target[i]}</div>
+      <div class="pc-name">${c.name}</div>
+      <div class="pc-w">${(s.value / tot * 100).toFixed(0)}%</div>
+      <div class="pc-r ${r >= 0 ? 'up' : 'down'}">${pctTxt(r, 1)}</div>
+      <div class="pc-stamp">${s.soldOut ? '매도' : '베기'}</div></div>`;
+  }).join('');
+}
+
+let lastItemKey = '';
+function updateHUD() {
+  if (!G || $('#hud').classList.contains('hidden')) return;
+  const r = retPct();
+  const rt = $('#retText'); rt.textContent = pctTxt(r); rt.className = r >= 0 ? 'up' : 'down';
+  $('#eqText').textContent = manwon(equity()) + '원';
+  $('#roomLabel').textContent = `방 ${G.room + 1}/${CFG.ROOMS} · ${THEMES[G.room].name}`;
+  const rem = G.phase === 'run' ? CFG.RUN - G.runT : G.phase === 'decide' ? G.decideT : 0;
+  $('#roomTimer').textContent = G.phase === 'run' ? Math.ceil(rem) + '초' : G.phase === 'decide' ? '판단' : G.phase === 'slash' ? '베기' : '—';
+  $('#totalTimer').textContent = '본게임 남은 ' + mmss(TOTAL_MAIN - G.clock);
+  const lb = $('#levBadge');
+  if (G.lev.active) { lb.classList.remove('hidden'); lb.textContent = `⚡x2 · ${G.lev.days}거래일`; } else lb.classList.add('hidden');
+  const key = [G.items, G.gauge, G.lev.active, G.phase].join('|');
+  if (key !== lastItemKey) {
+    lastItemKey = key;
+    const s = $('#itemSlot');
+    s.innerHTML = `<div class="ic">⚡</div><div class="lb">${G.lev.active ? '적용 중' : '레버리지'}</div><div class="cnt">×${G.items}</div>
+      <div class="gauge">${Array.from({ length: CFG.GAUGE_MAX }, (_, i) => `<i class="${i < G.gauge ? 'on' : ''}"></i>`).join('')}</div>`;
+    s.classList.toggle('active', G.lev.active);
+    s.classList.toggle('disabled', !G.lev.active && (G.items <= 0 || G.phase !== 'run'));
+  }
+  if (G.phase === 'decide') { $('#dTime').textContent = Math.max(0, Math.ceil(G.decideT)); }
+  if (G.histDirty) { drawGraph($('#graph'), G.hist, false); G.histDirty = false; }
+}
+
+function drawGraph(cv, hist, big) {
+  const c = cv.getContext('2d'); const W = cv.width, H = cv.height;
+  c.clearRect(0, 0, W, H);
+  const total = CFG.ROOMS * CFG.DAYS_PER_ROOM;
+  const vs = hist.map(h => h.v); let lo = Math.min(0, ...vs), hi = Math.max(0, ...vs);
+  const pad = Math.max(2, (hi - lo) * .15); lo -= pad; hi += pad;
+  const X = d => d / total * (W - 4) + 2, Y = v => H - 3 - (v - lo) / (hi - lo) * (H - 6);
+  c.strokeStyle = 'rgba(255,255,255,.12)'; c.lineWidth = 1;
+  for (let k = 1; k < CFG.ROOMS; k++) { const x = X(k * CFG.DAYS_PER_ROOM); c.beginPath(); c.moveTo(x, 0); c.lineTo(x, H); c.stroke(); }
+  c.setLineDash([4, 4]); c.strokeStyle = 'rgba(255,255,255,.35)';
+  c.beginPath(); c.moveTo(0, Y(0)); c.lineTo(W, Y(0)); c.stroke(); c.setLineDash([]);
+  const last = vs[vs.length - 1];
+  c.strokeStyle = last >= 0 ? '#ff5c5c' : '#4d8dff'; c.lineWidth = big ? 3 : 2.5; c.lineJoin = 'round';
+  c.beginPath(); hist.forEach((h, i) => i ? c.lineTo(X(h.d), Y(h.v)) : c.moveTo(X(h.d), Y(h.v))); c.stroke();
+  if (big) { c.fillStyle = 'rgba(255,255,255,.5)'; c.font = '20px sans-serif'; c.fillText(pctTxt(hi - pad, 0), 6, 20); c.fillText(pctTxt(lo + pad, 0), 6, H - 8); }
+}
+
+function toast(text, cls = '') {
+  const el = document.createElement('div'); el.className = 'toast ' + cls; el.textContent = text;
+  $('#toasts').appendChild(el); setTimeout(() => el.remove(), 1950);
+}
+
+function showTitle() {
+  ['#hud', '#tray', '#itemSlot', '#news', '#recBtn', '#recBox', '#decideBar'].forEach(s => $(s).classList.add('hidden'));
+  const best = store.get('npf.best', null);
+  const ov = $('#overlay'); ov.className = '';
+  ov.innerHTML = `<div class="title-wrap">
+    <div class="title-ninja">🥷</div>
+    <div class="title-name">닌자 포트폴리오</div>
+    <div class="ov-sub">가제 · 웹 프로토타입 v0.1</div>
+    <div class="legend" style="text-align:left;margin-top:22px">
+      🏃 60초 달리며 몬스터를 베어 뉴스를 얻고<br>
+      🔪 방 끝 5초 안에 자를 종목을 고르세요<br>
+      🗺️ 방 6개 · 본게임 7분 · 매 방 20% 리밸런싱<br>
+      <span style="color:var(--muted)">⚠️ 프로토타입은 가상 기업과 가상 수익률을 사용합니다.</span>
+    </div>
+    ${best != null ? `<div class="ov-sub" style="margin-top:10px">내 최고 기록 <b class="${best >= 0 ? 'up' : 'down'}">${pctTxt(best)}</b></div>` : ''}
+    <button class="btn" id="startBtn">시작하기</button></div>`;
+  $('#startBtn').onclick = () => newGame();
+}
+
+function showIntro(slotIdx, dur, heading, first) {
+  G.introT = dur;
+  ['#news', '#recBtn', '#recBox', '#decideBar'].forEach(s => $(s).classList.add('hidden'));
+  const ov = $('#overlay'); ov.className = '';
+  const cards = slotIdx.map((i, k) => {
+    const c = COMPANIES[G.slots[i].cid];
+    return `<div class="cc ${first ? '' : 'new'}" style="--c:${SLOT.color[i]};animation-delay:${k * .12}s">
+      <div class="cc-top"><span>${i + 1}번 슬롯 · ${SLOT.target[i]}</span><span>${c.sector}</span></div>
+      <div class="cc-name">${c.name}</div><div class="cc-desc">${c.desc}</div></div>`;
+  }).join('');
+  ov.innerHTML = `<span class="ov-timer" id="introTimer">${Math.ceil(dur)}초</span>
+    <div class="ov-h">${heading}</div>
+    <div class="ov-sub">${first ? '이 5개 기업으로 시작합니다. 소개 시간은 본게임 7분에 포함되지 않습니다.' : `매도한 자리에 무작위로 들어온 기업입니다. 1개당 ${CFG.NEW_INTRO}초 · 이 시간 동안 시장과 본게임 시계는 멈춥니다.`}</div>
+    ${cards}
+    ${first ? `<div class="legend"><b>몬스터 = 정보</b><br>📰 좀비 → 보유 기업 소식<br>📊 미라 → 재무제표<br>🌐 늑대인간 → 경제 뉴스<br>
+      <span style="color:var(--muted)">뉴스 카드는 5초 표시 · 표시 중 처치는 ⚡게이지 충전</span><br><br>
+      <b>조작</b> 좌우 스와이프 / 화면 좌·우 탭 / ← → 키<br><b>레버리지</b> 왼쪽 ⚡ 칸 탭 (2배 · 20거래일 · 자산 80% 이하 강제 청산)</div>` : ''}
+    <button class="btn" id="readyBtn">준비 완료 ▶</button>`;
+  ov.scrollTop = 0;
+  $('#readyBtn').onclick = () => { G.introT = 0; };
+}
+
+function showSettle() {
+  $('#news').classList.add('hidden'); G.card = null;
+  $('#tray').classList.add('hidden'); $('#itemSlot').classList.add('hidden');
+  const ov = $('#overlay'); ov.className = 'modal';
+  ov.innerHTML = `<div class="modal-box"><div class="ov-h">결산 중…</div><div class="ov-sub">120거래일 결과를 집계합니다</div>
+    <div class="big-ret" id="settleNum">+0.00%</div><button class="btn ghost" id="skipSettle">결과 바로 보기</button></div>`;
+  $('#skipSettle').onclick = () => { G.settleT = CFG.SETTLE; };
+}
+function updSettle() {
+  const el = $('#settleNum'); if (!el) return;
+  const v = retPct() * ease(clamp(G.settleT / (CFG.SETTLE * .7), 0, 1));
+  el.textContent = pctTxt(v); el.className = 'big-ret ' + (v >= 0 ? 'up' : 'down');
+}
+
+function weekKey() { const d = new Date(Date.now() + 9 * 3600e3); const day = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - day); return d.toISOString().slice(0, 10); }
+
+function showResult() {
+  G.phase = 'result';
+  ['#hud', '#tray', '#itemSlot', '#news', '#recBtn', '#recBox', '#decideBar'].forEach(s => $(s).classList.add('hidden'));
+  const r = Math.round(retPct() * 100) / 100;
+  const best = store.get('npf.best', null);
+  if (best == null || r > best) store.set('npf.best', r);
+  // 주간 시즌 랭킹 (프로토타입: 가상 유저). 동률이면 먼저 달성한 유저가 위
+  const wk = weekKey(); const br = mulberry32([...wk].reduce((a, ch) => a * 31 + ch.charCodeAt(0) | 0, 7));
+  const bots = Array.from({ length: 49 }, (_, i) => {
+    let u = 0, v = 0; while (!u) u = br(); while (!v) v = br();
+    const z = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+    return { name: '닌자#' + (1000 + Math.floor(br() * 9000)), v: Math.round(clamp(4 + z * 16, -60, 120) * 100) / 100, at: i };
+  });
+  const me = { name: '나', v: r, at: 1e9, me: true };
+  const all = [...bots, me].sort((a, b) => b.v - a.v || a.at - b.at);
+  const myRank = all.indexOf(me) + 1;
+  const rows = all.slice(0, 10).concat(myRank > 10 ? [me] : []).map(p =>
+    `<div class="rank-row ${p.me ? 'me' : ''}"><span class="no">${all.indexOf(p) + 1}</span><span class="nm">${p.name}</span><span class="${p.v >= 0 ? 'up' : 'down'}">${pctTxt(p.v)}</span></div>`).join('');
+  const ov = $('#overlay'); ov.className = '';
+  ov.innerHTML = `<div class="ov-h">최종 결과</div>
+    <div class="big-ret ${r >= 0 ? 'up' : 'down'}">${pctTxt(r)}</div>
+    <div class="ov-sub">최종 자산 ${won(equity())} · 초기 ${won(CFG.INIT)}</div>
+    <canvas id="resGraph" width="800" height="240"></canvas>
+    <div class="stats">
+      <div>처치한 몬스터<b>${G.stats.kills}마리</b></div><div>읽은 뉴스<b>${G.stats.news}장</b></div>
+      <div>벤 종목<b>${G.stats.cuts}개</b></div><div>낸 거래비용<b>${won(G.stats.cost)}</b></div>
+      <div>레버리지 사용<b>${G.stats.levUsed}회</b></div><div>강제 청산<b>${G.stats.liq}회</b></div>
+    </div>
+    <div class="ov-sub" style="margin-top:14px">주간 시즌 랭킹 · ${wk} 주 · <b>${all.length}명 중 ${myRank}위</b> <span style="opacity:.7">(가상 유저)</span></div>
+    <div class="rank">${rows}</div>
+    <button class="btn" id="againBtn">다시 하기</button>
+    <button class="btn ghost" id="homeBtn" style="margin-top:8px">처음으로</button>`;
+  ov.scrollTop = 0;
+  drawGraph($('#resGraph'), G.hist, true);
+  $('#againBtn').onclick = () => newGame();
+  $('#homeBtn').onclick = () => { G = null; showTitle(); };
+}
+
+/* ============================================================
+   캔버스 렌더링 (임시 그래픽 — 이미지 에셋으로 교체 예정)
+   ============================================================ */
+const cv = $('#game'); const ctx = cv.getContext('2d');
+function resize() {
+  const r = $('#app').getBoundingClientRect(); const dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = r.width * dpr; cv.height = r.height * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const W = r.width, H = r.height, x0 = W * .08, laneW = W * .84 / CFG.LANES;
+  geo = { W, H, x0, laneW, s: Math.min(laneW * .62, 46), ninjaY: H * .68, targetY: H * .44, doorY: H * .27, speed: H * .42 };
+  if (G) { G.ninjaX = laneX(G.lane); if (G.phase === 'run') G.ninjaY = geo.ninjaY; }
+}
+const laneX = i => geo.x0 + geo.laneW * (i + .5);
+window.addEventListener('resize', resize);
+
+function render() {
+  const { W, H } = geo;
+  const th = THEMES[G ? Math.min(G.room, 5) : 0];
+  ctx.clearRect(0, 0, W, H);
+  drawBackground(th);
+  if (!G || G.phase === 'intro') { drawNinja(W / 2, geo.ninjaY, geo.s, (G ? G.anim : performance.now() / 1000), true, 1); return; }
+  const running = G.phase === 'run';
+  // 문
+  if (G.phase === 'run') {
+    const dy = geo.doorY - geo.speed * (CFG.RUN - G.runT);
+    if (dy > -geo.s * 3) drawDoor(dy, 0);
+  } else if (G.phase === 'decide' || G.phase === 'slash' || G.phase === 'settle') drawDoor(geo.doorY, G.doorOpen);
+  // 절단 대상
+  if (G.targets) G.targets.forEach((tg, i) => drawTarget(i, laneX(i), geo.targetY, geo.s, tg, G.selected.has(i)));
+  // 몬스터
+  G.monsters.forEach(m => drawMonster(m, laneX(m.lane), m.y, geo.s, G.anim));
+  // 닌자
+  drawNinja(G.ninjaX, G.phase === 'run' ? geo.ninjaY : G.ninjaY, geo.s, G.anim, running, G.ninjaAlpha);
+  if (G.lev.active) { ctx.save(); ctx.globalAlpha = .35 + .2 * Math.sin(G.anim * 8); ctx.strokeStyle = '#ffd43b'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(G.ninjaX, geo.ninjaY - geo.s * .3, geo.s * .8, 0, 7); ctx.stroke(); ctx.restore(); }
+  drawFx();
+}
+
+function drawBackground(th) {
+  const { W, H, x0, laneW } = geo; const sc = G ? G.scroll : performance.now() / 1000 * geo.speed * .3;
+  ctx.fillStyle = th.base; ctx.fillRect(0, 0, W, H);
+  const band = 90, off = sc % (band * 2);
+  ctx.fillStyle = th.alt;
+  for (let y = -band * 2 + off; y < H; y += band * 2) ctx.fillRect(x0, y, laneW * 5, band);
+  ctx.strokeStyle = 'rgba(255,255,255,.10)'; ctx.lineWidth = 2; ctx.setLineDash([18, 22]); ctx.lineDashOffset = -sc;
+  for (let i = 1; i < CFG.LANES; i++) { const x = x0 + laneW * i; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  ctx.setLineDash([]);
+  ctx.fillStyle = th.side; ctx.fillRect(0, 0, x0, H); ctx.fillRect(x0 + laneW * 5, 0, W - x0 - laneW * 5, H);
+  const gap = 130, o2 = sc % gap;
+  for (let y = -gap + o2; y < H + gap; y += gap) { drawDeco(th.deco, x0 / 2, y, x0); drawDeco(th.deco, W - x0 / 2, y + gap / 2, x0); }
+}
+
+function drawDeco(type, x, y, w) {
+  const s = w * .9; ctx.save(); ctx.translate(x, y);
+  switch (type) {
+    case 'torch': ctx.fillStyle = '#6b4a2e'; ctx.fillRect(-2, 0, 4, s * .6);
+      ctx.fillStyle = '#ffb547'; ctx.beginPath(); ctx.ellipse(0, -2, s * .18, s * .3, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = 'rgba(255,180,70,.15)'; ctx.beginPath(); ctx.arc(0, 0, s * .7, 0, 7); ctx.fill(); break;
+    case 'tree': ctx.fillStyle = '#5a3d22'; ctx.fillRect(-2, 0, 4, s * .4); ctx.fillStyle = '#3f7d34';
+      ctx.beginPath(); ctx.arc(0, -s * .1, s * .42, 0, 7); ctx.fill(); break;
+    case 'grass': ctx.strokeStyle = '#5c7a30'; ctx.lineWidth = 2;
+      for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(i * 4, 0); ctx.lineTo(i * 6, -s * .35); ctx.stroke(); } break;
+    case 'cactus': ctx.fillStyle = '#5f9e4a'; ctx.fillRect(-4, -s * .5, 8, s * .7); ctx.fillRect(-11, -s * .3, 7, 5); ctx.fillRect(-11, -s * .42, 5, 14); break;
+    case 'pine': ctx.fillStyle = '#4c6e5a'; ctx.beginPath(); ctx.moveTo(0, -s * .55); ctx.lineTo(s * .35, s * .15); ctx.lineTo(-s * .35, s * .15); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(0, -s * .55); ctx.lineTo(s * .14, -s * .25); ctx.lineTo(-s * .14, -s * .25); ctx.fill(); break;
+    case 'lava': ctx.strokeStyle = '#ff6a2b'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-s * .3, -s * .2); ctx.lineTo(0, 0); ctx.lineTo(-s * .1, s * .25); ctx.lineTo(s * .25, s * .4); ctx.stroke(); break;
+  }
+  ctx.restore();
+}
+
+function drawDoor(yBottom, open) {
+  const { x0, laneW, s } = geo; const w = laneW * 5, h = s * 2.1, top = yBottom - h;
+  ctx.fillStyle = '#5b3a1f'; ctx.fillRect(x0 - 6, top - 10, w + 12, h + 10);
+  ctx.fillStyle = '#1a1210'; ctx.fillRect(x0 + 4, top, w - 8, h);
+  const half = (w - 8) / 2 * (1 - open);
+  ctx.fillStyle = '#a0662f';
+  ctx.fillRect(x0 + 4, top, half, h); ctx.fillRect(x0 + w - 4 - half, top, half, h);
+  ctx.strokeStyle = '#6d4520'; ctx.lineWidth = 2;
+  for (let i = 1; i < 4; i++) { const yy = top + h * i / 4; ctx.beginPath(); ctx.moveTo(x0 + 4, yy); ctx.lineTo(x0 + 4 + half, yy); ctx.moveTo(x0 + w - 4 - half, yy); ctx.lineTo(x0 + w - 4, yy); ctx.stroke(); }
+  ctx.fillStyle = '#ffd43b'; ctx.font = `bold ${Math.round(s * .32)}px sans-serif`; ctx.textAlign = 'center';
+  if (G && G.room < CFG.ROOMS - 1) ctx.fillText(`EXIT → 방 ${G.room + 2}`, x0 + w / 2, top - 16);
+  else ctx.fillText('FINISH', x0 + w / 2, top - 16);
+}
+
+function drawNinja(x, y, s, t, running, alpha) {
+  if (alpha <= 0) return;
+  ctx.save(); ctx.globalAlpha = alpha; ctx.translate(x, y);
+  const bob = running ? Math.sin(t * 16) * 2 : 0, leg = running ? Math.sin(t * 16) : 0;
+  ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(0, s * .42, s * .34, s * .1, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#1f2133';
+  ctx.fillRect(-s * .17, s * .1 + leg * 4, s * .13, s * .3); ctx.fillRect(s * .04, s * .1 - leg * 4, s * .13, s * .3);
+  ctx.translate(0, bob);
+  ctx.fillStyle = '#2b2d42'; roundRect(-s * .27, -s * .22, s * .54, s * .42, s * .12); ctx.fill();
+  ctx.strokeStyle = '#c9ced8'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-s * .2, s * .12); ctx.lineTo(s * .3, -s * .5); ctx.stroke();
+  ctx.strokeStyle = '#7a4b2a'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(s * .22, -s * .4); ctx.lineTo(s * .33, -s * .56); ctx.stroke();
+  ctx.fillStyle = '#2b2d42'; ctx.beginPath(); ctx.arc(0, -s * .45, s * .32, 0, 7); ctx.fill();
+  ctx.fillStyle = '#e63946'; ctx.fillRect(-s * .32, -s * .52, s * .64, s * .1);
+  const fl = Math.sin(t * 12) * s * .08;
+  ctx.strokeStyle = '#e63946'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(0, -s * .47); ctx.quadraticCurveTo(-s * .2, -s * .2 + fl, -s * .35, -s * .05 + fl); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, -s * .47); ctx.quadraticCurveTo(s * .15, -s * .2 - fl, s * .3, -s * .08 - fl); ctx.stroke();
+  ctx.fillStyle = '#e63946'; ctx.beginPath(); ctx.arc(0, -s * .47, s * .07, 0, 7); ctx.fill();
+  ctx.restore();
+}
+
+function drawMonster(m, x, y, s, t) {
+  ctx.save(); ctx.translate(x, y + Math.sin(t * 6 + m.seed) * 2);
+  ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(0, s * .45, s * .3, s * .09, 0, 0, 7); ctx.fill();
+  if (m.type === 'zombie') {
+    ctx.fillStyle = '#4a6fa5'; roundRect(-s * .26, 0, s * .52, s * .4, 6); ctx.fill();
+    ctx.fillStyle = '#8fbf6a'; ctx.fillRect(-s * .42, s * .05, s * .16, s * .1); ctx.fillRect(s * .26, s * .05, s * .16, s * .1);
+    ctx.beginPath(); ctx.arc(0, -s * .12, s * .3, 0, 7); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(-s * .11, -s * .16, s * .09, 0, 7); ctx.arc(s * .12, -s * .14, s * .06, 0, 7); ctx.fill();
+    ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(-s * .1, -s * .15, s * .04, 0, 7); ctx.arc(s * .12, -s * .13, s * .03, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#35512a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-s * .12, 0); ctx.lineTo(-s * .04, -s * .04); ctx.lineTo(s * .04, 0); ctx.lineTo(s * .12, -s * .04); ctx.stroke();
+  } else if (m.type === 'mummy') {
+    ctx.fillStyle = '#e8dcc0'; roundRect(-s * .26, 0, s * .52, s * .4, 6); ctx.fill();
+    ctx.fillRect(-s * .42, s * .04, s * .16, s * .1); ctx.fillRect(s * .26, s * .04, s * .16, s * .1);
+    ctx.beginPath(); ctx.arc(0, -s * .12, s * .3, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#bfae88'; ctx.lineWidth = 2;
+    for (let i = -3; i <= 4; i++) { ctx.beginPath(); ctx.moveTo(-s * .3, -s * .12 + i * s * .07); ctx.lineTo(s * .3, -s * .16 + i * s * .07); ctx.stroke(); }
+    ctx.fillStyle = '#1b1b1b'; ctx.fillRect(-s * .2, -s * .2, s * .4, s * .08);
+    ctx.fillStyle = '#ffe066'; ctx.beginPath(); ctx.arc(-s * .08, -s * .16, s * .035, 0, 7); ctx.arc(s * .09, -s * .16, s * .035, 0, 7); ctx.fill();
+  } else {
+    ctx.fillStyle = '#6d5b4b'; roundRect(-s * .28, 0, s * .56, s * .42, 6); ctx.fill();
+    ctx.fillStyle = '#8a7766';
+    ctx.beginPath(); ctx.moveTo(-s * .28, -s * .3); ctx.lineTo(-s * .2, -s * .52); ctx.lineTo(-s * .06, -s * .36); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(s * .28, -s * .3); ctx.lineTo(s * .2, -s * .52); ctx.lineTo(s * .06, -s * .36); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, -s * .12, s * .3, 0, 7); ctx.fill();
+    ctx.fillStyle = '#c9b8a3'; ctx.beginPath(); ctx.ellipse(0, -s * .02, s * .15, s * .11, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(0, -s * .07, s * .045, 0, 7); ctx.fill();
+    ctx.fillStyle = '#ffd43b'; ctx.beginPath(); ctx.arc(-s * .12, -s * .18, s * .06, 0, 7); ctx.arc(s * .12, -s * .18, s * .06, 0, 7); ctx.fill();
+    ctx.fillStyle = '#222'; ctx.fillRect(-s * .13, -s * .22, s * .02, s * .08); ctx.fillRect(s * .11, -s * .22, s * .02, s * .08);
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(-s * .06, s * .06); ctx.lineTo(-s * .03, s * .12); ctx.lineTo(0, s * .06); ctx.moveTo(s * .06, s * .06); ctx.lineTo(s * .03, s * .12); ctx.lineTo(0, s * .06); ctx.fill();
+  }
+  // 정보 범주 아이콘
+  ctx.fillStyle = 'rgba(255,255,255,.95)'; roundRect(-s * .22, -s * .82, s * .44, s * .3, 6); ctx.fill();
+  ctx.font = `${Math.round(s * .24)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(MON[m.type].icon, 0, -s * .665);
+  ctx.restore();
+}
+
+function drawTargetShape(i, s) {
+  switch (i) {
+    case 0: ctx.fillStyle = '#4d8f3a'; roundRect(-s * .16, -s * .55, s * .32, s * 1.1, s * .16); ctx.fill();
+      ctx.fillStyle = '#7fbf5f'; for (let k = 0; k < 6; k++) { ctx.beginPath(); ctx.arc((k % 2 ? 1 : -1) * s * .06, -s * .4 + k * s * .16, 2, 0, 7); ctx.fill(); } break;
+    case 1: ctx.strokeStyle = '#a77b4a'; ctx.lineWidth = s * .14; ctx.beginPath(); ctx.moveTo(0, -s * .9); ctx.lineTo(0, s * .55); ctx.stroke();
+      ctx.strokeStyle = '#7c5630'; ctx.lineWidth = 2; for (let k = -8; k < 5; k++) { ctx.beginPath(); ctx.moveTo(-s * .07, k * s * .11); ctx.lineTo(s * .07, k * s * .11 + s * .07); ctx.stroke(); }
+      ctx.fillStyle = '#5b3a1f'; ctx.fillRect(-s * .3, -s * .95, s * .6, s * .08); break;
+    case 2: ctx.fillStyle = '#6aa84f'; roundRect(-s * .21, -s * .5, s * .42, s * 1.0, s * .2); ctx.fill();
+      ctx.strokeStyle = '#3f7a2c'; ctx.lineWidth = 2; for (let k = -1; k <= 1; k++) { ctx.beginPath(); ctx.moveTo(k * s * .09, -s * .45); ctx.lineTo(k * s * .09, s * .45); ctx.stroke(); }
+      ctx.fillStyle = '#6b8e23'; ctx.fillRect(-s * .04, -s * .6, s * .08, s * .12); break;
+    case 3: ctx.fillStyle = '#8bc34a'; ctx.fillRect(-s * .12, -s * .65, s * .24, s * 1.2);
+      ctx.fillStyle = '#5f8f2c'; for (let k = 0; k < 4; k++) ctx.fillRect(-s * .14, -s * .6 + k * s * .32, s * .28, s * .05); break;
+    case 4: ctx.fillStyle = '#ff8c2b'; ctx.beginPath(); ctx.moveTo(-s * .2, -s * .45); ctx.lineTo(s * .2, -s * .45); ctx.lineTo(0, s * .6); ctx.fill();
+      ctx.fillStyle = '#4caf50'; ctx.beginPath(); ctx.moveTo(0, -s * .45); ctx.lineTo(-s * .16, -s * .75); ctx.lineTo(0, -s * .55); ctx.lineTo(s * .16, -s * .75); ctx.fill(); break;
+  }
+}
+
+function drawTarget(i, x, y, s, tg, sel) {
+  ctx.save(); ctx.translate(x, y);
+  ctx.fillStyle = SLOT.color[i]; ctx.globalAlpha = .9;
+  roundRect(-s * .5, s * .7, s, s * .3, 6); ctx.fill(); ctx.globalAlpha = 1;
+  ctx.fillStyle = '#111'; ctx.font = `bold ${Math.round(s * .22)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(`${i + 1} ${SLOT.target[i]}`, 0, s * .85);
+  if (!tg.cut) {
+    if (sel) { ctx.shadowColor = '#ff2d2d'; ctx.shadowBlur = 18 + 6 * Math.sin(G.anim * 10); }
+    drawTargetShape(i, s);
+  } else {
+    const e = clamp((G.anim - tg.cutT) / .8, 0, 1);
+    ctx.save(); ctx.beginPath(); ctx.rect(-s, -s * 2, s * 2, s * 2); ctx.clip();
+    ctx.translate(-e * s * .5, -e * s * .3 + e * e * s * 1.2); ctx.rotate(-e * .8); ctx.globalAlpha = 1 - e * .7; drawTargetShape(i, s); ctx.restore();
+    ctx.save(); ctx.beginPath(); ctx.rect(-s, 0, s * 2, s * 2); ctx.clip(); ctx.globalAlpha = 1 - e * .5; drawTargetShape(i, s); ctx.restore();
+  }
+  ctx.restore();
+}
+
+function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+
+function burst(x, y, color, n) {
+  for (let i = 0; i < n; i++) { const a = rng() * 7, v = 60 + rng() * 160; fx.particles.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: .5, color }); }
+}
+function updateFx(dt) {
+  fx.particles.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 300 * dt; p.life -= dt; });
+  fx.floats.forEach(f => { f.y -= 40 * dt; f.life -= dt; });
+  fx.slashes.forEach(s => { s.life -= dt; });
+  fx.particles = fx.particles.filter(p => p.life > 0); fx.floats = fx.floats.filter(f => f.life > 0); fx.slashes = fx.slashes.filter(s => s.life > 0);
+}
+function drawFx() {
+  fx.particles.forEach(p => { ctx.globalAlpha = clamp(p.life * 2, 0, 1); ctx.fillStyle = p.color; ctx.fillRect(p.x - 2, p.y - 2, 4, 4); });
+  ctx.globalAlpha = 1;
+  fx.slashes.forEach(s => {
+    const k = s.life / s.max; ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.ang);
+    ctx.strokeStyle = `rgba(255,255,255,${k})`; ctx.lineWidth = 5 * k + 1; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(0, 0, geo.s * .7, -2.4, -.4); ctx.stroke(); ctx.restore();
+  });
+  fx.floats.forEach(f => { ctx.globalAlpha = clamp(f.life * 2, 0, 1); ctx.fillStyle = f.color; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(f.text, f.x, f.y); });
+  ctx.globalAlpha = 1;
+}
+
+/* ============================================================
+   루프 · 입력
+   ============================================================ */
+function step(dt) {
+  G.anim += dt;
+  switch (G.phase) {
+    case 'intro': case 'newintro':
+      G.introT -= dt;
+      { const el = $('#introTimer'); if (el) el.textContent = Math.max(0, Math.ceil(G.introT)) + '초'; }
+      if (G.introT <= 0) endIntro(); break;
+    case 'run': updateRun(dt); updateCard(dt); break;
+    case 'decide': G.clock += dt; G.decideT -= dt; updateCard(dt); if (G.decideT <= 0) confirmCut(); break;
+    case 'slash': G.clock += dt; updateCard(dt); updateSlash(dt); break;
+    case 'settle': G.clock += dt; G.settleT += dt; updSettle(); if (G.settleT >= CFG.SETTLE) showResult(); break;
+  }
+  updateFx(dt);
+}
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  if (G && !G.paused && G.phase !== 'result') {
+    let rem = dt * SPEED;
+    while (rem > 1e-6 && G && G.phase !== 'result') { const st = Math.min(rem, 1 / 60); step(st); rem -= st; }
+  }
+  if (G) updateHUD();
+  render();
+  requestAnimationFrame(frame);
+}
+
+function move(d) { if (G && G.phase === 'run' && !G.paused) G.lane = clamp(G.lane + d, 0, CFG.LANES - 1); }
+let ptr = null;
+cv.addEventListener('pointerdown', e => { ptr = { x: e.clientX, y: e.clientY }; });
+cv.addEventListener('pointerup', e => {
+  if (!ptr) return; const dx = e.clientX - ptr.x; ptr = null;
+  if (Math.abs(dx) > 25) move(Math.sign(dx));
+  else { const r = cv.getBoundingClientRect(); move(e.clientX - r.left < r.width / 2 ? -1 : 1); }
+});
+window.addEventListener('keydown', e => {
+  if (!G) return;
+  if (e.key === 'ArrowLeft' || e.key === 'a') move(-1);
+  else if (e.key === 'ArrowRight' || e.key === 'd') move(1);
+  else if (e.key === ' ') { e.preventDefault(); activateLev(); }
+  else if (G.phase === 'decide' && /^[1-5]$/.test(e.key)) toggleSel(+e.key - 1);
+  else if (G.phase === 'decide' && e.key === 'Enter') confirmCut();
+});
+$('#tray').addEventListener('click', e => { const el = e.target.closest('.pc'); if (el) toggleSel(+el.dataset.i); });
+$('#cutBtn').addEventListener('click', confirmCut);
+$('#itemSlot').addEventListener('click', activateLev);
+$('#recBtn').addEventListener('click', openRecModal);
+
+resize();
+showTitle();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

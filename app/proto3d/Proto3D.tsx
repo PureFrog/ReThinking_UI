@@ -3,12 +3,14 @@
 // (redesign 4장): today's market as weather → an analyst stands at a flagged tree → research note → judgment →
 // luon's counter → graded 30/90 days later. Around it: today's case, cooldown seeds, track record, league, game door,
 // cart and drawer.
-import {useEffect,useMemo,useState} from 'react';
+import {still} from './still';
+import {useEffect,useMemo,useRef,useState} from 'react';
 import {Canvas} from '@react-three/fiber';
 import {Pin,Cross,Loupe,Specimen,Ledger,Drawer as DrawerIcon,Rosette,Scope,Sound,Mute,Hourglass,Tilt,MapIcon} from './ui/Icons';
 import {tiltOffset} from '../core/tilt';
 import {tilt as tiltNow} from './screen';
-import {configure,unlock,cue,DEFAULT_SOUND} from '../core/sound';
+import {configure,unlock,cue,DEFAULT_SOUND,ambience} from '../core/sound';
+import {streamZ} from './places';
 import {treeState,defaultRules} from '../core/model';
 import {weatherOf,isWeather,WEATHER_LABEL,WEATHER_NOTE,type Weather} from '../core/weather';
 import {judgedToday,trackOf,lookbackPick} from '../core/judgment';
@@ -30,7 +32,7 @@ import {Briefing,Grades,CaseView,LookBack,RewindView} from './ui/Loop';
 import {paidLeft} from '../core/rewind';
 import {todayTasks,dayDone,type TaskId} from '../core/today';
 import {rankOf,xpOf} from '../core/rank';
-import {Records,League,GameDoor,CartView,Drawer,AnalystCard,TodaySheet,LibrarySheet} from './ui/Panels';
+import {Records,League,GameDoor,CartView,Drawer,AnalystCard,TodaySheet,LibrarySheet,weekCtx} from './ui/Panels';
 import {MapSheet} from './ui/MapSheet';
 import {RoomTags} from './ui/RoomTags';
 import {routineOf} from '../core/routine';
@@ -38,6 +40,15 @@ import {chatOf} from '../content/routine-lines';
 import {MyPage,wearCtx} from './ui/MyPage';
 import {fitLook} from '../core/wardrobe';
 import {newStamps} from '../core/stamps';
+import {daylightOf,mixHex} from '../core/daylight';
+import {nextTip,tipText,type TipId} from '../core/tips';
+import {Tip} from './ui/Tip';
+import {SettingsSheet} from './ui/Settings';
+import {weekGoals} from '../core/weekly';
+import {LetterSheet} from './ui/Letter';
+import {letterOf,letterDue,prevMonth,monthOf,monthLabel} from '../core/letter';
+import {stampById} from '../core/stamps';
+import {daysBetween as daysFrom} from '../core/judgment';
 import {place,type PlaceId} from './places';
 import {Bubbles} from './ui/Bubbles';
 import {Onboarding} from './ui/Onboarding';
@@ -62,15 +73,16 @@ if(typeof window!=='undefined'){const k=Number(new URLSearchParams(location.sear
 // player presses the button; others start at once. Off with reduced motion. The rest angle is how the phone was held
 // when it started (and again after turning it), so any comfortable hold is the middle.
 type DOE={requestPermission?:()=>Promise<string>};
-function useTilt(){
-  const [need,setNeed]=useState(false),[on,setOn]=useState(false);
+function useTilt(allowed:boolean){
+  const [need,setNeed]=useState(false),[on,setOn]=useState(false),ok=useRef(allowed);ok.current=allowed;
+  useEffect(()=>{if(!allowed){tiltNow.x=0;tiltNow.y=0}},[allowed]);
   const start=()=>{let rest:{beta:number;gamma:number}|null=null,angle=-1;
-    const h=(e:DeviceOrientationEvent)=>{if(e.beta===null||e.gamma===null)return;const a=(screen.orientation?.angle??0)%360;if(a!==angle){angle=a;rest=null}
+    const h=(e:DeviceOrientationEvent)=>{if(e.beta===null||e.gamma===null||!ok.current)return;const a=(screen.orientation?.angle??0)%360;if(a!==angle){angle=a;rest=null}
       // what is left-right and front-back depends on which way the phone is turned
       const [fb,lr]=a===90?[-e.gamma,e.beta]:a===270?[e.gamma,-e.beta]:[e.beta,e.gamma];
       rest??={beta:fb,gamma:lr};const t=tiltOffset(fb,lr,rest);tiltNow.x=t.x;tiltNow.y=t.y};
     addEventListener('deviceorientation',h);setOn(true);return()=>removeEventListener('deviceorientation',h)};
-  useEffect(()=>{if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;const D=(window as unknown as {DeviceOrientationEvent?:DOE}).DeviceOrientationEvent;if(!D)return;
+  useEffect(()=>{if(still())return;const D=(window as unknown as {DeviceOrientationEvent?:DOE}).DeviceOrientationEvent;if(!D)return;
     if(typeof D.requestPermission==='function'){setNeed(true);return}return start()},[]);// eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{const hk=((window as {__proto3d?:{tilt?:unknown}}).__proto3d??={} as {tilt?:unknown});hk.tilt={on,need,get x(){return tiltNow.x},get y(){return tiltNow.y}}},[on,need]);
   const ask=()=>{const D=(window as unknown as {DeviceOrientationEvent:DOE}).DeviceOrientationEvent;D.requestPermission?.().then(r=>{if(r==='granted'){setNeed(false);start()}}).catch(()=>{})};
@@ -82,7 +94,9 @@ function useWeather(){
     setW({weather:isWeather(q)?q:weatherOf(m),index:m.index})},[]);
   return w;
 }
-type SheetState={kind:'onboard'}|{kind:'map'}|{kind:'library'}|{kind:'grades';start:string}|{kind:'deep';holdingId:number;back:SheetState}|{kind:'lookback'}|{kind:'brief';start:{signalId?:string;holdingId?:number}|null}|{kind:'grades'|'case'|'rewind'|'today'|'records'|'drawer'|'cart'|'league'|'game'}|{kind:'analyst';id:AnalystId}|null;
+type SheetState={kind:'onboard'}|{kind:'letter';month:string}|{kind:'settings'}|{kind:'map'}|{kind:'library'}|{kind:'grades';start:string}|{kind:'deep';holdingId:number;back:SheetState}|{kind:'lookback'}|{kind:'brief';start:{signalId?:string;holdingId?:number}|null}|{kind:'grades'|'case'|'rewind'|'today'|'records'|'drawer'|'cart'|'league'|'game'}|{kind:'analyst';id:AnalystId}|null;
+// where each pointer points (core/tips.ts)
+const TIP_AT:Record<TipId,{target?:string;point?:string}>={map:{target:'.proto3d-map'},me:{target:'.rt-me-chip'},house:{point:'house'},lapse:{target:'.rt-dock button:nth-child(4)'}};
 const CART_FLAGS=['#c4452f','#36557e','#1e6b4a','#b9801a','#6a5aa8'];
 // this week's league group on the square's flagpoles (the first is mine)
 const LEAGUE_FLAGS=['#b8372b','#36557e','#4b6638','#b9801a','#6a5aa8','#c4652e','#2c5c92','#7a5238','#5c5447','#9c6c12','#4d4a8a','#1e6b4a'];
@@ -102,7 +116,7 @@ export default function Proto3D(){
   // W1: the holdings just planted are born one after another (core/birth.ts); a tap skips to the end
   const [birth,setBirth]=useState<Birth|null>(null),[bStage,setBStage]=useState<BirthStage>('done');
   const startBirth=(ids:number[],long:boolean,after?:()=>void)=>{if(!ids.length){after?.();return}const plan=birthPlan(ids.length,long);
-    const still=matchMedia('(prefers-reduced-motion: reduce)').matches;setBirth({ids,plan,t0:performance.now()-(still?plan.total:0),after});setBStage('trees');if(long)g.ops.saw('birth')};
+    const quietNow=still();setBirth({ids,plan,t0:performance.now()-(quietNow?plan.total:0),after});setBStage('trees');if(long)g.ops.saw('birth')};
   const skipBirth=()=>setBirth(b=>b&&{...b,t0:performance.now()-b.plan.total});
   useEffect(()=>{if(!birth)return;let raf=0,chord=false;const cracked=new Set<number>();let last:BirthStage|null=null;
     const tick=()=>{const ms=performance.now()-birth.t0,st=stageAt(birth.plan,ms);
@@ -157,7 +171,7 @@ export default function Proto3D(){
     setCut({holdingId,roots:rootsOf(health),t0:performance.now(),closing:null});setPicked(null);setSheet({kind:'deep',holdingId,back});cue('cutaway-open');g.ops.saw('cutaway')};
   const closeDeep=(back:SheetState)=>{const at=performance.now();setCut(c=>c&&{...c,closing:at});cue('cutaway-close');setSheet(back);
     setTimeout(()=>setCut(c=>c&&c.closing===at?null:c),TIMING.cutawayClose+80)};
-  const w=useWeather(),tiltCtl=useTilt();
+  const w=useWeather(),tiltCtl=useTilt(g.s.settings.tilt);
   const lapseBack=lapse?frames[lapse.i]:0,lapseDay=dayBack(clock.today,lapseBack);
   const lapseMarket=lapse&&lapseBack>0?marketProvider.today(lapseDay):null;
   const weather=lapseMarket?weatherOf(lapseMarket):w?.weather??'clear',wl=LOOK.weather[weather];
@@ -178,6 +192,9 @@ export default function Proto3D(){
     gradedToday:s.graded.filter(x=>x.day===clock.today).length,rewindsToday:s.rewinds.filter(r=>r.day===clock.today).length});
   const tasksDone=tasks.filter(t=>t.done).length,allDone=ready&&dayDone(tasks);
   useEffect(()=>{if(allDone)g.ops.closeDay()},[allDone]);// eslint-disable-line react-hooks/exhaustive-deps
+  // this week's goals (core/weekly.ts): all three done pays once
+  const week=weekGoals(clock.today,weekCtx(g));
+  useEffect(()=>{if(ready&&week.done)g.ops.closeWeek(week.start)},[ready,week.done,week.start]);// eslint-disable-line react-hooks/exhaustive-deps
   // a new title (core/rank.ts) brings its item
   const rank=rankOf(xpOf({graded:s.graded.length,cases:s.cases.length,rewinds:s.rewinds.length}));
   useEffect(()=>{if(rank.index>s.rankSeen)g.ops.rankUp(rank.index,rank.name)},[rank.index,s.rankSeen]);// eslint-disable-line react-hooks/exhaustive-deps
@@ -185,14 +202,30 @@ export default function Proto3D(){
   // nothing flagged in the new garden: no look-back to show
   useEffect(()=>{if(sheet?.kind==='lookback'&&!lookSig)setSheet(null)},[sheet,lookSig]);
   // sound (core/sound.ts, synthesised): on unless the player turned it off; the browser lets it start on the first press
-  useEffect(()=>{configure({...DEFAULT_SOUND,on:s.sound})},[s.sound]);
+  useEffect(()=>{configure({...DEFAULT_SOUND,on:s.sound,sfx:s.settings.sfx})},[s.sound,s.settings.sfx]);
+  // the settings that every screen follows: keeping still, the text size
+  useEffect(()=>{const d=document.documentElement.dataset;d.still=s.settings.still?'1':'0';d.text=s.settings.text},[s.settings.still,s.settings.text]);
   // a run of days that was rescued or lost is said once, as the garden opens
   useEffect(()=>{const n=s.streak.notice;if(n&&n.day===clock.today)g.say(n.kind==='reset'?line(UI.streakReset,{run:n.run}):UI.streakRescue)},[]);// eslint-disable-line react-hooks/exhaustive-deps
 
   // where the day has each analyst (signals first, luon by an arrived grade's capsule, then their own spots, home at night)
   const dueTree=g.due.find(d=>holdings.some(h=>h.id===d.judgment.holdingId))?.judgment.holdingId??null;
   const day=routineOf(minutes,{tori:open.filter(x=>x.analyst==='tori').map(x=>x.holdingId),moa:open.filter(x=>x.analyst==='moa').map(x=>x.holdingId),luon:[]},dueTree);
-  const ctx=wearCtx(g),look=fitLook(s.look,ctx);
+  const ctx=wearCtx(g),look=fitLook(s.look,ctx),light=daylightOf(minutes);
+  // the garden's ambience (core/sound.ts): by where I stand and the time of day; quiet indoors, on the stage, in sheets
+  useEffect(()=>{const t=setInterval(()=>{const p=(window as unknown as {__proto3d?:{player?:{x:number;z:number}}}).__proto3d?.player;
+    if(!p||inside||me||!ready){ambience({stream:0,fire:0,birds:0,crickets:0});return}
+    const near=(d:number,r:number)=>Math.max(0,1-d/r),fire=Math.hypot(p.x+1.6,p.z+1.2),creek=Math.abs(p.z-streamZ(p.x));
+    ambience({stream:near(creek,9),fire:near(fire,5),birds:light.day*(weather==='storm'?0.1:0.8),crickets:light.night*0.9})},1000);
+    return()=>clearInterval(t)},[inside,me,ready,light.day,light.night,weather]);
+  // a first-time pointer (core/tips.ts), only in a quiet moment out in the garden
+  // last month's letter (core/letter.ts), once the new month has opened
+  const letterFor=(m:string)=>letterOf(m,s.judgments,s.graded,{cases:s.cases,rewinds:s.rewinds,stamps:s.stamps},id=>stampById(id as never).name);
+  const lastLetter=letterFor(prevMonth(monthOf(clock.today))),letterWaiting=ready&&letterDue(clock.today,s.letters,lastLetter);
+  const oldest=s.judgments.reduce((m,j)=>Math.max(m,daysFrom(j.day,clock.today)),0);
+  const tip=ready&&!quiet&&!inside&&!sheet&&picked===null&&!g.due.length&&!letterWaiting&&!capFx&&!jump?nextTip(s.tips,{judgments:s.judgments.length,oldestDays:oldest}):null;
+  // the sky behind the garden: the weather's, warmed at dawn and dusk, darkened at night
+  const sky=(k:'top'|'mid'|'bottom')=>mixHex(mixHex(wl.sky[k],LOOK.daylight.dusk[k],light.warm*0.75),LOOK.daylight.night[k],light.night);
   // stamps (core/stamps.ts): whatever newly holds is stamped once, with today's date
   const fresh=ready?newStamps({judgments:s.judgments.length,graded:s.graded.map(x=>({hit:x.hit,confidence:s.judgments.find(j=>j.id===x.judgmentId)?.confidence??3})),
     bestStreak:s.streak.best,rewinds:s.rewinds.length,cases:s.cases.length,daysDone:s.daysDone.length,seen:s.seen,calibration:track.calibration},s.stamps.map(x=>x.id)):[];
@@ -217,7 +250,7 @@ export default function Proto3D(){
     capsules:lapse?pinsAt(s.judgments,lapseDay,shown.map(x=>x.id)).map(id=>({holdingId:id,due:false})):capsules.map(c=>({holdingId:c.holdingId,due:c.due})),capsuleFx:capFx,onCapsule:id=>{if(!calm)onCapsule(id)},hitRate:track.hitRate,cartFlag:CART_FLAGS[Number(clock.today.slice(-2))%CART_FLAGS.length],gameLit:true,
     onAnalyst:id=>{if(id==='luon'&&g.due.length){setSheet({kind:'grades'});return}const sig=open.find(x=>x.analyst===id);
       setSheet(sig?{kind:'brief',start:{signalId:sig.id}}:{kind:'analyst',id})},
-    flags:LEAGUE_FLAGS,myFlag:0,caseOpen:!caseDone,goTo,inside,look,stage:me,
+    flags:LEAGUE_FLAGS,myFlag:0,caseOpen:!caseDone,goTo,inside,look,stage:me,light,
     room:{books:s.judgments.slice(-36).map(j=>{const gr=s.graded.filter(x=>x.judgmentId===j.id).at(-1);return {state:gr?(gr.hit?'hit':'miss'):'waiting'} as const}),
       notes:capsules.map(c=>({holdingId:c.holdingId,due:c.due})),
       resting:ANALYSTS.filter(a=>day[a.id].kind==='home'||day[a.id].kind==='spot').map(a=>a.id),
@@ -237,13 +270,14 @@ export default function Proto3D(){
 
   return (
     <div className={`proto3d${ready&&!quiet?"":" no-dock"}`} data-testid="proto3d" data-weather={weather} onPointerDownCapture={unlock} onClickCapture={e=>{if((e.target as HTMLElement).closest('button'))cue('ui-button')}}
-      style={{background:`linear-gradient(180deg,${wl.sky.top} 0%,${wl.sky.mid} 38%,${wl.sky.bottom} 100%)`}}>
+      data-night={light.night>0.5} style={{background:`linear-gradient(180deg,${sky('top')} 0%,${sky('mid')} 38%,${sky('bottom')} 100%)`}}>
+      {light.night>0.05&&<div className="proto3d-stars" aria-hidden style={{opacity:light.night}}/>}
       {w&&<Canvas shadows="soft" dpr={[1,1.5]} gl={{antialias:false,alpha:true,powerPreference:'high-performance'}}
         camera={{fov:46,near:0.5,far:120,position:[0,21,14.5]}}>
         <Scene3D holdings={shown} picked={picked} onPick={id=>{setPicked(id);setEarly(false)}} recenter={recenter} weather={weather} world={world}/>
       </Canvas>}
       <div className="proto3d-sun" aria-hidden
-        style={{width:LOOK.sunGlow.size,height:LOOK.sunGlow.size,opacity:wl.glow,
+        style={{width:LOOK.sunGlow.size,height:LOOK.sunGlow.size,opacity:wl.glow*light.day,
           background:`radial-gradient(circle at center,${LOOK.sunGlow.color} 0%,${LOOK.sunGlow.color}88 22%,transparent 62%)`}}/>
 
       <div className="proto3d-top">
@@ -278,7 +312,12 @@ export default function Proto3D(){
         {k:'room-door',text:'밖으로',onClick:()=>swapRoom(false)}]}/>}
       {inside&&!sheet&&<button type="button" className="rt-btn rt-exit" onClick={()=>swapRoom(false)}>밖으로 나가기</button>}
       {fading&&<div className="rt-room-fade" aria-hidden/>}
-      {me&&!sheet&&<MyPage g={g} onClose={()=>setMe(false)} onRecords={()=>setSheet({kind:'records'})}/>}
+      {tip&&<Tip text={tipText(tip)} target={TIP_AT[tip].target} point={TIP_AT[tip].point} onDone={()=>g.ops.tipDone(tip)}/>}
+      {me&&!sheet&&<MyPage g={g} onClose={()=>setMe(false)} onRecords={()=>setSheet({kind:'records'})} onSettings={()=>setSheet({kind:'settings'})} onLetter={()=>setSheet({kind:'letter',month:monthOf(clock.today)})}/>}
+      {sheet?.kind==='settings'&&<SettingsSheet g={g} onClose={close}/>}
+      {sheet?.kind==='letter'&&<LetterSheet letter={letterFor(sheet.month)} onClose={()=>{g.ops.letterRead(sheet.month);close()}}/>}
+      {letterWaiting&&!sheet&&!quiet&&!inside&&!g.due.length&&<button type="button" className="rt-banner" onClick={()=>setSheet({kind:'letter',month:lastLetter.month})}>
+        <span>{monthLabel(lastLetter.month)} 편지 도착</span><b>열기</b></button>}
       {ready&&!sheet&&!h&&!quiet&&!inside&&<p className="proto3d-hint">끌어서 둘러보기 · 땅을 눌러 걷기 · 나무와 분석가를 눌러 보기</p>}
 
       {ready&&!quiet&&!inside&&<button type="button" className="proto3d-locate proto3d-map" aria-label="지도" onClick={()=>{setPicked(null);setSheet({kind:'map'})}}><MapIcon size={20}/></button>}

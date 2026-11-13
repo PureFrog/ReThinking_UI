@@ -12,6 +12,8 @@ import {impulseOf} from '../../core/cooldown';
 import {weekPoints,TIERS,tierOf} from '../../core/league';
 import {shownCount} from '../../core/streak';
 import {TRUST_LABEL,EARN} from '../../core/ledger';
+import {weekGoals,type WeekCtx} from '../../core/weekly';
+export const weekCtx=(g:{s:{judgments:WeekCtx['judgments'];graded:WeekCtx['graded'];cases:WeekCtx['cases'];rewinds:WeekCtx['rewinds'];daysDone:string[]}}):WeekCtx=>({judgments:g.s.judgments,graded:g.s.graded,cases:g.s.cases,rewinds:g.s.rewinds,daysDone:g.s.daysDone});
 import {STAGE_POINTS} from '../../core/relationships';
 import {formatDay} from '../../core/items';
 import {CASES} from '../../content/cases';
@@ -130,6 +132,10 @@ export function TodaySheet({g,tasks,onGo,onClose}:{g:G;tasks:TodayTask[];onGo:(t
       <div><strong>{UI.today[t.id]}</strong></div>
       {t.done?<span className="rt-tag ok">완료</span>:<button type="button" className="rt-btn" onClick={()=>onGo(t.id)}>하기</button>}</div>)}
     <p className="rt-hint" style={{marginTop:12}}>{closed?line(UI.dayDone,{n:EARN.dayDone}):`셋 다 하면 +${EARN.dayDone} ${CURRENCY}`}</p>
+    {(()=>{const w=weekGoals(g.clock.today,weekCtx(g));return <><div className="rt-section">이번 주 목표</div>
+      {w.goals.map(x=><div key={x.id} className="rt-row rt-task" data-done={x.done}><span className="rt-check" aria-hidden>{x.done?'✓':''}</span>
+        <div><strong>{x.text}</strong></div><b className="rt-num">{x.have}/{x.need}</b></div>)}
+      <p className="rt-hint" style={{marginTop:8}}>{w.done?`이번 주 끝 · +${EARN.weekDone} ${CURRENCY}`:`셋 다 하면 +${EARN.weekDone} ${CURRENCY} · 일요일 자정까지`}</p></>})()}
     <div className="rt-section">다음에 올 이유</div>
     <p className="rt-say-plain">{nx?line(UI.nextGrade,{name:nx.name,mark:nx.mark,d:nx.inDays}):UI.noNext}</p>
     <div className="rt-section">내 등급</div>

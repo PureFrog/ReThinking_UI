@@ -1,6 +1,7 @@
 'use client';
 // The core loop on screen (redesign 4장): the research note and the judgment, luon's counter-argument, the grade
 // reveal, and today's case. All rules are in app/core; these only show them and call the actions in state.ts.
+import {still} from '../still';
 import {useEffect,useMemo,useState} from 'react';
 import {Bulb} from './Icons';
 import {CHOICES,CHOICE_LABEL,REASON_MAX,LOOKBACK,canRecord,shiftDay,type Choice,type Confidence,type Judgment,type Graded,type Mark} from '../../core/judgment';
@@ -122,7 +123,7 @@ export function Briefing({g,signals,holdings,start,onClose,onDeep,onBury}:{g:G;s
 // A tap on the result skips to the end; reduced motion shows the end at once.
 function useReveal(key:string,onStamp:()=>void,hit:boolean){
   const [ms,setMs]=useState(0),phase=revealPhase(ms);
-  useEffect(()=>{if(matchMedia('(prefers-reduced-motion: reduce)').matches){setMs(REVEAL_TOTAL);return}
+  useEffect(()=>{if(still()){setMs(REVEAL_TOTAL);return}
     const t0=performance.now();let id=0;const step=(now:number)=>{const e=now-t0;setMs(e);if(e<TIMING.revealCount)cue('grade-count');if(e<REVEAL_TOTAL)id=requestAnimationFrame(step)};
     id=requestAnimationFrame(step);return()=>cancelAnimationFrame(id)},[key]);
   const stamped=phase!=='count';

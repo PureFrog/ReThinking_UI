@@ -237,6 +237,7 @@ test("sound can be turned off and stays off", async ({ page }) => {
 // 되감기 (core/rewind.ts, content/rewind.ts): a made-up past case, the same call as in the real loop, the 30 days after
 // revealed at once with the grade reveal; the first three a day pay, the rest are practice; the record keeps the rounds
 test("rewind: a made-up past case graded at once, round after round", async ({ page }) => {
+  test.setTimeout(300_000);// four rounds, each with the full reveal: the slowest test on a software-rendered desktop
   const errors: string[] = [];
   await open(page, errors, "&demo");
   const before = Number(await page.getByTestId("currency").textContent());
@@ -592,5 +593,37 @@ test("my observer's stage: dress up, see my record and stamps, back to the garde
   await me.getByRole("button", { name: "정원으로" }).click();
   await expect(me).toBeHidden();
   await expect(page.getByRole("button", { name: /새벽/ })).toBeVisible();
+  clean(errors);
+});
+
+// Settings, the monthly letter and this week's goals (ui/Settings.tsx, core/letter.ts, core/weekly.ts)
+test("settings change the text size and keep things still; the letter and the week's goals are there", async ({ page }) => {
+  const errors: string[] = [];
+  await open(page, errors, "&demo");
+  await page.getByRole("button", { name: "내 관찰자" }).click();
+  const me = page.getByRole("dialog", { name: "내 관찰자" });
+  await me.getByRole("button", { name: "설정" }).click();
+  const st = sheet(page, "설정");
+  await st.getByRole("group", { name: "글자 크기" }).getByRole("button", { name: "크게", exact: true }).click();
+  await st.getByLabel(/움직임 줄이기/).check();
+  await expect(page.locator("html")).toHaveAttribute("data-text", "l");
+  await expect(page.locator("html")).toHaveAttribute("data-still", "1");
+  expect((await page.evaluate(() => JSON.parse(localStorage.getItem("rethink-garden-v1")!))).settings).toMatchObject({text: "l", still: true});
+  // starting over asks twice
+  await st.getByRole("button", { name: "정원을 처음부터 다시 시작" }).click();
+  await expect(st).toContainText("되돌릴 수 없어");
+  await st.getByRole("button", { name: "그만둘래" }).click();
+  await st.getByRole("button", { name: "닫기" }).first().click();
+  // this month's letter so far, from the record tab
+  await me.getByRole("tab", { name: "기록" }).click();
+  await me.getByRole("button", { name: "이번 달 편지 미리 보기" }).click();
+  const letter = sheet(page, "한 달 편지");
+  await expect(letter).toContainText("의 판단");
+  await expect(letter).toContainText("판단을 적은 편지");
+  await letter.getByRole("button", { name: "닫기" }).first().click();
+  await me.getByRole("button", { name: "정원으로" }).click();
+  // the week's three in today's sheet
+  await page.getByRole("button", { name: /^오늘 할 일/ }).click();
+  await expect(sheet(page, /오늘 할 일/)).toContainText("이번 주 목표");
   clean(errors);
 });

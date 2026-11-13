@@ -9,6 +9,7 @@ import {OnGround,surfaceY,tiltAt,rng,UP} from './ground';
 import {PATHS,PLACES,STREAM,BRIDGE,streamZ,WORLD} from './places';
 import {soft} from './materials';
 import {LOOK} from './look';
+import {mixHex} from '../core/daylight';
 
 const S=(c:string)=><primitive object={soft(c)} attach="material"/>;
 const click=(fn:()=>void)=>(e:ThreeEvent<MouseEvent>)=>{e.stopPropagation();fn()};
@@ -22,12 +23,12 @@ function ribbon(half:number,lift:number){
     if(n>0){const a=(n-1)*2;idx.push(a,a+1,a+2,a+1,a+3,a+2)}n++}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();return g;
 }
-export function Stream(){
+export function Stream({dim=0}:{dim?:number}){
   const water=useMemo(()=>ribbon(STREAM.half,0.07),[]),bank=useMemo(()=>ribbon(STREAM.half+STREAM.bank,0.035),[]);
   useLayoutEffect(()=>()=>{water.dispose();bank.dispose()},[water,bank]);
   return <group name="stream">
-    <mesh geometry={bank} receiveShadow><meshBasicMaterial color={M().bank} side={THREE.DoubleSide}/></mesh>
-    <mesh geometry={water}><meshBasicMaterial color={M().water} side={THREE.DoubleSide}/></mesh>
+    <mesh geometry={bank} receiveShadow><meshBasicMaterial color={mixHex(M().bank,'#4a4636',dim)} side={THREE.DoubleSide}/></mesh>
+    <mesh geometry={water}><meshBasicMaterial color={mixHex(M().water,'#13284a',dim)} side={THREE.DoubleSide}/></mesh>
   </group>;
 }
 // the wooden bridge: planks over an arch, a rail each side

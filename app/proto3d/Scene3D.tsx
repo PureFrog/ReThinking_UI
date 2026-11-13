@@ -32,6 +32,7 @@ import {PLOTS,PATHS,place,inStream,route,WORLD} from './places';
 import {Stream,Bridge,Paths,Forest,Library,Plaza} from './World3D';
 import {Interior,type Book,type Note} from './Interior3D';
 import {Explorer} from './Explorer3D';
+import {mixHex,type Daylight} from '../core/daylight';
 import {Showroom} from './Showroom3D';
 import type {Look} from '../core/wardrobe';
 
@@ -100,12 +101,13 @@ function Tufts(){
   </instancedMesh>;
 }
 
-function Pond(){
+// water is unlit (flat colour), so the time of day darkens it here: dim 0 by day … 1 at night
+function Pond({dim=0}:{dim?:number}){
   return <>{POND.map(([x,z,r],i)=>(
     // rim pieces sit low and water pieces well above them, so neighbouring tilted discs never cut into each other
     <OnGround key={i} x={x} z={z} lift={0.03}>
-      <mesh rotation-x={-Math.PI/2} receiveShadow><circleGeometry args={[r+0.3,40]}/><meshBasicMaterial color="#a8e4ec"/></mesh>
-      <mesh rotation-x={-Math.PI/2} position-y={0.12}><circleGeometry args={[r,40]}/><meshBasicMaterial color="#2c86d6"/></mesh>
+      <mesh rotation-x={-Math.PI/2} receiveShadow><circleGeometry args={[r+0.3,40]}/><meshBasicMaterial color={mixHex('#a8e4ec','#3d5a72',dim)}/></mesh>
+      <mesh rotation-x={-Math.PI/2} position-y={0.12}><circleGeometry args={[r,40]}/><meshBasicMaterial color={mixHex('#2c86d6','#13284a',dim)}/></mesh>
     </OnGround>))}
     {/* stepping stones and lily pads */}
     {[[0.4,7.9,0.4],[1.3,8.4,0.34],[-0.7,8.6,0.3]].map(([x,z,s],i)=>(
@@ -119,7 +121,7 @@ function Rock({x,z,s=1,rot=0}:{x:number;z:number;s?:number;rot?:number}){
 }
 
 // the house: tapping it (or its door) goes inside (Interior3D.tsx)
-function House({onEnter}:{onEnter:()=>void}){
+function House({onEnter,night}:{onEnter:()=>void;night:number}){
   const enter=(e:ThreeEvent<MouseEvent>)=>{e.stopPropagation();onEnter()};
   return <OnGround x={HOUSE.x} z={HOUSE.z} rot={HOUSE.rot}><group onClick={enter} name="house">
     <mesh scale={[2.3,2.7,2.2]} position-y={1.9} castShadow receiveShadow><sphereGeometry args={[1,48,32]}/><primitive object={soft('#ebe0d2')} attach="material"/></mesh>
@@ -132,7 +134,7 @@ function House({onEnter}:{onEnter:()=>void}){
     </group>
     {/* glowing round windows (bloom picks these up) */}
     {[[1.4,2.4,1.55,0.42],[-1.2,2.7,1.7,0.34]].map(([x,y,z,r],i)=>(
-      <mesh key={i} position={[x,y,z]} rotation-y={Math.atan2(x,z)}><circleGeometry args={[r,24]}/><meshStandardMaterial color="#ffb24a" emissive="#ff9a2e" emissiveIntensity={1.6} toneMapped={false}/></mesh>))}
+      <mesh key={i} position={[x,y,z]} rotation-y={Math.atan2(x,z)}><circleGeometry args={[r,24]}/><meshStandardMaterial color="#ffb24a" emissive="#ff9a2e" emissiveIntensity={1.6+LOOK.daylight.windows*night} toneMapped={false}/></mesh>))}
     {/* speckles */}
     {Array.from({length:14},(_,i)=>{const a=i*2.39,y=1+((i*37)%25)/10;const rr=2.25*Math.sqrt(Math.max(0.05,1-((y-1.9)/2.7)**2));
       return <mesh key={'d'+i} position={[Math.sin(a)*rr*1.0,y,Math.cos(a)*rr*0.96]} scale={0.07+((i*13)%5)/60}><sphereGeometry args={[1,8,6]}/><primitive object={soft('#b9a999')} attach="material"/></mesh>})}
@@ -437,6 +439,8 @@ export type World={
   // inside the house (Interior3D.tsx): the garden is put away and the workroom drawn instead
   // my observer: how it is dressed (core/wardrobe.ts), and whether its stage (ui/MyPage.tsx) is open instead of the garden
   look:Look;stage:boolean;
+  // the time of day (core/daylight.ts): how light, how warm, how dark
+  light:Daylight;
   inside:boolean;room:{books:Book[];notes:Note[];resting:AnalystId[];onDesk:()=>void;onShelf:()=>void;onBoard:()=>void;onDoor:()=>void};
 };
 export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:{holdings:Holding[];picked:number|null;onPick:(id:number|null)=>void;recenter:number;weather:Weather;world:World}){
@@ -489,10 +493,10 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
   const reportPoint=useCallback((k:string,v:THREE.Vector3)=>{let p=points.get(k);if(!p){p=new THREE.Vector3();points.set(k,p)}p.copy(v)},[points]);
   useEffect(()=>{testHooks().inside=world.inside;testHooks().stage=world.stage},[world.inside,world.stage]);
   return <>
-    {!world.inside&&!world.stage&&<fog attach="fog" args={[wl.fog,LOOK.fog.near,LOOK.fog.far]}/>}
-    <hemisphereLight ref={hemi} args={[LOOK.hemi.sky,LOOK.hemi.ground,LOOK.hemi.intensity*wl.hemi]}/>
+    {!world.inside&&!world.stage&&<fog attach="fog" args={[mixHex(wl.fog,LOOK.daylight.nightFog,world.light.night*0.85),LOOK.fog.near,LOOK.fog.far]}/>}
+    <hemisphereLight ref={hemi} args={[LOOK.hemi.sky,LOOK.hemi.ground,LOOK.hemi.intensity*wl.hemi*(LOOK.daylight.floor+(1-LOOK.daylight.floor)*world.light.day)]}/>
     <SunFollow pos={pos} sun={sun}/>
-    <directionalLight ref={sun} position={LOOK.sun.position} intensity={wl.sun.intensity} color={wl.sun.color} castShadow
+    <directionalLight ref={sun} position={LOOK.sun.position} intensity={wl.sun.intensity*Math.max(0.08,world.light.day)} color={mixHex(wl.sun.color,LOOK.daylight.lowSun,world.light.warm)} castShadow
       shadow-mapSize={[LOOK.shadow.mapSize,LOOK.shadow.mapSize]} shadow-radius={LOOK.shadow.radius} shadow-bias={-0.0004} shadow-normalBias={0.04}
       shadow-camera-left={-16} shadow-camera-right={16} shadow-camera-top={16} shadow-camera-bottom={-16} shadow-camera-near={1} shadow-camera-far={50}/>
 
@@ -501,9 +505,9 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
       report={reportPoint} reportAnalyst={reportAnalyst}/>:<>
     <Ground onWalk={walk}/>
     <Tufts/>
-    <Pond/>
+    <Pond dim={world.light.night*0.85}/>
     <Flowers/>
-    <House onEnter={()=>world.onLandmark('house')}/>
+    <House night={world.light.night} onEnter={()=>world.onLandmark('house')}/>
     <Campfire/>
     <Rock x={-6.4} z={3.2} s={1.1} rot={0.4}/><Rock x={-5} z={4.4} s={0.7}/><Rock x={-7.2} z={4.6} s={0.55}/><Rock x={8.4} z={6} s={0.9}/><Rock x={3.4} z={5.2} s={0.5}/>
     {trees.map((t,i)=>{const b=world.birth,k=b?b.ids.indexOf(t.h.id):-1;return <HoldingTree key={t.h.id} id={t.h.id} x={t.x} z={t.z} growth={t.st.growth} condition={t.st.condition} picked={picked===t.h.id} onPick={id=>onPick(id)} onTop={onTops[i]} wind={wl.wind}
@@ -520,7 +524,7 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
     <OnGround x={SPOTS.observatory.x} z={SPOTS.observatory.z} rot={SPOTS.observatory.rot}><Observatory lit={world.gameLit} onPick={()=>world.onLandmark('observatory')}/></OnGround>
     <OnGround x={SPOTS.signpost.x} z={SPOTS.signpost.z} rot={SPOTS.signpost.rot}><Signpost hitRate={world.hitRate} onPick={()=>world.onLandmark('signpost')}/></OnGround>
     <OnGround x={SPOTS.cart.x} z={SPOTS.cart.z} rot={SPOTS.cart.rot}><Cart flag={world.cartFlag} onPick={()=>world.onLandmark('cart')}/></OnGround>
-    <Stream/><Bridge/><Paths/><Forest/>
+    <Stream dim={world.light.night*0.85}/><Bridge/><Paths/><Forest/>
     <Library open={world.caseOpen} onPick={()=>world.onLandmark('library')}/>
     <Plaza flags={world.flags} me={world.myFlag} onPick={()=>world.onLandmark('plaza')}/>
     {world.pots.map(p=>{const t=trees.find(x=>x.h.id===p.holdingId);return t&&<OnGround key={p.holdingId} x={t.x-0.85} z={t.z+0.55}><Pot open={p.open} flowers={p.flowers}/></OnGround>})}
