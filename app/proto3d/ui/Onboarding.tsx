@@ -8,12 +8,13 @@ import {Camera,Plus,Trash2} from 'lucide-react';
 import {drafts,applyDrafts,freePlots,blankDraft,HELD,type Draft,type HeldId} from '../../core/portfolio';
 import {portfolioReader,kindOf} from '../../content/portfolio';
 import {GARDEN_PLOTS} from '../../content/demo-garden';
-import {LINES,line} from '../../content/analysts';
+import {UI,line} from '../../content/analysts';
 import {Sheet} from './Sheet';
 import type {useGarden} from '../state';
 type G=ReturnType<typeof useGarden>;
 
-export function Onboarding({g,onClose,onPlanted}:{g:G;onClose:()=>void;onPlanted?:()=>void}){
+// onPlanted: the new trees (W1, they are born in the garden); onDemo: the demo garden was picked instead
+export function Onboarding({g,onClose,onPlanted,onDemo}:{g:G;onClose:()=>void;onPlanted?:(ids:number[],first:boolean)=>void;onDemo?:()=>void}){
   const first=!g.s.onboarded,holdings=g.s.holdings;
   // the confirm list; editing starts from the trees already planted
   const [rows,setRows]=useState<Draft[]|null>(()=>first?null:drafts(holdings.map(h=>({name:h.name,rate:h.rate})),holdings).rows);
@@ -34,14 +35,14 @@ export function Onboarding({g,onClose,onPlanted}:{g:G;onClose:()=>void;onPlanted
     const base=holdings.filter(h=>!removed.includes(h.id));
     const out=applyDrafts(holdings,clean,removed,freePlots(base,GARDEN_PLOTS),kindOf);
     g.ops.setHoldings(out.holdings);
-    g.say(first?line(LINES.planted,{n:out.holdings.length}):line(LINES.replanted,{n:out.holdings.length}));
-    if(first&&onPlanted)onPlanted();else onClose();
+    g.say(first?line(UI.planted,{n:out.holdings.length}):line(UI.replanted,{n:out.holdings.length}));
+    if(onPlanted)onPlanted(out.planted.map(h=>h.id),first);else onClose();
   };
 
   const picker=<input ref={file} type="file" accept="image/*" hidden aria-label="캡처 파일" onChange={e=>{const f=e.target.files?.[0];if(f)void read(f);e.target.value=''}}/>;
 
   if(!rows)return <Sheet kicker="시작" title="내 종목부터" label="내 종목 넣기" onClose={onClose}
-    foot={<button type="button" className="rt-btn wide" onClick={()=>{g.ops.useDemo();onClose()}}>예시 정원으로 둘러보기</button>}>
+    foot={<button type="button" className="rt-btn wide" onClick={()=>{g.ops.useDemo();if(onDemo)onDemo();else onClose()}}>예시 정원으로 둘러보기</button>}>
     {picker}
     <p className="rt-hint">종목 하나가 나무 하나야. 분석가 셋이 그 나무들에서 손실 신호를 찾아.</p>
     <div className="rt-pick">
@@ -77,6 +78,6 @@ export function Onboarding({g,onClose,onPlanted}:{g:G;onClose:()=>void;onPlanted
       {missing.map(m=><label key={m.id} className="rt-row" style={{cursor:'pointer'}}>
         <input type="checkbox" checked={gone.includes(m.id)} onChange={e=>setGone(gs=>e.target.checked?[...gs,m.id]:gs.filter(x=>x!==m.id))}/>
         <div><strong>{m.name}</strong><small>정리했으면 체크. 정원에서 뺄게.</small></div></label>)}</>}
-    {over&&<p className="rt-hint" style={{marginTop:12,color:'var(--rt-down)'}}>정원 자리는 {GARDEN_PLOTS}개야. {staying+newOnes-GARDEN_PLOTS}개 빼 줘.</p>}
+    {over&&<p className="rt-hint" style={{marginTop:12,color:'var(--rt-warn)'}}>정원 자리는 {GARDEN_PLOTS}개야. {staying+newOnes-GARDEN_PLOTS}개 빼 줘.</p>}
   </Sheet>;
 }

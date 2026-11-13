@@ -103,7 +103,7 @@
 
 | 이름 | 언제 | 지금 | 코드 위치 |
 | --- | --- | --- | --- |
-| `plant` | 씨앗을 심을 때 | 비어 있음 | 버스 이벤트 `planted` |
+| `plant` | 씨앗을 심을 때. 3D에서는 내 종목 나무가 땅을 뚫고 나올 때 | 낮은 툭(`sprout`) | 버스 이벤트 `planted`, `proto3d/Proto3D.tsx` 정원 탄생 |
 | `water` | 물뿌리개로 물을 줄 때 | 임시 소리 | `game.ts` water |
 | `feed` | 거름을 줄 때 | 비어 있음 | `game.ts` feed |
 | `care-done` | 돌봄(일지·퀴즈)을 마쳤을 때 | 비어 있음 | 버스 이벤트 `care-done` |
@@ -176,3 +176,23 @@
 - **소리를 어떻게 만들지:** 지금처럼 코드로 합성할지, 녹음된 효과음 파일을 쓸지 정해야 해. 녹음 파일이면 무료 라이브러리에서 고르고 `LICENSE_NOTES.md`에 출처를 적어.
 - **크기 기준:** 지금 임시 소리는 너무 작아. 채울 때 버튼 소리를 기준 크기로 정하고, 나머지를 그에 맞춰 키우거나 줄이면 돼.
 - **자주 나는 소리:** 걸음, 대사 넘기기, 마우스 올리기는 아주 자주 나서 작고 짧아야 해. 안 넣는 게 나을 수도 있어.
+
+## 3D 판정 공개 (ReThink Garden)
+
+| 이름 | 언제 | 지금 | 코드 위치 |
+| --- | --- | --- | --- |
+| `grade-count` | 판정 수익률이 0부터 세어 올라갈 때 | 짧은 틱(`tick`) | `proto3d/ui/Loop.tsx` Grades |
+| `grade-stamp` | 적중·빗나감 도장이 찍힐 때 | 낮은 쿵(`stamp`) | `proto3d/ui/Loop.tsx` Grades |
+| `grade-hit` | 판단이 적중일 때 | 올라가는 화음(`reveal-hit`) | `proto3d/ui/Loop.tsx` Grades |
+| `grade-miss` | 판단이 빗나갔을 때 | 내려가는 두 음(`reveal-miss`) | `proto3d/ui/Loop.tsx` Grades |
+
+## 3D 오! 패스 (docs/brief-wow.md W1~W3)
+
+| 이름 | 언제 | 지금 | 코드 위치 |
+| --- | --- | --- | --- |
+| `garden-born` | 내 종목 나무가 다 서고 카메라가 정원을 한 바퀴 돌 때 | 넓게 퍼지는 화음(`chord`) | `proto3d/Proto3D.tsx` 정원 탄생 |
+| `cutaway-open` | 땅 속(뿌리 단면)이 열릴 때 | 흙 긁는 소리(`dig`) | `proto3d/Proto3D.tsx` 뿌리 단면 |
+| `cutaway-close` | 땅이 다시 덮일 때 | 닫기(`close`) | `proto3d/Proto3D.tsx` 뿌리 단면 |
+| `capsule-bury` | 판단 메모가 캡슐에 담겨 나무 밑에 묻힐 때 | 눌러 묻는 소리(`bury`) | `proto3d/Proto3D.tsx` 타임캡슐 |
+| `capsule-dig` | 판정일에 캡슐을 파낼 때 | 흙 긁는 소리(`dig`) | `proto3d/Proto3D.tsx` 타임캡슐 |
+| `capsule-open` | 캡슐 뚜껑이 열리고 메모가 보일 때 | 유리 울림(`glass`) | `proto3d/Proto3D.tsx` 타임캡슐 |

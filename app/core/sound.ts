@@ -4,7 +4,7 @@
 
 export type SoundSettings={on:boolean|null;sfx:number;voice:number;music:number};
 export const DEFAULT_SOUND:SoundSettings={on:null,sfx:.7,voice:.6,music:.5};
-export type Effect='click'|'tap'|'open'|'close'|'step-grass'|'step-wood'|'water'|'pickup'|'unwrap'|'heart'|'letter'|'thud'|'door'|'sparkle';
+export type Effect='click'|'tap'|'open'|'close'|'step-grass'|'step-wood'|'water'|'pickup'|'unwrap'|'heart'|'letter'|'thud'|'door'|'sparkle'|'tick'|'reveal-hit'|'reveal-miss'|'stamp'|'sprout'|'chord'|'dig'|'bury'|'glass';
 
 let settings:SoundSettings=DEFAULT_SOUND;
 let ctx:AudioContext|null=null,sfxBus:GainNode|null=null,voiceBus:GainNode|null=null,noiseBuf:AudioBuffer|null=null;
@@ -43,9 +43,20 @@ const EFFECTS:Record<Effect,(b:GainNode)=>void>={
  thud:b=>{tone(b,{f:130,to:58,dur:.18,gain:.3});noise(b,{f:500,dur:.12,kind:'lowpass',gain:.12})},
  door:b=>{tone(b,{f:310,to:420,dur:.35,type:'triangle',gain:.05,vibrato:9,attack:.05});tone(b,{f:110,to:70,at:.3,dur:.14,gain:.2})},
  sparkle:b=>[1568,2093,2637].forEach((f,i)=>tone(b,{f,at:i*.05,dur:.18,type:'triangle',gain:.06})),
+ // the 3D grade reveal (proto3d ui/Loop.tsx Grades): a counter ticking, the verdict stamping down, then hit or miss
+ tick:b=>tone(b,{f:jitter(1800,.02),dur:.025,type:'square',gain:.025}),
+ stamp:b=>{tone(b,{f:160,to:70,dur:.16,gain:.26});noise(b,{f:700,dur:.08,kind:'lowpass',gain:.14})},
+ 'reveal-hit':b=>{[523,659,784,1047].forEach((f,i)=>tone(b,{f,at:i*.07,dur:.32,type:'triangle',gain:.12}));[1568,2093].forEach((f,i)=>tone(b,{f,at:.3+i*.06,dur:.25,gain:.05}))},
+ // wow pass (docs/brief-wow.md): a tree breaking the ground, the garden done, digging, a capsule going in, its glass lid
+ sprout:b=>{tone(b,{f:jitter(110,.06),to:52,dur:.22,gain:.34});noise(b,{f:380,to:180,dur:.16,kind:'lowpass',gain:.16})},
+ chord:b=>{[392,494,587,740].forEach((f,i)=>tone(b,{f,at:i*.045,dur:1.1,type:'triangle',gain:.07,attack:.04}));tone(b,{f:196,dur:1.2,gain:.08,attack:.05})},
+ dig:b=>{noise(b,{f:520,to:260,dur:.32,kind:'lowpass',q:.8,gain:.2,attack:.03});noise(b,{f:1400,at:.12,dur:.12,q:1.2,gain:.05})},
+ bury:b=>{noise(b,{f:600,to:220,dur:.24,kind:'lowpass',gain:.16});tone(b,{f:140,to:70,at:.12,dur:.18,gain:.24})},
+ glass:b=>{tone(b,{f:1760,dur:.5,gain:.06});tone(b,{f:2637,at:.04,dur:.4,gain:.04});tone(b,{f:880,dur:.3,type:'triangle',gain:.05})},
+ 'reveal-miss':b=>{tone(b,{f:330,to:300,dur:.22,type:'triangle',gain:.12});tone(b,{f:247,to:220,at:.16,dur:.42,type:'triangle',gain:.12})},
 };
 // steps come quickly: a minimum gap keeps them from piling up
-const GAP:Partial<Record<Effect,number>>={'step-grass':90,'step-wood':90,click:30,tap:30};
+const GAP:Partial<Record<Effect,number>>={'step-grass':90,'step-wood':90,click:30,tap:30,tick:70};
 
 
 // Every place a sound belongs (docs/sound-map.md, the same ids). A slot names its temporary synthesised effect, or null
@@ -63,7 +74,7 @@ export const SLOTS={
  // 친구
  'invite-send':null,'friend-arrive':null,'door-knock':null,'friend-leave':null,'heart':'heart','stage-up':null,'gift-give':null,'gift-arrive':null,'letter-open':'letter','away-traces':null,
  // 정원·나무
- 'plant':null,'water':'water','feed':null,'care-done':null,'sun-pieces':null,'uproot':null,'tree-tap':null,'promise':null,'calendar':null,'land-open':null,'cheer':null,
+ 'plant':'sprout','water':'water','feed':null,'care-done':null,'sun-pieces':null,'uproot':null,'tree-tap':null,'promise':null,'calendar':null,'land-open':null,'cheer':null,
  // 선물·서랍·옷
  'gift-pickup':'pickup','gift-open':'unwrap','item-to-drawer':null,'wear':null,'spin':null,
  // 꾸미기
@@ -71,6 +82,10 @@ export const SLOTS={
  // 집
  'door':'door','stairs':null,'sit':null,'stand':null,'lamp-toggle':null,'furniture-use':null,'house-grow':null,'attic-open':null,'shelf-grow':null,
  // 일지·퀴즈
+ // 3D 판정 공개 (ReThink Garden)
+ 'grade-count':'tick','grade-stamp':'stamp','grade-hit':'reveal-hit','grade-miss':'reveal-miss',
+ // 3D 오! 패스 (docs/brief-wow.md W1~W3)
+ 'garden-born':'chord','cutaway-open':'dig','cutaway-close':'close','capsule-bury':'bury','capsule-dig':'dig','capsule-open':'glass',
  'journal-save':null,'quiz-right':null,'quiz-wrong':null,'quiz-gold':null,'retro-save':null,'streak-day':null,'streak-saved':null,'streak-bonus':null,
 } as const satisfies Record<string,Effect|null>;
 export type Slot=keyof typeof SLOTS;

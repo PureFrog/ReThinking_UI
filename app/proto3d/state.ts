@@ -6,21 +6,25 @@
 //   ?reset     start over (the onboarding asks for the holdings again)
 //   ?demo      start over on the demo garden (seven made-up holdings and two old judgments; demos and tests)
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
-import {record,grade,dueGrades,shiftDay,LOOKBACK,type Judgment,type Mark,type Graded} from '../core/judgment';
+import {record,grade,dueGrades,shiftDay,LOOKBACK,type Judgment,type Mark,type Graded,type Choice,type Confidence} from '../core/judgment';
 import {startCooldown,finishCooldown,type Cooldown} from '../core/cooldown';
 import {answerStreak,checkStreak,blankStreak,type Streak} from '../core/streak';
 import {gain,blankRelation,type Relation} from '../core/relationships';
 import type {CaseAnswer} from '../core/cases';
 import {EARN,TRUST} from '../core/ledger';
+import {playRewind,type RewindRound} from '../core/rewind';
+import type {RewindCase} from '../content/rewind';
 import {isoDay} from '../core/items';
 import {outcomeProvider} from '../content/outcomes';
-import {giftOf,itemById,type GardenItem} from '../content/garden-items';
-import {analystById,LINES,line,type AnalystId} from '../content/analysts';
+import {giftOf,itemById,rankItem,type GardenItem} from '../content/garden-items';
+import {analystById,UI,line,type AnalystId} from '../content/analysts';
 import {DEMO_HOLDINGS} from '../content/demo-garden';
 import type {Holding} from '../core/model';
 
 export type Owned={uid:string;itemId:string;got:string;slot:string|null};
-export type GardenSave={v:1;holdings:Holding[];onboarded:boolean;lookedBack:boolean;judgments:Judgment[];graded:Graded[];cooldowns:Cooldown[];cases:CaseAnswer[];streak:Streak;currency:number;
+// seen: how many times each long scene was played (docs/brief-wow.md: long the first time, short after)
+export type Seen={birth:number;cutaway:number;bury:number};
+export type GardenSave={v:1;holdings:Holding[];onboarded:boolean;lookedBack:boolean;sound:boolean;seen:Seen;rewinds:RewindRound[];daysDone:string[];rankSeen:number;judgments:Judgment[];graded:Graded[];cooldowns:Cooldown[];cases:CaseAnswer[];streak:Streak;currency:number;
   trust:Record<AnalystId,Relation>;owned:Owned[];gifted:AnalystId[];bought:{itemId:string;day:string}[]};
 export const SAVE_KEY='rethink-garden-v1';
 
@@ -33,7 +37,7 @@ export function clock(){
 // A new player starts with an empty garden and the onboarding (ui/Onboarding.tsx) asks for their holdings.
 export function blankSave():GardenSave{
   const trust={tori:blankRelation(),moa:blankRelation(),luon:blankRelation()};
-  return {v:1,holdings:[],onboarded:false,lookedBack:false,judgments:[],graded:[],cooldowns:[],cases:[],streak:blankStreak(),currency:0,trust,owned:[],gifted:[],bought:[]};
+  return {v:1,holdings:[],onboarded:false,lookedBack:false,sound:true,seen:{birth:0,cutaway:0,bury:0},rewinds:[],daysDone:[],rankSeen:0,judgments:[],graded:[],cooldowns:[],cases:[],streak:blankStreak(),currency:0,trust,owned:[],gifted:[],bought:[]};
 }
 // The demo garden opens with two judgments made months ago, so the first visit already has grades to open (the moment
 // the whole loop is built around). Both are on the demo holdings.
@@ -72,7 +76,7 @@ export function useGarden(){
   // trust: adds points; the first time an analyst reaches 신뢰 2 they bring their gift to the drawer
   const trusted=(p:GardenSave,who:AnalystId,amount:number):{save:GardenSave;note:string|null}=>{
     const {rel,rose}=gain(p.trust[who],amount,c.today,false);let save={...p,trust:{...p.trust,[who]:rel}},note:string|null=null;
-    if(rose!==null){note=line(LINES.levelUp,{who:analystById(who).name,n:rose+1});
+    if(rose!==null){note=line(UI.levelUp,{who:analystById(who).name,n:rose+1});
       if(!save.gifted.includes(who)){const g=giftOf(who);save={...save,gifted:[...save.gifted,who],owned:[...save.owned,{uid:`gift-${who}`,itemId:g.id,got:c.today,slot:null}]};note+=` ${g.name} 받음.`}}
     return {save,note};
   };
@@ -99,7 +103,7 @@ export function useGarden(){
         return next});
       return g;
     },
-    startCooldown(holdingId:number){setS(p=>({...p,cooldowns:startCooldown(p.cooldowns,holdingId,c.now)}));say(LINES.cooldownStart)},
+    startCooldown(holdingId:number){setS(p=>({...p,cooldowns:startCooldown(p.cooldowns,holdingId,c.now)}));say(UI.cooldownStart)},
     finishCooldown(id:string){let waited=false;setS(p=>{const r=finishCooldown(p.cooldowns,id,c.now);waited=r.waited;return {...p,cooldowns:r.list,currency:p.currency+(r.waited?EARN.cooldownWaited:0)}});return waited},
     answerCase(a:CaseAnswer,hintModel?:string){
       let streak:{counted:boolean;count:number;bonus:number}={counted:false,count:0,bonus:0};
@@ -118,6 +122,19 @@ export function useGarden(){
     setHoldings(holdings:Holding[]){setS(p=>({...p,holdings,onboarded:true}))},
     useDemo(){setS(()=>demoSave(c.today))},
     skipLookback(){setS(p=>({...p,lookedBack:true}))},
+    // today's three all done (core/today.ts): the day closes once, with a small bonus
+    closeDay(){let closed=false;setS(p=>{if(p.daysDone.includes(c.today))return p;closed=true;return {...p,daysDone:[...p.daysDone.slice(-60),c.today],currency:p.currency+EARN.dayDone}});
+      if(closed)say(line(UI.dayDone,{n:EARN.dayDone}))},
+    // a new title (core/rank.ts): every title reached since the last one brings its item to the drawer
+    rankUp(index:number,name:string){const got:string[]=[];setS(p=>{if(index<=p.rankSeen)return p;let owned=p.owned;
+      for(let k=p.rankSeen+1;k<=index;k++){const it=rankItem(k);if(it&&!owned.some(o=>o.itemId===it.id)){owned=[...owned,{uid:`rank-${k}`,itemId:it.id,got:c.today,slot:null}];got.push(it.name)}}
+      return {...p,rankSeen:index,owned}});if(got.length)say(line(UI.rankUp,{rank:name,item:got.join(', ')}))},
+    setSound(on:boolean){setS(p=>({...p,sound:on}))},
+    saw(k:keyof Seen){setS(p=>({...p,seen:{...p.seen,[k]:p.seen[k]+1}}))},
+    // 되감기: a practice round graded at once; the first few a day pay a little (core/rewind.ts)
+    playRewind(rc:RewindCase,choice:Choice,confidence:Confidence){let round=null as RewindRound|null;
+      setS(p=>{const r=playRewind(rc,choice,confidence,c.today,p.rewinds);round=r;return {...p,rewinds:[...p.rewinds,r],currency:p.currency+(r.paid?EARN.rewind+(r.hit?EARN.rewindHit:0):0)}});
+      return round!},
     place(uid:string,slot:string|null){setS(p=>({...p,owned:p.owned.map(o=>o.uid===uid?{...o,slot}:o.slot&&o.slot===slot?{...o,slot:null}:o)}))},
   };
   const due=useMemo(()=>dueGrades(s.judgments,s.graded,c.today),[s.judgments,s.graded,c.today]);

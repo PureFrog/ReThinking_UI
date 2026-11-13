@@ -186,7 +186,7 @@
 ## 5. 이어받는 사람에게
 
 - **시작**: `git pull` → `README.md` → 이 파일 → `collab/log.md` 끝부분. AI 도구로 작업하면 `CLAUDE.md`(또는 `AGENTS.md`)가 규칙이야.
-- **한 번에 한 단계**, 시작 전에 3~5줄로 바꿀 것을 합의, 끝나면 검사 네 가지 + 데스크톱 1400px·모바일 375px 화면 확인, `collab/log.md`에 한 줄.
+- **한 번에 한 단계**, 시작 전에 3~5줄로 바꿀 것을 합의, 끝나면 검사 네 가지 + 세로 휴대폰 390×844·가로 844×390·데스크톱 1400px 화면 확인, `collab/log.md`에 한 줄.
 - **e2e는 `./fixtures`에서 `test`를 가져와.** 앱은 실시간 모드로 열리지만 테스트는 기본으로 시연 모드야. 실시간을 시험하려면 저장값에 `settings.timeMode: "realtime"`.
 - **그림 받기**: GPT가 넘긴 원본은 `public/assets/incoming/`(읽기만), 손질 도구는 `scripts/art/`. 저녁·밤 그림은 `scripts/art/daypart-sheets.py`(make로 입력 시트, cut으로 잘라 넣기; 시트 자리 정보 `plan.json`은 git에 없으니 make를 한 번 다시 돌리면 같은 게 생겨).
 - **그림 요청서 첨부(`collab/to-gpt/*/`, `collab/to-nanobanana/*/`)와 `docs/screenshots/`는 git에 없어.** 필요하면 앞 사람에게 받아.

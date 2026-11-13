@@ -38,6 +38,8 @@ export function Signpost({onPick,hitRate}:{onPick:()=>void;hitRate:number|null})
   // the board's stripe fills with the hit rate: an at-a-glance read of the track record
   const k=hitRate===null?0:hitRate/100;
   return <group onClick={click(onPick)} name="signpost">
+    {/* a wider, invisible tap area: from an upright phone the camera looks down on the thin post */}
+    <mesh position-y={1} name="signpost-hit"><cylinderGeometry args={[0.9,0.9,2,16]}/><meshBasicMaterial transparent opacity={0} depthWrite={false}/></mesh>
     <mesh position-y={0.8} castShadow><cylinderGeometry args={[0.08,0.1,1.6,10]}/>{S('#7a6250')}</mesh>
     <mesh position={[0,1.45,0.06]} castShadow><boxGeometry args={[1.3,0.6,0.08]}/>{S('#f2ede2')}</mesh>
     <mesh position={[-0.55+0.55*k,1.3,0.105]} scale={[Math.max(0.001,k),1,1]}><boxGeometry args={[1.1,0.08,0.01]}/>{S('#1e6b4a')}</mesh>

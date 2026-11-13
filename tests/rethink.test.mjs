@@ -6,7 +6,7 @@ const J = await load('core/judgment');
 const CD = await load('core/cooldown');
 const CS = await load('core/cases');
 const LG = await load('core/league');
-const {LINES, ANALYSTS, MODEL_INFO, line} = await load('content/analysts');
+const {LINES, UI, ANALYSTS, MODEL_INFO, line, say} = await load('content/analysts');
 const {mockSignals} = await load('content/signals');
 const {CASES} = await load('content/cases');
 const {mockAfter} = await load('content/outcomes');
@@ -119,6 +119,8 @@ test('league weeks run Monday to Sunday and rank by points', () => {
   assert.deepEqual(r.map(x => x.promote), [true, true, true, false]);
   assert.equal(LG.tierOf(0), 'rookie');
   assert.equal(LG.tierOf(95), 'senior');
+  // a sure call that missed can take the total below zero: still the first tier, not a crash
+  assert.equal(LG.tierOf(-7), 'rookie');
 });
 
 // redesign 2장: short, dry, no comfort, no buy/sell, no price calls
@@ -126,7 +128,7 @@ const BANNED = /괜찮|천천히|마음|네 속도|옆에 있|~|팔아|사세요
 test('every analyst line keeps the tone rules', () => {
   const all = [];
   const walk = v => typeof v === 'string' ? all.push(v) : Object.values(v).forEach(walk);
-  walk(LINES);
+  walk(LINES); walk(UI);
   for (const s of mockSignals(DEMO_HOLDINGS, 'd')) { all.push(s.headline, s.say, ...Object.values(s.counter)) }
   for (const c of CASES) all.push(c.reveal.lesson, ...c.hints.map(h => h.text));
   for (const i of GARDEN_ITEMS) if (i.note) all.push(i.note);
@@ -135,7 +137,24 @@ test('every analyst line keeps the tone rules', () => {
     assert.ok(s.length <= 40, `${s.length}: ${s}`);
     assert.doesNotMatch(s, BANNED, s);
   }
-  assert.equal(line(LINES.streak, {n: 3}), '연속 3일.');
+  assert.equal(line(UI.streak, {n: 3}), '연속 3일');
+});
+
+// redesign 2·3장: three voices, several lines per moment, and the game's own words kept out of their mouths
+test('each analyst speaks in their own lines, varied but steady for the same moment', () => {
+  for (const k of ['greet', 'idle', 'signedOff']) {
+    const [t, m] = [LINES[k].tori, LINES[k].moa].map(v => [v].flat());
+    assert.ok(t.every(x => !m.includes(x)), k);
+    assert.ok(t.length >= 2 && m.length >= 2, k + ' has variants');
+  }
+  assert.equal(say(LINES.rebuttalKept, 'j-1'), say(LINES.rebuttalKept, 'j-1'));
+  const seen = new Set(Array.from({length: 40}, (_, i) => say(LINES.rebuttalIntro, 'j-' + i)));
+  assert.equal(seen.size, LINES.rebuttalIntro.length);
+  assert.equal(say(LINES.greet.tori, 'x', {name: '강철중공업'}).includes('강철중공업'), true);
+  assert.match(say(LINES.again, 'j', {choice: '홀드'}), /홀드/);
+  // rules and counts are UI text: no character line explains the scoring schedule or a count by itself
+  const spoken = []; const walk = v => typeof v === 'string' ? spoken.push(v) : Object.values(v).forEach(walk); walk(LINES);
+  for (const s of spoken) assert.doesNotMatch(s, /채점한다|^연속 |^맞음|^아님|없음.?$/, s);
 });
 
 test('signals, outcomes and items line up with the demo garden', () => {

@@ -12,6 +12,7 @@ export function weekPoints(graded:Graded[],cases:CaseAnswer[],day:string){
   const w=weekOf(day);
   return graded.filter(g=>weekOf(g.day)===w).reduce((s,g)=>s+g.points,0)+cases.filter(c=>weekOf(c.day)===w).reduce((s,c)=>s+c.points,0);
 }
-export const tierOf=(total:number):Tier=>[...TIERS].reverse().find(t=>total>=t.min)!.id;
+// a total below zero (sure calls that missed) is still the first tier
+export const tierOf=(total:number):Tier=>([...TIERS].reverse().find(t=>total>=t.min)??TIERS[0]).id;
 export type Row={id:string;name:string;points:number;me?:boolean};
 export function ranked(rows:Row[]){return [...rows].sort((a,b)=>b.points-a.points||a.name.localeCompare(b.name)).map((r,i)=>({...r,rank:i+1,promote:i<LEAGUE.promote}))}

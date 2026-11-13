@@ -5,9 +5,16 @@
 import {Suspense,useCallback,useEffect,useLayoutEffect,useMemo,useRef,useState,type ComponentRef,type ReactNode} from 'react';
 import {useFrame,useThree,type ThreeEvent} from '@react-three/fiber';
 import {OrbitControls,useGLTF} from '@react-three/drei';
-import {EffectComposer,Bloom,TiltShift2,HueSaturation,Vignette} from '@react-three/postprocessing';
+import {EffectComposer,Bloom,TiltShift2,HueSaturation,Vignette,Noise} from '@react-three/postprocessing';
+import {BlendFunction} from 'postprocessing';
 import * as THREE from 'three';
 type OrbitControlsImpl=ComponentRef<typeof OrbitControls>;
+import {frameFor} from '../core/frame';
+import {treeAt,growScale,stateOn,stageAt,type BirthPlan} from '../core/birth';
+import type {Roots} from '../core/roots';
+import {CutAway} from './Roots3D';
+import {Marker,CapsuleFx} from './Capsule3D';
+import {TIMING} from '../core/timing';
 import {treeState,defaultRules,type Growth,type Condition} from '../core/model';
 import type {Weather} from '../core/weather';
 import type {Holding} from '../core/model';
@@ -31,7 +38,7 @@ const normalAt=(x:number,z:number)=>new THREE.Vector3(x,surfaceY(x,z)+R,z).norma
 const UP=new THREE.Vector3(0,1,0);
 const tiltAt=(x:number,z:number)=>new THREE.Quaternion().setFromUnitVectors(UP,normalAt(x,z));
 
-type Hooks={frames:number;ready:boolean;player:{x:number;z:number};trees:Record<number,{x:number;y:number}>;softMeshes:number;meshes:number;treeModels:number;weather?:Weather;points:Record<string,{x:number;y:number}>};
+type Hooks={frames:number;ready:boolean;player:{x:number;z:number};trees:Record<number,{x:number;y:number}>;softMeshes:number;meshes:number;treeModels:number;weather?:Weather;points:Record<string,{x:number;y:number}>;camera?:{fov:number;dist:number;turn:number;pitch:number;blur:number;lead:number};burst?:{holdingId:number;hit:boolean};births?:{active:boolean;stage:string;long:boolean;n:number;ms:number};cutaway?:{open:boolean;holdingId:number|null;roots:Roots|null};capsules?:{holdingId:number;due:boolean}[];capsuleFx?:{kind:string;holdingId:number}|null};
 declare global{interface Window{__proto3d?:Hooks}}
 const testHooks=()=>window.__proto3d??=({frames:0,ready:false,player:{x:0,z:0},trees:{},softMeshes:0,meshes:0,treeModels:0,points:{}});
 
@@ -175,8 +182,8 @@ function TreeModel({url,condition,onTop}:{url:string;condition:Condition;onTop:(
     leaves.sort((a,b)=>Number(a.name.slice(5))-Number(b.name.slice(5)))
       .forEach((o,i)=>{o.visible=i<Math.max(1,Math.ceil(leaves.length*c.keep))});
     return root},[scene,condition]);
-  useLayoutEffect(()=>{const box=new THREE.Box3().setFromObject(model);onTop(box.max.y*LOOK.holdingTreeScale);
-    testHooks().treeModels++},[model,onTop]);
+  useLayoutEffect(()=>{const box=new THREE.Box3().setFromObject(scene);onTop(box.max.y*LOOK.holdingTreeScale);
+    testHooks().treeModels++},[model,scene,onTop]);
   return <primitive object={model}/>;
 }
 // R2 condition details: a yellowing or wilting tree drops leaves, a blooming one lets petals go. How many are in the air
@@ -196,24 +203,43 @@ function Falling({condition,height,wind}:{condition:Condition;height:number;wind
     <sphereGeometry args={[1,6,4]}/><meshStandardMaterial color={c.fallColor} emissive={condition==='bloom'?c.fallColor:'#000000'} emissiveIntensity={condition==='bloom'?0.5:0}/>
   </instancedMesh>;
 }
-function HoldingTree({id,x,z,picked,onPick,growth,condition,onTop,wind}:{id:number;x:number;z:number;picked:boolean;onPick:(id:number)=>void;growth:Growth;condition:Condition;onTop:(y:number)=>void;wind:number}){
-  const group=useRef<THREE.Group>(null),[h,setH]=useState(2);
-  const lean=CANOPY[condition].droop;
+// born: this tree is coming up right now (W1, core/birth.ts): hidden until its turn, then the mound, then the tree rising
+// with an overshoot; its state (flowers, wilting, lean) goes on as it settles.
+export type Born={t0:number;plan:BirthPlan;i:number};
+// cut: the ground under it is open (W2): its soil mound goes, so the roots show from the trunk down
+function HoldingTree({id,x,z,picked,onPick,onDeep,growth,condition,onTop,wind,born,cut}:{id:number;x:number;z:number;picked:boolean;onPick:(id:number)=>void;onDeep:(id:number)=>void;growth:Growth;condition:Condition;onTop:(y:number)=>void;wind:number;born:Born|null;cut:boolean}){
+  const group=useRef<THREE.Group>(null),mound=useRef<THREE.Mesh>(null),[h,setH]=useState(2);
+  const [dressed,setDressed]=useState(!born);
+  useEffect(()=>{if(born)setDressed(false)},[born]);
+  const shown:Condition=dressed||condition==='dead'?condition:'well';
+  const lean=dressed?CANOPY[condition].droop:0;
   useFrame(({clock})=>{const g=group.current;if(!g)return;const t=clock.elapsedTime;
+    if(born){const b=treeAt(born.plan,born.i,performance.now()-born.t0),s=growScale(b.phase,b.k);
+      g.scale.setScalar(LOOK.holdingTreeScale*s);g.visible=s>0;
+      if(mound.current){const m=b.phase==='wait'||b.phase==='card'?0:b.phase==='crack'?b.k:1;mound.current.scale.set(1.1*m,0.22*m,1.1*m);mound.current.visible=m>0}
+      if(!dressed&&stateOn(b.phase))setDressed(true)}
     // wind: a slow lean plus faster gusts on stormy days
     g.rotation.z=Math.sin(t*0.9+id)*wind+Math.sin(t*2.7+id*2)*wind*0.35-wind*0.6;g.rotation.x=lean});
-  const click=(e:ThreeEvent<MouseEvent>)=>{e.stopPropagation();onPick(id)};
+  // a press held for TIMING.longPress (and not dragged) opens the ground under the tree instead of its card
+  const press=useRef<{t:number;x:number;y:number;long:boolean}|null>(null),timer=useRef(0);
+  const down=(e:ThreeEvent<PointerEvent>)=>{e.stopPropagation();clearTimeout(timer.current);press.current={t:performance.now(),x:e.clientX,y:e.clientY,long:false};
+    timer.current=window.setTimeout(()=>{if(press.current){press.current.long=true;onDeep(id)}},TIMING.longPress)};
+  const move=(e:ThreeEvent<PointerEvent>)=>{const p=press.current;if(p&&!p.long&&Math.hypot(e.clientX-p.x,e.clientY-p.y)>10){clearTimeout(timer.current);press.current=null}};
+  const up=()=>clearTimeout(timer.current);
+  useEffect(()=>()=>clearTimeout(timer.current),[]);
+  const click=(e:ThreeEvent<MouseEvent>)=>{e.stopPropagation();if(press.current?.long){press.current=null;return}press.current=null;onPick(id)};
   const top=useCallback((y:number)=>{setH(y);onTop(y)},[onTop]);
   return <OnGround x={x} z={z}>
     {/* soil mound */}
-    <mesh scale={[1.1,0.22,1.1]} receiveShadow><sphereGeometry args={[1,20,12]}/><primitive object={soft('#8b6b52')} attach="material"/></mesh>
+    <mesh ref={mound} scale={[1.1,0.22,1.1]} visible={!cut} receiveShadow><sphereGeometry args={[1,20,12]}/><primitive object={soft('#8b6b52')} attach="material"/></mesh>
     {picked&&<mesh rotation-x={-Math.PI/2} position-y={0.12}><torusGeometry args={[1.25,0.06,8,40]}/><meshStandardMaterial color="#fff6c8" emissive="#ffe27a" emissiveIntensity={1.4} toneMapped={false}/></mesh>}
-    <group ref={group} onClick={click} name={`tree-${id}`} position-y={0.12} scale={LOOK.holdingTreeScale}>
+    <group ref={group} onClick={click} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerLeave={up} name={`tree-${id}`} position-y={0.12} scale={LOOK.holdingTreeScale}>
       <Suspense fallback={null}>
-        <TreeModel url={condition==='dead'?MODELS.stump:MODELS.tree(growth,id)} condition={condition} onTop={top}/>
+        <TreeModel url={condition==='dead'?MODELS.stump:MODELS.tree(growth,id)} condition={shown} onTop={top}/>
       </Suspense>
     </group>
-    <Falling condition={condition} height={h} wind={wind}/>
+    {dressed&&<Falling condition={condition} height={h} wind={wind}/>}
+    {born&&<BirthDust born={born}/>}
   </OnGround>;
 }
 ALL_TREE_FILES.forEach(u=>useGLTF.preload(u));
@@ -247,14 +273,14 @@ function Butterflies({count=14}:{count?:number}){
 }
 
 // A placeholder player: coat, round head, a fluffy two-tone hair puff.
-function Player({target,pos}:{target:React.MutableRefObject<THREE.Vector3>;pos:React.MutableRefObject<THREE.Vector3>}){
+function Player({target,pos,hidden}:{target:React.MutableRefObject<THREE.Vector3>;pos:React.MutableRefObject<THREE.Vector3>;hidden?:boolean}){
   const g=useRef<THREE.Group>(null),body=useRef<THREE.Group>(null);
   useFrame(({clock},dt)=>{const p=pos.current,tg=target.current,gr=g.current,b=body.current;if(!gr||!b)return;
     const dx=tg.x-p.x,dz=tg.z-p.z,d=Math.hypot(dx,dz),step=Math.min(d,SPEED*Math.min(dt,0.05)),moving=d>0.05;
     if(moving){p.x+=dx/d*step;p.z+=dz/d*step;b.rotation.y=Math.atan2(dx,dz)}
     gr.position.set(p.x,surfaceY(p.x,p.z),p.z);gr.quaternion.copy(tiltAt(p.x,p.z));
     b.position.y=moving?Math.abs(Math.sin(clock.elapsedTime*10))*0.12:Math.sin(clock.elapsedTime*2)*0.02});
-  return <group ref={g}><group ref={body}>
+  return <group ref={g} visible={!hidden}><group ref={body}>
     <mesh position-y={0.55} castShadow><capsuleGeometry args={[0.32,0.45,8,16]}/><primitive object={soft('#f6f1e6')} attach="material"/></mesh>
     <mesh position-y={1.2} castShadow><sphereGeometry args={[0.3,24,16]}/><primitive object={soft('#9fd8cf')} attach="material"/></mesh>
     {[[0,1.5,-0.05,0.3,'#4a8dff'],[0.2,1.45,-0.15,0.22,'#ff9fd6'],[-0.2,1.42,-0.12,0.22,'#ff9fd6'],[0,1.3,-0.28,0.24,'#4a8dff']].map(([x,y,z,r,c],i)=>(
@@ -263,15 +289,94 @@ function Player({target,pos}:{target:React.MutableRefObject<THREE.Vector3>;pos:R
   </group></group>;
 }
 
-// The camera keeps its angle and slides with the player; drag rotates, pinch/wheel zooms.
-function FollowCam({pos,recenter}:{pos:React.MutableRefObject<THREE.Vector3>;recenter:number}){
-  const ctl=useRef<OrbitControlsImpl>(null),{camera}=useThree();
-  const prev=useMemo(()=>new THREE.Vector3(),[]),want=useMemo(()=>new THREE.Vector3(),[]);
-  useEffect(()=>{const c=ctl.current;if(!c||recenter===0)return;camera.position.set(pos.current.x,21,pos.current.z+12);c.target.copy(pos.current);c.update()},[recenter,camera,pos]);
-  useFrame(()=>{const c=ctl.current;if(!c)return;prev.copy(c.target);want.set(pos.current.x,surfaceY(pos.current.x,pos.current.z)+0.8,pos.current.z);
-    c.target.lerp(want,0.08);camera.position.add(prev.sub(c.target).negate());c.update()});
+// The camera keeps its angle and slides with the player; drag rotates, pinch/wheel zooms. Its distance and field of view
+// follow the screen shape (look.ts camera, core/frame.ts): turning the phone reframes the garden, keeping the angle.
+const camDir=(turn:number,pitch:number)=>new THREE.Vector3(0,Math.cos(pitch),Math.sin(pitch)).applyAxisAngle(new THREE.Vector3(0,1,0),-turn);
+// focus: while a grade is open the camera goes to that holding's tree instead of the player, and the picture slides
+// (setViewOffset) so the tree sits in the part of the screen the sheet leaves free (right panel or bottom sheet).
+const sheetInset=(w:number,h:number)=>{const r=document.querySelector('.rt-sheet')?.getBoundingClientRect();if(!r)return {x:0,y:0};
+  return r.left>w*0.35?{x:(w-r.left)/2,y:0}:r.top>h*0.25?{x:0,y:(h-r.top)/2}:{x:0,y:0}};
+// orbit: the look round the garden after the trees are born (W1): one turn, pulled out a little, back to the framing
+type Orbit={t0:number;at:number;len:number};
+const easeInOut=(k:number)=>k<0.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
+// low: the root cut-away is open, so the camera comes down to the side of it (keeping the way it faces)
+// near: a capsule is being buried or dug up (W3): the camera comes closer to it
+function FollowCam({pos,recenter,focus,orbit,low,near}:{pos:React.MutableRefObject<THREE.Vector3>;recenter:number;focus:THREE.Vector3|null;orbit:Orbit|null;low:number|null;near:boolean}){
+  const shift=useRef({x:0,y:0}),back=useRef(false);
+  const ctl=useRef<OrbitControlsImpl>(null),{camera,size}=useThree();
+  const prev=useMemo(()=>new THREE.Vector3(),[]),want=useMemo(()=>new THREE.Vector3(),[]),fwd=useMemo(()=>new THREE.Vector3(),[]);
+  const fr=frameFor(LOOK.camera.frames,size.width/Math.max(1,size.height));
+  useEffect(()=>{const c=ctl.current,cam=camera as THREE.PerspectiveCamera;if(!c)return;cam.fov=fr.fov;cam.updateProjectionMatrix();
+    cam.position.copy(c.target).addScaledVector(camDir(fr.turn,fr.pitch),fr.dist);c.update();testHooks().camera=fr},[fr.fov,fr.dist,fr.turn,fr.pitch,camera]);
+  useEffect(()=>{const c=ctl.current;if(!c||recenter===0)return;c.target.copy(pos.current);camera.position.copy(pos.current).addScaledVector(camDir(fr.turn,fr.pitch),fr.dist);c.update()},[recenter,camera,pos]);// eslint-disable-line react-hooks/exhaustive-deps
+  // eased by time, not by frame: a slow phone gets there as fast as a quick one
+  useFrame((_,dt)=>{const c=ctl.current;if(!c)return;const ease=(r:number)=>1-Math.exp(-Math.min(dt,0.5)*r);prev.copy(c.target);want.set(pos.current.x,surfaceY(pos.current.x,pos.current.z)+0.8,pos.current.z);
+    if(focus)want.copy(focus);
+    else if(fr.lead){fwd.subVectors(c.target,camera.position).setY(0);if(fwd.lengthSq()>1e-6)want.addScaledVector(fwd.normalize(),fr.lead)}
+    const cam=camera as THREE.PerspectiveCamera,ins=focus?sheetInset(size.width,size.height):{x:0,y:0},sh=shift.current;
+    sh.x+=(ins.x-sh.x)*ease(6.3);sh.y+=(ins.y-sh.y)*ease(6.3);
+    if(Math.abs(sh.x)+Math.abs(sh.y)<0.5){if(cam.view?.enabled){cam.clearViewOffset()}}else cam.setViewOffset(size.width,size.height,sh.x,sh.y,size.width,size.height);
+    c.target.lerp(want,ease(5));camera.position.add(prev.sub(c.target).negate());
+    // a scene that wants its own look: the root cut (W2) low at its side, a capsule (W3) lower and closer; afterwards
+    // the camera eases back to the usual framing (keeping the way it faces) instead of snapping
+    const R=LOOK.roots,off=fwd.subVectors(camera.position,c.target),polar=Math.acos(Math.min(1,Math.max(-1,off.y/Math.max(1e-6,off.length()))));
+    const pose=low!==null?{az:low,pitch:R.camPitch,dist:R.camDist*fr.dist/LOOK.camera.frames[0].dist}
+      :near?{az:null,pitch:LOOK.capsule.pitch,dist:fr.dist*LOOK.capsule.near}:back.current?{az:null,pitch:fr.pitch,dist:fr.dist}:null;
+    c.maxPolarAngle=pose?Math.max(1.12,polar+0.05,pose.pitch+0.15):1.12;c.minDistance=pose?Math.min(LOOK.camera.minDist,pose.dist*0.6):LOOK.camera.minDist;
+    if(pose){const az=pose.az??Math.atan2(off.x,off.z);
+      want.set(Math.sin(pose.pitch)*Math.sin(az),Math.cos(pose.pitch),Math.sin(pose.pitch)*Math.cos(az)).multiplyScalar(pose.dist).add(c.target);
+      if(low!==null||near)back.current=true;else if(camera.position.distanceTo(want)<0.2)back.current=false;
+      camera.position.lerp(want,ease(3.2))}
+    // while the trees come up the camera comes lower and closer (they read as rising, not as blobs seen from above),
+    // then it looks once round the garden and ends back on the usual framing
+    if(orbit){const k=(performance.now()-orbit.t0-orbit.at)/orbit.len,B=LOOK.birth,cp=Math.min(B.maxPitch,fr.pitch*B.pitch),cd=fr.dist*B.dist;
+      if(k<=0){want.copy(c.target).addScaledVector(camDir(fr.turn,cp),cd);camera.position.lerp(want,ease(3.7))}
+      else if(k<1){const e=easeInOut(k),lift=Math.sin(Math.PI*k);
+        camera.position.copy(c.target).addScaledVector(camDir(fr.turn+Math.PI*2*e,cp+(fr.pitch-cp)*e-0.12*lift),(cd+(fr.dist-cd)*e)*(1+B.pull*lift))}
+      else if(k<1.2)camera.position.copy(c.target).addScaledVector(camDir(fr.turn,fr.pitch),fr.dist)}
+    c.update()});
   return <OrbitControls ref={ctl} makeDefault enablePan={false} enableDamping dampingFactor={0.12}
-    minPolarAngle={0.3} maxPolarAngle={1.12} minDistance={9} maxDistance={32} target={[0,0.8,2.5]}/>;
+    minPolarAngle={0.3} maxPolarAngle={1.12} minDistance={LOOK.camera.minDist} maxDistance={LOOK.camera.maxDist} target={[0,0.8,2.5]}/>;
+}
+
+// The grade reveal reaching the garden (ui/Loop.tsx Grades → Proto3D world.burst): a hit throws bright sparks up out of
+// the holding tree, a miss shakes a few leaves loose. Plays once for TIMING.revealBurst, then hides itself.
+function Burst({x,z,hit,stamp}:{x:number;z:number;hit:boolean;stamp:number}){
+  const ref=useRef<THREE.InstancedMesh>(null),t0=useRef(-1),o=useMemo(()=>new THREE.Object3D(),[]);
+  const parts=useMemo(()=>{const r=rng(stamp%100000);return Array.from({length:hit?40:26},()=>({a:r()*6.28,sp:0.6+r()*1.4,up:hit?2.6+r()*2.8:0.5+r()*0.6,h:hit?1.6+r()*1:2.2+r()*1.6,ph:r()*6.28,s:hit?0.11+r()*0.1:0.2+r()*0.12}))},[stamp,hit]);
+  const mat=useMemo(()=>new THREE.MeshBasicMaterial({color:hit?LOOK.burst.hit:LOOK.burst.miss,transparent:true,toneMapped:!hit,side:THREE.DoubleSide,depthWrite:false}),[hit]);
+  const y0=surfaceY(x,z);
+  useFrame(({clock})=>{const m=ref.current;if(!m)return;if(t0.current<0)t0.current=clock.elapsedTime;const k=(clock.elapsedTime-t0.current)/(TIMING.revealBurst/1000);
+    if(k>1){m.visible=false;return}m.visible=true;mat.opacity=1-k*k;
+    // start at the canopy edge (not inside it, where the tree would hide them)
+    parts.forEach((p,i)=>{const r=1.3+p.sp*k*(hit?1.8:1.1),sway=hit?0:Math.sin(k*9+p.ph)*0.25;
+      o.position.set(x+Math.cos(p.a)*r+sway,y0+p.h+(hit?p.up*k-2.6*k*k:-p.up*k*2.2),z+Math.sin(p.a)*r);
+      o.rotation.set(k*6+p.ph,k*4,p.ph);o.scale.setScalar(p.s*(hit?1-k*0.5:1));o.updateMatrix();m.setMatrixAt(i,o.matrix)});
+    m.instanceMatrix.needsUpdate=true});
+  return <instancedMesh ref={ref} args={[undefined,mat,parts.length]} frustumCulled={false}>{hit?<octahedronGeometry args={[1,0]}/>:<planeGeometry args={[1.6,1]}/>}</instancedMesh>;
+}
+
+// W1: the born tree's stable timing object (one per birth and tree, so the tree's effects do not restart every render)
+const bornCache=new WeakMap<object,Born[]>();
+function bornOf(b:{t0:number;plan:BirthPlan;ids:number[]},i:number):Born{let list=bornCache.get(b);if(!list){list=b.ids.map((_,k)=>({t0:b.t0,plan:b.plan,i:k}));bornCache.set(b,list)}return list[i]}
+// the ground cracking open as a tree's turn comes: a dark ring opening out and a puff of soil (instanced, one per tree)
+const dustGeo=new THREE.SphereGeometry(1,8,6),ringGeo=new THREE.RingGeometry(0.55,1,28);
+function BirthDust({born}:{born:Born}){
+  const ref=useRef<THREE.InstancedMesh>(null),ring=useRef<THREE.Mesh>(null),o=useMemo(()=>new THREE.Object3D(),[]);
+  const parts=useMemo(()=>{const r=rng(born.i*97+13);return Array.from({length:16},()=>({a:r()*6.28,sp:0.8+r()*1.2,up:0.6+r()*1.1,s:0.09+r()*0.09}))},[born.i]);
+  const mat=useMemo(()=>new THREE.MeshBasicMaterial({color:LOOK.birth.dust,transparent:true,depthWrite:false}),[]);
+  const ringMat=useMemo(()=>new THREE.MeshBasicMaterial({color:LOOK.birth.crack,transparent:true,depthWrite:false,side:THREE.DoubleSide}),[]);
+  useEffect(()=>()=>{mat.dispose();ringMat.dispose()},[mat,ringMat]);
+  useFrame(()=>{const m=ref.current,rg=ring.current;if(!m||!rg)return;const p=born.plan;
+    const t=performance.now()-born.t0-born.i*p.stagger-p.card,k=t/(TIMING.birthDust);
+    if(k<0||k>1){m.visible=false;rg.visible=false;return}m.visible=rg.visible=true;
+    mat.opacity=0.9*(1-k);ringMat.opacity=0.7*(1-k*k);rg.scale.setScalar(0.4+1.3*Math.min(1,k*2.4));
+    parts.forEach((q,i)=>{const r=0.35+q.sp*k*1.4;o.position.set(Math.cos(q.a)*r,0.15+q.up*k*1.6-1.8*k*k,Math.sin(q.a)*r);o.scale.setScalar(q.s*(1+k*1.4));o.updateMatrix();m.setMatrixAt(i,o.matrix)});
+    m.instanceMatrix.needsUpdate=true});
+  return <>
+    <mesh ref={ring} geometry={ringGeo} material={ringMat} rotation-x={-Math.PI/2} position-y={0.06} visible={false}/>
+    <instancedMesh ref={ref} args={[dustGeo,mat,parts.length]} frustumCulled={false} visible={false}/>
+  </>;
 }
 
 // Test hooks for e2e (tests/e2e/proto3d.spec.ts): frame count, player position, tree screen points.
@@ -282,7 +387,7 @@ function Hooks({pos,treePos,points}:{pos:React.MutableRefObject<THREE.Vector3>;t
     h.frames++;h.ready=h.frames>3;h.player={x:pos.current.x,z:pos.current.z};
     // which lit meshes wear the shared soft material (glowing bits and water are left out on purpose); recount when models arrive
     if(h.frames===2||counted.current!==h.treeModels){counted.current=h.treeModels;let all=0,s=0;scene.traverse(o=>{const m=(o as THREE.Mesh).material as THREE.Material|undefined;if(!(o as THREE.Mesh).isMesh||!m)return;all++;if(m.userData.soft)s++});h.meshes=all;h.softMeshes=s}
-    h.trees={};for(const t of treePos){v.copy(t.v).project(camera);h.trees[t.id]={x:(v.x+1)/2*size.width,y:(1-v.y)/2*size.height}}
+    h.trees={};for(const t of treePos){v.copy(t.v).project(camera);const pt={x:(v.x+1)/2*size.width,y:(1-v.y)/2*size.height};h.trees[t.id]=pt;screenPoints.set('tree-'+t.id,{...pt,visible:v.z<1})}
     for(const [k,p] of points){v.copy(p).project(camera);const pt={x:(v.x+1)/2*size.width,y:(1-v.y)/2*size.height};h.points[k]=pt;screenPoints.set(k,{...pt,visible:v.z<1})}});
   return null;
 }
@@ -294,22 +399,59 @@ export type World={
   pots:{holdingId:number;open:boolean;flowers:number}[];
   decor:{slot:string;shape:Shape}[];
   hitRate:number|null;cartFlag:string;gameLit:boolean;
+  burst:{holdingId:number;hit:boolean;stamp:number}|null;
+  focus:number|null;
+  // W1: the trees being born now (core/birth.ts), and where the analysts walk in from as they arrive
+  birth:{ids:number[];t0:number;plan:BirthPlan}|null;
+  enterFrom:{x:number;z:number}|null;
+  // W2: the ground open under one tree (core/roots.ts), since t0; closing: when it started to cover again
+  cutaway:{holdingId:number;roots:Roots;t0:number;closing:number|null}|null;
+  onDeep:(holdingId:number)=>void;
+  // W3: one capsule marker per tree (core/capsule.ts), the one being buried or dug up now, and a tap on a marker
+  capsules:{holdingId:number;due:boolean}[];
+  capsuleFx:{kind:'bury'|'dig';holdingId:number;t0:number}|null;
+  onCapsule:(holdingId:number)=>void;
   onAnalyst:(id:AnalystId)=>void;onLandmark:(k:'observatory'|'signpost'|'cart')=>void;
 };
 export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:{holdings:Holding[];picked:number|null;onPick:(id:number|null)=>void;recenter:number;weather:Weather;world:World}){
   const wl=LOOK.weather[weather],hemi=useRef<THREE.HemisphereLight>(null);
+  const {size,camera}=useThree(),blur=frameFor(LOOK.camera.frames,size.width/Math.max(1,size.height)).blur;
   useEffect(()=>{testHooks().weather=weather},[weather]);
+  useEffect(()=>{if(world.burst)testHooks().burst={holdingId:world.burst.holdingId,hit:world.burst.hit}},[world.burst]);
   const pos=useRef(PLAYER_START.clone()),target=useRef(PLAYER_START.clone());
   // each holding grows on its own plot (app/core/portfolio.ts gives every new tree an empty one)
   const trees=useMemo(()=>holdings.filter(h=>h.plot>=0&&h.plot<FARM.length).map(h=>({h,st:treeState(h,defaultRules),x:FARM[h.plot][0],z:FARM[h.plot][1]})),[holdings]);
+  const points=useMemo(()=>{const m=new Map<string,THREE.Vector3>();for(const [k,p] of Object.entries(SPOTS))m.set(k,new THREE.Vector3(p.x,surfaceY(p.x,p.z)+1.2,p.z));return m},[]);
   // the point the e2e test taps: a little below the top of each tree, updated once its model has loaded
+  const birthFocus=useMemo(()=>{const b=world.birth;if(!b)return null;const ts=trees.filter(t=>b.ids.includes(t.h.id));if(!ts.length)return null;
+    const c=new THREE.Vector3();for(const t of ts)c.add(new THREE.Vector3(t.x,surfaceY(t.x,t.z)+0.8,t.z));return c.divideScalar(ts.length)},[trees,world.birth]);
+  // W2: the cut faces the camera as it was when the ground opened; the camera then looks a little below the ground there
+  const cut=useMemo(()=>{const c=world.cutaway,t=c&&trees.find(x=>x.h.id===c.holdingId);if(!c||!t)return null;
+    // look from the side nearest the camera's that no other tree stands in front of (W2: the cut must be seen)
+    const now=Math.atan2(camera.position.x-t.x,camera.position.z-t.z),reach=LOOK.roots.camDist*0.6;
+    const blocked=(az:number)=>trees.reduce((n,o)=>{if(o===t)return n;const dx=o.x-t.x,dz=o.z-t.z,along=dx*Math.sin(az)+dz*Math.cos(az);if(along<0.3||along>reach)return n;
+      const side=Math.abs(dx*Math.cos(az)-dz*Math.sin(az));return n+(side<2.4?1+(2.4-side):0)},0);
+    let yaw=now,best=Infinity;for(let k=0;k<=12;k++){const az=now+(k%2?1:-1)*Math.ceil(k/2)*Math.PI/12,b=blocked(az)+Math.abs(az-now)*0.15;if(b<best){best=b;yaw=az}}
+    const base=new THREE.Vector3(t.x,surfaceY(t.x,t.z),t.z);
+    return {c,t,yaw,base,quat:tiltAt(t.x,t.z).multiply(new THREE.Quaternion().setFromAxisAngle(UP,yaw)),look:base.clone().add(new THREE.Vector3(0,-LOOK.roots.camDrop,0))};
+  },[world.cutaway?.t0,trees]);// eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{testHooks().cutaway=world.cutaway&&!world.cutaway.closing?{open:true,holdingId:world.cutaway.holdingId,roots:world.cutaway.roots}:{open:false,holdingId:null,roots:null}},[world.cutaway]);
+  const focusPos=useMemo(()=>{if(cut&&!cut.c.closing)return cut.look;const t=trees.find(x=>x.h.id===world.focus);return t?new THREE.Vector3(t.x,surfaceY(t.x,t.z)+1.2,t.z):birthFocus},[trees,world.focus,birthFocus,cut]);
+  const orbit=useMemo(()=>world.birth&&world.birth.plan.orbit?{t0:world.birth.t0,at:world.birth.plan.orbitAt,len:world.birth.plan.orbit}:null,[world.birth]);
+  useEffect(()=>{for(const t of trees)points.set('plot-'+t.h.id,new THREE.Vector3(t.x,surfaceY(t.x,t.z)+0.5,t.z))},[trees]);// eslint-disable-line react-hooks/exhaustive-deps
+  // W3 capsule markers stand beside their tree's trunk; their tags (DOM) sit just above them
+  const capSpot=(t:{x:number;z:number})=>({x:t.x+LOOK.capsule.spot.dx,z:t.z+LOOK.capsule.spot.dz});
+  useEffect(()=>{for(const c of world.capsules){const t=trees.find(x=>x.h.id===c.holdingId);if(!t)continue;const p=capSpot(t);points.set('capsule-'+c.holdingId,new THREE.Vector3(p.x,surfaceY(p.x,p.z)+1.15,p.z))}
+    testHooks().capsules=world.capsules.map(c=>({holdingId:c.holdingId,due:c.due}))},[world.capsules,trees]);// eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{testHooks().capsuleFx=world.capsuleFx?{kind:world.capsuleFx.kind,holdingId:world.capsuleFx.holdingId}:null},[world.capsuleFx]);
   const treePos=useMemo(()=>trees.map(t=>({id:t.h.id,v:new THREE.Vector3(t.x,surfaceY(t.x,t.z)+0.5,t.z)})),[trees]);
   const onTops=useMemo(()=>treePos.map(p=>(y:number)=>{p.v.y=surfaceY(p.v.x,p.v.z)+0.12+y*0.75}),[treePos]);
-  const points=useMemo(()=>{const m=new Map<string,THREE.Vector3>();for(const [k,p] of Object.entries(SPOTS))m.set(k,new THREE.Vector3(p.x,surfaceY(p.x,p.z)+1.2,p.z));return m},[]);
   // each analyst reports its head top: the body point is for tapping it, the bubble point sits above the head
   const reportAnalyst=useCallback((id:AnalystId,v:THREE.Vector3)=>{for(const [k,dy] of [['analyst-'+id,-1.2],['bubble-'+id,0.55]] as const){let p=points.get(k);if(!p){p=new THREE.Vector3();points.set(k,p)}p.copy(v).y+=dy}},[points]);
   // an analyst with a flag stands in front of that tree, a little to one side (so two on one tree do not overlap)
-  const spotFor=(id:AnalystId,at:number|null)=>{const t=at===null?null:trees.find(x=>x.h.id===at);if(!t)return IDLE[id];const side=id==='moa'?-1:1;return {x:t.x+side*1.05,z:t.z+1.15}};
+  const spotFor=(id:AnalystId,at:number|null)=>{const t=at===null?null:trees.find(x=>x.h.id===at);if(!t)return IDLE[id];const side=id==='moa'?-1:1;
+    if(cut&&cut.t===t){const lx=side*(LOOK.roots.width+0.65),lz=0.6,c=Math.cos(cut.yaw),s=Math.sin(cut.yaw);return {x:t.x+lx*c+lz*s,z:t.z-lx*s+lz*c}}
+    return {x:t.x+side*1.05,z:t.z+1.15}};
   const walk=(p:THREE.Vector3)=>{const d=Math.hypot(p.x,p.z),k=d>WALK?WALK/d:1,x=p.x*k,z=p.z*k;if(inPond(x,z,0.2))return;target.current.set(x,0,z);onPick(null)};
   return <>
     <fog attach="fog" args={[wl.fog,LOOK.fog.near,LOOK.fog.far]}/>
@@ -325,7 +467,13 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
     <House/>
     <Campfire/>
     <Rock x={-6.4} z={3.2} s={1.1} rot={0.4}/><Rock x={-5} z={4.4} s={0.7}/><Rock x={-7.2} z={4.6} s={0.55}/><Rock x={8.4} z={6} s={0.9}/><Rock x={3.4} z={5.2} s={0.5}/>
-    {trees.map((t,i)=><HoldingTree key={t.h.id} id={t.h.id} x={t.x} z={t.z} growth={t.st.growth} condition={t.st.condition} picked={picked===t.h.id} onPick={id=>onPick(id)} onTop={onTops[i]} wind={wl.wind}/>)}
+    {trees.map((t,i)=>{const b=world.birth,k=b?b.ids.indexOf(t.h.id):-1;return <HoldingTree key={t.h.id} id={t.h.id} x={t.x} z={t.z} growth={t.st.growth} condition={t.st.condition} picked={picked===t.h.id} onPick={id=>onPick(id)} onTop={onTops[i]} wind={wl.wind}
+      born={b&&k>=0?bornOf(b,k):null} onDeep={world.onDeep} cut={!!cut&&cut.t===t}/>})}
+    {world.capsules.map(c=>{const t=trees.find(x=>x.h.id===c.holdingId),fx=world.capsuleFx;if(!t||(fx&&fx.kind==='dig'&&fx.holdingId===c.holdingId))return null;const p=capSpot(t);
+      return <OnGround key={'cap'+c.holdingId} x={p.x} z={p.z}><Marker due={c.due} pop={fx&&fx.kind==='bury'&&fx.holdingId===c.holdingId?fx.t0:null} onPick={()=>world.onCapsule(c.holdingId)}/></OnGround>})}
+    {world.capsuleFx&&(()=>{const fx=world.capsuleFx,t=trees.find(x=>x.h.id===fx.holdingId);if(!t)return null;const p=capSpot(t);
+      return <OnGround key={'fx'+fx.t0} x={p.x} z={p.z}><CapsuleFx kind={fx.kind} t0={fx.t0}/></OnGround>})()}
+    {cut&&<CutAway key={cut.c.t0} pos={cut.base} quat={cut.quat} roots={cut.c.roots} seed={cut.c.holdingId} t0={cut.c.t0} closing={cut.c.closing}/>}
     <Cypress x={-3} z={-8.5} s={1.1}/><Cypress x={-1} z={-9.6}/><Cypress x={5.5} z={-8.8} s={1.2}/><Cypress x={9.6} z={-4.8}/><Cypress x={-10.6} z={-3} s={0.9}/>
     <RoundTree x={1.8} z={-9.2} s={1.1}/><RoundTree x={-7.6} z={-6.4}/><RoundTree x={10.6} z={0.4} s={0.9}/><RoundTree x={-11} z={4} s={0.8}/>
     {weather!=='storm'&&<Butterflies count={weather==='cloudy'?5:14}/>}
@@ -334,20 +482,23 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
     <OnGround x={SPOTS.signpost.x} z={SPOTS.signpost.z} rot={SPOTS.signpost.rot}><Signpost hitRate={world.hitRate} onPick={()=>world.onLandmark('signpost')}/></OnGround>
     <OnGround x={SPOTS.cart.x} z={SPOTS.cart.z} rot={SPOTS.cart.rot}><Cart flag={world.cartFlag} onPick={()=>world.onLandmark('cart')}/></OnGround>
     {world.pots.map(p=>{const t=trees.find(x=>x.h.id===p.holdingId);return t&&<OnGround key={p.holdingId} x={t.x-0.85} z={t.z+0.55}><Pot open={p.open} flowers={p.flowers}/></OnGround>})}
+    {world.burst&&(()=>{const b=world.burst,t=trees.find(x=>x.h.id===b.holdingId);return t&&<Burst key={b.stamp} x={t.x} z={t.z} hit={b.hit} stamp={b.stamp}/>})()}
     {world.decor.map(d=>{const sl=DECOR_SLOTS.find(x=>x.id===d.slot);return sl&&<OnGround key={d.slot} x={sl.x} z={sl.z} rot={sl.rot}><Decor shape={d.shape}/></OnGround>})}
     <Suspense fallback={null}>
-      {world.analysts.map(a=><Analyst key={a.id} id={a.id} to={spotFor(a.id,a.at)} face={pos} surface={surfaceY} tilt={tiltAt} bubble={a.bubble}
+      {world.analysts.map(a=><Analyst key={a.id} id={a.id} to={spotFor(a.id,a.at)} from={world.enterFrom} face={pos} surface={surfaceY} tilt={tiltAt} bubble={a.bubble}
         onPick={()=>world.onAnalyst(a.id)} report={reportAnalyst}/>)}
     </Suspense>
-    <Player target={target} pos={pos}/>
-    <FollowCam pos={pos} recenter={recenter}/>
+    {/* out of the way while the camera looks into the open ground */}
+    <Player target={target} pos={pos} hidden={(!!cut&&!cut.c.closing)||!!world.capsuleFx}/>
+    <FollowCam pos={pos} recenter={recenter} focus={focusPos} orbit={orbit} near={!!world.capsuleFx} low={cut&&!cut.c.closing?cut.yaw:null}/>
     <Hooks pos={pos} treePos={treePos} points={points}/>
 
     <EffectComposer multisampling={0}>
       <Bloom mipmapBlur luminanceThreshold={LOOK.post.bloom.threshold} luminanceSmoothing={LOOK.post.bloom.smoothing} intensity={LOOK.post.bloom.intensity} radius={LOOK.post.bloom.radius}/>
-      <TiltShift2 blur={LOOK.post.tiltShift.blur} taper={LOOK.post.tiltShift.taper}/>
+      <TiltShift2 blur={blur} taper={LOOK.post.tiltShift.taper}/>
       <HueSaturation saturation={wl.saturation}/>
       <Vignette offset={LOOK.post.vignette.offset} darkness={LOOK.post.vignette.darkness}/>
+      <Noise premultiply blendFunction={BlendFunction.SOFT_LIGHT} opacity={LOOK.post.grain.opacity}/>
     </EffectComposer>
   </>;
 }

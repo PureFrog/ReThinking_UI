@@ -11,12 +11,12 @@ import {MODELS} from './models';
 import type {AnalystId} from '../content/analysts';
 
 export type AnalystSpot={x:number;z:number};
-type Props={id:AnalystId;to:AnalystSpot;face:React.MutableRefObject<THREE.Vector3>;surface:(x:number,z:number)=>number;tilt:(x:number,z:number)=>THREE.Quaternion;
+type Props={id:AnalystId;to:AnalystSpot;from?:AnalystSpot|null;face:React.MutableRefObject<THREE.Vector3>;surface:(x:number,z:number)=>number;tilt:(x:number,z:number)=>THREE.Quaternion;
   bubble:{text:string;alert:boolean}|null;onPick:()=>void;report:(id:AnalystId,v:THREE.Vector3)=>void};
 const SPEED=2.2;
 const eyeMat=new THREE.MeshStandardMaterial({color:'#1d1f24',roughness:0.3});
 
-export function Analyst({id,to,face,surface,tilt,bubble,onPick,report}:Props){
+export function Analyst({id,to,from,face,surface,tilt,bubble,onPick,report}:Props){
   const {scene}=useGLTF(MODELS.analyst(id));
   const model=useMemo(()=>{const root=scene.clone(true);
     root.traverse(o=>{const m=o as THREE.Mesh;if(!m.isMesh)return;m.castShadow=true;m.receiveShadow=true;
@@ -27,7 +27,7 @@ export function Analyst({id,to,face,surface,tilt,bubble,onPick,report}:Props){
     return {body:get('body'),head:get('head'),armL:get('arm_l'),armR:get('arm_r'),eyes:[get('eye_l'),get('eye_r')].filter(Boolean) as THREE.Object3D[],
       rest:{armL:get('arm_l')?.rotation.clone(),armR:get('arm_r')?.rotation.clone(),eyeY:get('eye_l')?.scale.y??1}}},[model]);
   const g=useRef<THREE.Group>(null),turn=useRef<THREE.Group>(null);
-  const pos=useRef(new THREE.Vector3(to.x,0,to.z)),heading=useRef(0),blink=useRef(2+Math.random()*3);
+  const pos=useRef(new THREE.Vector3((from??to).x,0,(from??to).z)),heading=useRef(0),blink=useRef(2+Math.random()*3);
   const v=useMemo(()=>new THREE.Vector3(),[]);
   useEffect(()=>{if(g.current)g.current.name=`analyst-${id}`},[id]);
   useFrame(({clock},dt)=>{const gr=g.current,tr=turn.current;if(!gr||!tr)return;const t=clock.elapsedTime,d=Math.min(dt,0.05),p=pos.current;

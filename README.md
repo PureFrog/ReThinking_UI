@@ -19,7 +19,7 @@ pnpm exec playwright install chromium   # e2e 테스트를 돌릴 사람만
 pnpm dev
 ```
 
-브라우저에서 http://127.0.0.1:5173 을 연다. **메인은 3D 정원(ReThink Garden, `app/proto3d/`, 설계 `docs/redesign.md`)**이고, 저장은 `rethink-garden-v1`, 확인용 주소는 `?reset`(처음부터, 온보딩부터)·`?demo`(예시 7종목 정원)·`?ahead=N`·`?weather=`. 예전 2D 정원은 http://127.0.0.1:5173/classic. 휴대폰 앱 시안은 http://127.0.0.1:5173/app (방 하나씩, 아래 탭, `app/proto/`). 2D 정원 저장은 브라우저 localStorage(`little-garden-v3`)에만 된다. 처음부터 다시 보고 싶으면 개발자 도구에서 이 키를 지운다.
+브라우저에서 http://127.0.0.1:5173 을 연다. **메인은 3D 정원(ReThink Garden, `app/proto3d/`, 설계 `docs/redesign.md`)**이고, 저장은 `rethink-garden-v1`, 확인용 주소는 `?reset`(처음부터, 온보딩부터)·`?demo`(예시 7종목 정원)·`?ahead=N`·`?weather=`·`?slowmo=4`(정원 탄생·뿌리 단면·타임캡슐 연출을 느리게). 예전 2D 정원은 http://127.0.0.1:5173/classic. 휴대폰 앱 시안은 http://127.0.0.1:5173/app (방 하나씩, 아래 탭, `app/proto/`). 2D 정원 저장은 브라우저 localStorage(`little-garden-v3`)에만 된다. 처음부터 다시 보고 싶으면 개발자 도구에서 이 키를 지운다.
 
 ## 검사
 
@@ -28,7 +28,7 @@ pnpm dev
 ```bash
 node node_modules/typescript/bin/tsc --noEmit   # 타입 검사
 pnpm test:unit                                  # 계산 로직 단위 테스트 (node:test)
-pnpm test:e2e                                   # 화면 동작 테스트 (Playwright, 데스크톱 1400×1050·모바일 375×812)
+pnpm test:e2e                                   # 화면 동작 테스트 (Playwright, 데스크톱 1400×1050·모바일 375×812, 3D 세로·가로는 proto3d-orientation.spec.ts)
 pnpm build                                      # 빌드
 ```
 
@@ -112,7 +112,7 @@ worker/ · lib/ · .openai/   배포용 (건드리지 않는다)
 0. 저장소는 한 사람에게 맡겨서 넘긴다. 받으면 `git pull` 후 `docs/features.md`와 `collab/log.md`를 읽고 시작하고, 넘길 때는 커밋·푸시하고 log에 한 줄 남긴다.
 1. 한 번에 한 단계만 한다. 시작 전에 바꿀 것을 3~5줄로 정리해서 합의한다.
 2. 단계마다 핵심 동작을 `tests/e2e/`에 테스트로 남기고, 새 계산 로직에는 단위 테스트를 붙인다.
-3. 끝나면 검사 네 가지를 통과시키고, 데스크톱 1400px·모바일 375px 화면을 확인한다.
+3. 끝나면 검사 네 가지를 통과시키고, 세로 휴대폰(390×844)·가로(844×390)·데스크톱 1400px 화면을 확인한다.
 4. `collab/log.md`에 한 줄 남긴다.
 5. 커밋 메시지: `[stage-n] 요약`, `[asset NNN] 요약`, `[fix] 요약`, `[docs] 요약`.
 

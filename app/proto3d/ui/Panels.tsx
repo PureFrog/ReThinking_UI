@@ -1,19 +1,23 @@
 'use client';
 // Everything around the loop: the track record (R4), the league and the game door (R5), the cart and the drawer
 // (R6), and an analyst's profile. Rules in app/core, data in app/content, actions in state.ts.
+import {rewindTrack} from '../../core/rewind';
+import {nextGrade,type TodayTask,type TaskId} from '../../core/today';
+import {rankOf,xpOf} from '../../core/rank';
+import {recallOf} from '../../core/recall';
 import {useEffect,useState} from 'react';
 import {Lock} from 'lucide-react';
 import {trackOf,CHOICE_LABEL,shiftDay,daysBetween,MARKS} from '../../core/judgment';
 import {impulseOf} from '../../core/cooldown';
 import {weekPoints,TIERS,tierOf} from '../../core/league';
 import {shownCount} from '../../core/streak';
-import {TRUST_LABEL} from '../../core/ledger';
+import {TRUST_LABEL,EARN} from '../../core/ledger';
 import {STAGE_POINTS} from '../../core/relationships';
 import {formatDay} from '../../core/items';
 import {CASES} from '../../content/cases';
 import {GAME} from '../../content/game';
 import {CART_STOCK,DECOR_SLOTS,itemById} from '../../content/garden-items';
-import {ANALYSTS,MODEL_INFO,LINES,CURRENCY,analystById,type AnalystId} from '../../content/analysts';
+import {ANALYSTS,MODEL_INFO,LINES,UI,CURRENCY,analystById,say,line,type AnalystId} from '../../content/analysts';
 import type {Signal} from '../../content/signals';
 import {leagueRepo} from '../server';
 import {Sheet,Face,pct} from './Sheet';
@@ -24,7 +28,7 @@ const SLOT_LABEL:Record<string,string>={'door-l':'현관 왼쪽','door-r':'현�
 
 export function Records({g,onClose,onHoldings}:{g:G;onClose:()=>void;onHoldings:()=>void}){
   const [tab,setTab]=useState<'stats'|'list'|'cases'>('stats');
-  const t=trackOf(g.s.judgments,g.s.graded),imp=impulseOf(g.s.cooldowns),week=weekPoints(g.s.graded,g.s.cases,g.clock.today);
+  const t=trackOf(g.s.judgments,g.s.graded),rw=rewindTrack(g.s.rewinds),rk=rankOf(xpOf({graded:g.s.graded.length,cases:g.s.cases.length,rewinds:g.s.rewinds.length})),imp=impulseOf(g.s.cooldowns),week=weekPoints(g.s.graded,g.s.cases,g.clock.today);
   const solved=g.s.cases.map(a=>({a,c:CASES.find(c=>c.id===a.caseId)})).filter(x=>x.c);
   return <Sheet kicker="트랙 레코드" title="내 판단의 질" onClose={onClose}
     foot={<button type="button" className="rt-btn wide" onClick={onHoldings}>내 종목 고치기 · {g.s.holdings.length}종목</button>}>
@@ -36,6 +40,8 @@ export function Records({g,onClose,onHoldings}:{g:G;onClose:()=>void;onHoldings:
       <div className="rt-cell"><span>충동 억제</span><b className="rt-num">{imp.rate===null?'–':imp.rate+'%'}</b><small>냉각 {imp.done}번 중 {imp.waited}번 기다림</small></div>
       <div className="rt-cell"><span>이번 주 점수</span><b className="rt-num">{week}</b><small>리그에 들어가는 점수</small></div>
       <div className="rt-cell"><span>판단 기록</span><b className="rt-num">{t.judged}</b><small>모델 신호 {t.signalsGraded}건 중 {t.signalsRight}건 맞음</small></div>
+      <div className="rt-cell"><span>등급</span><b style={{fontSize:18}}>{rk.name}</b><small>{rk.next?`${rk.next.name}까지 ${rk.next.left}`:'최고 등급'}</small></div>
+      <div className="rt-cell"><span>되감기 연습</span><b className="rt-num">{rw.hitRate===null?'–':rw.hitRate+'%'}</b><small>{rw.rounds}판 · 확신 보정 {rw.calibration??'–'}</small></div>
       <div className="rt-cell"><span>케이스 연속</span><b className="rt-num">{shownCount(g.s.streak,g.clock.today)}일</b><small>최고 {g.s.streak.best}일</small></div>
     </div>
     <p className="rt-hint" style={{marginTop:14}}>수익률은 여기 없어. 판단이 맞았는지, 확신이 맞았는지만 봐.</p></>}
@@ -43,7 +49,7 @@ export function Records({g,onClose,onHoldings}:{g:G;onClose:()=>void;onHoldings:
       [...g.s.judgments].sort((a,b)=>b.day.localeCompare(a.day)).map(j=>{const gs=g.s.graded.filter(x=>x.judgmentId===j.id);const last=gs.at(-1);
         const nextMark=MARKS.find(m=>!gs.some(x=>x.mark===m));const dleft=nextMark?daysBetween(g.clock.today,shiftDay(j.day,nextMark)):0;
         return <div key={j.id} className="rt-row"><div><strong>{j.name} · {CHOICE_LABEL[j.choice]} · 확신 {j.confidence}</strong><small>{formatDay(j.day,g.clock.today)} · {j.reason}</small></div>
-          {last?<b className={`rt-num ${last.hit?'rt-up':'rt-down'}`}>{last.mark}일 {pct(last.after)}</b>:<span className="rt-tag">{dleft>0?`D-${dleft}`:'판정 도착'}</span>}</div>}))}
+          {last?<b className={`rt-num ${last.hit?'rt-hit':'rt-miss'}`}>{last.mark}일 {pct(last.after)}</b>:<span className="rt-tag">{dleft>0?`D-${dleft}`:'판정 도착'}</span>}</div>}))}
     {tab==='cases'&&<>{solved.length===0&&<p className="rt-empty">푼 케이스가 여기 카드로 쌓여.</p>}
       {solved.map(({a,c})=><div key={a.caseId} className="rt-row"><div><strong>{c!.reveal.name} · {c!.reveal.year}</strong><small>먼저 잡은 모델: {MODEL_INFO[c!.reveal.firstCaught as keyof typeof MODEL_INFO].name}</small></div>
         <span className={`rt-tag ${a.correct?'ok':'signal'}`}>{a.correct?'맞음':'틀림'}</span></div>)}
@@ -98,15 +104,36 @@ export function Drawer({g,onClose,onCart}:{g:G;onClose:()=>void;onCart:()=>void}
 }
 
 export function AnalystCard({g,id,signal,onBrief,onClose}:{g:G;id:AnalystId;signal:Signal|null;onBrief:()=>void;onClose:()=>void}){
-  const a=ANALYSTS.find(x=>x.id===id)!,r=g.s.trust[id],next=STAGE_POINTS[r.stage+1];
+  const a=ANALYSTS.find(x=>x.id===id)!,r=g.s.trust[id],next=STAGE_POINTS[r.stage+1],rec=recallOf(id,g.s.judgments,g.s.graded,g.clock.today);
   return <Sheet kicker={a.role} title={a.name} onClose={onClose} label={`${a.name} 프로필`}
     foot={signal?<button type="button" className="rt-btn primary wide" onClick={onBrief}>신호 보기</button>:undefined}>
-    <div className="rt-note-head"><Face id={a.id} name={a.name}/><div><strong>{a.tagline}</strong><small>{signal?LINES.greet[id]:LINES.idle[id]}</small></div></div>
+    <div className="rt-note-head"><Face id={a.id} name={a.name}/><div><strong>{a.tagline}</strong><small>{rec?say(LINES.remember[id][rec.kind],g.clock.today+id,rec):signal?say(LINES.greet[id],g.clock.today+id,{name:g.s.holdings.find(x=>x.id===signal.holdingId)?.name??''}):say(LINES.idle[id],g.clock.today+id)}</small></div></div>
     <div className="rt-section" style={{marginTop:20}}>맡은 모델</div>
     {a.models.map(m=><div key={m} className="rt-row"><div><strong>{MODEL_INFO[m].name}</strong><small>{MODEL_INFO[m].what}</small></div></div>)}
     <div className="rt-section">신뢰도</div>
     <div style={{display:'flex',justifyContent:'space-between',fontSize:13,marginBottom:6}}><b>{TRUST_LABEL[r.stage]}</b><span className="rt-num rt-hint">{next?`${r.points} / ${next}`:'최고'}</span></div>
     <div className="rt-bar"><i style={{width:`${next?Math.min(100,r.points/next*100):100}%`}}/></div>
     <p className="rt-hint" style={{marginTop:8}}>이 분석가 신호에 판단을 남기고, 그 신호가 맞으면 올라가.</p>
+  </Sheet>;
+}
+
+// Today's three (core/today.ts) and where the player stands: the title (core/rank.ts) and the next grade to come back for.
+export function TodaySheet({g,tasks,onGo,onClose}:{g:G;tasks:TodayTask[];onGo:(t:TaskId)=>void;onClose:()=>void}){
+  const done=tasks.filter(t=>t.done).length,closed=g.s.daysDone.includes(g.clock.today);
+  const r=rankOf(xpOf({graded:g.s.graded.length,cases:g.s.cases.length,rewinds:g.s.rewinds.length}));
+  const nx=nextGrade(g.s.judgments,g.s.graded,g.clock.today);
+  return <Sheet kicker="오늘" title={closed?'오늘 할 거 끝':`오늘 할 일 ${done}/${tasks.length}`} label="오늘 할 일" onClose={onClose}>
+    {tasks.map((t,i)=><div key={t.id+i} className="rt-row rt-task" data-done={t.done}>
+      <span className="rt-check" aria-hidden>{t.done?'✓':i+1}</span>
+      <div><strong>{UI.today[t.id]}</strong></div>
+      {t.done?<span className="rt-tag ok">완료</span>:<button type="button" className="rt-btn" onClick={()=>onGo(t.id)}>하기</button>}</div>)}
+    <p className="rt-hint" style={{marginTop:12}}>{closed?line(UI.dayDone,{n:EARN.dayDone}):`셋 다 하면 +${EARN.dayDone} ${CURRENCY}`}</p>
+    <div className="rt-section">다음에 올 이유</div>
+    <p className="rt-say-plain">{nx?line(UI.nextGrade,{name:nx.name,mark:nx.mark,d:nx.inDays}):UI.noNext}</p>
+    <div className="rt-section">내 등급</div>
+    <div style={{display:'flex',justifyContent:'space-between',fontSize:13,marginBottom:6}}><b>{r.name}</b>
+      <span className="rt-num rt-hint">{r.next?`${r.next.name}까지 ${r.next.left}`:'최고 등급'}</span></div>
+    <div className="rt-bar"><i style={{width:`${Math.round(r.progress*100)}%`}}/></div>
+    <p className="rt-hint" style={{marginTop:8}}>판정을 열고, 케이스를 풀고, 되감기를 하면 올라가. 수익률과는 상관없어.</p>
   </Sheet>;
 }
