@@ -35,6 +35,8 @@ export const LOOK={
 
   // the grade reveal reaching the tree (Scene3D Burst): sparks for a hit, autumn leaves for a miss
   burst:{hit:'#fff3a8',miss:'#d39a3a'},
+  // W6 tilting the phone moves the camera this many world units sideways and up at most (core/tilt.ts)
+  tilt:{amount:0.9},
   // W1 a holding being born (Scene3D BirthDust): the crack in the ground and the soil it throws up
   // pitch/dist: how much lower (pitch ×, up to maxPitch radians from overhead) and closer (dist ×) the camera comes while
   // the trees rise; pull: how far it pulls out halfway through its look round
@@ -43,7 +45,7 @@ export const LOOK={
   // the camera: pitch radians from overhead (lower = more from the side), dist from the cut
   // W3 the time capsule (Capsule3D.tsx): glass, the light leaking out once the grade has arrived, a marker not yet due,
   // the memo glowing inside; size of the capsule; where the marker stands from its tree (beside the trunk, front right)
-  capsule:{glass:'#e6f4ff',glow:'#ffe39a',idle:'#bfe2ff',memo:'#fff2c6',size:2.1,spot:{dx:1.3,dz:0.95},
+  capsule:{hole:'#2b2016',soil:'#7a5a40',glass:'#e6f4ff',glow:'#ffe39a',idle:'#bfe2ff',memo:'#fff2c6',size:2.1,spot:{dx:1.3,dz:0.95},
     near:0.48,pitch:0.98/* while a capsule goes in or comes out the camera comes this much closer (× framing distance) and this low (radians from overhead) */},
   roots:{width:1.45,back:0.9,front:2.1,depth:2.3,soil:['#5b3f2b','#7a5637','#a07c55'],root:'#efd3a6',rot:'#201814',stone:'#8a8681',
     camPitch:1.0,camDist:13.5,camDrop:-0.9},

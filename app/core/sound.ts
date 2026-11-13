@@ -85,7 +85,7 @@ export const SLOTS={
  // 3D 판정 공개 (ReThink Garden)
  'grade-count':'tick','grade-stamp':'stamp','grade-hit':'reveal-hit','grade-miss':'reveal-miss',
  // 3D 오! 패스 (docs/brief-wow.md W1~W3)
- 'garden-born':'chord','cutaway-open':'dig','cutaway-close':'close','capsule-bury':'bury','capsule-dig':'dig','capsule-open':'glass',
+ 'garden-born':'chord','cutaway-open':'dig','cutaway-close':'close','capsule-bury':'bury','capsule-mark':'thud','capsule-dig':'dig','capsule-open':'glass',
  'journal-save':null,'quiz-right':null,'quiz-wrong':null,'quiz-gold':null,'retro-save':null,'streak-day':null,'streak-saved':null,'streak-bonus':null,
 } as const satisfies Record<string,Effect|null>;
 export type Slot=keyof typeof SLOTS;

@@ -402,3 +402,76 @@ test("a judgment is buried as a capsule and dug up when its grade arrives", asyn
   await expect.poll(async () => (await caps(page)).capsules?.find(c => c.holdingId === 7)?.due).toBe(true);
   clean(errors);
 });
+
+// W4 (docs/brief-wow.md): a grade as a portrait picture to show someone (ui/Share.tsx, core/share.ts): 1080×1920,
+// saved as a file where the phone cannot share one. Only the move in %; "모의 데이터 · 투자 권유 아님" at the bottom.
+test("a grade becomes a share card that can be saved", async ({ page }) => {
+  const errors: string[] = [];
+  await open(page, errors, "&demo");
+  await page.getByRole("button", { name: /판정 2건 도착/ }).click();
+  await page.getByRole("button", { name: "결과 열기" }).click();
+  const result = sheet(page, "판정 결과");
+  await expect(result.locator(".rt-verdict")).toHaveAttribute("data-phase", "done");
+  await result.getByRole("button", { name: "공유 카드" }).click();
+  const card = sheet(page, "공유 카드");
+  const img = card.getByRole("img", { name: /강철중공업 30일 판정 공유 카드/ });
+  await expect(img).toBeVisible({ timeout: 20_000 });
+  expect(await img.evaluate(e => [(e as HTMLImageElement).naturalWidth, (e as HTMLImageElement).naturalHeight])).toEqual([1080, 1920]);
+  await expect(card).toContainText("투자 권유 아님");
+  const [file] = await Promise.all([page.waitForEvent("download"), card.getByRole("button", { name: "저장" }).click()]);
+  expect(file.suggestedFilename()).toMatch(/\.png$/);
+  // back to the result
+  await card.getByRole("button", { name: "닫기" }).first().click();
+  await expect(sheet(page, "판정 결과")).toBeVisible();
+  clean(errors);
+});
+
+// W5 (docs/brief-wow.md): the garden's year as a timelapse (core/history.ts). Trees bought within the year are not
+// there a year ago, the sky is that day's market, and the last frame is today's garden again.
+test("the timelapse shows the garden a year ago and comes back to today", async ({ page }) => {
+  const errors: string[] = [];
+  await open(page, errors, "&demo");
+  await dock(page, "기록").click();
+  await sheet(page, "내 판단의 질").getByRole("button", { name: "정원 타임랩스" }).click();
+  const bar = page.getByRole("dialog", { name: "타임랩스" });
+  await expect(bar).toBeVisible();
+  await bar.getByRole("button", { name: "멈춤" }).click();
+  const lapse = async () => (await page.evaluate(() => (window as unknown as { __proto3d: { lapse: { back: number; trees: number; weather: string } | null } }).__proto3d.lapse));
+  await bar.getByLabel("타임랩스 날짜").fill("0");
+  await expect.poll(async () => (await lapse())?.back).toBe(365);
+  // a year ago only the demo's oldest holding (별숲게임즈, bought 2025-06) stood there
+  await expect.poll(async () => (await lapse())?.trees).toBe(1);
+  await expect(page.locator(".rt-weather")).toContainText("그날 시장");
+  await expect(page.getByRole("navigation", { name: "메뉴" })).toBeHidden();
+  await bar.getByLabel("타임랩스 날짜").fill("52");
+  await expect.poll(async () => (await lapse())?.trees).toBe(7);
+  await expect.poll(async () => (await lapse())?.weather).toBe("clear");
+  await bar.getByRole("button", { name: "닫기" }).click();
+  await expect(bar).toBeHidden();
+  await expect(page.getByRole("navigation", { name: "메뉴" })).toBeVisible();
+  expect(await lapse()).toBeNull();
+  clean(errors);
+});
+
+// W6 (docs/brief-wow.md, core/tilt.ts): tilting the phone moves the camera a little. The first reading is the rest angle.
+test("tilting the phone leans the view", async ({ page }) => {
+  const errors: string[] = [];
+  await open(page, errors, "&demo");
+  type T = { on: boolean; need: boolean; x: number; y: number };
+  const t = async () => page.evaluate(() => { const h = (window as unknown as { __proto3d: { tilt: T } }).__proto3d.tilt; return { on: h.on, need: h.need, x: h.x, y: h.y } });
+  // a browser with a permission step (iPhone, recent Chrome) shows the button and asks only when it is pressed
+  await page.context().grantPermissions(["accelerometer", "gyroscope"]);// what the player would allow in the prompt
+  if ((await t()).need) await page.getByRole("button", { name: "기울이기 켜기" }).click();
+  await expect.poll(async () => (await t()).on).toBe(true);
+  const tilt = (beta: number, gamma: number) => page.evaluate(([b, g]) => window.dispatchEvent(new DeviceOrientationEvent("deviceorientation", { beta: b, gamma: g })), [beta, gamma]);
+  await tilt(40, 0);// how it is held: the middle
+  expect(await t()).toMatchObject({ x: 0, y: 0 });
+  const before = (await hooks(page))!.trees;
+  await tilt(40, 18);
+  expect((await t()).x).toBeGreaterThan(0.5);
+  // the garden slides on screen as the camera leans
+  await expect.poll(async () => { const now = (await hooks(page))!.trees; const k = Object.keys(now)[0]; return Math.abs(now[Number(k)].x - before[Number(k)].x) }).toBeGreaterThan(4);
+  await tilt(40, 0);
+  expect((await t()).x).toBe(0);
+  clean(errors);
+});

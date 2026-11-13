@@ -10,6 +10,7 @@ import {useFrame,type ThreeEvent} from '@react-three/fiber';
 import * as THREE from 'three';
 import {TIMING} from '../core/timing';
 import {LOOK} from './look';
+import {soft} from './materials';
 
 const C=()=>LOOK.capsule;
 const metal=new THREE.MeshStandardMaterial({color:'#eef3f6',metalness:0.3,roughness:0.32,emissive:'#3a4650',emissiveIntensity:0.25});
@@ -17,7 +18,8 @@ const dark=new THREE.MeshStandardMaterial({color:'#7d8892',metalness:0.6,roughne
 const easeIn=(k:number)=>k*k*k,easeOut=(k:number)=>1-Math.pow(1-k,3);
 const clamp01=(k:number)=>Math.min(1,Math.max(0,k));
 
-export function Marker({due,pop,onPick}:{due:boolean;pop:number|null;onPick:()=>void}){
+// pop: the capsule under it is being buried now (since t0, lasting len): the pin is driven in at the end
+export function Marker({due,pop,onPick}:{due:boolean;pop:{t0:number;len:number}|null;onPick:()=>void}){
   // no point light: adding or removing a light recompiles every material (a hitch on a phone); the glow is emissive + bloom
   const g=useRef<THREE.Group>(null),shaft=useRef<THREE.Mesh>(null),ring=useRef<THREE.Mesh>(null);
   const bulb=useMemo(()=>new THREE.MeshStandardMaterial({color:C().glass,transparent:true,opacity:0.8,roughness:0.08,emissive:due?C().glow:C().idle,emissiveIntensity:due?2.4:0.35,toneMapped:!due}),[due]);
@@ -25,9 +27,10 @@ export function Marker({due,pop,onPick}:{due:boolean;pop:number|null;onPick:()=>
   const ringMat=useMemo(()=>new THREE.MeshBasicMaterial({color:C().glow,transparent:true,opacity:0.5,depthWrite:false,blending:THREE.AdditiveBlending}),[]);
   useEffect(()=>()=>{bulb.dispose();shaftMat.dispose();ringMat.dispose()},[bulb,shaftMat,ringMat]);
   useFrame(({clock})=>{const t=clock.elapsedTime;
-    // it pops up once the capsule is in the ground
-    if(g.current){const k=pop===null?1:clamp01((performance.now()-pop-TIMING.capsuleBury*0.72)/(TIMING.capsuleBury*0.28));
-      g.current.scale.setScalar(k<1?easeOut(k)*(1+0.25*Math.sin(Math.PI*k)):1);g.current.visible=k>0}
+    // driven in from above once the soil is back over the capsule: falls, sticks, a small shudder
+    if(g.current){const k=pop===null?1:clamp01((performance.now()-pop.t0-pop.len*BURY.pin)/(pop.len*(1-BURY.pin)));
+      const fall=easeIn(clamp01(k/0.45)),shake=k>0.45?Math.sin((k-0.45)*40)*0.06*(1-k):0;
+      g.current.position.y=(1-fall)*1.4;g.current.rotation.z=shake;g.current.visible=k>0}
     if(!due)return;const p=0.5+0.5*Math.sin(t*2.4);
     shaftMat.opacity=0.12+0.14*p;ringMat.opacity=0.28+0.3*p;bulb.emissiveIntensity=1.8+1.2*p;
     if(ring.current)ring.current.scale.setScalar(0.9+0.25*p)});
@@ -70,16 +73,27 @@ function Puff({at}:{at:number}){
     m.instanceMatrix.needsUpdate=true});
   return <instancedMesh ref={ref} args={[puffGeo,mat,parts.length]} frustumCulled={false} visible={false}/>;
 }
-export function CapsuleFx({kind,t0}:{kind:'bury'|'dig';t0:number}){
+// the bury in parts of its length: the hole opens, the capsule hangs there with the memo glowing, drops in, the soil
+// comes back over it (a puff each time), and the marker pin is driven in last (Marker pop)
+export const BURY={hole:0.2,hover:0.38,drop:0.52,cover:0.74,pin:0.8};
+const holeGeo=new THREE.CircleGeometry(0.34,24),moundGeo=new THREE.SphereGeometry(0.4,18,10,0,Math.PI*2,0,Math.PI/2);
+// len: how long a bury plays (long the first time, short after)
+export function CapsuleFx({kind,t0,len}:{kind:'bury'|'dig';t0:number;len:number}){
+  const hole=useRef<THREE.Mesh>(null),mound=useRef<THREE.Mesh>(null);
   const g=useRef<THREE.Group>(null),lid=useRef<THREE.Group>(null);
   const glow=useMemo(()=>new THREE.MeshStandardMaterial({color:C().glass,transparent:true,opacity:0.85,emissive:C().memo,emissiveIntensity:0.6,toneMapped:false}),[]);
   useEffect(()=>()=>glow.dispose(),[glow]);
   useFrame(({clock})=>{const gr=g.current;if(!gr)return;const t=performance.now()-t0;
-    if(kind==='bury'){const k=t/TIMING.capsuleBury;
-      // shows above the tree with the memo glowing, then drops into the ground
-      const s=easeOut(clamp01(k/0.18)),fall=easeIn(clamp01((k-0.4)/0.32));
-      gr.position.y=1.5-2.1*fall+(fall?0:Math.sin(clock.elapsedTime*3)*0.06);gr.rotation.set(0,clock.elapsedTime*1.5*(1-fall),0.25*(1-fall));
-      gr.scale.setScalar(s);gr.visible=k<0.78;glow.emissiveIntensity=1.6*(1-fall)+0.3;if(lid.current)lid.current.rotation.z=0}
+    if(kind==='bury'){const k=t/len,B=BURY;
+      const s=easeOut(clamp01(k/0.16)),fall=easeIn(clamp01((k-B.hover)/(B.drop-B.hover)));
+      gr.position.y=1.3-1.75*fall+(fall?0:Math.sin(clock.elapsedTime*3)*0.06);gr.rotation.set(0,clock.elapsedTime*1.5*(1-fall),0.25*(1-fall));
+      gr.scale.setScalar(s);gr.visible=k<B.drop+0.04;glow.emissiveIntensity=1.6*(1-fall)+0.3;if(lid.current)lid.current.rotation.z=0;
+      // the hole: opens, stays dark while the capsule goes in, closes as the soil comes back
+      const open=easeOut(clamp01(k/B.hole)),shut=easeIn(clamp01((k-B.drop)/(B.cover-B.drop)));
+      if(hole.current){hole.current.scale.setScalar(Math.max(0.001,open*(1-shut)));hole.current.visible=open*(1-shut)>0.01}
+      // the soil heaped back, then pressed flat
+      if(mound.current){const up=easeOut(clamp01((k-B.drop)/(B.cover-B.drop))),flat=clamp01((k-0.9)/0.1);
+        mound.current.scale.set(up,up*(0.55-0.45*flat),up);mound.current.visible=up>0.01}}
     else{const k=t/TIMING.capsuleDig;
       // out of the ground with a puff, up above the tree, then the lid opens and the memo light spills
       const up=easeOut(clamp01(k/0.72)),open=easeOut(clamp01((k-0.72)/0.28));
@@ -87,6 +101,10 @@ export function CapsuleFx({kind,t0}:{kind:'bury'|'dig';t0:number}){
       gr.scale.setScalar(1);gr.visible=true;glow.emissiveIntensity=0.5+2.2*open;if(lid.current)lid.current.rotation.z=-1.9*open}});
   return <>
     <group ref={g} scale={0}><group scale={C().size}><Body lid={lid} glow={glow}/></group></group>
-    <Puff at={kind==='bury'?t0+TIMING.capsuleBury*0.68:t0}/>
+    {kind==='bury'&&<>
+      <mesh ref={hole} geometry={holeGeo} rotation-x={-Math.PI/2} position-y={0.03} visible={false}><meshBasicMaterial color={LOOK.capsule.hole}/></mesh>
+      <mesh ref={mound} geometry={moundGeo} visible={false} receiveShadow><primitive object={soft(LOOK.capsule.soil)} attach="material"/></mesh>
+      <Puff at={t0+len*BURY.drop}/><Puff at={t0+len*(BURY.cover-0.06)}/></>}
+    {kind==='dig'&&<Puff at={t0}/>}
   </>;
 }

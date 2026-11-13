@@ -4,7 +4,7 @@
 // to recapture or edit. The rules are app/core/portfolio.ts; reading the picture is app/content/portfolio.ts (mock now).
 // Nothing here buys or sells: removing a tree only takes it out of the garden.
 import {useRef,useState} from 'react';
-import {Camera,Plus,Trash2} from 'lucide-react';
+import {Lens,Plus,Strike} from './Icons';
 import {drafts,applyDrafts,freePlots,blankDraft,HELD,type Draft,type HeldId} from '../../core/portfolio';
 import {portfolioReader,kindOf} from '../../content/portfolio';
 import {GARDEN_PLOTS} from '../../content/demo-garden';
@@ -47,7 +47,7 @@ export function Onboarding({g,onClose,onPlanted,onDemo}:{g:G;onClose:()=>void;on
     <p className="rt-hint">종목 하나가 나무 하나야. 분석가 셋이 그 나무들에서 손실 신호를 찾아.</p>
     <div className="rt-pick">
       <button type="button" className="rt-pick-card" disabled={reading} onClick={()=>file.current?.click()}>
-        <Camera size={20}/><strong>{reading?'읽는 중':'캡처 올리기'}</strong><small>증권 앱 보유 종목 화면. 이 기기 밖으로 안 나가.</small></button>
+        <Lens size={20}/><strong>{reading?'읽는 중':'캡처 올리기'}</strong><small>증권 앱 보유 종목 화면. 이 기기 밖으로 안 나가.</small></button>
       <button type="button" className="rt-pick-card" onClick={()=>setRows([blankDraft()])}>
         <Plus size={20}/><strong>직접 입력</strong><small>이름과 수익률만 있으면 돼.</small></button>
     </div>
@@ -62,7 +62,7 @@ export function Onboarding({g,onClose,onPlanted,onDemo}:{g:G;onClose:()=>void;on
       <div className="rt-draft-top">
         <input className="rt-input" value={r.name} placeholder="종목 이름" maxLength={20} aria-label={`${i+1}번 종목 이름`} disabled={!r.keep||r.existing!==null} onChange={e=>edit(i,{name:e.target.value})}/>
         <button type="button" className="rt-icon-btn" aria-label={r.keep?`${r.name||i+1+'번'} 빼기`:`${r.name} 되돌리기`} onClick={()=>edit(i,{keep:!r.keep})}>
-          {r.keep?<Trash2 size={16}/>:'되돌리기'}</button></div>
+          {r.keep?<Strike size={16}/>:'되돌리기'}</button></div>
       {r.keep&&<div className="rt-draft-bottom">
         <label>수익률<input className="rt-input rt-num" type="number" step="0.1" inputMode="decimal" value={Number.isFinite(r.rate)?r.rate:''} aria-label={`${r.name||i+1+'번'} 수익률`}
           onChange={e=>edit(i,{rate:e.target.value===''?0:Number(e.target.value)})}/>%</label>
@@ -72,7 +72,7 @@ export function Onboarding({g,onClose,onPlanted,onDemo}:{g:G;onClose:()=>void;on
     </li>)}</ul>
     <div style={{display:'flex',gap:8,marginTop:10}}>
       <button type="button" className="rt-btn" onClick={()=>setRows(rs=>[...rs!,blankDraft()])}><Plus size={16}/>종목 추가</button>
-      <button type="button" className="rt-btn" disabled={reading} onClick={()=>file.current?.click()}><Camera size={16}/>{reading?'읽는 중':'캡처 다시'}</button>
+      <button type="button" className="rt-btn" disabled={reading} onClick={()=>file.current?.click()}><Lens size={16}/>{reading?'읽는 중':'캡처 다시'}</button>
     </div>
     {missing.length>0&&<><div className="rt-section" style={{marginTop:18}}>캡처에 없는 나무</div>
       {missing.map(m=><label key={m.id} className="rt-row" style={{cursor:'pointer'}}>

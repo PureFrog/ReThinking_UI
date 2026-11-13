@@ -45,7 +45,8 @@ test("a new player lands on an empty garden and types two holdings in", async ({
   await expect.poll(() => treeCount(page), { timeout: 30_000 }).toBe(2);
   // the long version plays to the end on its own (W1, under 8 seconds), then the look-back opens
   await expect.poll(async () => (await births(page))?.long, { timeout: 5_000 }).toBe(true);
-  await expect(page.getByRole("navigation", { name: "메뉴" })).toBeHidden();
+  // the menus stay out of the way while it plays (a slow first run may already be past it)
+  if ((await births(page))?.active) await expect(page.getByRole("navigation", { name: "메뉴" })).toBeHidden();
 
   // the first grade opens at once: a signal put 30 days back, judged as then, then its 30-day result
   const look = page.getByRole("dialog", { name: "되돌아보기" });

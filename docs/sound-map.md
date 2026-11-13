@@ -194,5 +194,6 @@
 | `cutaway-open` | 땅 속(뿌리 단면)이 열릴 때 | 흙 긁는 소리(`dig`) | `proto3d/Proto3D.tsx` 뿌리 단면 |
 | `cutaway-close` | 땅이 다시 덮일 때 | 닫기(`close`) | `proto3d/Proto3D.tsx` 뿌리 단면 |
 | `capsule-bury` | 판단 메모가 캡슐에 담겨 나무 밑에 묻힐 때 | 눌러 묻는 소리(`bury`) | `proto3d/Proto3D.tsx` 타임캡슐 |
+| `capsule-mark` | 묻은 자리에 표식 핀이 박힐 때 | 낮은 쿵(`thud`) | `proto3d/Proto3D.tsx` 타임캡슐 |
 | `capsule-dig` | 판정일에 캡슐을 파낼 때 | 흙 긁는 소리(`dig`) | `proto3d/Proto3D.tsx` 타임캡슐 |
 | `capsule-open` | 캡슐 뚜껑이 열리고 메모가 보일 때 | 유리 울림(`glass`) | `proto3d/Proto3D.tsx` 타임캡슐 |

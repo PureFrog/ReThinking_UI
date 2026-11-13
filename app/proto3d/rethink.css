@@ -479,6 +479,20 @@ button.rt-row:hover{filter:none;background:#16211b05}
 /* every press feels like pressing paper: it sinks a hair and its shadow goes (not the things placed by transform) */
 .proto3d :is(.rt-seg button,.rt-conf button,.rt-dock button,button.rt-row,.rt-today,.rt-sound,.rt-icon-btn,.rt-close,.proto3d-locate,.rt-tabs button){transition:transform .06s ease-out}
 .proto3d :is(.rt-seg button,.rt-conf button,.rt-dock button,button.rt-row,.rt-today,.rt-sound,.rt-icon-btn,.rt-close,.proto3d-locate,.rt-tabs button):active{transform:translateY(1px)}
-/* icons: the stock set drawn thinner, with soft ends, like a fine pen */
-.proto3d svg.lucide{stroke-width:1.4}
+/* icons: drawn for the garden (ui/Icons.tsx), a fine pen line */
+.proto3d svg.rt-icon{flex:none}
 @media(prefers-reduced-motion:reduce){.proto3d :is(.rt-btn,.rt-seg button,.rt-conf button,.rt-dock button,button.rt-row,.rt-pick-card):active{transform:none}}
+/* W4 the share card's preview (ui/Share.tsx) */
+.rt-share-preview{display:grid;place-items:center;background:#2a26200d;border:1px solid var(--rt-rule);padding:10px}
+.rt-share-preview img{display:block;max-width:100%;max-height:min(52dvh,560px);box-shadow:0 6px 18px #2a262033}
+@media(orientation:landscape) and (max-height:520px){.rt-share-preview img{max-height:60dvh}}
+/* W5 the timelapse strip (ui/Timelapse.tsx): a ruler along the bottom of the notebook */
+.rt-lapse{position:absolute;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:10;max-width:560px;margin:0 auto;padding:12px 14px 10px;
+  background:var(--rt-paper);border:1px solid var(--rt-rule);border-radius:2px;box-shadow:var(--rt-shadow)}
+.rt-lapse-head{display:flex;align-items:center;gap:8px}
+.rt-lapse-head>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.rt-lapse-head strong{font-family:'Gowun Batang',serif;font-size:16px}
+.rt-lapse-head .rt-btn{min-height:36px;padding:0 14px;font-size:13px}
+.rt-lapse-range{width:100%;margin:12px 0 2px;accent-color:var(--rt-ink);height:24px}
+.rt-lapse-scale{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--rt-mute);
+  background:linear-gradient(90deg,var(--rt-rule) 1px,transparent 1px) 0 0/calc(100% / 12) 5px repeat-x;padding-top:6px}

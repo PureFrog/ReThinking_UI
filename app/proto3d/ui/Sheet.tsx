@@ -1,7 +1,7 @@
 'use client';
 // The one panel shape every feature opens in: right side on desktop, bottom sheet on phones (rethink.css .rt-sheet).
 import {useEffect,useRef,type ReactNode} from 'react';
-import {X} from 'lucide-react';
+import {Cross} from './Icons';
 import {cue} from '../../core/sound';
 // compact: a short sheet that leaves most of the garden in view (the root cut-away, the capsule)
 export function Sheet({kicker,title,onClose,children,foot,label,compact}:{kicker:string;title:string;onClose:()=>void;children:ReactNode;foot?:ReactNode;label?:string;compact?:boolean}){
@@ -11,7 +11,7 @@ export function Sheet({kicker,title,onClose,children,foot,label,compact}:{kicker
   return <section ref={ref} tabIndex={-1} role="dialog" aria-label={label??title} className={`rt-sheet${compact?" compact":""}`} onPointerDown={e=>e.stopPropagation()}>
     <header className="rt-sheet-head">
       <div><div className="rt-kicker">{kicker}</div><h2>{title}</h2></div>
-      <button type="button" className="rt-close" aria-label="닫기" onClick={onClose}><X size={20}/></button>
+      <button type="button" className="rt-close" aria-label="닫기" onClick={onClose}><Cross size={20}/></button>
     </header>
     <div className="rt-sheet-body">{children}</div>
     {foot&&<footer className="rt-sheet-foot">{foot}</footer>}

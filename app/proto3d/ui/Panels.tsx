@@ -6,7 +6,7 @@ import {nextGrade,type TodayTask,type TaskId} from '../../core/today';
 import {rankOf,xpOf} from '../../core/rank';
 import {recallOf} from '../../core/recall';
 import {useEffect,useState} from 'react';
-import {Lock} from 'lucide-react';
+import {Lock} from './Icons';
 import {trackOf,CHOICE_LABEL,shiftDay,daysBetween,MARKS} from '../../core/judgment';
 import {impulseOf} from '../../core/cooldown';
 import {weekPoints,TIERS,tierOf} from '../../core/league';
@@ -26,12 +26,14 @@ type G=ReturnType<typeof useGarden>;
 
 const SLOT_LABEL:Record<string,string>={'door-l':'현관 왼쪽','door-r':'현관 오른쪽',fire:'모닥불 옆',pond:'연못 가',path:'뒷길',field:'풀밭'};
 
-export function Records({g,onClose,onHoldings}:{g:G;onClose:()=>void;onHoldings:()=>void}){
+// onLapse: the garden's year as a timelapse (W5)
+export function Records({g,onClose,onHoldings,onLapse}:{g:G;onClose:()=>void;onHoldings:()=>void;onLapse?:()=>void}){
   const [tab,setTab]=useState<'stats'|'list'|'cases'>('stats');
   const t=trackOf(g.s.judgments,g.s.graded),rw=rewindTrack(g.s.rewinds),rk=rankOf(xpOf({graded:g.s.graded.length,cases:g.s.cases.length,rewinds:g.s.rewinds.length})),imp=impulseOf(g.s.cooldowns),week=weekPoints(g.s.graded,g.s.cases,g.clock.today);
   const solved=g.s.cases.map(a=>({a,c:CASES.find(c=>c.id===a.caseId)})).filter(x=>x.c);
   return <Sheet kicker="트랙 레코드" title="내 판단의 질" onClose={onClose}
-    foot={<button type="button" className="rt-btn wide" onClick={onHoldings}>내 종목 고치기 · {g.s.holdings.length}종목</button>}>
+    foot={<><button type="button" className="rt-btn wide" onClick={onHoldings}>내 종목 고치기 · {g.s.holdings.length}종목</button>
+      {onLapse&&<button type="button" className="rt-btn" onClick={onLapse}>정원 타임랩스</button>}</>}>
     <div className="rt-tabs" role="tablist">{([['stats','스탯'],['list','판단'],['cases','케이스 도감']] as const).map(([k,l])=>
       <button key={k} type="button" role="tab" aria-selected={tab===k} onClick={()=>setTab(k)}>{l}</button>)}</div>
     {tab==='stats'&&<><div className="rt-grid">

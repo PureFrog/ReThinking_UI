@@ -2,7 +2,7 @@
 // The core loop on screen (redesign 4장): the research note and the judgment, luon's counter-argument, the grade
 // reveal, and today's case. All rules are in app/core; these only show them and call the actions in state.ts.
 import {useEffect,useMemo,useState} from 'react';
-import {Lightbulb} from 'lucide-react';
+import {Bulb} from './Icons';
 import {CHOICES,CHOICE_LABEL,REASON_MAX,LOOKBACK,canRecord,shiftDay,type Choice,type Confidence,type Judgment,type Graded,type Mark} from '../../core/judgment';
 import {CASE,answerCase,type PastCase,type CaseAnswer} from '../../core/cases';
 import {DEEP_AT,TRUST_LABEL,EARN} from '../../core/ledger';
@@ -18,6 +18,8 @@ import {TIMING} from '../../core/timing';
 import {cue} from '../../core/sound';
 import {Sheet,Face,Said,pct,Num} from './Sheet';
 import {Pack} from './Capsules';
+import {ShareSheet} from './Share';
+import {shareCard} from '../../core/share';
 import type {useGarden} from '../state';
 type G=ReturnType<typeof useGarden>;
 
@@ -127,9 +129,11 @@ function useReveal(key:string,onStamp:()=>void,hit:boolean){
   useEffect(()=>{if(!stamped)return;cue('grade-stamp');cue(hit?'grade-hit':'grade-miss');onStamp()},[stamped,key]);// eslint-disable-line react-hooks/exhaustive-deps
   return {ms,phase,skip:()=>setMs(REVEAL_TOTAL)};
 }
+// luon's line on a grade (the reveal and the share card say the same)
+const verdictOf=(j:Judgment,gr:Graded,mark:Mark)=>{const sure=j.confidence>=4;return say(gr.hit?(sure?LINES.gradeHitSure:LINES.gradeHitUnsure):(sure?LINES.gradeMissSure:LINES.gradeMissUnsure),j.id+mark,{c:j.confidence})};
 function Reveal({j,mark,gr,onStamp,children,then}:{j:Judgment;mark:Mark;gr:Graded;onStamp:()=>void;children:(done:boolean)=>React.ReactNode;then?:string}){
   const {ms,phase,skip}=useReveal(j.id+mark,onStamp,gr.hit),a=j.analyst?analystById(j.analyst):null,sure=j.confidence>=4,done=phase==='done';
-  const verdict=say(gr.hit?(sure?LINES.gradeHitSure:LINES.gradeHitUnsure):(sure?LINES.gradeMissSure:LINES.gradeMissUnsure),j.id+mark,{c:j.confidence});
+  const verdict=verdictOf(j,gr,mark);
   const shown=phase==='count'?revealValue(gr.after,ms):gr.after;
   return <>
     <div className="rt-verdict" data-phase={phase} onClick={done?undefined:skip}>
@@ -153,7 +157,7 @@ function Reveal({j,mark,gr,onStamp,children,then}:{j:Judgment;mark:Mark;gr:Grade
 }
 // start: the judgment whose capsule was tapped (W3) · onDig: its capsule comes up out of the ground while the memo shows
 export function Grades({g,onClose,onStamp,onFocus,onRewind,start,onDig}:{g:G;onClose:()=>void;onStamp?:(holdingId:number,hit:boolean)=>void;onFocus?:(holdingId:number|null)=>void;onRewind?:()=>void;start?:string;onDig?:(holdingId:number)=>void}){
-  const [shown,setShown]=useState<{j:Judgment;mark:Mark;gr:Graded}|null>(null);
+  const [shown,setShown]=useState<{j:Judgment;mark:Mark;gr:Graded}|null>(null),[sharing,setSharing]=useState(false);
   const next=(start&&g.due.find(d=>d.judgment.id===start))||g.due[0];
   const buried=!!next&&g.s.holdings.some(h=>h.id===next.judgment.holdingId);
   useEffect(()=>{if(!shown&&next&&buried)onDig?.(next.judgment.holdingId)},[shown,next?.judgment.id,next?.mark]);// eslint-disable-line react-hooks/exhaustive-deps
@@ -169,9 +173,13 @@ export function Grades({g,onClose,onStamp,onFocus,onRewind,start,onDig}:{g:G;onC
     <button type="button" className="rt-btn primary" style={{width:'100%',marginTop:16}} onClick={()=>setShown({j:d.judgment,mark:d.mark,gr:g.ops.openGrade(d.judgment,d.mark)})}>결과 열기</button>
   </Sheet>}
   const {j,mark,gr}=shown;
+  // W4: the grade as a picture to show someone (ui/Share.tsx)
+  if(sharing)return <ShareSheet card={shareCard(j,gr,verdictOf(j,gr,mark),'루온')} onClose={()=>setSharing(false)}/>;
   return <Sheet kicker={`${mark}일 판정 · ${j.name}`} title={`${j.name} · ${mark}일 판정`} onClose={onClose} label="판정 결과">
     <Reveal key={j.id+mark} j={j} mark={mark} gr={gr} onStamp={()=>onStamp?.(j.holdingId,gr.hit)}>
-      {done=>done&&<button type="button" className="rt-btn primary rt-fade" style={{width:'100%',marginTop:18}} onClick={()=>g.due.length?setShown(null):onClose()}>{g.due.length?`다음 판정 (${g.due.length})`:'닫기'}</button>}
+      {done=>done&&<div className="rt-fade" style={{display:'flex',gap:8,marginTop:18}}>
+        <button type="button" className="rt-btn primary wide" onClick={()=>g.due.length?setShown(null):onClose()}>{g.due.length?`다음 판정 (${g.due.length})`:'닫기'}</button>
+        <button type="button" className="rt-btn" onClick={()=>setSharing(true)}>공유 카드</button></div>}
     </Reveal>
   </Sheet>;
 }
@@ -195,7 +203,7 @@ export function CaseView({g,c,onClose}:{g:G;c:PastCase;onClose:()=>void}){
       {c.choices.map(ch=><button key={ch.id} type="button" disabled={!!ans} aria-pressed={ans?.choice===ch.id}
         style={ans&&ch.id===c.answer?{borderColor:'var(--rt-accent)',color:'var(--rt-accent)'}:undefined} onClick={()=>answer(ch.id)}>{ch.label}</button>)}
     </div>
-    {!ans&&!hint&&<button type="button" className="rt-btn ghost" style={{marginTop:8}} onClick={()=>setHint(true)}><Lightbulb size={16}/>모델 카드 힌트 (점수 {CASE.hintPoints})</button>}
+    {!ans&&!hint&&<button type="button" className="rt-btn ghost" style={{marginTop:8}} onClick={()=>setHint(true)}><Bulb size={16}/>모델 카드 힌트 (점수 {CASE.hintPoints})</button>}
     {ans&&<div className="rt-reveal" role="status">
       <small>{c.reveal.name} · {c.reveal.year}</small>
       <strong>{ans.correct?line(UI.caseRight,{model:first.name}):ans.choice?line(UI.caseWrong,{model:first.name}):UI.caseTimeout}</strong>
