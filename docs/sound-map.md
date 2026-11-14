@@ -197,3 +197,16 @@
 | `capsule-mark` | 묻은 자리에 표식 핀이 박힐 때 | 낮은 쿵(`thud`) | `proto3d/Proto3D.tsx` 타임캡슐 |
 | `capsule-dig` | 판정일에 캡슐을 파낼 때 | 흙 긁는 소리(`dig`) | `proto3d/Proto3D.tsx` 타임캡슐 |
 | `capsule-open` | 캡슐 뚜껑이 열리고 메모가 보일 때 | 유리 울림(`glass`) | `proto3d/Proto3D.tsx` 타임캡슐 |
+| `game-open` | 관측소 원정이 열릴 때 | 문(`door`) | `proto3d/game/` 관측소 원정 |
+| `game-halt` | 급락·실적 날에 시간이 멈출 때 | 둔탁음(`thud`) | `proto3d/game/` 관측소 원정 |
+| `game-read` | 분석가 한 줄과 차트 주석이 들어올 때 | 유리 울림(`glass`) | `proto3d/game/` 관측소 원정 |
+| `game-chip` | 확신 칩을 올릴 때 | 클릭(`click`) | `proto3d/game/` 관측소 원정 |
+| `game-stamp` | 결정 도장이 찍힐 때 | 도장(`stamp`) | `proto3d/game/` 관측소 원정 |
+| `game-tear` | 정리한 회사 카드가 찢어질 때 | 포장 풀기(`unwrap`) | `proto3d/game/` 관측소 원정 |
+| `game-deal` | 새 회사 카드가 뒤집혀 들어올 때 | 줍기(`pickup`) | `proto3d/game/` 관측소 원정 |
+| `game-fill` | 다음 날 시가에 체결될 때 | 틱(`tick`) | `proto3d/game/` 관측소 원정 |
+| `game-pin` | 뉴스에 핀을 꽂을 때 | 탭(`tap`) | `proto3d/game/` 관측소 원정 |
+| `game-reveal` | 공개: 연도 도장이 찍힐 때 | 화음(`chord`) | `proto3d/game/` 관측소 원정 |
+| `game-hit` | 공개: 적중 카드 | 적중음(`reveal-hit`) | `proto3d/game/` 관측소 원정 |
+| `game-miss` | 공개: 빗나감 카드 | 빗나감음(`reveal-miss`) | `proto3d/game/` 관측소 원정 |
+| `game-count` | 공개: 점수가 올라갈 때 | 틱(`tick`) | `proto3d/game/` 관측소 원정 |

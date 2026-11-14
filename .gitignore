@@ -58,3 +58,9 @@ yarn-error.log*
 # unit-test scratch folders left by an interrupted run
 /.foundation-test-*/
 /.vitality-test-*/
+
+# teammate prototypes (own git / secrets)
+sonjeol-game/
+__MACOSX/
+.DS_Store
+INVEST_GAME/

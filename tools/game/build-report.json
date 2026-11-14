@@ -1,0 +1,749 @@
+{
+ "built": "2026-11-13T17:00:44.740Z",
+ "source": "investment-evidence-system",
+ "rules": {
+  "PRE": 60,
+  "PLAY": 60,
+  "EPI": 20,
+  "HORIZON": 20,
+  "TIE_PP": 2,
+  "HELD": 4,
+  "RESERVE": 2
+ },
+ "candidates": 189,
+ "newsDropped": {
+  "제목 규칙": 3920,
+  "회사 언급 부족": 8059,
+  "마감 뒤 수정": 645,
+  "기사 없음": 1148
+ },
+ "packs": [
+  {
+   "id": "b796be2c",
+   "from": "2015-12-28",
+   "to": "2016-03-28",
+   "regime": "박스권",
+   "index": 3.8,
+   "held": [
+    "대한광통신",
+    "루미마이크로",
+    "윈팩",
+    "네이블"
+   ],
+   "reserve": [
+    "신성델타테크",
+    "비에이치아이"
+   ],
+   "decisions": [
+    {
+     "d": "2016-01-26",
+     "kind": "crash",
+     "company": "루미마이크로",
+     "verdict": "가치훼손",
+     "hold20": 2.4,
+     "better": "keep"
+    },
+    {
+     "d": "2016-01-13",
+     "kind": "crash",
+     "company": "윈팩",
+     "verdict": "판단보류",
+     "hold20": 59.9,
+     "better": "keep"
+    },
+    {
+     "d": "2016-02-19",
+     "kind": "crash",
+     "company": "윈팩",
+     "verdict": "비가치",
+     "hold20": 22.1,
+     "better": "keep"
+    },
+    {
+     "d": "2016-03-22",
+     "kind": "crash",
+     "company": "윈팩",
+     "verdict": "판단보류",
+     "hold20": -18.8,
+     "better": "cut"
+    },
+    {
+     "d": "2016-03-28",
+     "kind": "earnings",
+     "company": "네이블",
+     "hold20": 0.5,
+     "better": "tie"
+    }
+   ],
+   "news": 115,
+   "kb": 60
+  },
+  {
+   "id": "61ae53b4",
+   "from": "2016-03-29",
+   "to": "2016-06-24",
+   "regime": "하락장",
+   "index": -5.7,
+   "held": [
+    "진성티이씨",
+    "지엔코",
+    "신성델타테크",
+    "루미마이크로"
+   ],
+   "reserve": [
+    "미코",
+    "윈팩"
+   ],
+   "decisions": [
+    {
+     "d": "2016-05-09",
+     "kind": "crash",
+     "company": "진성티이씨",
+     "verdict": "판단보류",
+     "hold20": -5.5,
+     "better": "cut"
+    },
+    {
+     "d": "2016-04-20",
+     "kind": "crash",
+     "company": "지엔코",
+     "verdict": "가치훼손",
+     "hold20": 34.2,
+     "better": "keep"
+    },
+    {
+     "d": "2016-05-25",
+     "kind": "crash",
+     "company": "지엔코",
+     "verdict": "비가치",
+     "hold20": 20.2,
+     "better": "keep"
+    },
+    {
+     "d": "2016-05-23",
+     "kind": "earnings",
+     "company": "신성델타테크",
+     "hold20": -3.9,
+     "better": "cut"
+    },
+    {
+     "d": "2016-06-09",
+     "kind": "crash",
+     "company": "루미마이크로",
+     "verdict": "판단보류",
+     "hold20": 0,
+     "better": "tie"
+    }
+   ],
+   "news": 107,
+   "kb": 59
+  },
+  {
+   "id": "05fb33fa",
+   "from": "2016-09-06",
+   "to": "2016-12-02",
+   "regime": "하락장",
+   "index": -13.6,
+   "held": [
+    "진성티이씨",
+    "우전",
+    "현진소재",
+    "빅솔론"
+   ],
+   "reserve": [
+    "유비케어",
+    "지엔코"
+   ],
+   "decisions": [
+    {
+     "d": "2016-11-28",
+     "kind": "crash",
+     "company": "진성티이씨",
+     "verdict": "비가치",
+     "hold20": 6.6,
+     "better": "keep"
+    },
+    {
+     "d": "2016-11-23",
+     "kind": "crash",
+     "company": "우전",
+     "verdict": "가치훼손",
+     "hold20": -6.5,
+     "better": "cut"
+    },
+    {
+     "d": "2016-11-09",
+     "kind": "crash",
+     "company": "현진소재",
+     "verdict": "판단보류",
+     "hold20": -0.4,
+     "better": "tie"
+    },
+    {
+     "d": "2016-10-21",
+     "kind": "crash",
+     "company": "빅솔론",
+     "verdict": "비가치",
+     "hold20": -3,
+     "better": "cut"
+    },
+    {
+     "d": "2016-12-01",
+     "kind": "crash",
+     "company": "빅솔론",
+     "verdict": "판단보류",
+     "hold20": 4.9,
+     "better": "keep"
+    }
+   ],
+   "news": 117,
+   "kb": 61
+  },
+  {
+   "id": "bdadb28b",
+   "from": "2017-01-03",
+   "to": "2017-03-30",
+   "regime": "박스권",
+   "index": -3.4,
+   "held": [
+    "대한광통신",
+    "유비케어",
+    "엠피씨",
+    "대창솔루션"
+   ],
+   "reserve": [
+    "진성티이씨",
+    "미코"
+   ],
+   "decisions": [
+    {
+     "d": "2017-01-13",
+     "kind": "crash",
+     "company": "엠피씨",
+     "verdict": "비가치",
+     "hold20": -10.7,
+     "better": "cut"
+    },
+    {
+     "d": "2017-03-22",
+     "kind": "crash",
+     "company": "엠피씨",
+     "verdict": "가치훼손",
+     "hold20": 10.7,
+     "better": "keep"
+    },
+    {
+     "d": "2017-03-02",
+     "kind": "crash",
+     "company": "대창솔루션",
+     "verdict": "가치훼손",
+     "hold20": 35.8,
+     "better": "keep"
+    },
+    {
+     "d": "2017-03-17",
+     "kind": "crash",
+     "company": "대창솔루션",
+     "verdict": "판단보류",
+     "hold20": 1.7,
+     "better": "tie"
+    },
+    {
+     "d": "2017-03-30",
+     "kind": "earnings",
+     "company": "대창솔루션",
+     "hold20": -29.1,
+     "better": "cut"
+    }
+   ],
+   "news": 159,
+   "kb": 68
+  },
+  {
+   "id": "c305dc6d",
+   "from": "2017-04-21",
+   "to": "2017-07-20",
+   "regime": "상승장",
+   "index": 6.5,
+   "held": [
+    "대한광통신",
+    "한국코퍼레이션",
+    "신성델타테크",
+    "네이블"
+   ],
+   "reserve": [
+    "서린바이오",
+    "메타바이오메드"
+   ],
+   "decisions": [
+    {
+     "d": "2017-05-24",
+     "kind": "earnings",
+     "company": "한국코퍼레이션",
+     "hold20": -2.5,
+     "better": "cut"
+    },
+    {
+     "d": "2017-06-16",
+     "kind": "crash",
+     "company": "신성델타테크",
+     "verdict": "비가치",
+     "hold20": -5,
+     "better": "cut"
+    },
+    {
+     "d": "2017-07-14",
+     "kind": "crash",
+     "company": "신성델타테크",
+     "verdict": "판단보류",
+     "hold20": 15.1,
+     "better": "keep"
+    },
+    {
+     "d": "2017-05-22",
+     "kind": "crash",
+     "company": "네이블",
+     "verdict": "판단보류",
+     "hold20": 1.6,
+     "better": "tie"
+    },
+    {
+     "d": "2017-07-14",
+     "kind": "crash",
+     "company": "네이블",
+     "verdict": "판단보류",
+     "hold20": 0.2,
+     "better": "tie"
+    }
+   ],
+   "news": 82,
+   "kb": 55
+  },
+  {
+   "id": "08b8c477",
+   "from": "2017-07-21",
+   "to": "2017-10-23",
+   "regime": "박스권",
+   "index": -0.1,
+   "held": [
+    "대한광통신",
+    "유비케어",
+    "진성티이씨",
+    "한국코퍼레이션"
+   ],
+   "reserve": [
+    "서린바이오",
+    "미코"
+   ],
+   "decisions": [
+    {
+     "d": "2017-08-17",
+     "kind": "crash",
+     "company": "대한광통신",
+     "verdict": "가치훼손",
+     "hold20": 17.1,
+     "better": "keep"
+    },
+    {
+     "d": "2017-09-12",
+     "kind": "crash",
+     "company": "대한광통신",
+     "verdict": "판단보류",
+     "hold20": -16.2,
+     "better": "cut"
+    },
+    {
+     "d": "2017-08-08",
+     "kind": "crash",
+     "company": "유비케어",
+     "verdict": "비가치",
+     "hold20": 13.6,
+     "better": "keep"
+    },
+    {
+     "d": "2017-09-19",
+     "kind": "crash",
+     "company": "유비케어",
+     "verdict": "판단보류",
+     "hold20": -6.7,
+     "better": "cut"
+    },
+    {
+     "d": "2017-10-18",
+     "kind": "crash",
+     "company": "유비케어",
+     "verdict": "가치훼손",
+     "hold20": 1.1,
+     "better": "tie"
+    }
+   ],
+   "news": 124,
+   "kb": 63
+  },
+  {
+   "id": "157d0e54",
+   "from": "2018-01-12",
+   "to": "2018-04-10",
+   "regime": "박스권",
+   "index": 0.5,
+   "held": [
+    "한국코퍼레이션",
+    "지엔코",
+    "루미마이크로",
+    "켐트로닉스"
+   ],
+   "reserve": [
+    "유비케어",
+    "메타바이오메드"
+   ],
+   "decisions": [
+    {
+     "d": "2018-03-27",
+     "kind": "crash",
+     "company": "한국코퍼레이션",
+     "verdict": "비가치",
+     "hold20": 3.2,
+     "better": "keep"
+    },
+    {
+     "d": "2018-04-02",
+     "kind": "earnings",
+     "company": "루미마이크로",
+     "hold20": -15.4,
+     "better": "cut"
+    },
+    {
+     "d": "2018-02-27",
+     "kind": "crash",
+     "company": "켐트로닉스",
+     "verdict": "가치훼손",
+     "hold20": -1.9,
+     "better": "tie"
+    },
+    {
+     "d": "2018-04-02",
+     "kind": "crash",
+     "company": "켐트로닉스",
+     "verdict": "판단보류",
+     "hold20": 5.8,
+     "better": "keep"
+    },
+    {
+     "d": "2018-03-30",
+     "kind": "earnings",
+     "company": "켐트로닉스",
+     "hold20": -3.6,
+     "better": "cut"
+    }
+   ],
+   "news": 137,
+   "kb": 65
+  },
+  {
+   "id": "ffa6e004",
+   "from": "2018-04-25",
+   "to": "2018-07-24",
+   "regime": "하락장",
+   "index": -12.5,
+   "held": [
+    "유비케어",
+    "서린바이오",
+    "한국코퍼레이션",
+    "현진소재"
+   ],
+   "reserve": [
+    "네이블",
+    "미코"
+   ],
+   "decisions": [
+    {
+     "d": "2018-06-19",
+     "kind": "crash",
+     "company": "서린바이오",
+     "verdict": "판단보류",
+     "hold20": 8.4,
+     "better": "keep"
+    },
+    {
+     "d": "2018-07-04",
+     "kind": "crash",
+     "company": "한국코퍼레이션",
+     "verdict": "비가치",
+     "hold20": -12.7,
+     "better": "cut"
+    },
+    {
+     "d": "2018-07-20",
+     "kind": "crash",
+     "company": "한국코퍼레이션",
+     "verdict": "가치훼손",
+     "hold20": 2.1,
+     "better": "keep"
+    },
+    {
+     "d": "2018-06-27",
+     "kind": "earnings",
+     "company": "한국코퍼레이션",
+     "hold20": -23.9,
+     "better": "cut"
+    },
+    {
+     "d": "2018-06-14",
+     "kind": "earnings",
+     "company": "현진소재",
+     "hold20": -13.1,
+     "better": "cut"
+    }
+   ],
+   "news": 121,
+   "kb": 62
+  },
+  {
+   "id": "0974b792",
+   "from": "2018-08-01",
+   "to": "2018-10-31",
+   "regime": "하락장",
+   "index": -17.9,
+   "held": [
+    "대한광통신",
+    "한국코퍼레이션",
+    "메타바이오메드",
+    "네이블"
+   ],
+   "reserve": [
+    "지엔코",
+    "DMS"
+   ],
+   "decisions": [
+    {
+     "d": "2018-10-01",
+     "kind": "crash",
+     "company": "한국코퍼레이션",
+     "verdict": "가치훼손",
+     "hold20": -14.4,
+     "better": "cut"
+    },
+    {
+     "d": "2018-10-30",
+     "kind": "crash",
+     "company": "한국코퍼레이션",
+     "verdict": "판단보류",
+     "hold20": 26.4,
+     "better": "keep"
+    },
+    {
+     "d": "2018-10-25",
+     "kind": "crash",
+     "company": "메타바이오메드",
+     "verdict": "판단보류",
+     "hold20": -0.8,
+     "better": "tie"
+    },
+    {
+     "d": "2018-09-14",
+     "kind": "crash",
+     "company": "네이블",
+     "verdict": "비가치",
+     "hold20": -22.4,
+     "better": "cut"
+    },
+    {
+     "d": "2018-10-29",
+     "kind": "crash",
+     "company": "네이블",
+     "verdict": "판단보류",
+     "hold20": 36.9,
+     "better": "keep"
+    }
+   ],
+   "news": 106,
+   "kb": 60
+  },
+  {
+   "id": "098d0e28",
+   "from": "2018-11-01",
+   "to": "2019-01-28",
+   "regime": "상승장",
+   "index": 8.6,
+   "held": [
+    "현진소재",
+    "미코",
+    "메타바이오메드",
+    "네이블"
+   ],
+   "reserve": [
+    "신성델타테크",
+    "빅솔론"
+   ],
+   "decisions": [
+    {
+     "d": "2018-11-21",
+     "kind": "crash",
+     "company": "현진소재",
+     "verdict": "가치훼손",
+     "hold20": -33.7,
+     "better": "cut"
+    },
+    {
+     "d": "2018-12-19",
+     "kind": "crash",
+     "company": "현진소재",
+     "verdict": "가치훼손",
+     "hold20": -18.6,
+     "better": "cut"
+    },
+    {
+     "d": "2018-12-21",
+     "kind": "crash",
+     "company": "미코",
+     "verdict": "판단보류",
+     "hold20": 78.2,
+     "better": "keep"
+    },
+    {
+     "d": "2018-12-18",
+     "kind": "crash",
+     "company": "메타바이오메드",
+     "verdict": "판단보류",
+     "hold20": 8.4,
+     "better": "keep"
+    },
+    {
+     "d": "2018-12-18",
+     "kind": "crash",
+     "company": "네이블",
+     "verdict": "판단보류",
+     "hold20": -1.5,
+     "better": "tie"
+    }
+   ],
+   "news": 118,
+   "kb": 61
+  },
+  {
+   "id": "e7689efa",
+   "from": "2019-03-25",
+   "to": "2019-06-19",
+   "regime": "박스권",
+   "index": -1.3,
+   "held": [
+    "대한광통신",
+    "루미마이크로",
+    "빅솔론",
+    "대창솔루션"
+   ],
+   "reserve": [
+    "유비케어",
+    "메타바이오메드"
+   ],
+   "decisions": [
+    {
+     "d": "2019-04-01",
+     "kind": "earnings",
+     "company": "대한광통신",
+     "hold20": 5.7,
+     "better": "keep"
+    },
+    {
+     "d": "2019-06-10",
+     "kind": "crash",
+     "company": "루미마이크로",
+     "verdict": "비가치",
+     "hold20": 12.6,
+     "better": "keep"
+    },
+    {
+     "d": "2019-05-09",
+     "kind": "crash",
+     "company": "빅솔론",
+     "verdict": "가치훼손",
+     "hold20": -1.4,
+     "better": "tie"
+    },
+    {
+     "d": "2019-06-17",
+     "kind": "crash",
+     "company": "대창솔루션",
+     "verdict": "판단보류",
+     "hold20": -22.6,
+     "better": "cut"
+    },
+    {
+     "d": "2019-04-01",
+     "kind": "earnings",
+     "company": "대창솔루션",
+     "hold20": -6,
+     "better": "cut"
+    }
+   ],
+   "news": 99,
+   "kb": 59
+  },
+  {
+   "id": "8e926c58",
+   "from": "2019-08-23",
+   "to": "2019-11-20",
+   "regime": "상승장",
+   "index": 6.7,
+   "held": [
+    "유비케어",
+    "현진소재",
+    "켐트로닉스",
+    "빅솔론"
+   ],
+   "reserve": [
+    "대한광통신",
+    "한국코퍼레이션"
+   ],
+   "decisions": [
+    {
+     "d": "2019-11-08",
+     "kind": "crash",
+     "company": "유비케어",
+     "verdict": "가치훼손",
+     "hold20": 0.4,
+     "better": "tie"
+    },
+    {
+     "d": "2019-11-01",
+     "kind": "crash",
+     "company": "현진소재",
+     "verdict": "판단보류",
+     "hold20": -0.3,
+     "better": "tie"
+    },
+    {
+     "d": "2019-11-14",
+     "kind": "earnings",
+     "company": "현진소재",
+     "hold20": -17.8,
+     "better": "cut"
+    },
+    {
+     "d": "2019-11-04",
+     "kind": "crash",
+     "company": "켐트로닉스",
+     "verdict": "비가치",
+     "hold20": 18.1,
+     "better": "keep"
+    },
+    {
+     "d": "2019-10-07",
+     "kind": "crash",
+     "company": "빅솔론",
+     "verdict": "판단보류",
+     "hold20": -1.3,
+     "better": "tie"
+    }
+   ],
+   "news": 121,
+   "kb": 63
+  }
+ ],
+ "balance": {
+  "decisions": 60,
+  "cutBetter": 23,
+  "keepBetter": 23,
+  "tie": 14
+ }
+}

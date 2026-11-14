@@ -21,6 +21,7 @@ import {analystById,UI,line,type AnalystId} from '../content/analysts';
 import {DEMO_HOLDINGS} from '../content/demo-garden';
 import type {Holding} from '../core/model';
 import {DEFAULT_LOOK,type Look} from '../core/wardrobe';
+import type {RunRecord} from '../core/game/run';
 import {stampById,type StampId} from '../core/stamps';
 
 export type Owned={uid:string;itemId:string;got:string;slot:string|null};
@@ -31,7 +32,9 @@ export const DEFAULT_SETTINGS:Settings={sfx:0.7,still:false,text:'m',tilt:true};
 export type Seen={birth:number;cutaway:number;bury:number};
 // name, look: the player's observer (ui/MyPage.tsx) · stamps: achievements and the day each was earned · wardrobe: pieces bought
 export type GardenSave={v:1;holdings:Holding[];onboarded:boolean;lookedBack:boolean;sound:boolean;seen:Seen;name:string;look:Look;stamps:{id:StampId;day:string}[];wardrobe:string[];tips:string[];settings:Settings;letters:string[];weeksDone:string[];rewinds:RewindRound[];daysDone:string[];rankSeen:number;judgments:Judgment[];graded:Graded[];cooldowns:Cooldown[];cases:CaseAnswer[];streak:Streak;currency:number;
-  trust:Record<AnalystId,Relation>;owned:Owned[];gifted:AnalystId[];bought:{itemId:string;day:string}[]};
+  trust:Record<AnalystId,Relation>;owned:Owned[];gifted:AnalystId[];bought:{itemId:string;day:string}[];
+  // 관측소 원정 runs (core/game/run.ts): the 판, its decisions and score; the latest of a 판 is the next run's ghost
+  expeditions:RunRecord[]};
 export const SAVE_KEY='rethink-garden-v1';
 
 // Clock: real today, or N days ahead with ?ahead=N
@@ -43,7 +46,7 @@ export function clock(){
 // A new player starts with an empty garden and the onboarding (ui/Onboarding.tsx) asks for their holdings.
 export function blankSave():GardenSave{
   const trust={tori:blankRelation(),moa:blankRelation(),luon:blankRelation()};
-  return {v:1,holdings:[],onboarded:false,lookedBack:false,sound:true,seen:{birth:0,cutaway:0,bury:0},name:'',look:DEFAULT_LOOK,stamps:[],wardrobe:[],tips:[],settings:DEFAULT_SETTINGS,letters:[],weeksDone:[],rewinds:[],daysDone:[],rankSeen:0,judgments:[],graded:[],cooldowns:[],cases:[],streak:blankStreak(),currency:0,trust,owned:[],gifted:[],bought:[]};
+  return {v:1,holdings:[],onboarded:false,lookedBack:false,sound:true,seen:{birth:0,cutaway:0,bury:0},name:'',look:DEFAULT_LOOK,stamps:[],wardrobe:[],tips:[],settings:DEFAULT_SETTINGS,letters:[],weeksDone:[],rewinds:[],daysDone:[],rankSeen:0,judgments:[],graded:[],cooldowns:[],cases:[],streak:blankStreak(),currency:0,trust,owned:[],gifted:[],bought:[],expeditions:[]};
 }
 // The demo garden opens with two judgments made months ago, so the first visit already has grades to open (the moment
 // the whole loop is built around). Both are on the demo holdings.
@@ -90,6 +93,8 @@ export function useGarden(){
 
   const ops={
     // lookback: the first visit's judgment, dated {LOOKBACK} days back so its 30-day grade opens now (core/judgment.ts)
+    // 관측소 원정: a finished run (game/Expedition.tsx); kept for the ghost and the records (the last 50)
+    finishExpedition(r:RunRecord){setS(p=>({...p,expeditions:[...(p.expeditions??[]),r].slice(-50)}))},
     recordJudgment(j:Omit<Judgment,'id'|'day'>,lookback=false){
       const full:Judgment=lookback?{...j,id:`look-${j.holdingId}-${c.now}`,day:shiftDay(c.today,-LOOKBACK),lookback:true}:{...j,id:`j-${j.holdingId}-${c.now}`,day:c.today};let note:string|null=null;
       setS(p=>{const r=record(p.judgments,full);let next={...p,judgments:r.list,lookedBack:p.lookedBack||lookback,currency:p.currency+(r.first?EARN.judgment:0)};

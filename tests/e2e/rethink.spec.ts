@@ -171,10 +171,9 @@ test("league, game door, cart and drawer", async ({ page }) => {
   await expect(lg.locator(".rt-row")).toHaveCount(12);
   await expect(lg).toContainText("(나)");
   await dock(page, "모의투자").click();
-  const game = sheet(page, "모의투자 판");
-  await expect(game).toContainText("올슨");
+  const game = sheet(page, "관측소 원정");
   await expect(game).toContainText("반박");
-  await expect(game.getByRole("button", { name: "준비 중" })).toBeDisabled();
+  await expect(game.getByRole("button", { name: /이번 주 판 입장/ })).toBeEnabled();
   await game.getByRole("button", { name: "닫기" }).click();
   // the cart is a landmark in the world: tap it when it is on screen, otherwise go through the drawer
   const cartPt = (await hooks(page))!.points.cart, vp = page.viewportSize()!;
@@ -202,7 +201,7 @@ test("the observatory and the signpost in the world open the game door and the t
   const pts = (await hooks(page))!.points, vp = page.viewportSize()!;
   // on a phone the observatory can be off screen until the player turns the camera; check whichever is in view
   const seen: (readonly ["signpost" | "observatory", string])[] = [];
-  for (const e of [["signpost", "내 판단의 질"], ["observatory", "모의투자 판"]] as const) if (await tappable(page, pts[e[0]], vp)) seen.push(e);
+  for (const e of [["signpost", "내 판단의 질"], ["observatory", "관측소 원정"]] as const) if (await tappable(page, pts[e[0]], vp)) seen.push(e);
   expect(seen.length).toBeGreaterThan(0);
   for (const [k, name] of seen) {
     await page.mouse.click(pts[k].x, pts[k].y);

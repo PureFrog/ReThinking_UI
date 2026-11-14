@@ -15,6 +15,7 @@ export function LetterSheet({letter,onClose}:{letter:Letter;onClose:()=>void}){
         <div className="rt-cell"><span>판정 적중</span><b className="rt-num">{l.hitRate===null?'—':<>{l.hitRate}<span className="rt-unit">%</span></>}</b><small>{l.hits} / {l.graded}</small></div>
         <div className="rt-cell"><span>확신 보정</span><b className="rt-num">{l.calibration??'—'}</b></div>
         <div className="rt-cell"><span>케이스 · 되감기</span><b className="rt-num">{l.cases} · {l.rewinds}</b></div>
+        {l.expeditions>0&&<div className="rt-cell"><span>관측소 원정</span><b className="rt-num">{l.expeditions}</b><small>최고 {l.bestRun}</small></div>}
       </div>
       {l.best&&<div className="rt-note" style={{marginTop:14}}><div className="rt-kicker">이달의 판단</div>
         <p className="rt-headline">{l.best.name} · {l.best.choice}</p><p className="rt-say">{l.best.mark}일 뒤 <b className="rt-num"><Num v={l.best.after}/></b> · 점수 +{l.best.points}</p></div>}

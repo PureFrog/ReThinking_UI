@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>관측소 원정 G0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&family=IBM+Plex+Mono:wght@400;500;600&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
+<style>
+/* G0 mockup for docs/game.md. Real prices, crash events, F-scores and headlines (2017, investment-evidence-system); names masked. */
+:root{--in:cubic-bezier(.32,.72,0,1);--pop:cubic-bezier(.16,1,.3,1);--spring:cubic-bezier(.2,1.6,.4,1)}
+.phone[data-look=paper]{--bg:#f4eedf;--surface:#fbf7ec;--raised:#ece3cf;--ink:#2a2620;--sub:#6f6656;--line:#d9cfb8;--up:#c4362c;--down:#2f5fae;--seal:#b8372b;--accent:#4b6638;--hit:#b8372b;--miss:#55524c;
+  --serif:'Gowun Batang',serif;--sans:'Gowun Dodum',sans-serif;--radius:2px;--shadow:0 1px 0 #2a262014,0 8px 24px #2a26201a;--mask:#2a2620}
+.phone[data-look=clean]{--bg:#f6f8fc;--surface:#ffffff;--raised:#edf1f8;--ink:#182234;--sub:#707b8f;--line:#e2e8f1;--up:#dc515b;--down:#4575df;--seal:#dc515b;--accent:#4e70ee;--hit:#268e7b;--miss:#8a93a3;
+  --serif:-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;--sans:-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;--radius:14px;--shadow:0 1px 2px #18223410,0 10px 28px #1822341a;--mask:#182234}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:#1b1a17;color:#eee;font-family:'Gowun Dodum',sans-serif;display:grid;place-items:center;overflow:hidden;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-action:manipulation}
+.mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+.phone{position:relative;width:390px;height:844px;border-radius:38px;overflow:hidden;background:var(--bg);color:var(--ink);font-family:var(--sans);box-shadow:0 0 0 10px #0c0b0a,0 30px 80px #000a}
+.phone[data-look=paper]::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.35;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .45 0 0 0 0 .38 0 0 0 .18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+@media(max-width:480px),(max-height:520px){body{display:block}.phone{width:100vw;height:100dvh;border-radius:0;box-shadow:none}}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;padding:calc(14px + env(safe-area-inset-top,0px)) 16px calc(14px + env(safe-area-inset-bottom,0px));gap:10px;overflow:hidden}
+.ctl{position:fixed;left:20px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:4px;padding:6px;background:#2b2925;border-radius:12px;z-index:50;box-shadow:0 8px 30px #0008}
+.ctl button{min-width:36px;height:34px;padding:0 12px;border-radius:8px;color:#d8d2c4;font-size:12px;white-space:nowrap;text-align:left}
+.ctl button[aria-pressed=true]{background:#f4eedf;color:#2a2620}
+.ctl i{height:1px;background:#4a463f;margin:2px 4px}
+@media(max-width:900px){.ctl{left:50%;top:auto;bottom:6px;transform:translateX(-50%);flex-direction:row;max-width:calc(100vw - 12px);overflow-x:auto;opacity:.92}.ctl i{width:1px;height:auto;margin:4px 2px}}
+body.bare .ctl{display:none}
+
+/* shared bits */
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:36px}
+.kick{font-family:var(--serif);font-weight:700;font-size:11px;letter-spacing:.5px;color:var(--sub)}
+.title{font-family:var(--serif);font-weight:700;font-size:26px;letter-spacing:-.8px;line-height:1.15}
+.pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius);font-size:12px;font-weight:700}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.phone[data-look=paper] .panel{outline:1px solid var(--line);outline-offset:-4px}
+.up{color:var(--up)}.down{color:var(--down)}
+.ink{display:inline-block;vertical-align:-2px;height:.95em;width:var(--w,4em);background:var(--mask);border-radius:1px;clip-path:inset(0 0 0 0);transition:clip-path 520ms var(--in);transform-origin:left}
+.phone[data-look=paper] .ink{background:linear-gradient(90deg,var(--mask),#3a342c 40%,var(--mask)),var(--mask);border-radius:2px 6px 3px 5px / 5px 2px 6px 3px}
+.ink.draw{animation:ink 420ms var(--in) both}
+@keyframes ink{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.ink.off{clip-path:inset(0 0 0 100%)}
+.rev{display:inline-grid}.rev>*{grid-area:1/1}.rev b{opacity:0;transition:opacity 300ms 200ms}.rev.open b{opacity:1}
+.face{width:30px;height:30px;border-radius:50%;background:var(--raised) center/cover;flex:none;box-shadow:0 0 0 1px var(--line)}
+.said{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.45}
+.said b{font-family:var(--serif);font-size:12px;display:block;color:var(--sub)}
+.btn{display:flex;align-items:center;justify-content:center;min-height:48px;padding:0 16px;border-radius:var(--radius);background:var(--ink);color:var(--bg);font-family:var(--serif);font-weight:700;font-size:15px;transition:transform 150ms ease-out}
+.btn:active{transform:scale(.98)}
+.btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+.chip{width:18px;height:18px;border-radius:50%;background:radial-gradient(circle,var(--surface) 0 35%,var(--seal) 36% 62%,var(--surface) 63% 70%,var(--seal) 71%);box-shadow:0 1px 0 #0003;flex:none}
+.chip.spent{opacity:.18}
+.in{animation:in 320ms var(--in) both}
+@keyframes in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.drop{animation:drop 380ms var(--spring) both}
+@keyframes drop{from{opacity:0;transform:translateY(-18px) scale(.6)}to{opacity:1;transform:none}}
+.roll{animation:roll 140ms var(--pop) both}
+@keyframes roll{from{opacity:.2;transform:translateY(45%)}to{opacity:1;transform:none}}
+.stamp{animation:stamp 280ms var(--spring) both}
+@keyframes stamp{from{opacity:0;transform:scale(1.7) rotate(-16deg)}to{opacity:1;transform:scale(1) rotate(-6deg)}}
+.press{animation:press 260ms ease-out}
+@keyframes press{40%{transform:scale(.985) translateY(1px)}}
+.note{font-size:10px;color:var(--sub);line-height:1.4}
+
+/* 1 briefing */
+.folder{transform-origin:50% 0;animation:folder 640ms var(--in) both}
+@keyframes folder{from{opacity:0;transform:perspective(900px) rotateX(-70deg) translateY(-20px)}to{opacity:1;transform:none}}
+.co-list{display:grid;gap:8px}
+.co{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;padding:12px}
+.panel .co.panel{outline:none;background:var(--bg)}
+.co .tag{display:grid;place-items:center;width:34px;height:34px;border:1.5px solid var(--ink);border-radius:var(--radius);font-family:var(--serif);font-weight:700;font-size:16px}
+.co strong{font-family:var(--serif);font-size:15px;display:block}
+.co small{font-size:11px;color:var(--sub)}
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+
+/* 2 flow */
+.prog{display:flex;gap:4px;margin-top:6px}.prog i{flex:1;height:3px;background:var(--line);position:relative;overflow:hidden}.prog i b{position:absolute;inset:0;background:var(--ink);transform-origin:left;transform:scaleX(var(--p,0));transition:transform 200ms linear}
+.strip{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.strip button{padding:7px 8px;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius);font-size:11px}
+.strip button[aria-pressed=true]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.strip b{font-family:var(--serif);font-size:13px;display:block}
+.chartbox{position:relative;height:190px;flex:none}
+canvas.chart{position:absolute;inset:0;width:100%;height:100%;transition:filter 900ms var(--in)}
+.chart-h{position:absolute;left:10px;top:8px;display:flex;align-items:baseline;gap:8px;pointer-events:none}
+.chart-h .p{font-size:22px;font-weight:600}
+.split{display:grid;grid-template-columns:1fr 1.25fr;gap:8px;min-height:0;flex:1}
+.book{padding:6px 8px;font-size:11px;display:flex;flex-direction:column;min-height:0}
+.book .row{position:relative;display:grid;grid-template-columns:1fr auto;height:16px;align-items:center;padding:0 4px}
+.book .row i{position:absolute;top:2px;bottom:2px;width:var(--q,0%);transition:width 150ms ease-out;opacity:.16}
+.book .ask i{right:0;background:var(--down)}.book .bid i{left:0;background:var(--up)}
+.book .row span{position:relative}
+.book .row.cur{outline:1px solid var(--ink);outline-offset:-1px}
+.book .row.flash{animation:flash 420ms ease-out}
+@keyframes flash{30%{background:color-mix(in srgb,var(--seal) 22%,transparent)}}
+.feed{display:flex;flex-direction:column;gap:6px;overflow:hidden;padding:8px;min-height:0}
+.news{position:relative;padding:8px 32px 8px 9px;border:1px solid var(--line);background:var(--bg);border-radius:var(--radius);font-size:12px;line-height:1.4;animation:in 260ms var(--in) both}
+.news small{display:block;font-size:10px;color:var(--sub);margin-bottom:2px}
+.news .pin{position:absolute;right:4px;top:6px;width:24px;height:24px;display:grid;place-items:center;border-radius:50%}
+.news .pin svg{width:15px;height:15px;stroke:var(--sub);fill:none;stroke-width:1.6}
+.news.pinned{border-color:var(--ink)}.news.pinned .pin svg{stroke:var(--seal)}
+.fly{position:absolute;z-index:30;pointer-events:none;transition:transform 420ms var(--in),opacity 420ms}
+.book-h{display:flex;justify-content:space-between;font-size:10px;color:var(--sub);margin-bottom:3px}
+.banner{position:absolute;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom,0px));padding:14px;z-index:20;animation:in 380ms var(--in) both;display:grid;gap:10px}
+
+/* 3 crash moment */
+.freeze canvas.chart{filter:saturate(.1) contrast(1.05) brightness(.97)}
+.vig{position:absolute;inset:0;pointer-events:none;z-index:5;background:radial-gradient(ellipse at 50% 40%,transparent 45%,#00000038);opacity:0;transition:opacity 900ms var(--in)}
+.freeze .vig{opacity:1}
+.halt{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;background:var(--seal);color:#fff;font-family:var(--serif);font-weight:700;font-size:12px;border-radius:var(--radius);animation:stamp 300ms var(--spring) both}
+.ring{width:38px;height:38px;position:relative}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:3}
+.ring span{position:absolute;inset:0;display:grid;place-items:center;font-size:12px;font-weight:600}
+.anno{position:absolute;inset:0;pointer-events:none}
+.anno .tag{position:absolute;transform:translate(-50%,-100%);font-size:10px;line-height:1.25;padding:3px 6px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);white-space:nowrap;opacity:0;transition:opacity 260ms var(--in),transform 320ms var(--pop),box-shadow 200ms}
+.anno .tag.on{opacity:1;transform:translate(-50%,calc(-100% - 6px))}
+.anno .tag.hl{box-shadow:0 0 0 2px var(--ink)}
+.anno .tag b{font-family:'IBM Plex Mono',monospace;font-weight:600}
+.anno .tag.left{transform:translate(0,-50%)}.anno .tag.left.on{transform:translate(6px,-50%)}
+.reads{display:grid;gap:6px;flex:none}
+.read{display:grid;grid-template-columns:30px 1fr;gap:4px 10px;padding:10px 12px;opacity:0;transform:translateY(10px);transition:opacity 300ms var(--in),transform 360ms var(--in),box-shadow 200ms;cursor:pointer;text-align:left}
+.read.on{opacity:1;transform:none}
+.read.hl{box-shadow:inset 3px 0 0 var(--ink),var(--shadow)}
+.read .face{grid-row:span 2}
+.read p{font-size:13px;line-height:1.45}
+.read p b.who{font-family:var(--serif);font-size:12px;color:var(--sub);margin-right:6px}
+.read .facts{display:flex;flex-wrap:wrap;gap:4px}
+.fact{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 6px;font-size:10.5px;border:1px solid var(--line);border-radius:var(--radius);background:var(--bg)}
+.fact.pos{border-color:var(--accent);color:var(--accent)}.fact.neg{border-color:var(--seal);color:var(--seal)}
+.decide{display:grid;gap:8px;padding:12px;z-index:6;position:relative}
+.choices{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.choices button{position:relative;min-height:48px;border:1px solid var(--line);background:var(--bg);border-radius:var(--radius);font-family:var(--serif);font-weight:700;font-size:15px;transition:transform 150ms ease-out}
+.choices button[aria-pressed=true]{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+.choices button:active{transform:scale(.97)}
+.stake{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px}
+.stack{display:flex;align-items:flex-end;height:30px;gap:3px}
+.stack .chip{width:22px;height:22px}
+.stack.shake{animation:shake 260ms ease-out}
+@keyframes shake{25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
+.seal{position:absolute;right:10px;top:-34px;width:64px;height:64px;border-radius:50%;border:3px double var(--seal);color:var(--seal);display:grid;place-items:center;font-family:var(--serif);font-weight:700;font-size:20px;background:color-mix(in srgb,var(--surface) 70%,transparent);z-index:8}
+.order{display:flex;align-items:center;gap:8px;padding:10px 12px;font-size:12px;animation:in 320ms var(--in) both}
+.order b{font-family:var(--serif)}
+
+/* 4 earnings + swap */
+.fs{padding:14px;display:grid;gap:10px}
+.fs .num{font-size:54px;font-weight:600;line-height:1;letter-spacing:-2px}
+.items{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.items div{padding:6px;border:1px solid var(--line);font-size:10.5px;line-height:1.3;border-radius:var(--radius);transition:background 300ms,color 300ms,border-color 300ms}
+.items div.lost{border-color:var(--seal);color:var(--seal);background:color-mix(in srgb,var(--seal) 8%,transparent)}
+.items div.lost span{text-decoration:line-through}
+.items div b{float:right;font-family:'IBM Plex Mono',monospace}
+.slot{position:relative;height:96px}
+.slot>.co{position:absolute;inset:0}
+.half{position:absolute;inset:0;transition:transform 650ms var(--in),opacity 650ms ease-in}
+.half.l{clip-path:polygon(0 0,52% 0,47% 30%,53% 55%,46% 78%,51% 100%,0 100%)}
+.half.r{clip-path:polygon(52% 0,100% 0,100% 100%,51% 100%,46% 78%,53% 55%,47% 30%)}
+.torn .half.l{transform:translate(-40px,26px) rotate(-9deg);opacity:0}
+.torn .half.r{transform:translate(40px,30px) rotate(8deg);opacity:0}
+.deck{position:absolute;inset:0;display:grid;place-items:center}
+.deck .bk{position:absolute;width:70%;height:90px;border-radius:var(--radius);background:var(--ink);border:1px solid var(--ink);box-shadow:var(--shadow)}
+.phone[data-look=paper] .deck .bk{background:repeating-linear-gradient(45deg,#2a2620 0 6px,#332e27 6px 12px)}
+.deck.go .bk:nth-child(1){animation:sh1 700ms var(--in) both}.deck.go .bk:nth-child(2){animation:sh2 700ms var(--in) both}.deck.go .bk:nth-child(3){animation:sh3 700ms var(--in) both}
+@keyframes sh1{0%{opacity:0;transform:translateY(-30px)}30%{opacity:1;transform:translateX(-60px) rotate(-6deg)}70%{transform:translateX(50px) rotate(4deg)}100%{transform:none;opacity:1}}
+@keyframes sh2{0%{opacity:0;transform:translateY(-30px)}30%{opacity:1;transform:translateX(55px) rotate(5deg)}70%{transform:translateX(-45px) rotate(-3deg)}100%{transform:translateY(-3px);opacity:1}}
+@keyframes sh3{0%{opacity:0;transform:translateY(-30px)}30%{opacity:1;transform:translateX(0) rotate(0)}70%{transform:translateX(10px) rotate(2deg)}100%{transform:translateY(-6px);opacity:1}}
+.newco{position:absolute;inset:0;perspective:900px}
+.newco .flip{position:absolute;inset:0;transform-style:preserve-3d;transform:rotateY(180deg);transition:transform 420ms var(--in)}
+.newco.on .flip{transform:none}
+.newco .co,.newco .bk2{position:absolute;inset:0;backface-visibility:hidden}
+.newco .bk2{transform:rotateY(180deg);background:var(--ink);border-radius:var(--radius)}
+
+/* 5 reveal */
+.scroll{overflow:auto;scrollbar-width:none;display:flex;flex-direction:column;gap:10px;flex:1;min-height:0;padding-bottom:20px}
+.scroll::-webkit-scrollbar{display:none}
+.era{font-family:var(--serif);font-weight:700;font-size:34px;letter-spacing:-1.2px;color:var(--seal);transform:rotate(-2deg);display:inline-block;padding:4px 12px;border:3px double var(--seal)}
+.names{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.names div{padding:8px 10px;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius);font-size:11px;color:var(--sub)}
+.names div .rev{font-family:var(--serif);font-weight:700;font-size:15px;color:var(--ink);display:grid}
+.score{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:12px;align-items:center}
+.score .r{grid-row:span 2;font-family:var(--serif);font-weight:700;font-size:15px;width:58px;height:58px;border-radius:50%;display:grid;place-items:center;border:3px double currentColor;transform:rotate(-8deg)}
+.score .r.hit{color:var(--hit)}.score .r.miss{color:var(--miss)}.score .r.tie{color:var(--sub)}
+.score strong{font-family:var(--serif);font-size:14px}
+.score small{font-size:11px;color:var(--sub);line-height:1.45}
+.total{display:flex;align-items:baseline;justify-content:space-between;padding:14px}
+.total b{font-size:40px;font-weight:600;letter-spacing:-1.5px}
+.bars{display:grid;gap:8px;padding:12px}
+.bars>div{display:grid;grid-template-columns:118px 1fr 58px;gap:8px;align-items:center;font-size:12px}
+.bars i{height:10px;background:var(--ink);transform-origin:left;animation:grow 700ms var(--in) both}
+.bars i.dim{background:var(--line)}
+@keyframes grow{from{transform:scaleX(0)}}
+.bars b{text-align:right}
+.melt{animation:melt 700ms var(--in) both}
+@keyframes melt{to{opacity:0;transform:translateY(30px) scale(.4)}}
+.link{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;padding:12px;text-align:left;width:100%}
+.link strong{font-family:var(--serif);font-size:14px}.link small{font-size:11px;color:var(--sub);line-height:1.45}
+.link em{grid-row:span 2;font-style:normal;font-size:18px;color:var(--sub)}
+
+/* 6 ranking */
+.tabs{display:flex;gap:16px;border-bottom:1px solid var(--line)}
+.tabs button{padding:8px 0;font-family:var(--serif);font-weight:700;font-size:14px;color:var(--sub);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button[aria-pressed=true]{color:var(--ink);border-color:var(--ink)}
+.sample{font-size:11px;padding:6px 10px;background:var(--raised);border-radius:var(--radius);color:var(--sub);display:flex;justify-content:space-between}
+.rank{position:relative;flex:1;min-height:0;overflow:hidden}
+.rank ol{list-style:none;display:grid}
+.rank li{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;height:34px;padding:0 8px;font-size:13px;border-bottom:1px solid var(--line);background:var(--bg)}
+.rank li .n{color:var(--sub);font-size:12px}
+.rank li.me{background:var(--surface);box-shadow:inset 3px 0 0 var(--seal),var(--shadow);font-weight:700;z-index:2;position:relative}
+.rank li.me .who{font-family:var(--serif)}
+.trust{display:grid;gap:6px;padding:12px}
+.trust>div{display:grid;grid-template-columns:30px 40px 1fr 40px;gap:8px;align-items:center;font-size:12px}
+.trust i{height:8px;background:var(--line);position:relative;overflow:hidden}
+.trust i b{position:absolute;inset:0;background:var(--accent);transform-origin:left;animation:grow 700ms var(--in) both}
+.ghost{display:flex;align-items:center;gap:10px;padding:10px 12px;font-size:12px}
+.ghost .gp{width:26px;height:26px;border-radius:50%;border:1.5px dashed var(--sub);display:grid;place-items:center;color:var(--sub);font-size:11px;flex:none}
+
+/* landscape phone */
+@media(orientation:landscape) and (max-height:520px){
+  .screen{padding:10px 16px;gap:8px}
+  .title{font-size:20px}
+  .s1{overflow:auto}
+  .s1 .body{display:grid!important;grid-template-columns:1.2fr 1fr;gap:10px}
+  .s2 .strip{display:none}
+  .s2 .body{display:grid!important;grid-template-columns:1.3fr .8fr 1fr;gap:8px;flex:1;min-height:0}
+  .s2 .chartbox{height:100%}
+  .s2 .split{display:contents}
+  .s3 .body{display:grid!important;grid-template-columns:1.5fr 1fr;gap:8px;flex:1;min-height:0;align-items:start}
+  .s3 .chartbox{height:auto!important;min-height:150px}
+  .s3 .decide{margin-top:0!important;grid-column:2;grid-row:2}
+  .s3 .reads{grid-column:2;grid-row:1}
+  .s3 .body>div:first-child{grid-column:1;grid-row:1/span 2}
+  .s3 .order{display:none}
+  .s3 .read{padding:6px 10px}.s3 .read p{font-size:11.5px}.s3 .reads{gap:4px}.s3 .read .facts{display:none}
+  .s4,.s6{overflow:auto}.s4>*,.s6>*{flex:none}
+  .s6 .rank{min-height:230px;overflow:auto}
+  .s5 .scroll{display:grid;grid-template-columns:1fr 1fr;align-content:start}
+  .s5 .scroll>.names,.s5 .scroll>[data-era]{grid-column:1/-1}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms!important;transition-duration:120ms!important}}
+</style>
+</head>
+<body>
+<div class="phone" id="phone" data-look="paper"><div class="screen" id="screen"></div></div>
+<nav class="ctl" id="ctl"></nav>
+<script>
+const DATA=/*DATA*/{"prices":{"010170":[["2017-07-03",3040,3040,2785,2855,704446],["2017-07-04",2850,2855,2705,2735,1150293],["2017-07-05",2780,2890,2740,2825,461838],["2017-07-06",2825,2920,2825,2905,279317],["2017-07-07",2880,2945,2865,2910,199816],["2017-07-10",2960,2960,2865,2910,183750],["2017-07-11",2910,2955,2880,2900,240235],["2017-07-12",2890,2915,2840,2890,228464],["2017-07-13",2865,2910,2850,2870,266878],["2017-07-14",2905,2925,2790,2910,462295],["2017-07-17",2900,3095,2900,3070,1041676],["2017-07-18",3070,3240,3055,3145,1526567],["2017-07-19",3150,3855,3150,3615,5921694],["2017-07-20",3685,3950,3610,3785,4033414],["2017-07-21",3835,3980,3720,3945,2194993],["2017-07-24",3965,3985,3790,3910,1337003],["2017-07-25",3980,4150,3795,3795,2879439],["2017-07-26",3835,3960,3795,3920,1254877],["2017-07-27",3990,4055,3835,3890,952076],["2017-07-28",3890,3970,3740,3850,922933],["2017-07-31",3800,3870,3640,3785,1358117],["2017-08-01",3840,3880,3710,3815,594256],["2017-08-02",3815,4030,3785,4015,1723766],["2017-08-03",4010,4050,3855,3900,1236182],["2017-08-04",3900,3950,3845,3915,600487],["2017-08-07",3910,3965,3865,3865,458096],["2017-08-08",3865,3900,3765,3830,453511],["2017-08-09",3825,3910,3765,3835,508202],["2017-08-10",3805,3850,3695,3740,675321],["2017-08-11",3645,3870,3580,3795,812442],["2017-08-14",3880,3890,3800,3845,463598],["2017-08-16",3885,3930,3695,3755,1106053],["2017-08-17",3755,3775,3450,3520,2214997],["2017-08-18",3455,3635,3335,3575,1863780],["2017-08-21",3590,3695,3520,3665,856526],["2017-08-22",3700,3705,3575,3630,569299],["2017-08-23",3680,3880,3635,3820,2098786],["2017-08-24",3830,4045,3820,3885,2056187],["2017-08-25",3905,4440,3905,4370,4880566],["2017-08-28",4410,4470,4290,4375,2036801],["2017-08-29",4310,4990,4295,4600,5278589],["2017-08-30",4535,4780,4450,4550,1908856],["2017-08-31",4510,4745,4510,4630,1733452],["2017-09-01",4675,4715,4420,4435,1451831],["2017-09-04",4220,4550,4220,4400,1523123],["2017-09-05",4485,4485,4290,4395,816810],["2017-09-06",4400,4495,4250,4305,799871],["2017-09-07",4305,4370,4235,4305,731935],["2017-09-08",4315,4370,4190,4200,634479],["2017-09-11",4135,4480,4135,4450,1119208],["2017-09-12",4500,4525,3880,3970,3575950],["2017-09-13",3990,4210,3770,4130,2879991],["2017-09-14",4120,4175,3985,4045,732956],["2017-09-15",4050,4050,3830,3880,1084885],["2017-09-18",3830,3975,3755,3905,712131],["2017-09-19",3900,4120,3885,4100,1386099],["2017-09-20",4120,4125,3850,3855,1114118],["2017-09-21",3855,3895,3610,3790,695692],["2017-09-22",3725,3805,3540,3540,869340],["2017-09-25",3535,3745,3420,3690,857598],["2017-09-26",3690,3740,3535,3650,9402910],["2017-09-27",3605,3640,3520,3555,704712],["2017-09-28",3555,3710,3420,3690,1054602],["2017-09-29",3690,3975,3660,3665,1982150],["2017-10-10",3700,3750,3530,3600,873252],["2017-10-11",3605,3760,3580,3665,1026513],["2017-10-12",3710,3770,3505,3535,1073363],["2017-10-13",3545,3635,3280,3385,1314664],["2017-10-16",3350,3415,3140,3365,1298529],["2017-10-17",3320,3465,3320,3375,526534],["2017-10-18",3400,3415,3340,3345,374930],["2017-10-19",3325,3550,3325,3490,715127],["2017-10-20",3360,3465,3340,3405,424450]],"032620":[["2017-07-03",3505,3560,3475,3490,102458],["2017-07-04",3510,3525,3470,3480,97621],["2017-07-05",3495,3545,3490,3520,83588],["2017-07-06",3510,3540,3495,3535,71592],["2017-07-07",3515,3540,3515,3540,50833],["2017-07-10",3540,3550,3490,3495,82457],["2017-07-11",3490,3525,3445,3445,147322],["2017-07-12",3490,3490,3400,3430,134609],["2017-07-13",3420,3475,3405,3405,63087],["2017-07-14",3400,3420,3370,3410,121649],["2017-07-17",3415,3420,3385,3390,81089],["2017-07-18",3385,3390,3315,3355,226122],["2017-07-19",3355,3445,3340,3400,203082],["2017-07-20",3410,3490,3385,3475,141193],["2017-07-21",3475,3525,3445,3500,150031],["2017-07-24",3480,3585,3480,3520,191377],["2017-07-25",3505,3550,3505,3510,133680],["2017-07-26",3510,3550,3465,3485,107740],["2017-07-27",3495,3500,3445,3465,83420],["2017-07-28",3465,3465,3400,3415,110107],["2017-07-31",3385,3430,3365,3415,132242],["2017-08-01",3395,3495,3395,3480,133638],["2017-08-02",3480,3530,3470,3525,115139],["2017-08-03",3525,3530,3445,3515,147375],["2017-08-04",3515,3610,3495,3610,276876],["2017-08-07",3610,3655,3580,3640,211793],["2017-08-08",3630,3640,3510,3575,126502],["2017-08-09",3560,3565,3450,3515,180751],["2017-08-10",3485,3550,3430,3525,151902],["2017-08-11",3455,3495,3400,3490,127813],["2017-08-14",3490,3530,3460,3485,80849],["2017-08-16",3475,3595,3475,3580,195257],["2017-08-17",3575,3680,3565,3660,397835],["2017-08-18",3620,3720,3600,3695,358301],["2017-08-21",3725,3885,3715,3860,1437798],["2017-08-22",3850,3875,3750,3780,673690],["2017-08-23",3815,3825,3775,3800,243033],["2017-08-24",3790,3855,3790,3815,260592],["2017-08-25",3820,3825,3725,3760,319660],["2017-08-28",3770,3850,3730,3830,287985],["2017-08-29",3800,3850,3740,3830,370606],["2017-08-30",3865,3945,3810,3935,671843],["2017-08-31",3935,3950,3870,3915,325555],["2017-09-01",3950,4025,3915,3980,637238],["2017-09-04",3850,3915,3780,3835,474815],["2017-09-05",3880,3925,3765,3900,415503],["2017-09-06",3900,4060,3880,4045,615226],["2017-09-07",4060,4130,4020,4035,612098],["2017-09-08",4070,4080,3950,3955,371592],["2017-09-11",4000,4025,3955,3960,226129],["2017-09-12",4030,4060,3950,3990,243679],["2017-09-13",3985,4050,3970,4020,259250],["2017-09-14",4040,4080,4000,4005,210245],["2017-09-15",4005,4030,3935,4005,339058],["2017-09-18",4040,4040,3980,3990,177078],["2017-09-19",3990,4020,3865,3865,352186],["2017-09-20",3855,3900,3770,3795,376520],["2017-09-21",3795,3835,3720,3720,215158],["2017-09-22",3785,3785,3640,3700,290629],["2017-09-25",3725,3825,3715,3740,411507],["2017-09-26",3690,3740,3605,3730,330573],["2017-09-27",3770,3845,3740,3785,160626],["2017-09-28",3785,3815,3730,3790,147105],["2017-09-29",3815,3990,3755,3775,546653],["2017-10-10",3800,3810,3755,3755,139963],["2017-10-11",3755,3800,3740,3775,146025],["2017-10-12",3775,3810,3760,3790,100910],["2017-10-13",3810,3815,3720,3790,276073],["2017-10-16",3790,3960,3790,3895,1238885],["2017-10-17",3915,3930,3845,3895,320226],["2017-10-18",3895,3910,3605,3605,680357],["2017-10-19",3610,3635,3470,3585,419836],["2017-10-20",3605,3605,3550,3560,144500]],"059090":[["2017-07-03",3565,3605,3460,3475,683061],["2017-07-04",3470,3510,3435,3475,427420],["2017-07-05",3500,3600,3455,3590,591405],["2017-07-06",3600,3645,3555,3580,332656],["2017-07-07",3585,3610,3545,3590,269995],["2017-07-10",3615,3615,3495,3555,467137],["2017-07-11",3550,3620,3550,3605,374192],["2017-07-12",3610,3735,3595,3725,1062156],["2017-07-13",3745,3755,3640,3670,1032647],["2017-07-14",3670,3750,3625,3750,734520],["2017-07-17",3750,3800,3725,3785,656292],["2017-07-18",3790,4065,3740,4060,3078966],["2017-07-19",4095,4270,4080,4200,3880313],["2017-07-20",4225,4350,4165,4250,1827118],["2017-07-21",4245,4400,4205,4380,1474718],["2017-07-24",4450,4465,4320,4390,1281608],["2017-07-25",4400,4485,4320,4340,1337189],["2017-07-26",4375,4400,4130,4265,2042415],["2017-07-27",4265,4345,4205,4300,772121],["2017-07-28",4270,4290,4030,4105,1334114],["2017-07-31",3995,4195,3995,4185,1216337],["2017-08-01",4175,4220,4060,4120,579149],["2017-08-02",4130,4225,4080,4225,726454],["2017-08-03",4190,4200,3930,3945,1127684],["2017-08-04",3945,4020,3800,3905,765649],["2017-08-07",3885,3975,3860,3925,744370],["2017-08-08",3935,3940,3800,3840,468195],["2017-08-09",3950,3990,3775,3810,1000725],["2017-08-10",3765,3840,3630,3750,901694],["2017-08-11",3605,3700,3550,3560,791654],["2017-08-14",3605,3705,3585,3700,570127],["2017-08-16",3765,3825,3720,3740,729404],["2017-08-17",3765,3860,3750,3845,508668],["2017-08-18",3790,3850,3770,3845,326926],["2017-08-21",3830,3845,3770,3780,332768],["2017-08-22",3800,3900,3770,3865,599750],["2017-08-23",3900,3905,3820,3860,469094],["2017-08-24",3870,3945,3830,3870,491775],["2017-08-25",3890,3965,3870,3910,391450],["2017-08-28",3935,3950,3840,3855,374450],["2017-08-29",3840,3840,3720,3780,586173],["2017-08-30",3810,3960,3780,3920,893204],["2017-08-31",3950,3965,3880,3910,549533],["2017-09-01",3935,4045,3885,3895,1017271],["2017-09-04",3735,3850,3720,3795,512603],["2017-09-05",3825,3840,3730,3800,420237],["2017-09-06",3800,3905,3790,3890,623734],["2017-09-07",3920,3975,3900,3910,620763],["2017-09-08",3930,3935,3780,3800,650234],["2017-09-11",3800,3875,3800,3815,357251],["2017-09-12",3860,4165,3855,4155,2598672],["2017-09-13",4190,4255,4110,4130,1733705],["2017-09-14",4190,4280,4075,4125,949725],["2017-09-15",4075,4140,3990,4070,932997],["2017-09-18",4115,4365,4115,4345,2062917],["2017-09-19",4345,4365,4200,4215,1134940],["2017-09-20",4225,4250,4005,4035,958627],["2017-09-21",4025,4045,3895,3940,561106],["2017-09-22",3910,4000,3795,3845,579383],["2017-09-25",3800,3910,3680,3745,631944],["2017-09-26",3630,3745,3630,3745,451583],["2017-09-27",3745,3780,3645,3690,530865],["2017-09-28",3745,3785,3670,3710,378967],["2017-09-29",3730,3785,3720,3740,226595],["2017-10-10",3795,3840,3745,3765,375304],["2017-10-11",3765,3815,3750,3815,194978],["2017-10-12",3830,3865,3780,3810,236761],["2017-10-13",3830,3830,3640,3665,600140],["2017-10-16",3730,3730,3520,3600,493505],["2017-10-17",3575,3660,3480,3500,523428],["2017-10-18",3520,3545,3350,3395,611251],["2017-10-19",3405,3530,3335,3530,383827],["2017-10-20",3515,3530,3430,3480,224745]],"093190":[["2017-07-03",14000,14050,13600,13700,82853],["2017-07-04",13850,13950,13400,13550,122367],["2017-07-05",13700,14000,13600,13950,168884],["2017-07-06",14100,14200,13750,13800,238373],["2017-07-07",7600,7600,6960,6980,384330],["2017-07-10",6980,6990,6730,6930,84599],["2017-07-11",6830,6920,6760,6780,75001],["2017-07-12",6700,6840,6650,6780,61288],["2017-07-13",6780,6890,6690,6850,45202],["2017-07-14",6790,6910,6710,6900,43253],["2017-07-17",6950,6950,6760,6900,20563],["2017-07-18",6870,6890,6790,6810,27901],["2017-07-19",6820,6840,6700,6800,58366],["2017-07-20",6800,6820,6670,6760,47644],["2017-07-21",6740,6770,6710,6720,23860],["2017-07-24",6750,6760,6670,6750,39719],["2017-07-25",6780,6800,6700,6770,21699],["2017-07-26",6810,6810,6690,6760,22959],["2017-07-27",6720,6780,6700,6750,16141],["2017-07-28",6670,6810,6460,6670,169840],["2017-07-31",6660,6690,6610,6610,14284],["2017-08-01",6400,6740,6350,6710,278960],["2017-08-02",6710,6740,6600,6660,89732],["2017-08-03",6670,6690,6500,6570,93078],["2017-08-04",6550,6590,6480,6570,57782],["2017-08-07",6650,6700,6530,6580,73955],["2017-08-08",6590,6700,6520,6660,57286],["2017-08-09",6660,6660,6550,6550,57706],["2017-08-10",6570,6610,6430,6560,101811],["2017-08-11",6560,6560,6450,6540,57915],["2017-08-14",6540,6650,6450,6590,82805],["2017-08-16",6630,6630,6530,6590,21419],["2017-08-17",6540,6590,6500,6520,40533],["2017-08-18",6520,6610,6500,6530,50721],["2017-08-21",6570,6600,6490,6570,61223],["2017-08-22",6550,6590,6500,6570,36076],["2017-08-23",6590,6590,6500,6540,23780],["2017-08-24",6520,6560,6510,6540,22013],["2017-08-25",6540,6560,6510,6540,26779],["2017-08-28",6550,6550,6460,6510,44425],["2017-08-29",6530,6530,6460,6500,75917],["2017-08-30",6530,6540,6460,6500,62106],["2017-08-31",6500,6530,6460,6500,61018],["2017-09-01",6500,6540,6450,6500,31879],["2017-09-04",6450,6480,6360,6360,54512],["2017-09-05",6380,6420,6280,6400,73439],["2017-09-06",6400,6410,6340,6380,25800],["2017-09-07",6390,6400,6340,6380,28186],["2017-09-08",6380,6380,6330,6370,21765],["2017-09-11",6400,6410,6320,6370,25381],["2017-09-12",6390,6390,6290,6330,42154],["2017-09-13",6330,6340,6200,6280,57367],["2017-09-14",6260,6290,6180,6270,50141],["2017-09-15",6240,6280,6210,6270,36038],["2017-09-18",6290,6290,6220,6290,31853],["2017-09-19",6300,6310,6230,6270,27189],["2017-09-20",6280,6280,6190,6220,32074],["2017-09-21",6240,6240,6100,6180,35113],["2017-09-22",6180,6180,6020,6150,41769],["2017-09-25",6150,6150,6020,6110,32244],["2017-09-26",6000,6120,6000,6100,41647],["2017-09-27",6100,6180,6090,6150,33945],["2017-09-28",6200,6200,6130,6160,20616],["2017-09-29",6120,6260,6120,6260,29451],["2017-10-10",6260,6270,6200,6230,21299],["2017-10-11",6150,6260,6150,6240,20200],["2017-10-12",6200,6250,6030,6070,78684],["2017-10-13",6110,6110,5990,6050,54161],["2017-10-16",6050,6090,5940,6080,50108],["2017-10-17",6080,6100,6010,6090,47045],["2017-10-18",6090,6090,5990,6040,41370],["2017-10-19",6040,6110,5900,6090,34740],["2017-10-20",6110,6160,6000,6130,30184]],"097800":[["2017-07-03",2740,2775,2630,2650,243025],["2017-07-04",2695,2695,2480,2480,351608],["2017-07-05",2480,2570,2480,2550,177367],["2017-07-06",2510,2540,2390,2455,288608],["2017-07-07",2455,2455,2335,2400,180605],["2017-07-10",2350,2435,2275,2310,185723],["2017-07-11",2315,2750,2315,2585,1952742],["2017-07-12",2560,2685,2525,2525,380112],["2017-07-13",2550,2565,2455,2530,158366],["2017-07-14",2525,2620,2480,2590,273344],["2017-07-17",2645,2770,2450,2690,1406917],["2017-07-18",2695,2765,2525,2540,628090],["2017-07-19",2560,2560,2455,2495,171288],["2017-07-20",2520,2520,2385,2420,241417],["2017-07-21",2420,2460,2350,2420,109840],["2017-07-24",2455,2455,2320,2340,204907],["2017-07-25",2360,2420,2270,2420,155048],["2017-07-26",2415,2645,2370,2605,597004],["2017-07-27",2605,2610,2470,2550,227204],["2017-07-28",2580,2580,2410,2410,163005],["2017-07-31",2330,2410,2200,2260,194252],["2017-08-01",2300,2355,2255,2330,52061],["2017-08-02",2435,2745,2280,2280,1591273],["2017-08-03",2345,2480,2290,2395,543365],["2017-08-04",2415,2515,2350,2350,316493],["2017-08-07",2400,2440,2360,2430,104995],["2017-08-08",2470,2470,2385,2455,185085],["2017-08-09",2480,2520,2280,2345,428182],["2017-08-10",2365,2365,2200,2230,280439],["2017-08-11",2200,2200,1965,2045,829017],["2017-08-14",2020,2045,1970,1995,166710],["2017-08-16",2100,2180,1785,1840,544776],["2017-08-17",1850,1885,1765,1870,274189],["2017-08-18",1865,2315,1815,2015,2549976],["2017-08-21",2045,2105,1985,2005,226700],["2017-08-22",1995,2030,1975,1995,154295],["2017-08-23",2020,2020,1985,1990,130845],["2017-08-24",1990,2005,1960,1970,149924],["2017-08-25",1970,2015,1920,1980,68443],["2017-08-28",1980,2085,1960,2015,177867],["2017-08-29",2000,2195,1950,2060,385269],["2017-08-30",2080,2100,2030,2055,122047],["2017-08-31",2070,2090,2035,2085,76555],["2017-09-01",2090,2160,2055,2120,199944],["2017-09-04",2015,2150,2015,2105,88382],["2017-09-05",2110,2260,2065,2080,447222],["2017-09-06",2070,2175,2065,2070,206503],["2017-09-07",2070,2155,2040,2090,114392],["2017-09-08",2115,2145,2040,2045,70432],["2017-09-11",2045,2090,1980,2000,220758],["2017-09-12",2030,2030,1940,1995,77411],["2017-09-13",2000,2000,1805,1950,118376],["2017-09-14",1990,2000,1890,1905,67862],["2017-09-15",1875,1935,1870,1915,66950],["2017-09-18",1915,2065,1915,1990,227944],["2017-09-19",1990,1990,1905,1945,116923],["2017-09-20",1985,1985,1850,1880,133794],["2017-09-21",1885,1895,1830,1830,78552],["2017-09-22",1820,1860,1745,1805,100694],["2017-09-25",1805,1805,1635,1670,187760],["2017-09-26",1380,1505,1330,1455,1789909],["2017-09-27",1455,1495,1395,1425,152676],["2017-09-28",1410,1515,1410,1500,431029],["2017-09-29",1500,1580,1430,1470,203885],["2017-10-10",1510,1510,1400,1410,134432],["2017-10-11",1405,1465,1405,1440,154539],["2017-10-12",1485,1485,1430,1430,200780],["2017-10-13",1430,1455,1360,1405,192997],["2017-10-16",1480,1480,1400,1445,119114],["2017-10-17",1425,1465,1390,1405,180211],["2017-10-18",1385,1435,1385,1420,103740],["2017-10-19",1420,1440,1385,1405,103003],["2017-10-20",1395,1410,1380,1405,128866]]},"index":[["2017-07-03",660.97],["2017-07-04",656.19],["2017-07-05",661.54],["2017-07-06",663.79],["2017-07-07",663.77],["2017-07-10",657.86],["2017-07-11",656.01],["2017-07-12",651.1],["2017-07-13",652.69],["2017-07-14",654.11],["2017-07-17",659.89],["2017-07-18",664.02],["2017-07-19",671.53],["2017-07-20",676.51],["2017-07-21",676.6],["2017-07-24",677.32],["2017-07-25",670.47],["2017-07-26",667.22],["2017-07-27",666.48],["2017-07-28",652.95],["2017-07-31",650.47],["2017-08-01",653.12],["2017-08-02",657.52],["2017-08-03",643.09],["2017-08-04",641.58],["2017-08-07",648.39],["2017-08-08",651.67],["2017-08-09",642.87],["2017-08-10",640.04],["2017-08-11",628.34],["2017-08-14",629.37],["2017-08-16",634.91],["2017-08-17",642.11],["2017-08-18",643.58],["2017-08-21",640.85],["2017-08-22",644.26],["2017-08-23",643.71],["2017-08-24",647.71],["2017-08-25",650.27],["2017-08-28",652.92],["2017-08-29",653.96],["2017-08-30",655],["2017-08-31",657.83],["2017-09-01",661.99],["2017-09-04",650.89],["2017-09-05",648.75],["2017-09-06",652.59],["2017-09-07",658.48],["2017-09-08",654.29],["2017-09-11",656.53],["2017-09-12",660.05],["2017-09-13",659.09],["2017-09-14",665.41],["2017-09-15",671.3],["2017-09-18",675.87],["2017-09-19",674.48],["2017-09-20",668.05],["2017-09-21",661.11],["2017-09-22",648.95],["2017-09-25",642.04],["2017-09-26",642.4],["2017-09-27",649.24],["2017-09-28",648.09],["2017-09-29",652.82],["2017-10-10",654.59],["2017-10-11",662.31],["2017-10-12",666.54],["2017-10-13",663.08],["2017-10-16",659.41],["2017-10-17",670.51],["2017-10-18",668.42],["2017-10-19",667.1],["2017-10-20",672.95]],"news":[{"t":"거래소, 윈팩 '감사의견 비적정설' 조회공시 요구","p":"연합뉴스","at":"2017-08-14T13:54:31+09:00","u":"https://n.news.naver.com/mnews/article/001/0009473535","ev":"097800_20170816"},{"t":"윈팩 \"감사의견 적정 확인\"","p":"연합뉴스","at":"2017-08-14T18:23:52+09:00","u":"https://n.news.naver.com/mnews/article/001/0009474479","ev":"097800_20170816"},{"t":"[코스피·코스닥 전 거래일(14일) 주요 공시]","p":"연합뉴스","at":"2017-08-16T06:05:01+09:00","u":"https://n.news.naver.com/mnews/article/001/0009476363","ev":"097800_20170816"},{"t":"무역협회 주관, 광주 해외바이어 초청 수출상담회 눈길","p":"연합뉴스","at":"2017-09-11T15:55:00+09:00","u":"https://n.news.naver.com/mnews/article/001/0009537648","ev":"010170_20170912"},{"t":"유비케어, 2분기 영업익 23억…전년比 25.1%↑","p":"뉴시스","at":"2017-08-04T09:29:50+09:00","u":"https://n.news.naver.com/mnews/article/003/0008104778","ev":"032620_20170808"},{"t":"거래소, 윈팩에 반기 검토의견 비적정설 조회공시 요구 ","p":"뉴시스","at":"2017-08-14T14:22:43+09:00","u":"https://n.news.naver.com/mnews/article/003/0008120456","ev":"097800_20170816"},{"t":"김삼화 \"삼성전자·SK하이닉스, 여성 장애인 고용률 한 자릿수\"","p":"뉴시스","at":"2017-09-19T14:23:29+09:00","u":"https://n.news.naver.com/mnews/article/003/0008186582","ev":"032620_20170919"},{"t":"윈팩, 반도체 업황 호조로 설비 투자 위한 유상증자 결정","p":"뉴시스","at":"2017-09-26T13:37:08+09:00","u":"https://n.news.naver.com/mnews/article/003/0008200342","ev":"097800_20170926"},{"t":"유비케어, 2Q 영업익 23억원…전년比 25%↑","p":"머니투데이","at":"2017-08-04T09:12:45+09:00","u":"https://n.news.naver.com/mnews/article/008/0003914872","ev":"032620_20170808"},{"t":"[주식정보]4일 상장사 공시현황","p":"머니투데이","at":"2017-08-04T14:48:47+09:00","u":"https://n.news.naver.com/mnews/article/008/0003915024","ev":"032620_20170808"},{"t":"[주식정보]4일 상장사 공시현황","p":"머니투데이","at":"2017-08-04T14:48:51+09:00","u":"https://n.news.naver.com/mnews/article/008/0003915025","ev":"032620_20170808"},{"t":"윈팩, 45억원 규모 전환사채 발행","p":"머니투데이","at":"2017-08-14T16:07:06+09:00","u":"https://n.news.naver.com/mnews/article/008/0003919544","ev":"097800_20170816"},{"t":"대한광통신, 최대주주 큐씨피6호→설윤석 외 4인 변경","p":"머니투데이","at":"2017-08-14T17:45:01+09:00","u":"https://n.news.naver.com/mnews/article/008/0003919644","ev":"010170_20170817"},{"t":"대한광통신, 최대주주 변경 수반 주식 담보제공 계약","p":"머니투데이","at":"2017-08-14T17:49:21+09:00","u":"https://n.news.naver.com/mnews/article/008/0003919648","ev":"010170_20170817"},{"t":"윈팩 \"올 상반기 회계감사 적정 확인\"","p":"머니투데이","at":"2017-08-14T18:18:50+09:00","u":"https://n.news.naver.com/mnews/article/008/0003919682","ev":"097800_20170816"},{"t":"장 마감 후 주요 공시-14일","p":"머니투데이","at":"2017-08-16T08:11:25+09:00","u":"https://n.news.naver.com/mnews/article/008/0003920081","ev":"010170_20170817"},{"t":"윈팩, 165억원 규모 유상증자 결정","p":"머니투데이","at":"2017-09-25T17:58:47+09:00","u":"https://n.news.naver.com/mnews/article/008/0003940460","ev":"097800_20170926"},{"t":"장 마감 후 주요 공시-25일","p":"머니투데이","at":"2017-09-26T07:35:34+09:00","u":"https://n.news.naver.com/mnews/article/008/0003940585","ev":"097800_20170926"},{"t":"윈팩, 165억원 주주배정 유상증자 \"반도체 시설 투자\"","p":"머니투데이","at":"2017-09-26T11:31:59+09:00","u":"https://n.news.naver.com/mnews/article/008/0003940832","ev":"097800_20170926"},{"t":"미코, 나노바이오시스 주식 254만주 취득","p":"머니투데이","at":"2017-10-13T17:17:53+09:00","u":"https://n.news.naver.com/mnews/article/008/0003947281","ev":"059090_20171017"},{"t":"장 마감 후 주요 공시 - 13일","p":"머니투데이","at":"2017-10-16T07:57:51+09:00","u":"https://n.news.naver.com/mnews/article/008/0003947789","ev":"059090_20171017"},{"t":"유비케어, 2분기 영업익 23억원…전년 比 25.1%↑","p":"매일경제","at":"2017-08-04T10:04:24+09:00","u":"https://n.news.naver.com/mnews/article/009/0003991299","ev":"032620_20170808"},{"t":"유비케어, 2분기 연결 영업익 22억6600만원…전년 동기 比 25.1%↑","p":"매일경제","at":"2017-08-04T13:36:32+09:00","u":"https://n.news.naver.com/mnews/article/009/0003991395","ev":"032620_20170808"},{"t":"유비케어, 2분기 영업이익 23억원…전년比 25.1%↑","p":"매일경제","at":"2017-08-04T13:52:56+09:00","u":"https://n.news.naver.com/mnews/article/009/0003991405","ev":"032620_20170808"},{"t":"[코스닥 공시] 엠게임 / 씨그널엔터테인먼트그룹 / 에임하이 등","p":"매일경제","at":"2017-08-14T17:47:24+09:00","u":"https://n.news.naver.com/mnews/article/009/0003996422","ev":"097800_20170816"},{"t":"윈팩, 165억원 규모 주주배정 유상증자","p":"매일경제","at":"2017-09-26T09:15:10+09:00","u":"https://n.news.naver.com/mnews/article/009/0004021075","ev":"097800_20170926"},{"t":"윈팩, 반도체 업황 호조에 설비 투자 위한 주주배정 유상증자","p":"매일경제","at":"2017-09-26T09:21:22+09:00","u":"https://n.news.naver.com/mnews/article/009/0004021081","ev":"097800_20170926"},{"t":"[단독] 엘티씨, SOFC 전해질 개발 완료…차세대 연료전지 상용화 `눈앞`","p":"매일경제","at":"2017-10-13T14:37:50+09:00","u":"https://n.news.naver.com/mnews/article/009/0004028894","ev":"059090_20171017"},{"t":"[장마감후 기업공시]8월14일","p":"서울경제","at":"2017-08-14T18:12:05+09:00","u":"https://n.news.naver.com/mnews/article/011/0003091680","ev":"010170_20170817"},{"t":"기업 공시[8월 14일]","p":"서울경제","at":"2017-08-15T09:01:34+09:00","u":"https://n.news.naver.com/mnews/article/011/0003091820","ev":"010170_20170817"},{"t":"장 마감 후 공시[9월 25일]","p":"서울경제","at":"2017-09-25T18:39:03+09:00","u":"https://n.news.naver.com/mnews/article/011/0003119865","ev":"097800_20170926"},{"t":"기업공시[9월 25일]","p":"서울경제","at":"2017-09-26T07:08:11+09:00","u":"https://n.news.naver.com/mnews/article/011/0003120034","ev":"097800_20170926"},{"t":"미코, 나노바이오시스 지분 27.96% 보유","p":"서울경제","at":"2017-10-13T17:46:20+09:00","u":"https://n.news.naver.com/mnews/article/011/0003129521","ev":"059090_20171017"},{"t":"[장 마감 후 기업공시]10월 13일","p":"서울경제","at":"2017-10-13T18:02:56+09:00","u":"https://n.news.naver.com/mnews/article/011/0003129563","ev":"059090_20171017"},{"t":"기업공시[10월 13일]","p":"서울경제","at":"2017-10-14T09:02:26+09:00","u":"https://n.news.naver.com/mnews/article/011/0003129756","ev":"059090_20171017"},{"t":"도시바 인수로 호재 맞은 SK하이닉스.. 밴더 낙수효과 '글쎄..\"","p":"파이낸셜뉴스","at":"2017-09-21T15:49:29+09:00","u":"https://n.news.naver.com/mnews/article/014/0003878299","ev":"097800_20170926"},{"t":"'도시바 인수 호재' SK하이닉스, 낙수효과는 아직","p":"파이낸셜뉴스","at":"2017-09-21T17:50:15+09:00","u":"https://n.news.naver.com/mnews/article/014/0003878430","ev":"097800_20170926"},{"t":"윈팩, 반도체 호황기...설비투자 위한 165억원 유상증자","p":"파이낸셜뉴스","at":"2017-09-26T09:24:28+09:00","u":"https://n.news.naver.com/mnews/article/014/0003880258","ev":"097800_20170926"},{"t":"유비케어, 2분기 영업익 22억…전년比 25%↑","p":"한국경제","at":"2017-08-04T09:13:20+09:00","u":"https://n.news.naver.com/mnews/article/015/0003805562","ev":"032620_20170808"},{"t":"[특징주]하림·윈팩·잉크테크, 대규모 증자 '급락'","p":"한국경제","at":"2017-09-26T09:14:22+09:00","u":"https://n.news.naver.com/mnews/article/015/0003828687","ev":"097800_20170926"},{"t":"[생생코스닥]유비케어, 2분기 영업익 22.6억 전년비 25.1%↑","p":"헤럴드경제","at":"2017-08-04T09:06:47+09:00","u":"https://n.news.naver.com/mnews/article/016/0001273316","ev":"032620_20170808"},{"t":"[생생코스닥]윈팩, 반기 검토의견 비적정설 관련 조회공시","p":"헤럴드경제","at":"2017-08-14T14:07:04+09:00","u":"https://n.news.naver.com/mnews/article/016/0001277206","ev":"097800_20170816"},{"t":"[생생코스닥]윈팩, 45억 규모 사모 CB 발행 결정","p":"헤럴드경제","at":"2017-08-14T16:08:30+09:00","u":"https://n.news.naver.com/mnews/article/016/0001277285","ev":"097800_20170816"},{"t":"[생생코스닥] 윈팩, 165억원 규모 유상증자…“반도체 업황 호조로 설비투자 필요”","p":"헤럴드경제","at":"2017-09-26T09:50:36+09:00","u":"https://n.news.naver.com/mnews/article/016/0001295512","ev":"097800_20170926"},{"t":"유비케어, 2분기 영업이익 23억원…전년比 25.1%↑","p":"이데일리","at":"2017-08-04T10:01:52+09:00","u":"https://n.news.naver.com/mnews/article/018/0003890522","ev":"032620_20170808"},{"t":"거래소, 윈팩 반기검토의견 비적정설 조회공시","p":"이데일리","at":"2017-08-14T16:49:44+09:00","u":"https://n.news.naver.com/mnews/article/018/0003897928","ev":"097800_20170816"},{"t":"윈팩, 사모 전환사채 45억원 발행","p":"이데일리","at":"2017-08-14T16:51:04+09:00","u":"https://n.news.naver.com/mnews/article/018/0003897931","ev":"097800_20170816"},{"t":"대한광통신, 최대주주 변경","p":"이데일리","at":"2017-08-14T17:24:50+09:00","u":"https://n.news.naver.com/mnews/article/018/0003897973","ev":"010170_20170817"},{"t":"[마켓인][오늘의 M&A 공시]카페24, 275억원 규모 신주인수권부사채 발행","p":"이데일리","at":"2017-08-14T18:10:45+09:00","u":"https://n.news.naver.com/mnews/article/018/0003898014","ev":"097800_20170816"},{"t":"윈팩, 반기검토보고서 `적정`","p":"이데일리","at":"2017-08-14T18:25:39+09:00","u":"https://n.news.naver.com/mnews/article/018/0003898027","ev":"097800_20170816"},{"t":"[상반기 코스닥 실적]140개社 적자전환…적자기업 비중 증가세","p":"이데일리","at":"2017-08-16T12:10:29+09:00","u":"https://n.news.naver.com/mnews/article/018/0003899164","ev":"010170_20170817"},{"t":"윈팩, 주주배정 유상증자로 165억 조달","p":"이데일리","at":"2017-09-25T18:39:05+09:00","u":"https://n.news.naver.com/mnews/article/018/0003931950","ev":"097800_20170926"},{"t":"윈팩, 165억 유상증자…“반도체 시설투자 자금 마련”","p":"이데일리","at":"2017-09-26T09:59:35+09:00","u":"https://n.news.naver.com/mnews/article/018/0003932275","ev":"097800_20170926"},{"t":"[마켓인][오늘의 M&A 공시]롯데쇼핑 “中 롯데마트 매각 결정 사항 없어”","p":"이데일리","at":"2017-10-13T18:08:02+09:00","u":"https://n.news.naver.com/mnews/article/018/0003943485","ev":"059090_20171017"},{"t":"[ET투자뉴스]유비케어 17년2분기 실적, 매출액·영업이익 상승","p":"전자신문","at":"2017-08-04T09:04:20+09:00","u":"https://n.news.naver.com/mnews/article/030/0002630857","ev":"032620_20170808"},{"t":"[ET투자뉴스]조선주 테마 vs 헬스케어관련주 테마","p":"전자신문","at":"2017-08-04T10:27:16+09:00","u":"https://n.news.naver.com/mnews/article/030/0002630917","ev":"032620_20170808"},{"t":"[ET투자뉴스]한컴MDS_주요 투자주체는 개인투자자","p":"전자신문","at":"2017-09-18T14:09:54+09:00","u":"https://n.news.naver.com/mnews/article/030/0002641997","ev":"032620_20170919"},{"t":"[ET투자뉴스]빅솔론_주가와 투자심리는 약세, 거래량은 침체","p":"전자신문","at":"2017-10-10T09:23:00+09:00","u":"https://n.news.naver.com/mnews/article/030/0002646208","ev":"093190_20171012"},{"t":"[ET투자뉴스]코텍_주요 투자주체는 개인투자자","p":"전자신문","at":"2017-10-10T11:10:40+09:00","u":"https://n.news.naver.com/mnews/article/030/0002646316","ev":"093190_20171012"},{"t":"[ET투자뉴스]헬스케어 관련주테마, 인피니트헬스케어, 유비케어 중심으로 강세","p":"전자신문","at":"2017-10-16T10:14:44+09:00","u":"https://n.news.naver.com/mnews/article/030/0002647853","ev":"032620_20171018"},{"t":"유비케어, 상반기 영업익 39억…전년比 22.6% ↑","p":"아이뉴스24","at":"2017-08-04T10:19:47+09:00","u":"https://n.news.naver.com/mnews/article/031/0000419834","ev":"032620_20170808"},{"t":"윈팩, 165억원 유증…\"설비투자·운영자금 마련\"","p":"아이뉴스24","at":"2017-09-26T09:33:10+09:00","u":"https://n.news.naver.com/mnews/article/031/0000425137","ev":"097800_20170926"},{"t":"올해 활약한 코스닥 '라이징스타'는","p":"데일리안","at":"2017-10-04T07:53:29+09:00","u":"https://n.news.naver.com/mnews/article/119/0002214144","ev":"093190_20171012"},{"t":"[투자분석] 오이솔루션,  하반기 40G와 100G 광트랜시버 개발 기대","p":"디지털데일리","at":"2017-08-16T15:25:44+09:00","u":"https://n.news.naver.com/mnews/article/138/0002053434","ev":"010170_20170817"},{"t":"유비케어, 2Q 영업익 22.6억…25.1% 증가","p":"아시아경제","at":"2017-08-04T09:07:53+09:00","u":"https://n.news.naver.com/mnews/article/277/0004048608","ev":"032620_20170808"},{"t":"[공시+]유비케어, 상반기 영업이익 39억원…전년比 22.6% 성장","p":"아시아경제","at":"2017-08-04T09:12:01+09:00","u":"https://n.news.naver.com/mnews/article/277/0004048620","ev":"032620_20170808"},{"t":"거래소, 윈팩에 반기 검토의견 비적정설 조회공시 요구","p":"아시아경제","at":"2017-08-14T13:54:43+09:00","u":"https://n.news.naver.com/mnews/article/277/0004054527","ev":"097800_20170816"},{"t":"윈팩, 45억 규모 전환사채 발행","p":"아시아경제","at":"2017-08-14T16:07:02+09:00","u":"https://n.news.naver.com/mnews/article/277/0004054677","ev":"097800_20170816"},{"t":"대한광통신 최대주주에 설윤석씨","p":"아시아경제","at":"2017-08-14T19:22:05+09:00","u":"https://n.news.naver.com/mnews/article/277/0004054824","ev":"010170_20170817"},{"t":"'아슬아슬' 막차 반기보고서 제출…절반은 적자","p":"아시아경제","at":"2017-08-16T09:37:45+09:00","u":"https://n.news.naver.com/mnews/article/277/0004055421","ev":"097800_20170816"},{"t":"코스닥, 장 초반 상승반전 후 다시 하락…기관 '팔자'","p":"아시아경제","at":"2017-09-26T09:34:28+09:00","u":"https://n.news.naver.com/mnews/article/277/0004083826","ev":"097800_20170926"}],"fscore":{"010170":[{"fy":2015,"disc":"2016-03-30","f":7,"items":[0,1,1,1,1,1,1,0,1]},{"fy":2016,"disc":"2017-03-31","f":7,"items":[0,1,0,1,1,1,1,1,1]},{"fy":2017,"disc":"2018-03-23","f":8,"items":[1,1,1,0,1,1,1,1,1]},{"fy":2018,"disc":"2019-04-01","f":3,"items":[1,0,1,0,0,1,0,0,0]},{"fy":2019,"disc":"2020-03-30","f":3,"items":[0,0,0,1,1,0,1,0,0]}],"032620":[{"fy":2015,"disc":"2016-03-30","f":6,"items":[1,1,1,1,1,0,1,0,0]},{"fy":2016,"disc":"2017-03-31","f":6,"items":[1,1,0,0,1,1,1,0,1]},{"fy":2017,"disc":"2018-03-30","f":6,"items":[1,1,0,1,1,0,1,0,1]},{"fy":2018,"disc":"2019-04-15","f":6,"items":[1,1,1,1,1,1,0,0,0]},{"fy":2019,"disc":"2020-03-30","f":5,"items":[1,1,0,1,1,0,1,0,0]}],"059090":[{"fy":2015,"disc":"2016-05-18","f":7,"items":[1,1,1,1,0,1,1,1,0]},{"fy":2016,"disc":"2017-03-31","f":8,"items":[1,1,0,1,1,1,1,1,1]},{"fy":2017,"disc":"2018-03-30","f":9,"items":[1,1,1,1,1,1,1,1,1]},{"fy":2018,"disc":"2019-04-01","f":7,"items":[1,1,1,1,0,1,1,1,0]},{"fy":2019,"disc":"2020-03-30","f":5,"items":[1,1,0,1,1,0,1,0,0]}],"093190":[{"fy":2015,"disc":"2016-03-30","f":6,"items":[1,1,1,0,1,0,1,1,0]},{"fy":2016,"disc":"2017-03-31","f":4,"items":[1,1,0,0,1,0,1,0,0]},{"fy":2017,"disc":"2018-04-02","f":6,"items":[1,1,1,0,1,1,1,0,0]},{"fy":2018,"disc":"2019-03-29","f":5,"items":[1,1,0,0,1,1,1,0,0]},{"fy":2019,"disc":"2020-03-30","f":6,"items":[1,1,0,1,1,1,1,0,0]}],"097800":[{"fy":2015,"disc":"2016-03-30","f":4,"items":[0,1,0,1,1,0,1,0,0]},{"fy":2016,"disc":"2017-03-31","f":2,"items":[0,0,0,1,0,0,1,0,0]},{"fy":2017,"disc":"2018-03-30","f":7,"items":[0,1,1,1,1,1,0,1,1]},{"fy":2018,"disc":"2019-04-01","f":8,"items":[1,1,1,1,1,0,1,1,1]},{"fy":2019,"disc":"2020-03-30","f":7,"items":[1,1,1,1,0,1,0,1,1]}]},"crash":{"verdict":"가치훼손","hyp":"H2","ar":-7.39,"ev":[{"l":"대한광통신-최대주주 변경 공시","dir":"긍정","src":"news","type":"S1"},{"l":"대청기업-주식담보 차입 결정","dir":"부정","src":"news","type":"C2"},{"l":"대청기업-담보권 실행시 지분율 하락 가능성","dir":"부정","src":"news","type":"C3"},{"l":"설윤석·대청기업-콜옵션 이행에 따른 지분 취득","dir":"긍정","src":"news","type":"S2"},{"l":"설윤석·대청기업-지분율 29.22%","dir":"긍정","src":"news","type":"S1"},{"l":"대청기업-최대주주 변경 수반 주식 담보제공 계약 체결","dir":"부정","src":"news","type":"S1"},{"l":"대청기업-지분율 감소 전망","dir":"부정","src":"news","type":"S1"},{"l":"설윤석-대한광통신 최대주주 변경","dir":"긍정","src":"news","type":"S1"}]},"names":{"010170":"대한광통신","032620":"유비케어","059090":"미코","093190":"빅솔론","097800":"윈팩"}};
+const FACE=n=>`../models/analysts/faces/${n}.png`;
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const P=new URLSearchParams(location.search);
+const phone=$('#phone'),screen=$('#screen');
+let look=P.get('look')==='clean'?'clean':'paper',scene=+(P.get('scene')||1),timers=[],raf=0,auto=true;
+if(P.has('bare'))document.body.classList.add('bare');
+const later=(ms,f)=>{const t=setTimeout(()=>{f()},ms);timers.push(t);return t};
+const stop=()=>{timers.forEach(clearTimeout);timers=[];cancelAnimationFrame(raf)};
+const css=n=>getComputedStyle(phone).getPropertyValue(n).trim();
+
+/* ---------- data ---------- */
+const ORDER=['010170','032620','093190','059090'],NEW='097800';
+const LETTER={'010170':'A','032620':'B','093190':'C','059090':'D','097800':'E'};
+const DATES=DATA.prices['010170'].map(r=>r[0]);
+const ROW={};for(const c in DATA.prices){ROW[c]={};DATA.prices[c].forEach((r,i)=>ROW[c][r[0]]=i)}
+const at=(c,i)=>DATA.prices[c][Math.max(0,Math.min(i,DATES.length-1))];
+const di=d=>DATES.indexOf(d);
+const idx=i=>DATA.index[Math.min(i,DATA.index.length-1)][1];
+const won=n=>Math.round(n).toLocaleString('ko-KR');
+const pct=(x,d=2)=>(x>0?'+':x<0?'−':'')+Math.abs(x).toFixed(d)+'%';
+const cls=x=>x>0?'up':x<0?'down':'';
+const QTY={};ORDER.forEach(c=>QTY[c]=Math.floor(2500000/at(c,0)[4]));
+const ink=w=>`<span class="ink" style="--w:${w}em"></span>`;
+const NAMES=Object.values(DATA.names);
+const mask=t=>{let s=t.replace(/&/g,'&amp;').replace(/</g,'&lt;');for(const n of NAMES)s=s.split(n).join(ink(Math.max(2.2,n.length*.9)));return s};
+// news belongs to the session it lands in: after 15:30 it shows on the next trading day
+const session=at=>{const d=at.slice(0,10),late=at.slice(11,16)>'15:30';let i=DATES.findIndex(x=>late?x>d:x>=d);return i<0?DATES.length:i};
+const NEWS=DATA.news.map(n=>({...n,i:session(n.at),code:n.ev.slice(0,6)})).sort((a,b)=>a.at<b.at?-1:1);
+const tick=p=>p<1000?1:p<5000?5:p<10000?10:p<50000?50:100;
+
+/* decisions in the mock run (real dates and prices; the choices are an example player's) */
+const DEC=[
+  {d:'2017-08-17',c:'010170',kind:'급락',choice:'지킴',chips:3},
+  {d:'2017-09-12',c:'010170',kind:'급락',choice:'정리',chips:2,swap:NEW},
+  {d:'2017-09-19',c:'032620',kind:'급락',choice:'지킴',chips:2},
+];
+function grade(x){const i=di(x.d),o=at(x.c,i+1)[1],end=Math.min(i+20,DATES.length-1),cl=at(x.c,end)[4];const hold=(cl/o-1)*100;
+  const mine=x.choice==='지킴'?hold:x.choice==='정리'?0:hold/2,other=x.choice==='지킴'?0:hold;const diff=mine-other;
+  const r=Math.abs(diff)<2?'tie':diff>0?'hit':'miss';return{...x,hold,mine,other,diff,r,days:end-i,pts:r==='hit'?x.chips*10:r==='miss'?-x.chips*10:0}}
+const GRADED=DEC.map(grade);
+function portfolio(mode){const cash={v:0},q={...QTY};const N=DATES.length-1;
+  const sell=(c,i,frac)=>{const o=at(c,i+1)[1];const n=Math.floor(q[c]*frac);q[c]-=n;cash.v+=n*o;return n*o};
+  if(mode==='me'){const got=sell('010170',di('2017-09-12'),1);q[NEW]=Math.floor(got/at(NEW,di('2017-09-12')+1)[1]);cash.v-=q[NEW]*at(NEW,di('2017-09-12')+1)[1]}
+  if(mode==='model')sell('010170',di('2017-08-17'),1);
+  const start=ORDER.reduce((s,c)=>s+QTY[c]*at(c,0)[4],0);const end=Object.entries(q).reduce((s,[c,n])=>s+n*at(c,N)[4],0)+cash.v;return(end/start-1)*100}
+
+/* ---------- controls ---------- */
+const SC=['브리핑','흐름','급락','교체','공개','랭킹'];
+function ctl(){$('#ctl').innerHTML=SC.map((s,i)=>`<button data-s="${i+1}" aria-pressed="${scene===i+1}">${i+1} ${s}</button>`).join('')+'<i></i>'+
+  `<button data-l="paper" aria-pressed="${look==='paper'}">종이</button><button data-l="clean" aria-pressed="${look==='clean'}">흰 바탕</button><i></i><button data-r>다시</button>`}
+$('#ctl').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.s)scene=+b.dataset.s;if(b.dataset.l)look=b.dataset.l;go()});
+function go(){stop();auto=!P.has('manual');phone.dataset.look=look;ctl();screen.className='screen s'+scene;screen.innerHTML='';SCENES[scene-1]();
+  const u=new URL(location);u.searchParams.set('scene',scene);u.searchParams.set('look',look);history.replaceState(null,'',u)}
+screen.addEventListener('pointerdown',()=>{auto=false},{capture:true});
+
+/* ---------- chart ---------- */
+function chart(cv,code,upto,{frozen=false,ghost=null}={}){
+  const dpr=Math.min(2,devicePixelRatio||1),W=cv.clientWidth,H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext('2d');g.scale(dpr,dpr);
+  const rows=DATA.prices[code];const all=rows.map(r=>r[4]);
+  // the y range only knows the days already seen (no peeking at the future), and eases when it widens
+  const range=n=>{const s=all.slice(0,Math.max(2,Math.ceil(n)+1));return[Math.min(...s)*.96,Math.max(...s)*1.03]};let [lo,hi]=range(upto.v);
+  const x=i=>10+(W-20)*i/(rows.length-1),y=v=>18+(H-34)*(1-(v-lo)/(hi-lo));
+  const ink=css('--ink'),line=css('--line'),sub=css('--sub'),up=css('--up'),down=css('--down');
+  let shown=0,t0=performance.now();const target=upto;
+  function draw(now){g.clearRect(0,0,W,H);const [l2,h2]=range(shown);lo+=(l2-lo)*.15;hi+=(h2-hi)*.15;
+    g.strokeStyle=line;g.lineWidth=1;for(let k=1;k<4;k++){const yy=18+(H-34)*k/4;g.beginPath();g.setLineDash([2,4]);g.moveTo(10,yy);g.lineTo(W-10,yy);g.stroke()}g.setLineDash([]);
+    const f=Math.floor(shown),fr=shown-f;g.beginPath();for(let i=0;i<=f;i++){const v=all[i];i?g.lineTo(x(i),y(v)):g.moveTo(x(i),y(v))}
+    let ex=x(f),ey=y(all[f]);if(f<rows.length-1&&fr>0){ex=x(f)+(x(f+1)-x(f))*fr;ey=y(all[f])+(y(all[f+1])-y(all[f]))*fr;g.lineTo(ex,ey)}
+    g.strokeStyle=ink;g.lineWidth=1.8;g.lineJoin='round';g.stroke();
+    g.lineTo(ex,H-16);g.lineTo(x(0),H-16);g.closePath();const gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,ink+'22');gr.addColorStop(1,ink+'00');g.fillStyle=gr;g.fill();
+    if(ghost){for(const gh of ghost){const i=di(gh.d);if(i>f)continue;g.save();g.globalAlpha=.55;g.strokeStyle=sub;g.setLineDash([3,3]);g.beginPath();g.moveTo(x(i),18);g.lineTo(x(i),H-16);g.stroke();g.setLineDash([]);g.fillStyle=sub;g.font='10px Gowun Dodum';g.fillText('지난번 '+gh.choice,Math.min(x(i)+4,W-60),26);g.restore()}}
+    const prev=all[Math.max(0,f-1)],c=all[f]>=prev?up:down;const pulse=frozen?0:Math.sin(now/260)*1.5;
+    g.fillStyle=c+'33';g.beginPath();g.arc(ex,ey,7+pulse,0,7);g.fill();g.fillStyle=c;g.beginPath();g.arc(ex,ey,3.2,0,7);g.fill();
+    if(shown<target.v){shown=Math.min(target.v,shown+Math.max(.04,(target.v-shown)*.18))}
+    raf=requestAnimationFrame(draw)}
+  shown=Math.max(0,upto.v-(frozen?0:.001));if(frozen)shown=upto.v;raf=requestAnimationFrame(draw)}
+
+function book(el,code,i){const r=at(code,i),p=r[4],t=tick(p),v=r[5];let h='<div class="book-h"><span>매도 잔량</span><span>호가</span></div>';
+  const seed=(k)=>((Math.sin(i*12.9898+k*78.233)*43758.5453)%1+1)%1;
+  for(let k=5;k>=1;k--){const q=Math.round(v*(.004+seed(k)*.02));h+=`<div class="row ask"><i style="--q:${Math.min(100,q/v*1800)}%"></i><span class="mono">${won(q)}</span><span class="mono">${won(p+k*t)}</span></div>`}
+  h+=`<div class="row cur" data-cur><span class="mono">${won(v)}</span><span class="mono ${cls(r[4]-at(code,i-1)[4])}">${won(p)}</span></div>`;
+  for(let k=1;k<=4;k++){const q=Math.round(v*(.004+seed(k+9)*.02));h+=`<div class="row bid"><i style="--q:${Math.min(100,q/v*1800)}%"></i><span class="mono">${won(q)}</span><span class="mono">${won(p-k*t)}</span></div>`}
+  const q=QTY[code]||0,buy=at(code,0)[4],ret=(p/buy-1)*100;
+  h+=`<div style="margin-top:auto;padding-top:8px;border-top:1px solid var(--line);display:grid;gap:2px;font-size:11px"><div style="display:flex;justify-content:space-between"><span>보유</span><b class="mono">${won(q)}주</b></div><div style="display:flex;justify-content:space-between"><span>평가</span><b class="mono">${won(q*p)}</b></div><div style="display:flex;justify-content:space-between"><span>시작 대비</span><b class="mono ${cls(ret)}">${pct(ret,1)}</b></div></div>`;
+  h+='<p class="note" style="margin-top:6px">일봉으로 재구성한 호가 · 단위 '+t+'원</p>';el.innerHTML=h}
+
+const PIN='<svg viewBox="0 0 24 24"><path d="M15 4l5 5-3 1-4 4 1 4-2 2-4-4-4 4M9 13l-4-4 2-2 4 1 4-4 1-3z"/></svg>';
+const head=(right='')=>`<div class="top"><div><div class="kick">관측소 원정 · 이번 주 공통 판</div><div class="title" style="font-size:18px">사건 파일 · <span class="mono">????</span>년</div></div>${right}</div>`;
+const chipsLeft=n=>`<div class="pill" data-chips><span class="chip"></span><span class="mono">${n}</span></div>`;
+
+/* ---------- scenes ---------- */
+const SCENES=[
+// 1 briefing
+()=>{screen.innerHTML=`<div class="folder" style="display:contents"></div>
+  <div class="top"><div><div class="kick">관측소 원정 · 이번 주 공통 판 · 11월 3주</div><div class="title">사건 파일 · <span class="mono">????</span>년</div></div></div>
+  <div class="body" style="display:grid;gap:10px">
+   <div class="panel folder" style="padding:12px">
+    <div class="kick" style="margin-bottom:8px">코스닥 · 회사 이름과 날짜는 끝에 공개</div>
+    <div class="co-list">${ORDER.map((c,k)=>`<div class="co panel in" style="animation-delay:${280+k*80}ms;box-shadow:none"><span class="tag">${LETTER[c]}</span><div><strong>${ink(3+(k%3)*.8)}</strong><small class="mono">${QTY[c]}주 · ${won(QTY[c]*at(c,0)[4])}원</small></div><small>보유</small></div>`).join('')}</div>
+   </div>
+   <div style="display:grid;gap:10px">
+    <div class="panel in" style="padding:12px;animation-delay:640ms;display:grid;gap:8px">
+     <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="kick">확신 칩</span><span class="mono" style="font-size:12px">10개 · 결정마다 1~4개</span></div>
+     <div class="chips">${Array.from({length:10},(_,k)=>`<span class="chip drop" style="animation-delay:${760+k*45}ms"></span>`).join('')}</div>
+    </div>
+    <div class="panel in" style="padding:12px;display:grid;gap:10px;animation-delay:900ms">
+     <div class="said"><span class="face" style="background-image:url(${FACE('tori')})"></span><div><b>토리</b>회사 넷, 칩 열 개. 기록은 내가 셀게.</div></div>
+     <div class="said"><span class="face" style="background-image:url(${FACE('moa')})"></span><div><b>모아</b>뉴스 지나가면 핀 꽂아 둬! 결정할 때 다시 꺼내 줄게.</div></div>
+     <div class="said"><span class="face" style="background-image:url(${FACE('luon')})"></span><div><b>루온</b>끝에 연도가 나와. 그 전에 언제인지 맞혀 볼래?</div></div>
+    </div>
+   </div>
+  </div>
+  <button class="btn in" style="margin-top:auto;animation-delay:1100ms" onclick="scene=2;go()">시작 · 방 1 / 3</button>`;
+  $$('.ink',screen).forEach((e,k)=>{e.classList.add('draw');e.style.animationDelay=(420+k*90)+'ms'})},
+
+// 2 flow
+()=>{const end=di('2017-08-16');let i=0,sel='010170',pins=0;const target={v:0};
+  screen.innerHTML=`${head(`<div style="display:flex;gap:6px"><div class="pill" data-note>${PIN.replace('<svg','<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"')}<span class="mono" data-pins>0/3</span></div>${chipsLeft(10)}</div>`)}
+  <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--sub)"><span>방 <b class="mono" data-room>1</b> / 3 · <b class="mono" data-day>D+0</b></span><span>하루 3초 · 목업은 빠르게</span></div><div class="prog">${[0,1,2].map(()=>'<i><b></b></i>').join('')}</div></div>
+  <div class="strip">${ORDER.map(c=>`<button data-c="${c}" aria-pressed="${c===sel}"><b>회사 ${LETTER[c]}</b><span class="mono" data-chg="${c}">0.00%</span></button>`).join('')}</div>
+  <div class="body" style="display:flex;flex-direction:column;gap:8px;flex:1;min-height:0">
+   <div class="chartbox panel"><canvas class="chart"></canvas><div class="chart-h"><span class="p mono" data-price></span><span class="mono" data-pchg style="font-size:12px"></span></div></div>
+   <div class="split"><div class="book panel" data-book></div><div class="feed panel" data-feed><p class="note">아직 이 회사들 소식이 없어. 조용한 날.</p></div></div>
+  </div>`;
+  const cv=$('canvas',screen);chart(cv,sel,target);
+  $$('.strip button',screen).forEach(b=>b.onclick=()=>{sel=b.dataset.c;$$('.strip button',screen).forEach(x=>x.setAttribute('aria-pressed',x===b));cancelAnimationFrame(raf);chart(cv,sel,target);paint(false)});
+  const feed=$('[data-feed]',screen);
+  function pin(el){if(el.classList.contains('pinned')||pins>=3)return;el.classList.add('pinned');pins++;
+    const a=$('.pin',el).getBoundingClientRect(),b=$('[data-note]',screen).getBoundingClientRect(),s=screen.getBoundingClientRect();
+    const f=document.createElement('div');f.className='fly';f.innerHTML=PIN.replace('<svg','<svg width="16" height="16" fill="none" stroke="'+css('--seal')+'" stroke-width="1.8"');f.style.left=(a.left-s.left)+'px';f.style.top=(a.top-s.top)+'px';screen.appendChild(f);
+    requestAnimationFrame(()=>{f.style.transform=`translate(${b.left-a.left+8}px,${b.top-a.top+6}px) scale(.7)`});setTimeout(()=>{f.remove();const p=$('[data-pins]',screen);p.textContent=pins+'/3';p.classList.remove('roll');void p.offsetWidth;p.classList.add('roll');$('[data-note]',screen).classList.add('press')},440)}
+  function paint(step=true){const r=at(sel,i),pv=at(sel,Math.max(0,i-1))[4];
+    const pe=$('[data-price]',screen);pe.textContent=won(r[4]);const ch=(r[4]/pv-1)*100;const pc=$('[data-pchg]',screen);pc.textContent=pct(ch);pc.className='mono '+cls(ch);if(step){pe.classList.remove('roll');void pe.offsetWidth;pe.classList.add('roll')}
+    ORDER.forEach(c=>{const e=$(`[data-chg="${c}"]`,screen),x=(at(c,i)[4]/at(c,Math.max(0,i-1))[4]-1)*100;e.textContent=pct(x);e.className='mono '+cls(x)});
+    book($('[data-book]',screen),sel,i);if(step)$('[data-cur]',screen).classList.add('flash');
+    $('[data-day]',screen).textContent='D+'+i;const room=Math.min(2,Math.floor(i/24));$('[data-room]',screen).textContent=room+1;$$('.prog b',screen).forEach((b,k)=>b.style.setProperty('--p',k<room?1:k>room?0:(i-room*24)/24))}
+  function addNews(){for(const n of NEWS.filter(n=>n.i===i&&ORDER.includes(n.code))){if(feed.querySelector('.note'))feed.innerHTML='';const el=document.createElement('div');el.className='news';
+      el.innerHTML=`<small>${n.p} · D+${i} ${n.at.slice(11,16)}</small>${mask(n.t)}<button class="pin" aria-label="핀 꽂기">${PIN}</button>`;$('.pin',el).onclick=()=>pin(el);feed.prepend(el);
+      $$('.news.pinned',feed).forEach(p=>feed.prepend(p));
+      while(feed.children.length>4){const old=[...feed.children].reverse().find(e=>!e.classList.contains('pinned'));if(!old)break;old.remove()}
+      if(auto&&n.code==='010170'&&/최대주주 변경$/.test(n.t))later(250,()=>auto&&pin(el))}}
+  paint(false);
+  function step(){if(i>=end){const b=document.createElement('div');b.className='banner panel';b.innerHTML=`<div class="said"><span class="face" style="background-image:url(${FACE('luon')})"></span><div><b>루온</b>다음 날, 회사 A에 일이 생겨. 핀 꽂은 거 기억나?</div></div><button class="btn" onclick="scene=3;go()">급락 순간으로</button>`;screen.appendChild(b);return}
+    i++;target.v=i;paint();addNews();later(i>end-5?520:240,step)}
+  later(500,step)},
+
+// 3 crash moment: time stops; the analysts annotate the chart one by one (no face-down cards)
+()=>{const d=di('2017-08-17'),r=at('010170',d),pv=at('010170',d-1)[4],ch=(r[4]/pv-1)*100,ic=(idx(d)/idx(d-1)-1)*100;
+  const fs=DATA.fscore['010170'],now=fs.find(x=>x.fy===2016),before=fs.find(x=>x.fy===2015);
+  const ev=['최대주주 변경 공시','주식담보 차입 결정'].map(p=>DATA.crash.ev.find(e=>e.l.includes(p))).filter(Boolean);
+  const pinned=NEWS.find(n=>n.code==='010170'&&/최대주주 변경$/.test(n.t));const mi=pinned.i;
+  const from=Math.max(0,d-24);
+  screen.innerHTML=`<div class="vig"></div>
+  <div class="top"><div><div class="kick">방 2 / 3 · D+${d}</div><div class="title" style="font-size:20px">회사 A · <span class="mono ${cls(ch)}">${pct(ch)}</span></div></div><div style="display:flex;gap:8px;align-items:center"><span class="halt">정지</span><div class="ring"><svg viewBox="0 0 38 38"><circle cx="19" cy="19" r="16" stroke="var(--line)"/><circle data-arc cx="19" cy="19" r="16" stroke="var(--seal)" stroke-dasharray="100.5" stroke-dashoffset="0" style="transition:stroke-dashoffset 1s linear"/></svg><span class="mono" data-t>30</span></div></div></div>
+  <div class="body" style="display:flex;flex-direction:column;gap:8px;flex:1;min-height:0">
+   <div class="chartbox panel" style="height:200px"><canvas class="chart"></canvas><div class="anno"></div></div>
+   <div class="reads">
+    <button class="read panel" data-r="moa"><span class="face" style="background-image:url(${FACE('moa')})"></span><p><b class="who">모아</b>사흘 전 저녁에 공시가 있었어! 최대주주가 바뀌었고, 새 주인 쪽이 주식을 담보로 돈을 빌렸대.</p>
+     <div class="facts">${ev.map(e=>`<span class="fact ${e.dir==='긍정'?'pos':'neg'}">${e.dir} · ${e.l.includes('최대주주')?'최대주주 변경':'주식담보 차입'}</span>`).join('')}<span class="fact">핀 꽂은 뉴스 1</span></div></button>
+    <button class="read panel" data-r="tori"><span class="face" style="background-image:url(${FACE('tori')})"></span><p><b class="who">토리</b>F-score는 작년 ${before.f}, 올해 ${now.f}. ${now.disc.slice(5).replace('-','/')} 공시 뒤로 새 숫자는 없어.</p>
+     <div class="facts"><span class="fact mono">F ${now.f}/9</span><span class="fact">변화 0</span></div></button>
+    <button class="read panel" data-r="luon"><span class="face" style="background-image:url(${FACE('luon')})"></span><p><b class="who">루온</b>시장은 ${pct(ic)}였어. 이 회사만 빠진 거지. 주인이 바뀐 게 문제야, 담보가 문제야?</p>
+     <div class="facts"><span class="fact mono">시장 대비 ${pct(DATA.crash.ar)}p</span></div></button>
+   </div>
+   <div class="decide panel in" style="animation-delay:2400ms;margin-top:auto">
+    <div class="choices">${['지킴','절반','정리'].map(c=>`<button data-ch="${c}" aria-pressed="false">${c}</button>`).join('')}</div>
+    <div class="stake"><span>확신 칩 <b class="mono" data-n>0</b> / 4 · 남은 칩 <b class="mono" data-left>10</b></span><div class="stack" data-stack></div><button class="pill" data-add>칩 올리기</button></div>
+    <button class="btn" data-go disabled style="opacity:.4">결정 · 내일 시가에 주문</button>
+   </div>
+  </div>`;
+  // zoomed chart (last 25 days); the disclosure mark and the market line draw in when their analyst speaks
+  const cv=$('canvas',screen),box=$('.anno',screen);const dpr=Math.min(2,devicePixelRatio||1),W=cv.clientWidth,H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext('2d');g.scale(dpr,dpr);
+  const xs=[];for(let i=from;i<=d;i++)xs.push(i);const px=xs.map(i=>at('010170',i)[4]),base=px[0],ix=xs.map(i=>idx(i)/idx(from)*base);
+  const all=[...px,...ix],lo=Math.min(...all)*.985,hi=Math.max(...all)*1.015;const X=k=>14+(W-84)*k/(xs.length-1),Y=v=>26+(H-44)*(1-(v-lo)/(hi-lo));
+  const prog={mkt:0,mark:0};
+  function draw(){g.clearRect(0,0,W,H);g.strokeStyle=css('--line');g.lineWidth=1;g.setLineDash([2,4]);for(let k=1;k<4;k++){const y=26+(H-44)*k/4;g.beginPath();g.moveTo(14,y);g.lineTo(W-14,y);g.stroke()}g.setLineDash([]);
+    if(prog.mark>0){const k=mi-from,x=X(k);g.globalAlpha=prog.mark;g.strokeStyle=css('--seal');g.lineWidth=1;g.setLineDash([3,3]);g.beginPath();g.moveTo(x,H-18);g.lineTo(x,H-18-(H-44)*prog.mark);g.stroke();g.setLineDash([]);g.fillStyle=css('--seal');g.beginPath();g.arc(x,Y(px[k]),3.5,0,7);g.fill();g.globalAlpha=1}
+    if(prog.mkt>0){const n=Math.max(1,Math.round((xs.length-1)*prog.mkt));g.strokeStyle=css('--sub');g.lineWidth=1.4;g.setLineDash([4,3]);g.beginPath();for(let k=0;k<=n;k++)k?g.lineTo(X(k),Y(ix[k])):g.moveTo(X(k),Y(ix[k]));g.stroke();g.setLineDash([])}
+    g.strokeStyle=css('--ink');g.lineWidth=1.9;g.lineJoin='round';g.beginPath();px.forEach((v,k)=>k?g.lineTo(X(k),Y(v)):g.moveTo(X(k),Y(v)));g.stroke();
+    const e=xs.length-1;g.fillStyle=css('--down');g.beginPath();g.arc(X(e),Y(px[e]),3.5,0,7);g.fill()}
+  const tween=(key,ms)=>{const t0=performance.now();const f=now=>{prog[key]=Math.min(1,(now-t0)/ms);draw();if(prog[key]<1)requestAnimationFrame(f)};requestAnimationFrame(f)};
+  draw();const e=xs.length-1;
+  box.innerHTML=`<span class="tag" data-a="moa" style="left:${X(mi-from)}px;top:${Y(px[mi-from])-8}px">공시 · <b>08/14</b> 저녁</span>
+   <span class="tag left" data-a="tori" style="left:8px;top:16px">F-score <b>${now.f}/9</b> · 변화 0</span>
+   <span class="tag left" data-a="luon" style="left:${X(e)+4}px;top:${Y(ix[e])}px">시장 <b>${pct(ic)}</b></span>
+   <span class="tag left on" style="left:${X(e)+4}px;top:${Y(px[e])}px">A <b>${pct(ch)}</b></span>`;
+  const say=(who,f)=>{$(`[data-r="${who}"]`,screen).classList.add('on');$(`[data-a="${who}"]`,box).classList.add('on');f&&f()};
+  later(250,()=>screen.classList.add('freeze'));
+  later(800,()=>say('moa',()=>tween('mark',500)));later(1400,()=>say('tori'));later(2000,()=>say('luon',()=>tween('mkt',700)));
+  $$('.read',screen).forEach(b=>b.onclick=()=>{const w=b.dataset.r;$$('.read',screen).forEach(x=>x.classList.toggle('hl',x===b));$$('.anno .tag',screen).forEach(x=>x.classList.toggle('hl',x.dataset.a===w))});
+  let t=30,choice=null,n=0;const arc=$('[data-arc]',screen);const tm=setInterval(()=>{if(!screen.classList.contains('s3')){clearInterval(tm);return}t=Math.max(0,t-1);$('[data-t]',screen).textContent=t;arc.style.strokeDashoffset=100.5*(1-t/30)},1000);timers.push(tm);
+  const choose=c=>{choice=c;$$('[data-ch]',screen).forEach(b=>b.setAttribute('aria-pressed',b.dataset.ch===c));ready()};
+  const add=()=>{if(n>=4){$('[data-stack]',screen).classList.add('shake');setTimeout(()=>$('[data-stack]',screen).classList.remove('shake'),300);return}n++;const s=document.createElement('span');s.className='chip drop';$('[data-stack]',screen).appendChild(s);
+    for(const [sel,v] of [['[data-n]',n],['[data-left]',10-n]]){const e=$(sel,screen);e.textContent=v;e.classList.remove('roll');void e.offsetWidth;e.classList.add('roll')}if(n===4)$('[data-stack]',screen).classList.add('shake');ready()};
+  const ready=()=>{const b=$('[data-go]',screen);const ok=choice&&n>0;b.disabled=!ok;b.style.opacity=ok?1:.4};
+  $$('[data-ch]',screen).forEach(b=>b.onclick=()=>choose(b.dataset.ch));$('[data-add]',screen).onclick=add;
+  $('[data-go]',screen).onclick=()=>{const p=$('.decide',screen);p.classList.add('press');const s=document.createElement('div');s.className='seal stamp';s.textContent=choice;p.appendChild(s);clearInterval(tm);
+    later(420,()=>{const o=document.createElement('div');o.className='order panel';const nx=at('010170',d+1);o.innerHTML=`<span class="pill" style="height:22px">예약</span><span><b>${choice}</b> · 회사 A · 칩 ${n}개 — 다음 날 시가 <b class="mono">${won(nx[1])}</b>원에 체결</span>`;$('.decide',screen).before(o)})};
+  [[3800,()=>choose('지킴')],[4200,add],[4450,add],[4700,add],[5300,()=>$('[data-go]',screen).click()]].forEach(([ms,f])=>later(ms,()=>auto&&f()))},
+
+// 4 earnings + swap
+()=>{const fs=DATA.fscore['010170'],a=fs.find(x=>x.fy===2017),b=fs.find(x=>x.fy===2018);
+  const L=['ROA 흑자','영업현금 흑자','ROA 개선','이익의 질','부채 감소','유동성 개선','증자 없음','마진 개선','회전율 개선'];
+  const lost=L.filter((_,k)=>a.items[k]&&!b.items[k]);
+  screen.innerHTML=`${head(chipsLeft(7))}
+  <div class="panel fs in"><div style="display:flex;justify-content:space-between;align-items:baseline"><span class="kick">실적 발표 · 회사 A · F-score</span><span class="note">예시 카드: 회사 A의 ${b.disc} 공시</span></div>
+   <div style="display:flex;align-items:baseline;gap:12px"><span class="num mono" data-f>${a.f}</span><span class="mono" style="color:var(--sub)">/ 9 · 작년 ${a.f}</span></div>
+   <div class="items">${L.map((l,k)=>`<div data-k="${k}"><span>${l}</span><b data-v>${a.items[k]}</b></div>`).join('')}</div>
+   <div class="said"><span class="face" style="background-image:url(${FACE('tori')})"></span><div><b>토리</b>9개 중 ${lost.length}개가 꺼졌어. ${lost.join(', ')}.</div></div>
+   <div class="said"><span class="face" style="background-image:url(${FACE('luon')})"></span><div><b>루온</b>꺼진 ${lost.length}개, 다 같은 무게야?</div></div>
+  </div>
+  <div class="slot" data-slot><div class="co panel" data-old><span class="tag">A</span><div><strong>${ink(3.6)}</strong><small class="mono">${QTY['010170']}주 보유</small></div><small>보유</small></div></div>
+  <div class="decide panel"><div class="choices">${['지킴','절반','정리'].map(c=>`<button data-ch="${c}" aria-pressed="false">${c}</button>`).join('')}</div>
+   <div class="stake"><span>확신 칩 <b class="mono">2</b> · 정리하면 새 회사가 무작위로 들어와</span><div class="stack"><span class="chip"></span><span class="chip"></span></div></div></div>`;
+  later(700,()=>{const e=$('[data-f]',screen);let v=a.f;const dn=()=>{if(v<=b.f)return;v--;e.textContent=v;e.classList.remove('roll');void e.offsetWidth;e.classList.add('roll');later(130,dn)};dn();
+    $$('[data-k]',screen).forEach((c,k)=>later(200+k*70,()=>{$('[data-v]',c).textContent=b.items[k];if(a.items[k]&&!b.items[k])c.classList.add('lost')}))});
+  const swap=()=>{const slot=$('[data-slot]',screen),old=$('[data-old]',slot);const h=old.outerHTML;old.remove();
+    slot.insertAdjacentHTML('beforeend',`<div class="half l">${h}</div><div class="half r">${h}</div>`);requestAnimationFrame(()=>requestAnimationFrame(()=>slot.classList.add('torn')));
+    later(520,()=>{slot.insertAdjacentHTML('beforeend','<div class="deck"><div class="bk"></div><div class="bk"></div><div class="bk"></div></div>');requestAnimationFrame(()=>$('.deck',slot).classList.add('go'))});
+    later(1350,()=>{$('.deck',slot).remove();slot.insertAdjacentHTML('beforeend',`<div class="newco"><div class="flip"><div class="co panel"><span class="tag" style="border-color:var(--seal);color:var(--seal)">E</span><div><strong>${ink(2.4)}</strong><small>새로 들어옴 · 매수 예약 · 다음 날 시가</small></div><small class="mono">약 ${won(QTY['010170']*at('010170',di('2017-09-12')+1)[1]/10000)}만 원</small></div><div class="bk2"></div></div></div>`);
+      requestAnimationFrame(()=>requestAnimationFrame(()=>$('.newco',slot).classList.add('on')));
+      later(500,()=>{const s=document.createElement('div');s.className='said in';s.innerHTML=`<span class="face" style="background-image:url(${FACE('moa')})"></span><div><b>모아</b>회사 E 들어왔어! 누군지는 끝에 알려 줄게.</div>`;$('.decide',screen).appendChild(s)})})};
+  const choose=c=>{$$('[data-ch]',screen).forEach(b=>b.setAttribute('aria-pressed',b.dataset.ch===c));const p=$('.decide',screen);p.classList.add('press');const s=document.createElement('div');s.className='seal stamp';s.textContent=c;p.appendChild(s);if(c==='정리')later(380,swap)};
+  $$('[data-ch]',screen).forEach(b=>b.onclick=()=>{if(!$('.seal',screen))choose(b.dataset.ch)});
+  later(2600,()=>auto&&!$('.seal',screen)&&choose('정리'))},
+
+// 5 reveal
+()=>{const me=portfolio('me'),none=portfolio('none'),model=portfolio('model');const tot=GRADED.reduce((s,g)=>s+g.pts,0);
+  const md=di('2017-08-17'),mo=at('010170',md+1)[1],mc=at('010170',Math.min(md+20,DATES.length-1))[4],mr=(mc/mo-1)*100;
+  const after=NEWS.filter(n=>n.code==='010170'&&n.i>md&&n.i<=md+20);const big=di('2017-09-12'),bigc=(at('010170',big)[4]/at('010170',big-1)[4]-1)*100;
+  const RN={hit:'적중',miss:'빗나감',tie:'비김'};
+  screen.innerHTML=`<div class="top"><div><div class="kick">관측소 원정 · 공개</div><div class="title" style="font-size:20px">사건 파일의 정체</div></div><div class="pill" data-chips><span class="chip"></span><span class="mono">3 남음</span></div></div>
+  <div class="scroll" data-scroll>
+   <div class="names">${[...ORDER,NEW].map(c=>`<div><span>회사 ${LETTER[c]}</span><span class="rev"><span class="ink" style="--w:${DATA.names[c].length*.95}em"></span><b>${DATA.names[c]}</b></span></div>`).join('')}</div>
+   <div style="text-align:center;padding:8px 0" data-era hidden><span class="era stamp">2017년 하반기</span><p class="note" style="margin-top:8px">2017-07-03 ~ 2017-10-20 · 코스닥 · 여름에서 가을로</p></div>
+   ${GRADED.map((g,k)=>`<div class="panel score" data-sc hidden><div><strong>${g.d.slice(5).replace('-','/')} · ${DATA.names[g.c]} · ${g.choice}</strong><br><small>${g.kind} 순간 · 칩 ${g.chips}개 · 이후 ${g.days}거래일<br>지켰으면 <b class="mono ${cls(g.hold)}">${pct(g.hold,1)}</b> · 내 결정 <b class="mono ${cls(g.mine)}">${pct(g.mine,1)}</b></small></div><span class="r ${g.r}">${RN[g.r]}</span><b class="mono" style="justify-self:end;font-size:15px">${g.pts>0?'+':''}${g.pts}</b></div>`).join('')}
+   <div class="panel total" data-tot hidden><div><div class="kick">판단 점수</div><small class="note">칩 7개를 걸었고 3개는 남겼어</small></div><b class="mono" data-count>0</b></div>
+   <div class="panel" data-model hidden style="padding:12px;display:grid;gap:6px"><div class="kick">모델은 어떻게 봤나</div><div style="font-size:13px">급락 모델은 08/17을 <b>${DATA.crash.verdict}</b>로 봤어 · 20거래일 뒤 <b class="mono ${cls(mr)}">${pct(mr,1)}</b></div><div class="note">${mr<-2?'이번엔 모델 쪽이 맞았어.':'이번엔 모델이 빗나갔어.'} 맞든 틀리든 같은 형식으로 보여줘.</div></div>
+   <div class="panel bars" data-bars hidden><p class="kick">수익 · 같은 판, 세 가지 길</p>
+    ${[['내 결과',me],['아무것도 안 했을 때',none],['모델 신호만 따랐을 때',model]].map(([l,v],k)=>`<div><span>${l}</span><i class="${k?'dim':''}" style="width:${Math.min(100,Math.abs(v)*3+6)}%;animation-delay:${k*120}ms"></i><b class="mono ${cls(v)}">${pct(v,1)}</b></div>`).join('')}<p class="note">판단 점수는 결정마다 매기고, 수익에는 새로 들어온 회사 E까지 들어가. 수수료 빼고 계산한 목업 · 실제 일봉</p></div>
+   <button class="panel link" data-links hidden><strong>그때 몰랐던 것</strong><em>›</em><small>08/17 이후 20일 · 회사 소식 ${after.length}건 · 09/12 하루 <span class="mono ${cls(bigc)}">${pct(bigc,1)}</span></small></button>
+   <button class="panel link" data-links hidden><strong>내 정원과 닮은 장면</strong><em>›</em><small>예시 정원의 한 종목: 급락 직후 · F-score 변화 없음. 이 두 가지가 닮았어.</small></button>
+  </div>
+  <button class="btn" onclick="scene=6;go()">순위 보기</button>`;
+  const sc=$('[data-scroll]',screen),show=e=>{e.hidden=false;e.classList.add('in');sc.scrollTo({top:sc.scrollHeight,behavior:'smooth'})};
+  $$('.names .ink',screen).forEach((e,k)=>later(400+k*120,()=>{e.classList.add('off');e.parentElement.classList.add('open')}));
+  later(1150,()=>show($('[data-era]',screen)));
+  $$('[data-sc]',screen).forEach((e,k)=>later(1900+k*360,()=>show(e)));
+  later(1900+GRADED.length*360+200,()=>{$$('[data-chips] .chip',screen).forEach(c=>c.classList.add('melt'));show($('[data-tot]',screen));const e=$('[data-count]',screen);const t0=performance.now();
+    const f=now=>{const p=Math.min(1,(now-t0)/700),v=Math.round(tot*(1-Math.pow(1-p,3)));e.textContent=(v>0?'+':'')+v;if(p<1)raf=requestAnimationFrame(f)};raf=requestAnimationFrame(f)});
+  const base=1900+GRADED.length*360+900;later(base,()=>show($('[data-model]',screen)));later(base+500,()=>show($('[data-bars]',screen)));$$('[data-links]',screen).forEach((e,k)=>later(base+1100+k*200,()=>show(e)))},
+
+// 6 ranking
+()=>{const tot=GRADED.reduce((s,g)=>s+g.pts,0);const N=['솔잎','이끼','자갈','개울','들꽃','부엉','도토리','물푸레','억새','반딧불','너구리','갈대','청솔','모래','안개','바위','오리','버들','노을','여울'];
+  const rows=N.map((n,k)=>({n:'예시·'+n,v:Math.round(90-k*6.3+((k*37)%7))})).sort((a,b)=>b.v-a.v);const pos=rows.findIndex(r=>r.v<tot);const at_=pos<0?rows.length:pos;
+  screen.innerHTML=`<div class="top"><div><div class="kick">관측소 원정 · 이번 주 공통 판</div><div class="title" style="font-size:20px">순위</div></div><button class="pill">공유 카드</button></div>
+  <div class="tabs"><button aria-pressed="true">판단 점수</button><button aria-pressed="false">수익</button></div>
+  <div class="sample"><span>예시 순위 · 서버 연결 전</span><span class="mono">참가 ${rows.length+1}</span></div>
+  <div class="rank"><ol data-ol>${rows.map((r,k)=>`<li><span class="n mono">${k+1}</span><span>${r.n}</span><b class="mono">${r.v}</b></li>`).join('')}</ol></div>
+  <div class="panel ghost in" style="animation-delay:900ms"><span class="gp">나</span><div>지난주의 나와 비교 · 같은 판에서 <b class="mono">+10</b> → 이번 <b class="mono">${tot>0?'+':''}${tot}</b><br><span class="note">08/17 지난번엔 정리, 이번엔 지킴</span></div></div>
+  <div class="panel trust in" style="animation-delay:1100ms"><p class="kick">누구 카드를 따랐나 · 누적</p>
+   ${[['tori','토리',2,3],['moa','모아',1,2],['luon','루온',2,2]].map(([id,n,a,b])=>`<div><span class="face" style="width:24px;height:24px;background-image:url(${FACE(id)})"></span><span style="font-size:12px">${n}</span><i><b style="width:${a/b*100}%"></b></i><span class="mono" style="text-align:right">${a}/${b}</span></div>`).join('')}</div>`;
+  const ol=$('[data-ol]',screen);const li=document.createElement('li');li.className='me';li.innerHTML=`<span class="n mono">${at_+1}</span><span class="who">나</span><b class="mono">${tot}</b>`;
+  const ref=ol.children[at_]||null;ol.insertBefore(li,ref);[...ol.children].forEach((e,k)=>{$('.n',e).textContent=k+1});
+  const box=$('.rank',screen);const want=li.offsetTop-box.clientHeight/2+17;box.scrollTop=Math.max(0,want);
+  const dy=box.getBoundingClientRect().bottom-li.getBoundingClientRect().top-34;
+  li.style.transform=`translateY(${dy}px)`;$$('li:not(.me)',ol).forEach((e,k)=>{if(k>=at_){e.style.transform='translateY(-34px)'}});
+  later(500,()=>{[...ol.children].forEach(e=>{e.style.transition='transform 520ms var(--in)';e.style.transform=''})})},
+];
+go();
+</script>
+</body>
+</html>

@@ -18,6 +18,8 @@ import {STAGE_POINTS} from '../../core/relationships';
 import {formatDay} from '../../core/items';
 import {CASES} from '../../content/cases';
 import {GAME} from '../../content/game';
+import {trustOf} from '../../core/game/meta';
+import type {RunRecord} from '../../core/game/run';
 import {CART_STOCK,DECOR_SLOTS,itemById} from '../../content/garden-items';
 import {ANALYSTS,MODEL_INFO,LINES,UI,CURRENCY,analystById,say,line,type AnalystId} from '../../content/analysts';
 import type {Signal} from '../../content/signals';
@@ -75,14 +77,17 @@ export function League({g,onClose}:{g:G;onClose:()=>void}){
   </Sheet>;
 }
 
-export function GameDoor({onClose}:{onClose:()=>void}){
+export function GameDoor({runs,week,onEnter,onClose}:{runs:RunRecord[];week:string;onEnter:()=>void;onClose:()=>void}){
+  const mine=runs.filter(r=>r.week===week),best=runs.length?Math.max(...runs.map(r=>r.total)):null,trust=trustOf(runs);
   return <Sheet kicker="관측소" title={GAME.name} onClose={onClose}
-    foot={GAME.url?<a className="rt-btn primary wide" href={GAME.url}>입장 · 약 {GAME.minutes}분</a>:<button type="button" className="rt-btn primary wide" disabled><Lock size={16}/>준비 중</button>}>
+    foot={<button type="button" className="rt-btn primary wide" onClick={onEnter}>{mine.length?'이번 주 판 다시':'이번 주 판 입장'} · 약 {GAME.minutes}분</button>}>
+    {runs.length>0&&<div className="rt-grid" style={{marginBottom:14}}><div className="rt-cell"><span>원정</span><b className="rt-num">{runs.length}</b></div><div className="rt-cell"><span>최고 판단 점수</span><b className="rt-num">{best}</b></div></div>}
+    {runs.some(r=>r.follow?.length)&&<><div className="rt-section">누구 쪽으로 갔을 때 적중</div><div className="rt-grid" style={{marginBottom:14}}>{([['tori','토리'],['moa','모아'],['luon','루온']] as const).map(([w,n])=><div key={w} className="rt-cell"><span>{n}</span><b className="rt-num">{trust[w].hit}/{trust[w].n}</b></div>)}</div></>}
     <ul className="rt-evidence">{GAME.rules.map(r=><li key={r}><span>{r}</span></li>)}</ul>
     <div className="rt-section" style={{marginTop:20}}>판에서 쓰는 모델 카드</div>
     <div className="rt-grid">{GAME.cards.map(m=>{const info=MODEL_INFO[m],a=analystById(info.analyst);return <div key={m} className="rt-cell">
       <span style={{display:'flex',alignItems:'center',gap:6}}><Face id={a.id} name={a.name} sm/>{a.name}</span><b style={{fontSize:17}}>{info.name}</b><small>{info.what}</small></div>})}</div>
-    {!GAME.url&&<p className="rt-hint" style={{marginTop:14}}>팀원 프로토타입을 붙이면 여기서 바로 들어가. 판이 끝나면 복기 결과가 신뢰도로 돌아와.</p>}
+    <p className="rt-hint" style={{marginTop:14}}>모두 같은 판을 일주일 동안 해. 점수는 수익이 아니라 판단으로 매겨.</p>
   </Sheet>;
 }
 

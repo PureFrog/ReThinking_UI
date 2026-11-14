@@ -47,6 +47,8 @@
     ".wrangler",
     ".sites-runtime",
     "outputs",
-    "work"
+    "work",
+    "sonjeol-game",
+    "INVEST_GAME"
   ]
 }

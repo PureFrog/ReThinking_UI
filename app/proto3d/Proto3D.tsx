@@ -32,6 +32,8 @@ import {Briefing,Grades,CaseView,LookBack,RewindView} from './ui/Loop';
 import {paidLeft} from '../core/rewind';
 import {todayTasks,dayDone,type TaskId} from '../core/today';
 import {rankOf,xpOf} from '../core/rank';
+import {Expedition} from './game/Expedition';
+import {weekStart} from '../core/weekly';
 import {Records,League,GameDoor,CartView,Drawer,AnalystCard,TodaySheet,LibrarySheet,weekCtx} from './ui/Panels';
 import {MapSheet} from './ui/MapSheet';
 import {RoomTags} from './ui/RoomTags';
@@ -146,7 +148,16 @@ export default function Proto3D(){
   const frames=useMemo(lapseFrames,[]);
   useEffect(()=>{if(!lapse?.playing)return;const t=setTimeout(()=>setLapse(l=>l&&(l.i>=frames.length-1?{...l,playing:false}:{...l,i:l.i+1})),TIMING.lapseStep);return()=>clearTimeout(t)},[lapse,frames.length]);
   // the garden at rest: no menus, bubbles or tags over a scene that plays by itself
-  const quiet=calm||!!lapse||me;
+  // 관측소 원정 (game/Expedition.tsx): ?game=<id> opens a 판 directly; the garden stops drawing while it is open
+  const [expedition,setExpedition]=useState<{pack:string|null}|null>(()=>{try{const id=new URLSearchParams(location.search).get('game');return id===null?null:{pack:id||null}}catch{return null}});
+  // G5: in and out through the observatory door (the paper fade, as for the house); the 판's market each day dresses the
+  // garden behind on a wide screen, where the 판 is a column and the garden still shows; on a phone the garden stops drawing
+  const [gameMarket,setGameMarket]=useState<number|null>(null);
+  const enterGame=(pack:string|null)=>{setPicked(null);setSheet(null);setFading(true);cue('door');setTimeout(()=>{setExpedition({pack});setTimeout(()=>setFading(false),80)},TIMING.roomFade)};
+  const leaveGame=()=>{setFading(true);cue('door');setTimeout(()=>{setExpedition(null);setGameMarket(null);setTimeout(()=>setFading(false),80)},TIMING.roomFade)};
+  const [wide,setWide]=useState(false);
+  useEffect(()=>{const q=matchMedia('(min-width:760px) and (min-height:521px)'),f=()=>setWide(q.matches);f();q.addEventListener('change',f);return()=>q.removeEventListener('change',f)},[]);
+  const quiet=calm||!!lapse||me||!!expedition;
   // W3 time capsules (core/capsule.ts): one marker per tree; burying after a judgment, digging up as a grade opens
   const capsules=useMemo(()=>capsulesOf(s.judgments,s.graded,clock.today,s.holdings.map(x=>x.id)),[s.judgments,s.graded,clock.today,s.holdings]);
   const [capFx,setCapFx]=useState<World['capsuleFx']>(null),[jump,setJump]=useState(false);
@@ -174,7 +185,7 @@ export default function Proto3D(){
   const w=useWeather(),tiltCtl=useTilt(g.s.settings.tilt);
   const lapseBack=lapse?frames[lapse.i]:0,lapseDay=dayBack(clock.today,lapseBack);
   const lapseMarket=lapse&&lapseBack>0?marketProvider.today(lapseDay):null;
-  const weather=lapseMarket?weatherOf(lapseMarket):w?.weather??'clear',wl=LOOK.weather[weather];
+  const weather=expedition&&gameMarket!==null?weatherOf({index:gameMarket,swing:Math.abs(gameMarket)*1.6}):lapseMarket?weatherOf(lapseMarket):w?.weather??'clear',wl=LOOK.weather[weather];
   const holdings=g.s.holdings,ready=g.s.onboarded;
   // what the garden draws: the holdings now, or as they stood in the timelapse week (absent before they were bought)
   const shown=useMemo(()=>lapse?holdings.flatMap(x=>{const p=holdingAt(x,lapseBack);return p?[p]:[]}):holdings,[holdings,lapse?.i]);// eslint-disable-line react-hooks/exhaustive-deps
@@ -220,7 +231,7 @@ export default function Proto3D(){
     return()=>clearInterval(t)},[inside,me,ready,light.day,light.night,weather]);
   // a first-time pointer (core/tips.ts), only in a quiet moment out in the garden
   // last month's letter (core/letter.ts), once the new month has opened
-  const letterFor=(m:string)=>letterOf(m,s.judgments,s.graded,{cases:s.cases,rewinds:s.rewinds,stamps:s.stamps},id=>stampById(id as never).name);
+  const letterFor=(m:string)=>letterOf(m,s.judgments,s.graded,{cases:s.cases,rewinds:s.rewinds,stamps:s.stamps,expeditions:s.expeditions??[]},id=>stampById(id as never).name);
   const lastLetter=letterFor(prevMonth(monthOf(clock.today))),letterWaiting=ready&&letterDue(clock.today,s.letters,lastLetter);
   const oldest=s.judgments.reduce((m,j)=>Math.max(m,daysFrom(j.day,clock.today)),0);
   const tip=ready&&!quiet&&!inside&&!sheet&&picked===null&&!g.due.length&&!letterWaiting&&!capFx&&!jump?nextTip(s.tips,{judgments:s.judgments.length,oldestDays:oldest}):null;
@@ -228,7 +239,8 @@ export default function Proto3D(){
   const sky=(k:'top'|'mid'|'bottom')=>mixHex(mixHex(wl.sky[k],LOOK.daylight.dusk[k],light.warm*0.75),LOOK.daylight.night[k],light.night);
   // stamps (core/stamps.ts): whatever newly holds is stamped once, with today's date
   const fresh=ready?newStamps({judgments:s.judgments.length,graded:s.graded.map(x=>({hit:x.hit,confidence:s.judgments.find(j=>j.id===x.judgmentId)?.confidence??3})),
-    bestStreak:s.streak.best,rewinds:s.rewinds.length,cases:s.cases.length,daysDone:s.daysDone.length,seen:s.seen,calibration:track.calibration},s.stamps.map(x=>x.id)):[];
+    bestStreak:s.streak.best,rewinds:s.rewinds.length,cases:s.cases.length,daysDone:s.daysDone.length,seen:s.seen,calibration:track.calibration,
+    expeditions:(s.expeditions??[]).map(r=>({week:r.week,sureHit:r.decisions.some((d,i)=>d.chips>=4&&r.results?.[i]==='hit')}))},s.stamps.map(x=>x.id)):[];
   useEffect(()=>{if(fresh.length)g.ops.stamp(fresh)},[fresh.join(',')]);// eslint-disable-line react-hooks/exhaustive-deps
   const world:World={
     // the three come in with the first trees
@@ -247,7 +259,7 @@ export default function Proto3D(){
     pots:holdings.map(h=>({holdingId:h.id,open:!!openFor(s.cooldowns,h.id),flowers:flowersOn(s.cooldowns,h.id)})).filter(p=>p.open||p.flowers),
     decor:s.owned.filter(o=>o.slot).map(o=>({slot:o.slot!,shape:itemById(o.itemId)!.shape})),
     burst,focus,birth,enterFrom:calm?DOOR:null,cutaway:cut,onDeep:id=>{if(!calm&&ready)openDeep(id)},
-    capsules:lapse?pinsAt(s.judgments,lapseDay,shown.map(x=>x.id)).map(id=>({holdingId:id,due:false})):capsules.map(c=>({holdingId:c.holdingId,due:c.due})),capsuleFx:capFx,onCapsule:id=>{if(!calm)onCapsule(id)},hitRate:track.hitRate,cartFlag:CART_FLAGS[Number(clock.today.slice(-2))%CART_FLAGS.length],gameLit:true,
+    capsules:lapse?pinsAt(s.judgments,lapseDay,shown.map(x=>x.id)).map(id=>({holdingId:id,due:false})):capsules.map(c=>({holdingId:c.holdingId,due:c.due})),capsuleFx:capFx,onCapsule:id=>{if(!calm)onCapsule(id)},hitRate:track.hitRate,cartFlag:CART_FLAGS[Number(clock.today.slice(-2))%CART_FLAGS.length],gameLit:!(s.expeditions??[]).some(r=>r.week===weekStart(clock.today)),
     onAnalyst:id=>{if(id==='luon'&&g.due.length){setSheet({kind:'grades'});return}const sig=open.find(x=>x.analyst===id);
       setSheet(sig?{kind:'brief',start:{signalId:sig.id}}:{kind:'analyst',id})},
     flags:LEAGUE_FLAGS,myFlag:0,caseOpen:!caseDone,goTo,inside,look,stage:me,light,
@@ -272,7 +284,7 @@ export default function Proto3D(){
     <div className={`proto3d${ready&&!quiet?"":" no-dock"}`} data-testid="proto3d" data-weather={weather} onPointerDownCapture={unlock} onClickCapture={e=>{if((e.target as HTMLElement).closest('button'))cue('ui-button')}}
       data-night={light.night>0.5} style={{background:`linear-gradient(180deg,${sky('top')} 0%,${sky('mid')} 38%,${sky('bottom')} 100%)`}}>
       {light.night>0.05&&<div className="proto3d-stars" aria-hidden style={{opacity:light.night}}/>}
-      {w&&<Canvas shadows="soft" dpr={[1,1.5]} gl={{antialias:false,alpha:true,powerPreference:'high-performance'}}
+      {w&&<Canvas frameloop={expedition&&!wide?'never':'always'} shadows="soft" dpr={[1,1.5]} gl={{antialias:false,alpha:true,powerPreference:'high-performance'}}
         camera={{fov:46,near:0.5,far:120,position:[0,21,14.5]}}>
         <Scene3D holdings={shown} picked={picked} onPick={id=>{setPicked(id);setEarly(false)}} recenter={recenter} weather={weather} world={world}/>
       </Canvas>}
@@ -283,9 +295,9 @@ export default function Proto3D(){
       <div className="proto3d-top">
         <div className="rt-top-left">
         {w&&<div className="rt-weather" aria-label="오늘 시장 날씨">
-          <span className="rt-weather-k">{lapseMarket?'그날 시장':'오늘 시장'}</span>
+          <span className="rt-weather-k">{lapseMarket||(expedition&&gameMarket!==null)?'그날 시장':'오늘 시장'}</span>
           <strong>{WEATHER_LABEL[weather]}</strong>
-          <span className="rt-num">{(lapseMarket?.index??w.index)>0?'+':''}{(lapseMarket?.index??w.index).toFixed(2)}%</span>
+          <span className="rt-num">{(()=>{const v=expedition&&gameMarket!==null?gameMarket:lapseMarket?.index??w.index;return (v>0?'+':'')+v.toFixed(2)})()}%</span>
           <small>{WEATHER_NOTE[weather]}</small>
         </div>}
         {ready&&!quiet&&<button type="button" className="rt-today" data-done={allDone} aria-label={`오늘 할 일 ${tasksDone}/${tasks.length}`} onClick={()=>setSheet({kind:'today'})}>
@@ -369,7 +381,10 @@ export default function Proto3D(){
       {sheet?.kind==='league'&&<League g={g} onClose={close}/>}
       {sheet?.kind==='map'&&<MapSheet me={(window as unknown as {__proto3d?:{player?:{x:number;z:number}}}).__proto3d?.player??{x:0,z:0}} onGo={goPlace} onClose={close}/>}
       {sheet?.kind==='library'&&<LibrarySheet caseDone={caseDone} rewindLeft={paidLeft(s.rewinds,clock.today)} onCase={()=>setSheet({kind:'case'})} onRewind={()=>setSheet({kind:'rewind'})} onClose={close}/>}
-      {sheet?.kind==='game'&&<GameDoor onClose={close}/>}
+      {sheet?.kind==='game'&&<GameDoor runs={s.expeditions??[]} week={weekStart(clock.today)} onEnter={()=>enterGame(null)} onClose={close}/>}
+      {expedition&&<Expedition packId={expedition.pack} today={clock.today} history={s.expeditions??[]} onFinish={g.ops.finishExpedition} onClose={()=>leaveGame()}
+        garden={open.map(x=>({holdingId:x.holdingId,name:holdings.find(h=>h.id===x.holdingId)?.name??'',model:x.model}))}
+        onSimilar={id=>{leaveGame();setSheet({kind:'brief',start:{holdingId:id}})}} onMarket={setGameMarket}/>}
       {sheet?.kind==='cart'&&<CartView g={g} onClose={close}/>}
       {sheet?.kind==='drawer'&&<Drawer g={g} onClose={close} onCart={()=>setSheet({kind:'cart'})}/>}
       {sheet?.kind==='analyst'&&<AnalystCard g={g} id={sheet.id} signal={open.find(x=>x.analyst===sheet.id)??null} onClose={close}

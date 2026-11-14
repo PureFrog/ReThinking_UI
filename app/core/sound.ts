@@ -86,6 +86,8 @@ export const SLOTS={
  'grade-count':'tick','grade-stamp':'stamp','grade-hit':'reveal-hit','grade-miss':'reveal-miss',
  // 3D 오! 패스 (docs/brief-wow.md W1~W3)
  'garden-born':'chord','cutaway-open':'dig','cutaway-close':'close','capsule-bury':'bury','capsule-mark':'thud','capsule-dig':'dig','capsule-open':'glass',
+ // 관측소 원정 (docs/game.md 7, app/proto3d/game/)
+ 'game-open':'door','game-halt':'thud','game-read':'glass','game-chip':'click','game-stamp':'stamp','game-tear':'unwrap','game-deal':'pickup','game-fill':'tick','game-pin':'tap','game-reveal':'chord','game-hit':'reveal-hit','game-miss':'reveal-miss','game-count':'tick',
  'journal-save':null,'quiz-right':null,'quiz-wrong':null,'quiz-gold':null,'retro-save':null,'streak-day':null,'streak-saved':null,'streak-bonus':null,
 } as const satisfies Record<string,Effect|null>;
 export type Slot=keyof typeof SLOTS;
