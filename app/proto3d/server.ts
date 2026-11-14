@@ -24,3 +24,33 @@ export const localLeague:LeagueRepo={
 };
 export const leagueRepo:LeagueRepo=localLeague;
 export {tierOf};
+
+// 관측소 원정 (docs/server.md): the week's ranking for a 판 and where a finished run goes. The client sends what it did
+// (decisions, orders, swaps); the server replays it with app/core/game/verify.ts and keeps the score it computes.
+import {sampleRanking,type RankRow} from '../core/game/meta';
+import type {Submission} from '../core/game/verify';
+export type ExpeditionRepo={
+  week(pack:string,week:string,me:{score:number;ret:number}):Promise<{rows:RankRow[];sample:boolean}>;
+  submit(run:Submission&{handle:string}):Promise<void>;
+};
+// local: example rows, always labelled as examples; nothing is sent
+export const localExpeditions:ExpeditionRepo={
+  async week(pack,week,me){return sampleRanking(pack,week,me)},
+  async submit(){},
+};
+// Supabase over plain fetch (no client package): the edge function `expedition-submit` checks and stores a run, the
+// view `expedition_week` ranks the week. Not wired: set expeditionRepo to this with the project URL and the public
+// anon key when the team picks the server (keys never go in the code; pass them in from the build environment).
+export function supabaseExpeditions(url:string,anonKey:string):ExpeditionRepo{
+  const h={apikey:anonKey,authorization:`Bearer ${anonKey}`,'content-type':'application/json'};
+  return {
+    async week(pack,week,me){
+      const r=await fetch(`${url}/rest/v1/expedition_week?pack_id=eq.${encodeURIComponent(pack)}&week=eq.${week}&order=total.desc&limit=50`,{headers:h});
+      if(!r.ok)return sampleRanking(pack,week,me);
+      const rows=(await r.json()) as {handle:string;total:number;ret:number}[];
+      return {rows:[...rows.map(x=>({name:x.handle,score:x.total,ret:x.ret})),{name:'나',score:me.score,ret:me.ret,me:true}],sample:false};
+    },
+    async submit(run){await fetch(`${url}/functions/v1/expedition-submit`,{method:'POST',headers:h,body:JSON.stringify(run)}).catch(()=>{})},
+  };
+}
+export const expeditionRepo:ExpeditionRepo=localExpeditions;

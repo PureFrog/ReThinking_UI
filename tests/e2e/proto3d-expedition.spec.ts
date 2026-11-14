@@ -25,7 +25,7 @@ test("a whole 판: brief, the flow, every moment decided, the reveal, and the ru
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(e.message));
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`/?demo&weather=clear&game=${PACK}&gameSpeed=40&gameClock=0`);
+  await page.goto(`/?demo&weather=clear&game=${PACK}&gameSpeed=40&gameClock=0&gameTutorial=0`);
   const ex = page.getByTestId("expedition");
   await expect(ex).toBeVisible({ timeout: 30_000 });
   await expect(ex).toContainText("????년");
@@ -88,7 +88,7 @@ test("a whole 판: brief, the flow, every moment decided, the reveal, and the ru
 
 test("the observatory door opens this week's 판", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/?demo&weather=clear");
+  await page.goto("/?demo&weather=clear&gameTutorial=0");
   await expect(page.locator(".proto3d canvas")).toBeVisible({ timeout: 30_000 });
   await page.getByRole("navigation", { name: "메뉴" }).getByRole("button", { name: "모의투자" }).click();
   const door = page.getByRole("dialog", { name: "관측소 원정" });
@@ -102,7 +102,7 @@ test("the observatory door opens this week's 판", async ({ page }) => {
 
 test("the clock on a moment runs out: it records 지킴 with one chip and time runs on", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`/?demo&weather=clear&game=${PACK}&gameSpeed=40&gameClock=2`);
+  await page.goto(`/?demo&weather=clear&game=${PACK}&gameSpeed=40&gameClock=2&gameTutorial=0`);
   await page.getByTestId("expedition").getByRole("button", { name: /^시작/ }).click();
   await page.getByRole("button", { name: "다음 순간까지" }).click();
   await expect.poll(async () => (await game(page))?.decisions, { timeout: 60_000 }).toBeGreaterThanOrEqual(1);
@@ -113,11 +113,31 @@ test("the clock on a moment runs out: it records 지킴 with one chip and time r
 
 test("a trade of my own fills at the next open and is stamped in the book", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`/?demo&weather=clear&game=${PACK}&gameSpeed=1&gameClock=0`);
+  await page.goto(`/?demo&weather=clear&game=${PACK}&gameSpeed=1&gameClock=0&gameTutorial=0`);
   await page.getByTestId("expedition").getByRole("button", { name: /^시작/ }).click();
   const book = page.getByLabel("호가");
   await book.getByRole("button", { name: "매도 ¼" }).click();
   await expect(book).toContainText("다음 날 시가에 체결");
   await expect(book.getByRole("status")).toContainText("체결", { timeout: 20_000 });
   await expect(book.getByRole("status")).toContainText("매도");
+});
+
+test("the first run is coached: each part waits for the coach, and it can be skipped", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/?demo&weather=clear&game="+PACK+"&gameSpeed=10&gameClock=0");
+  const coach = page.getByTestId("gx-coach");
+  await expect(coach).toBeVisible({ timeout: 30_000 });
+  await expect(coach).toContainText("먹줄");
+  await coach.getByRole("button", { name: "다음" }).click();
+  await coach.getByRole("button", { name: "다음" }).click();
+  await coach.getByRole("button", { name: "알겠어" }).click();
+  await expect(coach).toHaveCount(0);
+  await page.getByTestId("expedition").getByRole("button", { name: /^시작/ }).click();
+  // the flow's coach holds the days
+  await expect(coach).toContainText("오늘 가격");
+  await page.waitForTimeout(1500);
+  expect((await game(page))?.tick).toBe(0);
+  await coach.getByRole("button", { name: "건너뛰기" }).click();
+  await expect(coach).toHaveCount(0);
+  await expect.poll(async () => (await game(page))?.tick ?? 0, { timeout: 20_000 }).toBeGreaterThan(0);
 });

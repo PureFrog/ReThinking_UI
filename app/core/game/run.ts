@@ -62,7 +62,9 @@ export function weeklyPack(ids:string[],today:string){
   return ids[((n%ids.length)+ids.length)%ids.length];
 }
 // hits, ret (my return %) and follow (whose lean each decision went with, core/game/meta.ts) came in G4; old saves lack them
-export type RunRecord={pack:string;week:string;decisions:Decision[];total:number;at:string;hits?:number;ret?:number;follow?:{who:'tori'|'moa'|'luon';result:'hit'|'miss'|'tie'}[];results?:('hit'|'miss'|'tie')[]};
+export type RunRecord={pack:string;week:string;decisions:Decision[];total:number;at:string;hits?:number;ret?:number;follow?:{who:'tori'|'moa'|'luon';result:'hit'|'miss'|'tie'}[];results?:('hit'|'miss'|'tie')[];
+  // what the server replays (core/game/verify.ts): my orders and the swaps
+  orders?:Order[];swaps?:Swap[]};
 // "the past me": the last run of the same 판, its decisions laid over the chart
 export function ghostOf(history:RunRecord[],packId:string,exceptAt?:string){
   const prev=history.filter(r=>r.pack===packId&&r.at!==exceptAt).sort((a,b)=>a.at<b.at?1:-1);

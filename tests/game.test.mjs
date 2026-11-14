@@ -152,7 +152,7 @@ test('game lines keep the tone rules', () => {
   const ev=(e,dir)=>({kind:'crash',d:'',code:'A',ret:-8,idx:-2,ar:-6,z:-3,verdict:null,evidence:e?[{label:'x',dir}]:[]});
   const all=[...L.crashReads(ev(true,'부정'),{now:7,prev:5},2),...L.crashReads(ev(false),null,0),...L.crashReads({...ev(true,'긍정'),idx:1.2},{now:3,prev:3},0),
     ...L.earningsReads({kind:'earnings',d:'',code:'A',fy:1,f:3,prevF:8,items:[1,0,1,0,0,1,0,0,0],prevItems:[1,1,1,0,1,1,1,1,1]},3),...L.earningsReads({kind:'earnings',d:'',code:'A',fy:1,f:5,prevF:null,items:[],prevItems:null},0),
-    ...L.revealReads(3,5,40),...L.revealReads(1,5,-10)].map(r=>r.text);
+    ...L.revealReads(3,5,40),...L.revealReads(1,5,-10),...Object.values(L.COACH).flat()].map(r=>r.text);
   for(const t of all){assert.ok(t.length<=40,`${t.length}: ${t}`);assert.doesNotMatch(t,BANNED,t)}
 });
 
@@ -194,4 +194,28 @@ test('a company I sold down to nothing has no moment left', () => {
   s=PL.trade(p,s,'Z','sell',100);// all of Z, fills on tick 1
   s=PL.skipToMoment(p,s);
   assert.equal(s.moment?.code,'A','the Z crash on tick 7 is skipped; the A report comes up');
+});
+
+test('2023~ packs: the new tick table, a KOSPI index, tori counts the tape when there is no F-score', () => {
+  assert.deepEqual([1999,2000,4999,5000,19999,20000,50000,200000,500000].map(p=>P.tickOf(p,'2023')),[1,5,5,10,10,50,100,500,1000]);
+  const l=P.limits(18000,'2023');assert.equal(l.upper%P.tickOf(l.upper,'2023'),0);assert.equal(l.lower%P.tickOf(l.lower,'2023'),0);
+  const idx=JSON.parse(fs.readFileSync(new URL('../public/game/packs/index.json',import.meta.url),'utf8'));
+  assert.ok(idx.packs.length>=20);assert.ok(idx.packs.some(p=>p.set==='2023-2024'));
+  const newer=idx.packs.filter(p=>p.set==='2023-2024').map(e=>JSON.parse(fs.readFileSync(new URL('../public/game/packs/'+e.id+'.json',import.meta.url),'utf8')));
+  assert.ok(newer.every(p=>p.ticks==='2023'));assert.ok(newer.some(p=>p.market==='KOSPI'));
+  for(const p of newer){const b=B.orderBook(p,p.companies[0].code,10);for(const x of [...b.asks,...b.bids])assert.equal(x.price%P.tickOf(x.price,'2023'),0)}
+  const r=L.crashReads({kind:'crash',d:'',code:'A',ret:-8,idx:.4,ar:-8,z:-3,verdict:null,evidence:[]},null,0,{ret20:-12.3,volX:3.24});
+  assert.equal(r.find(x=>x.who==='tori').text,'20일 전보다 −12.30%. 거래량은 평소의 3.2배.');
+});
+
+const VF=await load('core/game/verify');
+test('the server check replays a run and refuses what does not replay', () => {
+  const p=fixture();
+  let s=PL.begin(PL.startPlay(p,3));s=PL.skipToMoment(p,s);s=PL.decide(p,s,'정리',3);s=PL.skipToMoment(p,s);s=PL.decide(p,s,'지킴',2);
+  const sub={pack:p.id,week:'2026-11-16',decisions:s.decisions,orders:s.orders,swaps:s.swaps};
+  const v=VF.verifyRun(p,sub);assert.equal(v.ok,true);assert.equal(v.total,G.scoreRun(p,s.decisions).total);
+  assert.equal(VF.verifyRun(p,{...sub,decisions:[...sub.decisions,{...sub.decisions[1],tick:20}]}).reason,'moment');
+  assert.equal(VF.verifyRun(p,{...sub,decisions:sub.decisions.map(d=>({...d,chips:5}))}).reason,'chips');
+  assert.equal(VF.verifyRun(p,{...sub,swaps:[{tick:7,out:'Z',in:'A'}]}).reason,'swap');
+  assert.equal(VF.verifyRun(p,{...sub,pack:'x'}).reason,'pack');
 });

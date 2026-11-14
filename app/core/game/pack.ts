@@ -18,23 +18,26 @@ export type Regime='상승장'|'하락장'|'박스권';
 export type GamePack={
   v:1;id:string;
   titleHidden:string;titleRevealed:string;summaryRevealed:string;regime:Regime;
+  // market: the index shown (KOSDAQ when missing); ticks: '2023' for the tick table from 2023-01-25 on
+  market?:'KOSDAQ'|'KOSPI';ticks?:'2023';
   days:string[];preDays:number;epiDays:number;
   cash:number;companies:GameCompany[];
   prices:Record<string,Bar[]>;index:[string,number][];
   news:NewsItem[];events:GameEvent[];
   fscore:Record<string,FScorePoint[]>;ohlson:Record<string,[string,string][]>;
 };
-export type PackIndex={v:1;built:string;packs:{id:string;regime:Regime;decisions:number;titleHidden:string}[]};
+export type PackIndex={v:1;built:string;packs:{id:string;regime:Regime;decisions:number;titleHidden:string;set?:string}[]};
+export const marketName=(p:GamePack)=>p.market==='KOSPI'?'코스피':'코스닥';
 
 export const F_ITEMS=['ROA 흑자','영업현금 흑자','ROA 개선','이익의 질','부채 감소','유동성 개선','증자 없음','마진 개선','회전율 개선'];
 
-// KOSDAQ tick size before the 2023-01-25 change (the packs cover 2015~2019)
-export const tickOf=(p:number)=>p<1000?1:p<5000?5:p<10000?10:p<50000?50:100;
+// tick size: the KOSDAQ table before 2023-01-25 (the 2016~2019 packs), and the one table for both markets after it
+export const tickOf=(p:number,rule?:'2023')=>rule==='2023'?(p<2000?1:p<5000?5:p<20000?10:p<50000?50:p<200000?100:p<500000?500:1000):(p<1000?1:p<5000?5:p<10000?10:p<50000?50:100);
 // ±30% from the previous close, trimmed to the tick size (sonjeol-game engine, DATA_SOURCES §1)
-export function limits(prev:number){
-  const u=tickOf(prev),w=Math.floor(prev*.3/u)*u;
+export function limits(prev:number,rule?:'2023'){
+  const t=(p:number)=>tickOf(p,rule),u=t(prev),w=Math.floor(prev*.3/u)*u;
   const up=prev+w,lo=prev-w;
-  return {upper:Math.floor(up/tickOf(up))*tickOf(up),lower:Math.ceil(lo/tickOf(lo))*tickOf(lo)};
+  return {upper:Math.floor(up/t(up))*t(up),lower:Math.ceil(lo/t(lo))*t(lo)};
 }
 
 const cache=new WeakMap<GamePack,Record<string,Map<string,number>>>();

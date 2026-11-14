@@ -32,7 +32,7 @@ export function simulate(pack:GamePack,orders:Order[],upto=pack.days.length-1):S
     cash*=1+ENGINE.cashDaily;
     for(const o of due.get(t)??[]){
       const bar=barAt(pack,o.code,t),prev=barAt(pack,o.code,t-1);if(!bar||!prev)continue;
-      const price=bar[1],{upper,lower}=limits(prev[4]);
+      const price=bar[1],{upper,lower}=limits(prev[4],pack.ticks);
       const no=(reason:Unfilled['reason'])=>unfilled.push({...o,tick:t,reason});
       if(o.side==='buy'){
         if(price>=upper){no('upper_limit_buy');continue}

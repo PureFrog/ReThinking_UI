@@ -93,3 +93,29 @@ create view league_points as
   + coalesce((select sum(c.points) from case_answers c
               where c.player_id = m.player_id and date_trunc('week', c.day) = lg.week), 0) as points
   from league_members m join league_groups lg on lg.id = m.group_id;
+
+-- 관측소 원정 (docs/game.md, app/core/game/verify.ts). A run is a game on a past 판: its "orders" are moves inside that
+-- old window, not real trades. The client submits what it did; the edge function db/functions/expedition-submit
+-- replays it on the same pack and writes the score it computes (the client's own number is never stored).
+create table expedition_runs (
+  id          uuid primary key default gen_random_uuid(),
+  player_id   uuid not null references players(id),
+  pack_id     text not null,
+  week        date not null,                 -- Monday of the week the 판 was this week's
+  decisions   jsonb not null,                -- core/game/grade.ts Decision[]
+  orders      jsonb not null,                -- core/game/engine.ts Order[] (moves inside the past 판)
+  swaps       jsonb not null,
+  total       smallint not null,             -- the judgment score, from the server's replay
+  ret         numeric(6,1) not null,         -- the 판 return %, from the server's replay (shown on the second tab only)
+  hits        smallint not null,
+  created_at  timestamptz not null default now()
+);
+create index expedition_runs_week on expedition_runs (pack_id, week, total desc);
+-- the week's table: each player's first run of that week's 판 counts (docs/game.md 5-2)
+create view expedition_week as
+  select distinct on (r.pack_id, r.week, r.player_id) r.pack_id, r.week, p.handle, r.total, r.ret
+  from expedition_runs r join players p on p.id = r.player_id
+  order by r.pack_id, r.week, r.player_id, r.created_at;
+-- Supabase row level security: players read the week's table, only the edge function (service role) writes runs
+alter table expedition_runs enable row level security;
+create policy expedition_runs_read_own on expedition_runs for select using (player_id = auth.uid());

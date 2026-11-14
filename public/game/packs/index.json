@@ -1,78 +1,160 @@
 {
  "v": 1,
- "built": "2026-11-13",
+ "built": "2026-11-14",
  "packs": [
   {
    "id": "b796be2c",
    "regime": "박스권",
    "decisions": 5,
-   "titleHidden": "사건 파일 · ????년"
+   "titleHidden": "사건 파일 · ????년",
+   "set": "2016-2019"
   },
   {
    "id": "61ae53b4",
    "regime": "하락장",
    "decisions": 5,
-   "titleHidden": "사건 파일 · ????년"
+   "titleHidden": "사건 파일 · ????년",
+   "set": "2016-2019"
   },
   {
    "id": "05fb33fa",
    "regime": "하락장",
    "decisions": 5,
-   "titleHidden": "사건 파일 · ????년"
+   "titleHidden": "사건 파일 · ????년",
+   "set": "2016-2019"
   },
   {
    "id": "bdadb28b",
    "regime": "박스권",
    "decisions": 5,
-   "titleHidden": "사건 파일 · ????년"
+   "titleHidden": "사건 파일 · ????년",
+   "set": "2016-2019"
   },
   {
    "id": "c305dc6d",
    "regime": "상승장",
    "decisions": 5,
-   "titleHidden": "사건 파일 · ????년"
+   "titleHidden": "사건 파일 · ????년",
+   "set": "2016-2019"
   },
   {
    "id": "08b8c477",
    "regime": "박스권",
    "decisions": 5,
-   "titleHidden": "사건 파일 · ????년"
+   "titleHidden": "사건 파일 · ????년",
+   "set": "2016-2019"
   },
   {
    "id": "157d0e54",
    "regime": "박스권",
    "decisions": 5,
-   "titleHidden": "사건 파일 · ????년"
+   "titleHidden": "사건 파일 · ????년",
+   "set": "2016-2019"
   },
   {
    "id": "ffa6e004",
    "regime": "하락장",
    "decisions": 5,
-   "titleHidden": "사건 파일 · ????년"
+   "titleHidden": "사건 파일 · ????년",
+   "set": "2016-2019"
   },
   {
    "id": "0974b792",
    "regime": "하락장",
    "decisions": 5,
-   "titleHidden": "사건 파일 · ????년"
+   "titleHidden": "사건 파일 · ????년",
+   "set": "2016-2019"
   },
   {
    "id": "098d0e28",
    "regime": "상승장",
    "decisions": 5,
-   "titleHidden": "사건 파일 · ????년"
+   "titleHidden": "사건 파일 · ????년",
+   "set": "2016-2019"
   },
   {
    "id": "e7689efa",
    "regime": "박스권",
    "decisions": 5,
-   "titleHidden": "사건 파일 · ????년"
+   "titleHidden": "사건 파일 · ????년",
+   "set": "2016-2019"
   },
   {
    "id": "8e926c58",
    "regime": "상승장",
    "decisions": 5,
-   "titleHidden": "사건 파일 · ????년"
+   "titleHidden": "사건 파일 · ????년",
+   "set": "2016-2019"
+  },
+  {
+   "id": "087ca5ed",
+   "regime": "박스권",
+   "decisions": 4,
+   "titleHidden": "사건 파일 · ????년",
+   "set": "2023-2024"
+  },
+  {
+   "id": "25e5282a",
+   "regime": "상승장",
+   "decisions": 4,
+   "titleHidden": "사건 파일 · ????년",
+   "set": "2023-2024"
+  },
+  {
+   "id": "1932f4b9",
+   "regime": "박스권",
+   "decisions": 4,
+   "titleHidden": "사건 파일 · ????년",
+   "set": "2023-2024"
+  },
+  {
+   "id": "5bca0b4a",
+   "regime": "박스권",
+   "decisions": 5,
+   "titleHidden": "사건 파일 · ????년",
+   "set": "2023-2024"
+  },
+  {
+   "id": "bf3bb4c8",
+   "regime": "박스권",
+   "decisions": 4,
+   "titleHidden": "사건 파일 · ????년",
+   "set": "2023-2024"
+  },
+  {
+   "id": "957b1e60",
+   "regime": "박스권",
+   "decisions": 4,
+   "titleHidden": "사건 파일 · ????년",
+   "set": "2023-2024"
+  },
+  {
+   "id": "2eb5503a",
+   "regime": "하락장",
+   "decisions": 4,
+   "titleHidden": "사건 파일 · ????년",
+   "set": "2023-2024"
+  },
+  {
+   "id": "608e7a0b",
+   "regime": "하락장",
+   "decisions": 4,
+   "titleHidden": "사건 파일 · ????년",
+   "set": "2023-2024"
+  },
+  {
+   "id": "8ae4800c",
+   "regime": "박스권",
+   "decisions": 4,
+   "titleHidden": "사건 파일 · ????년",
+   "set": "2023-2024"
+  },
+  {
+   "id": "bfcc69bf",
+   "regime": "상승장",
+   "decisions": 4,
+   "titleHidden": "사건 파일 · ????년",
+   "set": "2023-2024"
   }
  ]
 }

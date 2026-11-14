@@ -294,7 +294,7 @@ export default function Proto3D(){
 
       <div className="proto3d-top">
         <div className="rt-top-left">
-        {w&&<div className="rt-weather" aria-label="오늘 시장 날씨">
+        {w&&(!expedition||wide)&&<div className="rt-weather" aria-label="오늘 시장 날씨">
           <span className="rt-weather-k">{lapseMarket||(expedition&&gameMarket!==null)?'그날 시장':'오늘 시장'}</span>
           <strong>{WEATHER_LABEL[weather]}</strong>
           <span className="rt-num">{(()=>{const v=expedition&&gameMarket!==null?gameMarket:lapseMarket?.index??w.index;return (v>0?'+':'')+v.toFixed(2)})()}%</span>
@@ -382,7 +382,7 @@ export default function Proto3D(){
       {sheet?.kind==='map'&&<MapSheet me={(window as unknown as {__proto3d?:{player?:{x:number;z:number}}}).__proto3d?.player??{x:0,z:0}} onGo={goPlace} onClose={close}/>}
       {sheet?.kind==='library'&&<LibrarySheet caseDone={caseDone} rewindLeft={paidLeft(s.rewinds,clock.today)} onCase={()=>setSheet({kind:'case'})} onRewind={()=>setSheet({kind:'rewind'})} onClose={close}/>}
       {sheet?.kind==='game'&&<GameDoor runs={s.expeditions??[]} week={weekStart(clock.today)} onEnter={()=>enterGame(null)} onClose={close}/>}
-      {expedition&&<Expedition packId={expedition.pack} today={clock.today} history={s.expeditions??[]} onFinish={g.ops.finishExpedition} onClose={()=>leaveGame()}
+      {expedition&&<Expedition packId={expedition.pack} today={clock.today} history={s.expeditions??[]} handle={s.name} onFinish={g.ops.finishExpedition} onClose={()=>leaveGame()}
         garden={open.map(x=>({holdingId:x.holdingId,name:holdings.find(h=>h.id===x.holdingId)?.name??'',model:x.model}))}
         onSimilar={id=>{leaveGame();setSheet({kind:'brief',start:{holdingId:id}})}} onMarket={setGameMarket}/>}
       {sheet?.kind==='cart'&&<CartView g={g} onClose={close}/>}

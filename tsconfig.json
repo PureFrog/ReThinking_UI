@@ -49,6 +49,7 @@
     "outputs",
     "work",
     "sonjeol-game",
-    "INVEST_GAME"
+    "INVEST_GAME",
+    "db/functions"
   ]
 }

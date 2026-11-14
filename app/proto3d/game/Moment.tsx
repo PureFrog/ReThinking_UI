@@ -15,13 +15,17 @@ export const FACE=(id:string)=>`/models/analysts/faces/${id}.png`;
 const NAME={tori:'토리',moa:'모아',luon:'루온'} as const;
 const pct=(x:number)=>`${x>0?'+':x<0?'−':''}${Math.abs(x).toFixed(2)}%`;
 
-export function MomentView({pack,m,left,pinned,onDecide}:{pack:GamePack;m:M;left:number;pinned:string[];onDecide:(c:Choice,chips:number)=>void}){
+// hold: the coach is up, so the clock waits
+export function MomentView({pack,m,left,pinned,hold=false,onDecide}:{pack:GamePack;m:M;left:number;pinned:string[];hold?:boolean;onDecide:(c:Choice,chips:number)=>void}){
   const slot=pack.companies.find(c=>c.code===m.code)?.slot??'?';
   const day=pack.days[m.tick];
   const reads:Read[]=useMemo(()=>{
     if(m.kind==='crash'){const f=fscoreOn(pack,m.code,day),all=pack.fscore[m.code]??[],i=f?all.indexOf(f):-1;
       const pins=pack.news.filter(n=>pinned.includes(n.u)&&n.codes.includes(m.code)).length;
-      return crashReads(m,f?{now:f.f,prev:i>0?all[i-1].f:null}:null,pins)}
+      // no F-score for the period: the 20 days before, and the day's volume against its 20-day average
+      const b=barAt(pack,m.code,m.tick),b20=barAt(pack,m.code,m.tick-20);let vs=0;for(let k=1;k<=20;k++)vs+=barAt(pack,m.code,m.tick-k)?.[5]??0;
+      const stats=b&&b20?{ret20:(b[4]/b20[4]-1)*100,volX:vs?b[5]/(vs/20):1}:undefined;
+      return crashReads(m,f?{now:f.f,prev:i>0?all[i-1].f:null}:null,pins,stats)}
     const near=pack.news.filter(n=>n.codes.includes(m.code)&&n.d<=day&&pack.days.indexOf(n.d)>=m.tick-5).length;
     return earningsReads(m,near);
   },[pack,m,day,pinned]);
@@ -32,7 +36,7 @@ export function MomentView({pack,m,left,pinned,onDecide}:{pack:GamePack;m:M;left
   const [t,setT]=useState(CLOCK);
   useEffect(()=>{const a=setTimeout(()=>{setFreeze(true);fx('game-halt',14)},60);const ts=[0,1,2].map(k=>setTimeout(()=>{setShown(s=>Math.max(s,k+1));fx('game-read')},TIMING.gameFreeze*.6+k*TIMING.gameRead));return()=>{clearTimeout(a);ts.forEach(clearTimeout)}},[]);
   // the clock: at zero the moment is recorded as 지킴 with one chip
-  useEffect(()=>{if(done||!CLOCK)return;if(t<=0){commit('지킴',Math.min(1,left));return}const id=setTimeout(()=>setT(x=>x-1),1000);return()=>clearTimeout(id)},[t,done]);// eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{if(done||!CLOCK||hold)return;if(t<=0){commit('지킴',Math.min(1,left));return}const id=setTimeout(()=>setT(x=>x-1),1000);return()=>clearTimeout(id)},[t,done,hold]);// eslint-disable-line react-hooks/exhaustive-deps
   const commit=(c:Choice,n:number)=>{if(done||n<1)return;setDone(c);fx('game-stamp',18);setTimeout(()=>onDecide(c,n),still()?0:420)};
   const bar=barAt(pack,m.code,m.tick),prev=barAt(pack,m.code,m.tick-1),ch=bar&&prev?(bar[4]/prev[4]-1)*100:0;
   const f=fscoreOn(pack,m.code,day);

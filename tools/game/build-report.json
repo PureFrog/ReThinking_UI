@@ -1,5 +1,5 @@
 {
- "built": "2026-11-13T17:00:44.740Z",
+ "built": "2026-11-14T04:06:29.029Z",
  "source": "investment-evidence-system",
  "rules": {
   "PRE": 60,
@@ -10,16 +10,35 @@
   "HELD": 4,
   "RESERVE": 2
  },
- "candidates": 189,
- "newsDropped": {
-  "제목 규칙": 3920,
-  "회사 언급 부족": 8059,
-  "마감 뒤 수정": 645,
-  "기사 없음": 1148
- },
+ "sets": [
+  {
+   "name": "2016-2019",
+   "candidates": 189,
+   "packs": 12,
+   "newsDropped": {
+    "제목 규칙": 3920,
+    "회사 언급 부족": 8059,
+    "마감 뒤 수정": 645,
+    "기사 없음": 1148
+   }
+  },
+  {
+   "name": "2023-2024",
+   "candidates": 260,
+   "packs": 10,
+   "newsDropped": {
+    "회사 언급 부족": 47,
+    "마감 뒤 수정": 83,
+    "기사 없음": 11633,
+    "제목 규칙": 137
+   }
+  }
+ ],
  "packs": [
   {
    "id": "b796be2c",
+   "set": "2016-2019",
+   "market": "KOSDAQ",
    "from": "2015-12-28",
    "to": "2016-03-28",
    "regime": "박스권",
@@ -40,6 +59,7 @@
      "kind": "crash",
      "company": "루미마이크로",
      "verdict": "가치훼손",
+     "evidence": 5,
      "hold20": 2.4,
      "better": "keep"
     },
@@ -48,6 +68,7 @@
      "kind": "crash",
      "company": "윈팩",
      "verdict": "판단보류",
+     "evidence": 1,
      "hold20": 59.9,
      "better": "keep"
     },
@@ -56,6 +77,7 @@
      "kind": "crash",
      "company": "윈팩",
      "verdict": "비가치",
+     "evidence": 5,
      "hold20": 22.1,
      "better": "keep"
     },
@@ -64,6 +86,7 @@
      "kind": "crash",
      "company": "윈팩",
      "verdict": "판단보류",
+     "evidence": 0,
      "hold20": -18.8,
      "better": "cut"
     },
@@ -80,6 +103,8 @@
   },
   {
    "id": "61ae53b4",
+   "set": "2016-2019",
+   "market": "KOSDAQ",
    "from": "2016-03-29",
    "to": "2016-06-24",
    "regime": "하락장",
@@ -100,6 +125,7 @@
      "kind": "crash",
      "company": "진성티이씨",
      "verdict": "판단보류",
+     "evidence": 0,
      "hold20": -5.5,
      "better": "cut"
     },
@@ -108,6 +134,7 @@
      "kind": "crash",
      "company": "지엔코",
      "verdict": "가치훼손",
+     "evidence": 5,
      "hold20": 34.2,
      "better": "keep"
     },
@@ -116,6 +143,7 @@
      "kind": "crash",
      "company": "지엔코",
      "verdict": "비가치",
+     "evidence": 0,
      "hold20": 20.2,
      "better": "keep"
     },
@@ -131,6 +159,7 @@
      "kind": "crash",
      "company": "루미마이크로",
      "verdict": "판단보류",
+     "evidence": 0,
      "hold20": 0,
      "better": "tie"
     }
@@ -140,6 +169,8 @@
   },
   {
    "id": "05fb33fa",
+   "set": "2016-2019",
+   "market": "KOSDAQ",
    "from": "2016-09-06",
    "to": "2016-12-02",
    "regime": "하락장",
@@ -160,6 +191,7 @@
      "kind": "crash",
      "company": "진성티이씨",
      "verdict": "비가치",
+     "evidence": 4,
      "hold20": 6.6,
      "better": "keep"
     },
@@ -168,6 +200,7 @@
      "kind": "crash",
      "company": "우전",
      "verdict": "가치훼손",
+     "evidence": 5,
      "hold20": -6.5,
      "better": "cut"
     },
@@ -176,6 +209,7 @@
      "kind": "crash",
      "company": "현진소재",
      "verdict": "판단보류",
+     "evidence": 0,
      "hold20": -0.4,
      "better": "tie"
     },
@@ -184,6 +218,7 @@
      "kind": "crash",
      "company": "빅솔론",
      "verdict": "비가치",
+     "evidence": 1,
      "hold20": -3,
      "better": "cut"
     },
@@ -192,6 +227,7 @@
      "kind": "crash",
      "company": "빅솔론",
      "verdict": "판단보류",
+     "evidence": 0,
      "hold20": 4.9,
      "better": "keep"
     }
@@ -201,6 +237,8 @@
   },
   {
    "id": "bdadb28b",
+   "set": "2016-2019",
+   "market": "KOSDAQ",
    "from": "2017-01-03",
    "to": "2017-03-30",
    "regime": "박스권",
@@ -221,6 +259,7 @@
      "kind": "crash",
      "company": "엠피씨",
      "verdict": "비가치",
+     "evidence": 5,
      "hold20": -10.7,
      "better": "cut"
     },
@@ -229,6 +268,7 @@
      "kind": "crash",
      "company": "엠피씨",
      "verdict": "가치훼손",
+     "evidence": 3,
      "hold20": 10.7,
      "better": "keep"
     },
@@ -237,6 +277,7 @@
      "kind": "crash",
      "company": "대창솔루션",
      "verdict": "가치훼손",
+     "evidence": 5,
      "hold20": 35.8,
      "better": "keep"
     },
@@ -245,6 +286,7 @@
      "kind": "crash",
      "company": "대창솔루션",
      "verdict": "판단보류",
+     "evidence": 0,
      "hold20": 1.7,
      "better": "tie"
     },
@@ -261,6 +303,8 @@
   },
   {
    "id": "c305dc6d",
+   "set": "2016-2019",
+   "market": "KOSDAQ",
    "from": "2017-04-21",
    "to": "2017-07-20",
    "regime": "상승장",
@@ -288,6 +332,7 @@
      "kind": "crash",
      "company": "신성델타테크",
      "verdict": "비가치",
+     "evidence": 4,
      "hold20": -5,
      "better": "cut"
     },
@@ -296,6 +341,7 @@
      "kind": "crash",
      "company": "신성델타테크",
      "verdict": "판단보류",
+     "evidence": 0,
      "hold20": 15.1,
      "better": "keep"
     },
@@ -304,6 +350,7 @@
      "kind": "crash",
      "company": "네이블",
      "verdict": "판단보류",
+     "evidence": 0,
      "hold20": 1.6,
      "better": "tie"
     },
@@ -312,6 +359,7 @@
      "kind": "crash",
      "company": "네이블",
      "verdict": "판단보류",
+     "evidence": 0,
      "hold20": 0.2,
      "better": "tie"
     }
@@ -321,6 +369,8 @@
   },
   {
    "id": "08b8c477",
+   "set": "2016-2019",
+   "market": "KOSDAQ",
    "from": "2017-07-21",
    "to": "2017-10-23",
    "regime": "박스권",
@@ -341,6 +391,7 @@
      "kind": "crash",
      "company": "대한광통신",
      "verdict": "가치훼손",
+     "evidence": 5,
      "hold20": 17.1,
      "better": "keep"
     },
@@ -349,6 +400,7 @@
      "kind": "crash",
      "company": "대한광통신",
      "verdict": "판단보류",
+     "evidence": 0,
      "hold20": -16.2,
      "better": "cut"
     },
@@ -357,6 +409,7 @@
      "kind": "crash",
      "company": "유비케어",
      "verdict": "비가치",
+     "evidence": 5,
      "hold20": 13.6,
      "better": "keep"
     },
@@ -365,6 +418,7 @@
      "kind": "crash",
      "company": "유비케어",
      "verdict": "판단보류",
+     "evidence": 0,
      "hold20": -6.7,
      "better": "cut"
     },
@@ -373,6 +427,7 @@
      "kind": "crash",
      "company": "유비케어",
      "verdict": "가치훼손",
+     "evidence": 1,
      "hold20": 1.1,
      "better": "tie"
     }
@@ -382,6 +437,8 @@
   },
   {
    "id": "157d0e54",
+   "set": "2016-2019",
+   "market": "KOSDAQ",
    "from": "2018-01-12",
    "to": "2018-04-10",
    "regime": "박스권",
@@ -402,6 +459,7 @@
      "kind": "crash",
      "company": "한국코퍼레이션",
      "verdict": "비가치",
+     "evidence": 5,
      "hold20": 3.2,
      "better": "keep"
     },
@@ -417,6 +475,7 @@
      "kind": "crash",
      "company": "켐트로닉스",
      "verdict": "가치훼손",
+     "evidence": 5,
      "hold20": -1.9,
      "better": "tie"
     },
@@ -425,6 +484,7 @@
      "kind": "crash",
      "company": "켐트로닉스",
      "verdict": "판단보류",
+     "evidence": 0,
      "hold20": 5.8,
      "better": "keep"
     },
@@ -441,6 +501,8 @@
   },
   {
    "id": "ffa6e004",
+   "set": "2016-2019",
+   "market": "KOSDAQ",
    "from": "2018-04-25",
    "to": "2018-07-24",
    "regime": "하락장",
@@ -461,6 +523,7 @@
      "kind": "crash",
      "company": "서린바이오",
      "verdict": "판단보류",
+     "evidence": 0,
      "hold20": 8.4,
      "better": "keep"
     },
@@ -469,6 +532,7 @@
      "kind": "crash",
      "company": "한국코퍼레이션",
      "verdict": "비가치",
+     "evidence": 0,
      "hold20": -12.7,
      "better": "cut"
     },
@@ -477,6 +541,7 @@
      "kind": "crash",
      "company": "한국코퍼레이션",
      "verdict": "가치훼손",
+     "evidence": 3,
      "hold20": 2.1,
      "better": "keep"
     },
@@ -500,6 +565,8 @@
   },
   {
    "id": "0974b792",
+   "set": "2016-2019",
+   "market": "KOSDAQ",
    "from": "2018-08-01",
    "to": "2018-10-31",
    "regime": "하락장",
@@ -520,6 +587,7 @@
      "kind": "crash",
      "company": "한국코퍼레이션",
      "verdict": "가치훼손",
+     "evidence": 5,
      "hold20": -14.4,
      "better": "cut"
     },
@@ -528,6 +596,7 @@
      "kind": "crash",
      "company": "한국코퍼레이션",
      "verdict": "판단보류",
+     "evidence": 0,
      "hold20": 26.4,
      "better": "keep"
     },
@@ -536,6 +605,7 @@
      "kind": "crash",
      "company": "메타바이오메드",
      "verdict": "판단보류",
+     "evidence": 0,
      "hold20": -0.8,
      "better": "tie"
     },
@@ -544,6 +614,7 @@
      "kind": "crash",
      "company": "네이블",
      "verdict": "비가치",
+     "evidence": 0,
      "hold20": -22.4,
      "better": "cut"
     },
@@ -552,6 +623,7 @@
      "kind": "crash",
      "company": "네이블",
      "verdict": "판단보류",
+     "evidence": 0,
      "hold20": 36.9,
      "better": "keep"
     }
@@ -561,6 +633,8 @@
   },
   {
    "id": "098d0e28",
+   "set": "2016-2019",
+   "market": "KOSDAQ",
    "from": "2018-11-01",
    "to": "2019-01-28",
    "regime": "상승장",
@@ -581,6 +655,7 @@
      "kind": "crash",
      "company": "현진소재",
      "verdict": "가치훼손",
+     "evidence": 5,
      "hold20": -33.7,
      "better": "cut"
     },
@@ -589,6 +664,7 @@
      "kind": "crash",
      "company": "현진소재",
      "verdict": "가치훼손",
+     "evidence": 4,
      "hold20": -18.6,
      "better": "cut"
     },
@@ -597,6 +673,7 @@
      "kind": "crash",
      "company": "미코",
      "verdict": "판단보류",
+     "evidence": 0,
      "hold20": 78.2,
      "better": "keep"
     },
@@ -605,6 +682,7 @@
      "kind": "crash",
      "company": "메타바이오메드",
      "verdict": "판단보류",
+     "evidence": 0,
      "hold20": 8.4,
      "better": "keep"
     },
@@ -613,6 +691,7 @@
      "kind": "crash",
      "company": "네이블",
      "verdict": "판단보류",
+     "evidence": 2,
      "hold20": -1.5,
      "better": "tie"
     }
@@ -622,6 +701,8 @@
   },
   {
    "id": "e7689efa",
+   "set": "2016-2019",
+   "market": "KOSDAQ",
    "from": "2019-03-25",
    "to": "2019-06-19",
    "regime": "박스권",
@@ -649,6 +730,7 @@
      "kind": "crash",
      "company": "루미마이크로",
      "verdict": "비가치",
+     "evidence": 2,
      "hold20": 12.6,
      "better": "keep"
     },
@@ -657,6 +739,7 @@
      "kind": "crash",
      "company": "빅솔론",
      "verdict": "가치훼손",
+     "evidence": 5,
      "hold20": -1.4,
      "better": "tie"
     },
@@ -665,6 +748,7 @@
      "kind": "crash",
      "company": "대창솔루션",
      "verdict": "판단보류",
+     "evidence": 0,
      "hold20": -22.6,
      "better": "cut"
     },
@@ -681,6 +765,8 @@
   },
   {
    "id": "8e926c58",
+   "set": "2016-2019",
+   "market": "KOSDAQ",
    "from": "2019-08-23",
    "to": "2019-11-20",
    "regime": "상승장",
@@ -701,6 +787,7 @@
      "kind": "crash",
      "company": "유비케어",
      "verdict": "가치훼손",
+     "evidence": 5,
      "hold20": 0.4,
      "better": "tie"
     },
@@ -709,6 +796,7 @@
      "kind": "crash",
      "company": "현진소재",
      "verdict": "판단보류",
+     "evidence": 0,
      "hold20": -0.3,
      "better": "tie"
     },
@@ -724,6 +812,7 @@
      "kind": "crash",
      "company": "켐트로닉스",
      "verdict": "비가치",
+     "evidence": 1,
      "hold20": 18.1,
      "better": "keep"
     },
@@ -732,18 +821,610 @@
      "kind": "crash",
      "company": "빅솔론",
      "verdict": "판단보류",
+     "evidence": 0,
      "hold20": -1.3,
      "better": "tie"
     }
    ],
    "news": 121,
    "kb": 63
+  },
+  {
+   "id": "087ca5ed",
+   "set": "2023-2024",
+   "market": "KOSPI",
+   "from": "2022-11-11",
+   "to": "2023-02-07",
+   "regime": "박스권",
+   "index": -1.3,
+   "held": [
+    "종근당홀딩스",
+    "대성홀딩스",
+    "기업은행",
+    "STX중공업"
+   ],
+   "reserve": [
+    "DGB금융지주",
+    "삼양홀딩스"
+   ],
+   "decisions": [
+    {
+     "d": "2023-01-26",
+     "kind": "crash",
+     "company": "종근당홀딩스",
+     "verdict": "판단보류",
+     "evidence": 0,
+     "hold20": -0.9,
+     "better": "tie"
+    },
+    {
+     "d": "2023-02-02",
+     "kind": "crash",
+     "company": "대성홀딩스",
+     "verdict": "판단보류",
+     "evidence": 0,
+     "hold20": 10.3,
+     "better": "keep"
+    },
+    {
+     "d": "2023-02-02",
+     "kind": "crash",
+     "company": "기업은행",
+     "verdict": "비가치",
+     "evidence": 5,
+     "hold20": 0.9,
+     "better": "tie"
+    },
+    {
+     "d": "2023-02-07",
+     "kind": "crash",
+     "company": "STX중공업",
+     "verdict": "판단보류",
+     "evidence": 0,
+     "hold20": -20,
+     "better": "cut"
+    }
+   ],
+   "news": 16,
+   "kb": 45
+  },
+  {
+   "id": "25e5282a",
+   "set": "2023-2024",
+   "market": "KOSDAQ",
+   "from": "2022-12-09",
+   "to": "2023-03-08",
+   "regime": "상승장",
+   "index": 13.1,
+   "held": [
+    "NEW",
+    "이수앱지스",
+    "그린플러스",
+    "대한약품"
+   ],
+   "reserve": [
+    "해성산업",
+    "디와이피엔에프"
+   ],
+   "decisions": [
+    {
+     "d": "2023-01-09",
+     "kind": "crash",
+     "company": "NEW",
+     "verdict": "판단보류",
+     "evidence": 0,
+     "hold20": 6.7,
+     "better": "keep"
+    },
+    {
+     "d": "2023-01-18",
+     "kind": "crash",
+     "company": "이수앱지스",
+     "verdict": "비가치",
+     "evidence": 5,
+     "hold20": -3.6,
+     "better": "cut"
+    },
+    {
+     "d": "2023-01-19",
+     "kind": "crash",
+     "company": "그린플러스",
+     "verdict": "비가치",
+     "evidence": 2,
+     "hold20": 7.1,
+     "better": "keep"
+    },
+    {
+     "d": "2023-03-03",
+     "kind": "crash",
+     "company": "대한약품",
+     "verdict": "비가치",
+     "evidence": 5,
+     "hold20": -5.6,
+     "better": "cut"
+    }
+   ],
+   "news": 27,
+   "kb": 46
+  },
+  {
+   "id": "1932f4b9",
+   "set": "2023-2024",
+   "market": "KOSPI",
+   "from": "2023-02-22",
+   "to": "2023-05-19",
+   "regime": "박스권",
+   "index": 5,
+   "held": [
+    "POSCO홀딩스",
+    "케이카",
+    "현대엘리베이터",
+    "유유제약"
+   ],
+   "reserve": [
+    "농심",
+    "CJ씨푸드"
+   ],
+   "decisions": [
+    {
+     "d": "2023-04-04",
+     "kind": "crash",
+     "company": "POSCO홀딩스",
+     "verdict": "비가치",
+     "evidence": 5,
+     "hold20": 4.8,
+     "better": "keep"
+    },
+    {
+     "d": "2023-04-13",
+     "kind": "crash",
+     "company": "케이카",
+     "verdict": "비가치",
+     "evidence": 5,
+     "hold20": -11.1,
+     "better": "cut"
+    },
+    {
+     "d": "2023-04-14",
+     "kind": "crash",
+     "company": "현대엘리베이터",
+     "verdict": "가치훼손",
+     "evidence": 5,
+     "hold20": 18.8,
+     "better": "keep"
+    },
+    {
+     "d": "2023-05-19",
+     "kind": "crash",
+     "company": "유유제약",
+     "verdict": "판단보류",
+     "evidence": 5,
+     "hold20": -12.1,
+     "better": "cut"
+    }
+   ],
+   "news": 73,
+   "kb": 57
+  },
+  {
+   "id": "5bca0b4a",
+   "set": "2023-2024",
+   "market": "KOSDAQ",
+   "from": "2023-05-22",
+   "to": "2023-08-16",
+   "regime": "박스권",
+   "index": 3.1,
+   "held": [
+    "엠에스씨",
+    "브릿지바이오테라퓨틱스",
+    "KH바텍",
+    "이베스트투자증권"
+   ],
+   "reserve": [
+    "큐리언트",
+    "코스맥스엔비티"
+   ],
+   "decisions": [
+    {
+     "d": "2023-06-13",
+     "kind": "crash",
+     "company": "엠에스씨",
+     "verdict": "판단보류",
+     "evidence": 0,
+     "hold20": 22.6,
+     "better": "keep"
+    },
+    {
+     "d": "2023-06-23",
+     "kind": "crash",
+     "company": "브릿지바이오테라퓨틱스",
+     "verdict": "판단보류",
+     "evidence": 0,
+     "hold20": -18.4,
+     "better": "cut"
+    },
+    {
+     "d": "2023-07-10",
+     "kind": "crash",
+     "company": "KH바텍",
+     "verdict": "판단보류",
+     "evidence": 0,
+     "hold20": -5.4,
+     "better": "cut"
+    },
+    {
+     "d": "2023-08-14",
+     "kind": "crash",
+     "company": "KH바텍",
+     "verdict": "가치훼손",
+     "evidence": 3,
+     "hold20": -6.5,
+     "better": "cut"
+    },
+    {
+     "d": "2023-07-25",
+     "kind": "crash",
+     "company": "이베스트투자증권",
+     "verdict": "비가치",
+     "evidence": 5,
+     "hold20": 5,
+     "better": "keep"
+    }
+   ],
+   "news": 5,
+   "kb": 41
+  },
+  {
+   "id": "bf3bb4c8",
+   "set": "2023-2024",
+   "market": "KOSPI",
+   "from": "2023-07-12",
+   "to": "2023-10-11",
+   "regime": "박스권",
+   "index": -4.8,
+   "held": [
+    "영풍",
+    "자이에스앤디",
+    "넥센",
+    "삼성증권"
+   ],
+   "reserve": [
+    "휴비스",
+    "JW홀딩스"
+   ],
+   "decisions": [
+    {
+     "d": "2023-07-26",
+     "kind": "crash",
+     "company": "영풍",
+     "verdict": "비가치",
+     "evidence": 5,
+     "hold20": -7.9,
+     "better": "cut"
+    },
+    {
+     "d": "2023-07-26",
+     "kind": "crash",
+     "company": "자이에스앤디",
+     "verdict": "가치훼손",
+     "evidence": 2,
+     "hold20": -10.2,
+     "better": "cut"
+    },
+    {
+     "d": "2023-08-14",
+     "kind": "crash",
+     "company": "넥센",
+     "verdict": "비가치",
+     "evidence": 5,
+     "hold20": 4,
+     "better": "keep"
+    },
+    {
+     "d": "2023-10-11",
+     "kind": "crash",
+     "company": "삼성증권",
+     "verdict": "판단보류",
+     "evidence": 5,
+     "hold20": 0.1,
+     "better": "tie"
+    }
+   ],
+   "news": 37,
+   "kb": 48
+  },
+  {
+   "id": "957b1e60",
+   "set": "2023-2024",
+   "market": "KOSPI",
+   "from": "2024-02-29",
+   "to": "2024-05-29",
+   "regime": "박스권",
+   "index": 1.3,
+   "held": [
+    "코스모화학",
+    "한국타이어앤테크놀로지",
+    "SK스퀘어",
+    "미래에셋생명"
+   ],
+   "reserve": [
+    "삼양홀딩스",
+    "유유제약"
+   ],
+   "decisions": [
+    {
+     "d": "2024-03-20",
+     "kind": "crash",
+     "company": "코스모화학",
+     "verdict": "판단보류",
+     "evidence": 0,
+     "hold20": -18,
+     "better": "cut"
+    },
+    {
+     "d": "2024-03-28",
+     "kind": "crash",
+     "company": "한국타이어앤테크놀로지",
+     "verdict": "비가치",
+     "evidence": 5,
+     "hold20": 3.8,
+     "better": "keep"
+    },
+    {
+     "d": "2024-05-14",
+     "kind": "crash",
+     "company": "SK스퀘어",
+     "verdict": "가치훼손",
+     "evidence": 5,
+     "hold20": 16.5,
+     "better": "keep"
+    },
+    {
+     "d": "2024-05-27",
+     "kind": "crash",
+     "company": "미래에셋생명",
+     "verdict": "가치훼손",
+     "evidence": 5,
+     "hold20": -6.3,
+     "better": "cut"
+    }
+   ],
+   "news": 15,
+   "kb": 45
+  },
+  {
+   "id": "2eb5503a",
+   "set": "2023-2024",
+   "market": "KOSPI",
+   "from": "2024-06-28",
+   "to": "2024-09-25",
+   "regime": "하락장",
+   "index": -7.2,
+   "held": [
+    "국도화학",
+    "광주신세계",
+    "현대제철",
+    "현대백화점"
+   ],
+   "reserve": [
+    "한농화성",
+    "삼성생명"
+   ],
+   "decisions": [
+    {
+     "d": "2024-07-22",
+     "kind": "crash",
+     "company": "국도화학",
+     "verdict": "판단보류",
+     "evidence": 0,
+     "hold20": -9.7,
+     "better": "cut"
+    },
+    {
+     "d": "2024-08-28",
+     "kind": "crash",
+     "company": "광주신세계",
+     "verdict": "비가치",
+     "evidence": 4,
+     "hold20": -0.2,
+     "better": "tie"
+    },
+    {
+     "d": "2024-09-04",
+     "kind": "crash",
+     "company": "현대제철",
+     "verdict": "가치훼손",
+     "evidence": 4,
+     "hold20": 14,
+     "better": "keep"
+    },
+    {
+     "d": "2024-09-20",
+     "kind": "crash",
+     "company": "현대백화점",
+     "verdict": "비가치",
+     "evidence": 5,
+     "hold20": -1.8,
+     "better": "tie"
+    }
+   ],
+   "news": 48,
+   "kb": 52
+  },
+  {
+   "id": "608e7a0b",
+   "set": "2023-2024",
+   "market": "KOSDAQ",
+   "from": "2024-08-19",
+   "to": "2024-11-18",
+   "regime": "하락장",
+   "index": -11.3,
+   "held": [
+    "아가방컴퍼니",
+    "레인보우로보틱스",
+    "엔지켐생명과학",
+    "코나아이"
+   ],
+   "reserve": [
+    "태웅",
+    "대주전자재료"
+   ],
+   "decisions": [
+    {
+     "d": "2024-08-29",
+     "kind": "crash",
+     "company": "아가방컴퍼니",
+     "verdict": "판단보류",
+     "evidence": 0,
+     "hold20": 4.6,
+     "better": "keep"
+    },
+    {
+     "d": "2024-08-30",
+     "kind": "crash",
+     "company": "레인보우로보틱스",
+     "verdict": "비가치",
+     "evidence": 5,
+     "hold20": -6.1,
+     "better": "cut"
+    },
+    {
+     "d": "2024-10-07",
+     "kind": "crash",
+     "company": "엔지켐생명과학",
+     "verdict": "비가치",
+     "evidence": 3,
+     "hold20": -9.6,
+     "better": "cut"
+    },
+    {
+     "d": "2024-11-15",
+     "kind": "crash",
+     "company": "코나아이",
+     "verdict": "비가치",
+     "evidence": 5,
+     "hold20": 97.4,
+     "better": "keep"
+    }
+   ],
+   "news": 8,
+   "kb": 45
+  },
+  {
+   "id": "8ae4800c",
+   "set": "2023-2024",
+   "market": "KOSDAQ",
+   "from": "2025-01-03",
+   "to": "2025-04-03",
+   "regime": "박스권",
+   "index": -3.2,
+   "held": [
+    "웹케시",
+    "토비스",
+    "인포바인",
+    "서호전기"
+   ],
+   "reserve": [
+    "쿠콘",
+    "한일사료"
+   ],
+   "decisions": [
+    {
+     "d": "2025-01-23",
+     "kind": "crash",
+     "company": "웹케시",
+     "evidence": 0,
+     "hold20": 7,
+     "better": "keep"
+    },
+    {
+     "d": "2025-02-12",
+     "kind": "crash",
+     "company": "토비스",
+     "evidence": 0,
+     "hold20": -7.9,
+     "better": "cut"
+    },
+    {
+     "d": "2025-02-21",
+     "kind": "crash",
+     "company": "인포바인",
+     "evidence": 0,
+     "hold20": -9.1,
+     "better": "cut"
+    },
+    {
+     "d": "2025-02-24",
+     "kind": "crash",
+     "company": "서호전기",
+     "evidence": 0,
+     "hold20": 4.5,
+     "better": "keep"
+    }
+   ],
+   "news": 17,
+   "kb": 44
+  },
+  {
+   "id": "bfcc69bf",
+   "set": "2023-2024",
+   "market": "KOSPI",
+   "from": "2025-03-14",
+   "to": "2025-06-12",
+   "regime": "상승장",
+   "index": 13.8,
+   "held": [
+    "삼영무역",
+    "한진",
+    "삼성바이오로직스",
+    "쿠쿠홀딩스"
+   ],
+   "reserve": [
+    "한국앤컴퍼니",
+    "대웅"
+   ],
+   "decisions": [
+    {
+     "d": "2025-03-31",
+     "kind": "crash",
+     "company": "삼영무역",
+     "evidence": 0,
+     "hold20": 1.5,
+     "better": "tie"
+    },
+    {
+     "d": "2025-04-09",
+     "kind": "crash",
+     "company": "한진",
+     "evidence": 0,
+     "hold20": 2.2,
+     "better": "keep"
+    },
+    {
+     "d": "2025-05-07",
+     "kind": "crash",
+     "company": "삼성바이오로직스",
+     "evidence": 0,
+     "hold20": -2.7,
+     "better": "cut"
+    },
+    {
+     "d": "2025-06-05",
+     "kind": "crash",
+     "company": "쿠쿠홀딩스",
+     "evidence": 0,
+     "hold20": -0.5,
+     "better": "tie"
+    }
+   ],
+   "news": 89,
+   "kb": 59
   }
  ],
  "balance": {
-  "decisions": 60,
-  "cutBetter": 23,
-  "keepBetter": 23,
-  "tie": 14
+  "decisions": 101,
+  "cutBetter": 41,
+  "keepBetter": 39,
+  "tie": 21
  }
 }

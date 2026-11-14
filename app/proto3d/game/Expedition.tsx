@@ -4,12 +4,13 @@
 // ?gameSpeed=N runs the days N times faster (tests). window.__proto3d.game reports where the run is.
 import './game.css';
 import {useEffect,useMemo,useRef,useState} from 'react';
-import {maskTitle,type GamePack,type PackIndex} from '../../core/game/pack';
+import {maskTitle,marketName,type GamePack,type PackIndex} from '../../core/game/pack';
 import {simulate} from '../../core/game/engine';
 import {orderBook} from '../../core/game/book';
 import {chipsLeft,ghostOf,paths,weeklyPack,type RunRecord} from '../../core/game/run';
 import {followsOf,type GardenSignal} from '../../core/game/meta';
 import {fx,flyPin} from './fx';
+import {expeditionRepo} from '../server';
 import {scoreRun} from '../../core/game/grade';
 import {begin,decide,dayChange,heldCodes,roomOf,seedOf,skipToMoment,startPlay,step,togglePin,trade,ROOMS,MAX_PINS,type Play} from '../../core/game/play';
 import {weekStart} from '../../core/weekly';
@@ -18,6 +19,8 @@ import {still} from '../still';
 import {GameChart} from './Chart';
 import {MomentView,FACE} from './Moment';
 import {RevealView} from './Reveal';
+import {Coach} from './Coach';
+import {COACH} from '../../content/game-lines';
 import {Cross} from '../ui/Icons';
 const won=(n:number)=>Math.round(n).toLocaleString('ko-KR');
 const pct=(x:number,d=2)=>`${x>0?'+':x<0?'−':''}${Math.abs(x).toFixed(d)}%`;
@@ -33,7 +36,7 @@ export function useGamePacks(){
 
 // garden: my garden's open signals, for the scene that looks like a decision; onMarket: the 판's index move each day, so
 // the garden behind (desktop) can wear that day's weather (G5)
-export function Expedition({packId,today,history,garden=[],onFinish,onClose,onSimilar,onMarket}:{packId:string|null;today:string;history:RunRecord[];garden?:GardenSignal[];onFinish:(r:RunRecord)=>void;onClose:()=>void;onSimilar?:(holdingId:number)=>void;onMarket?:(index:number|null)=>void}){
+export function Expedition({packId,today,history,garden=[],handle='',onFinish,onClose,onSimilar,onMarket}:{packId:string|null;today:string;history:RunRecord[];handle?:string;garden?:GardenSignal[];onFinish:(r:RunRecord)=>void;onClose:()=>void;onSimilar?:(holdingId:number)=>void;onMarket?:(index:number|null)=>void}){
   const idx=useGamePacks();
   const id=packId??(idx?weeklyPack(idx.packs.map(p=>p.id),today):null);
   const [pack,setPack]=useState<GamePack|null>(null),[err,setErr]=useState(false);
@@ -48,15 +51,23 @@ export function Expedition({packId,today,history,garden=[],onFinish,onClose,onSi
   useEffect(()=>{if(!pack||!play||play.tick<1||!onMarket)return;const d=pack.days[play.tick],p=pack.days[play.tick-1];const a=pack.index.find(r=>r[0]===d)?.[1],b=pack.index.find(r=>r[0]===p)?.[1];if(a&&b)onMarket((a/b-1)*100)},[pack,play?.tick]);// eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>()=>onMarket?.(null),[]);// eslint-disable-line react-hooks/exhaustive-deps
   const speed=(Number(param('gameSpeed'))||1)*(fast?TIMING.gameFast:1);
+  // the first run is coached, a part at a time (?gameTutorial=0 turns it off for tests)
+  type Part=keyof typeof COACH;
+  const [coached,setCoached]=useState<Part[]|null>(()=>history.length===0&&param('gameTutorial')!=='0'?[]:null);
+  const [revealReady,setRevealReady]=useState(false);
+  useEffect(()=>{if(play?.phase!=='reveal'){setRevealReady(false);return}const t=setTimeout(()=>setRevealReady(true),3200);return()=>clearTimeout(t)},[play?.phase]);
+  const part:Part|null=!coached||!play?null:play.phase==='brief'?'brief':play.phase==='flow'?'flow':play.phase==='moment'?'moment':revealReady?'reveal':null;
+  const coachUp=!!part&&!!coached&&!coached.includes(part);
   // the clock: a trading day per tick while the flow runs (paused behind the swap card)
-  useEffect(()=>{if(!pack||!play||play.phase!=='flow'||swap)return;const t=setTimeout(()=>setPlay(p=>p&&step(pack,p)),TIMING.gameDay/speed);return()=>clearTimeout(t)},[pack,play,speed,swap]);
+  useEffect(()=>{if(!pack||!play||play.phase!=='flow'||swap||coachUp)return;const t=setTimeout(()=>setPlay(p=>p&&step(pack,p)),TIMING.gameDay/speed);return()=>clearTimeout(t)},[pack,play,speed,swap,coachUp]);
   // the reveal is saved once
   const saved=useRef(false);
   useEffect(()=>{if(!pack||play?.phase!=='reveal'||saved.current)return;saved.current=true;const s=scoreRun(pack,play.decisions);
-    onFinish({pack:pack.id,week:weekStart(today),decisions:play.decisions,total:s.total,at:new Date().toISOString(),hits:s.hits,results:s.items.map(i=>i.result),ret:Math.round(paths(pack,play.orders).me*10)/10,follow:followsOf(pack,s.items)})},[pack,play,today,onFinish]);
+    onFinish({pack:pack.id,week:weekStart(today),decisions:play.decisions,total:s.total,at:new Date().toISOString(),hits:s.hits,results:s.items.map(i=>i.result),ret:Math.round(paths(pack,play.orders).me*10)/10,follow:followsOf(pack,s.items),orders:play.orders,swaps:play.swaps});
+    expeditionRepo.submit({pack:pack.id,week:weekStart(today),decisions:play.decisions,orders:play.orders,swaps:play.swaps,handle:handle||'관찰자'})},[pack,play,today,onFinish,handle]);
   useEffect(()=>{const hk=((window as {__proto3d?:{game?:unknown}}).__proto3d??={} as {game?:unknown});
-    hk.game=play&&pack?{pack:pack.id,phase:play.phase,tick:play.tick,chips:chipsLeft(play.decisions),decisions:play.decisions.length,pins:play.pins.length,moment:play.moment?{kind:play.moment.kind,code:play.moment.code}:null,swap:!!swap}:{phase:'loading'};
-    return()=>{hk.game=null}},[play,pack,swap]);
+    hk.game=play&&pack?{pack:pack.id,phase:play.phase,coach:coachUp?part:null,tick:play.tick,chips:chipsLeft(play.decisions),decisions:play.decisions.length,pins:play.pins.length,moment:play.moment?{kind:play.moment.kind,code:play.moment.code}:null,swap:!!swap}:{phase:'loading'};
+    return()=>{hk.game=null}},[play,pack,swap,coachUp,part]);
   if(err||(!pack&&idx&&!id))return <div className="gx"><p>판을 불러오지 못했어.</p><button type="button" className="gx-btn" onClick={onClose}>닫기</button></div>;
   if(!pack||!play)return <div className="gx" aria-busy><p className="gx-kick">사건 파일을 펼치는 중</p></div>;
   const held=heldCodes(pack,play,Math.max(0,play.tick)),cur=sel&&held.includes(sel)?sel:held[0];
@@ -83,8 +94,9 @@ export function Expedition({packId,today,history,garden=[],onFinish,onClose,onSi
       </div>
       {swap&&<SwapCard pack={pack} out={swap.out} inn={swap.in}/>}
     </>}
-    {play.phase==='moment'&&play.moment&&<MomentView key={`${play.moment.tick}-${play.moment.code}`} pack={pack} m={play.moment} left={left} pinned={play.pins} onDecide={onDecide}/>}
+    {play.phase==='moment'&&play.moment&&<MomentView key={`${play.moment.tick}-${play.moment.code}`} pack={pack} m={play.moment} left={left} pinned={play.pins} hold={coachUp} onDecide={onDecide}/>}
     {play.phase==='reveal'&&<RevealView pack={pack} play={play} today={today} history={history} ghost={ghost} garden={garden} onSimilar={onSimilar} onDone={onClose} onAgain={()=>{saved.current=false;setRound(r=>r+1);setPlay(startPlay(pack,seedOf(pack.id,runs)))}}/>}
+    {coachUp&&part&&<Coach key={part} steps={COACH[part]} onDone={()=>setCoached(c=>c&&[...c,part])} onSkip={()=>setCoached(null)}/>}
   </div>;
 }
 
@@ -94,7 +106,7 @@ function Brief({pack,weekly,runs,close,onStart}:{pack:GamePack;weekly:boolean;ru
     <div className="gx-top"><div><div className="gx-kick">관측소 원정{weekly?' · 이번 주 공통 판':''}{runs?` · ${runs+1}번째`:''}</div><div className="gx-title big">{pack.titleHidden}</div></div>{close}</div>
     <div className="gx-brief" style={{display:'grid',gap:10}}>
       <div className="gx-panel" style={{padding:12,transformOrigin:'50% 0',animation:'gx-open .64s var(--in) both'}}>
-        <div className="gx-kick" style={{marginBottom:8}}>코스닥 · 회사 이름과 날짜는 끝에 공개</div>
+        <div className="gx-kick" style={{marginBottom:8}}>{marketName(pack)} · 회사 이름과 날짜는 끝에 공개</div>
         <div style={{display:'grid',gap:8}}>{held.map((c,k)=><div key={c.code} className="gx-co gx-panel gx-in" style={{animationDelay:`${280+k*80}ms`}}><span className="gx-tag">{c.slot}</span>
           <div><strong><span className="gx-ink draw" style={{['--w' as string]:`${3+(k%3)*.8}em`,animationDelay:`${420+k*90}ms`}}/></strong><small className="gx-mono">{won(c.qty)}주 · {won(c.qty*(pack.prices[c.code][pack.preDays-1]?.[4]??0))}원</small></div><small>보유</small></div>)}</div>
       </div>

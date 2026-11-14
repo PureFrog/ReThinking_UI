@@ -7,7 +7,8 @@ import {useEffect,useLayoutEffect,useMemo,useRef,useState} from 'react';
 import {maskTitle,type GamePack} from '../../core/game/pack';
 import {scoreRun,holdReturn} from '../../core/game/grade';
 import {paths,type RunRecord} from '../../core/game/run';
-import {afterwards,followsOf,rankBy,sampleRanking,similarOf,trustOf,type GardenSignal,type Who} from '../../core/game/meta';
+import {afterwards,followsOf,rankBy,sampleRanking,similarOf,trustOf,type GardenSignal,type RankRow,type Who} from '../../core/game/meta';
+import {expeditionRepo} from '../server';
 import type {Play} from '../../core/game/play';
 import {revealReads} from '../../content/game-lines';
 import {weekStart} from '../../core/weekly';
@@ -90,16 +91,19 @@ function After({pack,d}:{pack:GamePack;d:Play['decisions'][number]}){
 // the week's ranking: sample rows (always labelled), my row rises into its place
 function Ranking({pack,week,me,onBack}:{pack:GamePack;week:string;me:{score:number;ret:number};onBack:()=>void}){
   const [by,setBy]=useState<'score'|'ret'>('score');
-  const rows=useMemo(()=>rankBy(sampleRanking(pack.id,week,me).rows,by),[pack.id,week,me,by]);
+  // the repo answers (local: example rows); until it does, the same example rows stand in
+  const [data,setData]=useState<{rows:RankRow[];sample:boolean}>(()=>sampleRanking(pack.id,week,me));
+  useEffect(()=>{let on=true;expeditionRepo.week(pack.id,week,me).then(d=>{if(on)setData(d)});return()=>{on=false}},[pack.id,week,me.score,me.ret]);// eslint-disable-line react-hooks/exhaustive-deps
+  const rows=useMemo(()=>rankBy(data.rows,by),[data,by]);
   const list=useRef<HTMLOListElement>(null);
   useLayoutEffect(()=>{const el=list.current?.querySelector('.me') as HTMLElement|null;if(!el||still())return;
     const from=(list.current!.lastElementChild as HTMLElement).offsetTop-el.offsetTop;
     el.animate([{transform:`translateY(${from}px)`},{transform:'none'}],{duration:520,easing:'cubic-bezier(.32,.72,0,1)',delay:200,fill:'backwards'});
-    el.scrollIntoView({block:'center'});fx('game-deal')},[by]);
+    el.scrollIntoView({block:'center'});fx('game-deal')},[by,data]);
   return <div style={{display:'flex',flexDirection:'column',gap:10,flex:1,minHeight:0}} data-testid="gx-ranking">
     <div className="gx-top"><div><div className="gx-kick">관측소 원정 · 이번 주 공통 판</div><div className="gx-title">순위</div></div></div>
     <div className="gx-tabs"><button type="button" aria-pressed={by==='score'} onClick={()=>setBy('score')}>판단 점수</button><button type="button" aria-pressed={by==='ret'} onClick={()=>setBy('ret')}>수익</button></div>
-    <div className="gx-sample"><span>예시 순위 · 서버 연결 전</span><span className="gx-mono">참가 {rows.length}</span></div>
+    <div className="gx-sample"><span>{data.sample?'예시 순위 · 서버 연결 전':'이번 주 순위'}</span><span className="gx-mono">참가 {rows.length}</span></div>
     <div style={{flex:1,minHeight:0,overflow:'auto'}}><ol className="gx-rank" ref={list}>{rows.map((r,i)=><li key={r.name} className={r.me?'me':''}><span className="n gx-mono">{i+1}</span><span>{r.name}</span>
       <b className={`gx-mono ${by==='ret'?cls(r.ret):''}`}>{by==='score'?r.score:pct(r.ret)}</b></li>)}</ol></div>
     <button type="button" className="gx-btn ghost" onClick={onBack}>공개로 돌아가기</button>
