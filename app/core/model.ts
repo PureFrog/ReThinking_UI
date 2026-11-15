@@ -1,4 +1,5 @@
-export type Holding={id:number;name:string;kind:number;price:number;quantity:number;date:string;rate:number;plot:number;lossDays:number};
+// code: the KRX code when known (지기 journal charts and grading, app/core/jigi/stocks.ts)
+export type Holding={id:number;name:string;code?:string;kind:number;price:number;quantity:number;date:string;rate:number;plot:number;lossDays:number};
 // vitalityDays: no journal for this long switches a tree's vitality off (ux-spec 2장, app/core/vitality.ts)
 export type Rules={oldDays:number;damageDays:number;vitalityDays?:number};
 // flip: turned the other way (11.9, the picture mirrored) · on: a lamp switched on
@@ -22,10 +23,10 @@ export function conditionOf(h:Holding,r:Rules):Condition{
  if(h.rate<=-20&&h.lossDays>=r.damageDays)return 'dead';if(h.rate<=-20&&h.lossDays>=r.damageDays/2)return 'rot';return 'wilt'}
 export function treeState(h:Holding,r:Rules){const days=heldDays(h.date),growth=growthOf(days,r),condition=conditionOf(h,r);const old=days>=r.oldDays&&h.rate>0;const broken=condition==='dead';return {old,broken,shrunken:!broken&&h.rate< -10,glowing:condition==='bloom',days,growth,condition}}
 export const initial:Holding[]=[
-{id:1,name:'새봄반도체',kind:0,price:52000,quantity:12,date:'2026-08-01',rate:12.4,plot:0,lossDays:0},
-{id:2,name:'별숲게임즈',kind:2,price:34000,quantity:8,date:'2025-06-01',rate:7.2,plot:2,lossDays:0},
-{id:3,name:'꽃빛뷰티',kind:1,price:28000,quantity:20,date:'2026-09-01',rate:-13,plot:3,lossDays:25},
-{id:4,name:'달빛스튜디오',kind:2,price:24000,quantity:10,date:'2025-12-01',rate:-24,plot:5,lossDays:90}];
+{id:1,name:'SK하이닉스',kind:0,price:52000,quantity:12,date:'2026-08-01',rate:12.4,plot:0,lossDays:0},
+{id:2,name:'NAVER',kind:2,price:34000,quantity:8,date:'2025-06-01',rate:7.2,plot:2,lossDays:0},
+{id:3,name:'카카오',kind:1,price:28000,quantity:20,date:'2026-09-01',rate:-13,plot:3,lossDays:25},
+{id:4,name:'현대차',kind:2,price:24000,quantity:10,date:'2025-12-01',rate:-24,plot:5,lossDays:90}];
 export const initialGifts:GiftBox[]=[{id:'welcome-parcel',sender:'luon',anonymous:true,item:'포근한 담요',x:5,y:6}];
 // Friends live in app/content/friends.ts (registry by id).
 // wall(a,b): true when the step from a to its neighbour b goes through a wall (the house walls, 13.7-5).

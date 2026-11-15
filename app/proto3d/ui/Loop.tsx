@@ -37,8 +37,8 @@ export function NoteCard({sig,trustStage,onDeep}:{sig:Signal;trustStage:number;o
     {sig.deep&&(trustStage>=DEEP_AT
       ?<details style={{marginTop:12}} open><summary className="rt-link">{sig.deep.title} · {sig.deep.items.filter(i=>i.ok).length}/9</summary>
         <ul className="rt-evidence" style={{marginTop:8}}>{sig.deep.items.map(i=><li key={i.k}><span>{i.k}</span><b className={i.ok?'rt-ok':'rt-bad'}>{i.ok?'통과':'미달'}</b></li>)}</ul></details>
-      :<p className="rt-hint" style={{marginTop:10}}>{a.name} {TRUST_LABEL[DEEP_AT]}부터 {sig.deep.title}을 하나씩 보여줘.</p>)}
-    {onDeep&&<button type="button" className="rt-btn rt-deep-btn" onClick={onDeep}>땅 속 보기<small>뿌리로 보는 재무 체력</small></button>}
+      :<p className="rt-hint" style={{marginTop:10}}>{a.name} {TRUST_LABEL[DEEP_AT]}부터 {sig.deep.title}을 하나씩 볼 수 있어요</p>)}
+    {onDeep&&<button type="button" className="rt-btn rt-deep-btn" onClick={onDeep}>재무 체력 보기<small>F-score · 올슨 · 부채비율</small></button>}
   </article>;
 }
 
@@ -50,11 +50,11 @@ function JudgeForm({holding,sig,onDone,g,lookback=false}:{holding:Holding;sig:Si
   return <form onSubmit={e=>{e.preventDefault();submit()}} aria-label="판단 기록">
     <div className="rt-field">판단<div className="rt-seg" role="group" aria-label="판단">
       {CHOICES.map(c=><button key={c.id} type="button" aria-pressed={choice===c.id} onClick={()=>setChoice(c.id)}>{c.label}<small>{c.sub}</small></button>)}</div></div>
-    <label className="rt-field">이유 한 줄 <span className="rt-hint">{reason.trim().length}/{REASON_MAX} · 90일 뒤에 이 문장 그대로 돌아와</span>
+    <label className="rt-field">이유 한 줄 <span className="rt-hint">{reason.trim().length}/{REASON_MAX} · 30·90일 뒤 채점 때 이 문장이 다시 나와요</span>
       <textarea className="rt-input" rows={2} maxLength={REASON_MAX} value={reason} onChange={e=>setReason(e.target.value)} placeholder="예: 수주 잔고 3년치. 이자만 버티면 돼."/></label>
-    <div className="rt-field">확신도 <span className="rt-hint">높을수록 맞으면 많이, 틀리면 크게 깎여</span>
+    <div className="rt-field">확신도 <span className="rt-hint">높을수록 맞으면 크게 오르고, 틀리면 크게 깎여요</span>
       <div className="rt-conf" role="group" aria-label="확신도">{([1,2,3,4,5] as Confidence[]).map(n=><button key={n} type="button" aria-pressed={conf===n} onClick={()=>setConf(n)}>{n}</button>)}</div></div>
-    <button type="submit" className="rt-btn primary" style={{width:'100%',marginTop:20}} disabled={!ok}>기록</button>
+    <button type="submit" className="rt-btn primary" style={{width:'100%',marginTop:20}} disabled={!ok}>기록하기</button>
   </form>;
 }
 
@@ -73,14 +73,16 @@ function Rebuttal({j,sig,g,onDone}:{j:Judgment;sig:Signal|null;g:G;onDone:()=>vo
       <div className="rt-quote-acts"><button type="button" className="rt-btn primary" disabled={!reason.trim()} onClick={()=>finish('accepted')}>고친 이유로 저장</button></div></>
     :<div className="rt-quote-acts">
       <button type="button" className="rt-btn primary" onClick={()=>finish('kept')}>그래도 유지</button>
-      <button type="button" className="rt-btn" onClick={()=>setEdit(true)}>이유 고칠게</button>
+      <button type="button" className="rt-btn" onClick={()=>setEdit(true)}>이유 고치기</button>
       <button type="button" className="rt-btn ghost" onClick={()=>finish('skipped')}>넘기기</button></div>}
   </div>;
 }
 
 // Briefing: today's notes → one note → the judgment → luon → done. Opened from the dock, an analyst or a tree.
 // onBury: leaving once a judgment is recorded buries it under its tree as a capsule (W3)
-export function Briefing({g,signals,holdings,start,onClose,onDeep,onBury}:{g:G;signals:Signal[];holdings:Holding[];start:{signalId?:string;holdingId?:number}|null;onClose:()=>void;onDeep?:(holdingId:number)=>void;onBury?:(holdingId:number)=>void}){
+export function Briefing({g,signals,holdings,start,onClose,onDeep,onBury,onWrite}:{g:G;signals:Signal[];holdings:Holding[];start:{signalId?:string;holdingId?:number}|null;onClose:()=>void;onDeep?:(holdingId:number)=>void;onBury?:(holdingId:number)=>void;
+  // 지기 (docs/jigi.md): the note leads to a journal page instead of the old one-line judgment
+  onWrite?:(holdingId:number,signalId:string|null)=>void}){
   const judged=(hid:number)=>g.s.judgments.some(j=>j.holdingId===hid&&j.day===g.clock.today);
   const first=start?.signalId?signals.find(s=>s.id===start.signalId)??null:start?.holdingId?signals.find(s=>s.holdingId===start.holdingId)??null:null;
   const [sig,setSig]=useState<Signal|null>(first);
@@ -103,7 +105,8 @@ export function Briefing({g,signals,holdings,start,onClose,onDeep,onBury}:{g:G;s
   return <Sheet kicker={a?`${a.name} · ${MODEL_INFO[sig!.model].name}`:'판단 기록'} title={holding.name} onClose={leave} label="브리핑">
     {sig&&<NoteCard sig={sig} trustStage={g.s.trust[sig.analyst].stage} onDeep={!made&&onDeep?()=>onDeep(holding.id):undefined}/>}
     {sig&&!made&&recall&&<Said id={sig.analyst} name={analystById(sig.analyst).name} style={{marginTop:10}}>{say(LINES.remember[sig.analyst][recall.kind],g.clock.today+holding.id,recall)}</Said>}
-    {!made&&<JudgeForm holding={holding} sig={sig} g={g} onDone={setMade}/>}
+    {!made&&(onWrite?<button type="button" className="rt-btn primary wide" style={{marginTop:16}} onClick={()=>onWrite(holding.id,sig?.id??null)}>이 종목 일지 쓰기</button>
+      :<JudgeForm holding={holding} sig={sig} g={g} onDone={setMade}/>)}
     {made&&!done&&<>
       <div className="rt-note" style={{marginTop:12}}><div className="rt-kicker">기록됨</div>
         <p className="rt-headline" style={{margin:'6px 0 2px'}}>{CHOICE_LABEL[made.choice]} · 확신 {made.confidence}</p><p className="rt-say">{made.reason}</p></div>
@@ -112,7 +115,7 @@ export function Briefing({g,signals,holdings,start,onClose,onDeep,onBury}:{g:G;s
       {onBury&&<Pack j={made}/>}
       <small>채점 예정</small><strong className="rt-num">{formatDay(shiftDay(made.day,30),g.clock.today)} · {formatDay(shiftDay(made.day,90),g.clock.today)}</strong>
       <Said id={a?.id??'luon'} name={a?.name??'루온'}>{say(LINES.signedOff[a?.id??'luon'],made.id)}</Said>
-      {onBury?<button type="button" className="rt-btn primary" style={{marginTop:12,width:'100%'}} onClick={leave}>{holding.name} 밑에 묻기</button>
+      {onBury?<button type="button" className="rt-btn primary" style={{marginTop:12,width:'100%'}} onClick={leave}>{holding.name} 저장</button>
         :<button type="button" className="rt-btn" style={{marginTop:12,width:'100%'}} onClick={onClose}>닫기</button>}</div>}
   </Sheet>;
 }
@@ -166,21 +169,21 @@ export function Grades({g,onClose,onStamp,onFocus,onRewind,start,onDig}:{g:G;onC
   const focusId=shown?.j.holdingId??next?.judgment.holdingId??null;
   useEffect(()=>{onFocus?.(focusId)},[focusId]);// eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>()=>onFocus?.(null),[]);// eslint-disable-line react-hooks/exhaustive-deps
-  if(!shown&&!next)return <Sheet kicker="판정" title="열 판정 없음" onClose={onClose}><p className="rt-empty">다음 채점은 기록한 날로부터 30일 뒤야.</p>
-    {onRewind&&<button type="button" className="rt-btn primary" style={{width:'100%'}} onClick={onRewind}>기다리는 동안 되감기 한 판</button>}</Sheet>;
-  if(!shown){const d=next;return <Sheet kicker={`판정 ${g.due.length}건 도착`} title={`${d.mark}일 전 너의 판단`} onClose={onClose}>
+  if(!shown&&!next)return <Sheet kicker="채점" title="확인할 채점 없음" onClose={onClose}><p className="rt-empty">채점은 기록한 날로부터 30일 뒤에 나와요</p>
+    {onRewind&&<button type="button" className="rt-btn primary" style={{width:'100%'}} onClick={onRewind}>기다리는 동안 되감기 1판</button>}</Sheet>;
+  if(!shown){const d=next;return <Sheet kicker={`채점 결과 ${g.due.length}건`} title={`${d.mark}일 전 내 판단`} onClose={onClose}>
     <div key={d.judgment.id+d.mark} className={`rt-note${buried?' rt-capsule-memo':''}`}><div className="rt-note-head"><div><strong>{d.judgment.name}</strong><small>{buried?line(UI.capsuleMemo,{when:formatDay(d.judgment.day,g.clock.today)}):`${formatDay(d.judgment.day,g.clock.today)} 기록`}</small></div></div>
       <p className="rt-headline">{CHOICE_LABEL[d.judgment.choice]} · 확신 {d.judgment.confidence}</p><p className="rt-say">{d.judgment.reason}</p></div>
-    <button type="button" className="rt-btn primary" style={{width:'100%',marginTop:16}} onClick={()=>setShown({j:d.judgment,mark:d.mark,gr:g.ops.openGrade(d.judgment,d.mark)})}>결과 열기</button>
+    <button type="button" className="rt-btn primary" style={{width:'100%',marginTop:16}} onClick={()=>setShown({j:d.judgment,mark:d.mark,gr:g.ops.openGrade(d.judgment,d.mark)})}>결과 보기</button>
   </Sheet>}
   const {j,mark,gr}=shown;
   // W4: the grade as a picture to show someone (ui/Share.tsx)
   if(sharing)return <ShareSheet card={shareCard(j,gr,verdictOf(j,gr,mark),'루온')} onClose={()=>setSharing(false)}/>;
-  return <Sheet kicker={`${mark}일 판정 · ${j.name}`} title={`${j.name} · ${mark}일 판정`} onClose={onClose} label="판정 결과">
+  return <Sheet kicker={`${mark}일 채점 · ${j.name}`} title={`${j.name} · ${mark}일 채점`} onClose={onClose} label="채점 결과">
     <Reveal key={j.id+mark} j={j} mark={mark} gr={gr} onStamp={()=>onStamp?.(j.holdingId,gr.hit)}>
       {done=>done&&<div className="rt-fade" style={{display:'flex',gap:8,marginTop:18}}>
-        <button type="button" className="rt-btn primary wide" onClick={()=>g.due.length?setShown(null):onClose()}>{g.due.length?`다음 판정 (${g.due.length})`:'닫기'}</button>
-        <button type="button" className="rt-btn" onClick={()=>setSharing(true)}>공유 카드</button></div>}
+        <button type="button" className="rt-btn primary wide" onClick={()=>g.due.length?setShown(null):onClose()}>{g.due.length?`다음 결과 (${g.due.length})`:'닫기'}</button>
+        <button type="button" className="rt-btn" onClick={()=>setSharing(true)}>공유하기</button></div>}
     </Reveal>
   </Sheet>;
 }
@@ -194,7 +197,7 @@ export function CaseView({g,c,onClose}:{g:G;c:PastCase;onClose:()=>void}){
   useEffect(()=>{if(ans)return;if(left<=0){answer(null);return}const t=setTimeout(()=>setLeft(l=>l-1),1000);return()=>clearTimeout(t)});
   const h0=c.hints[0],hm=MODEL_INFO[h0.model as keyof typeof MODEL_INFO],ha=analystById(hm.analyst);
   const first=MODEL_INFO[c.reveal.firstCaught as keyof typeof MODEL_INFO];
-  return <Sheet kicker={`오늘의 케이스 · ${c.sector} · ${c.when}`} title={ans?c.reveal.name:'이 회사, 어떻게 됐을까'} onClose={onClose} label="오늘의 케이스">
+  return <Sheet kicker={`오늘의 케이스 · ${c.sector} · ${c.when}`} title={ans?c.reveal.name:'이 회사, 어떻게 됐을까요?'} onClose={onClose} label="오늘의 케이스">
     {!ans&&<><div className={`rt-timer${left<=10?' low':''}`} aria-label={`남은 시간 ${left}초`}><i style={{width:`${left/CASE.seconds*100}%`}}/></div>
       <p className="rt-hint">{UI.caseIntro} <span className="rt-num">{left}초</span></p></>}
     <div className="rt-facts" style={{marginTop:10}}>{c.facts.map(f=><div key={f.k}><span>{f.k}</span><b>{f.v}</b></div>)}</div>
@@ -209,7 +212,7 @@ export function CaseView({g,c,onClose}:{g:G;c:PastCase;onClose:()=>void}){
       <small>{c.reveal.name} · {c.reveal.year}</small>
       <strong>{ans.correct?line(UI.caseRight,{model:first.name}):ans.choice?line(UI.caseWrong,{model:first.name}):UI.caseTimeout}</strong>
       <p>{c.reveal.what}</p><p>{c.reveal.lesson}</p>
-      <p className="rt-num">+{ans.points}점{run?.counted?` · ${line(UI.streak,{n:run.count})}`:prior?' · 오늘 이미 풀었어':''}</p>
+      <p className="rt-num">+{ans.points}점{run?.counted?` · ${line(UI.streak,{n:run.count})}`:prior?' · 오늘 이미 풀었어요':''}</p>
     </div>}
     {ans&&<p className="rt-hint" style={{marginTop:10}}>출처: {c.source}</p>}
   </Sheet>;
@@ -217,14 +220,33 @@ export function CaseView({g,c,onClose}:{g:G;c:PastCase;onClose:()=>void}){
 
 // First visit: one of today's signals put 30 days back (core/judgment.ts LOOKBACK). The player judges it, and the
 // grade reveal opens straight after (onJudged → the Grades sheet).
-export function LookBack({g,sig,holding,onJudged,onClose}:{g:G;sig:Signal;holding:Holding;onJudged:(j:Judgment)=>void;onClose:()=>void}){
+// 지기 (docs/jigi.md, core/jigi/lookback.ts): written as a one-page journal as of then — up or down over the month, why,
+// and how sure (optional); graded at once against the mock closes and kept as a practice page.
+export type LookbackPick={dir:'상승'|'하락';reason:string;conf:string};
+export function LookBack({g,sig,holding,onJudged,onClose}:{g:G;sig:Signal;holding:Holding;onJudged:(p:LookbackPick)=>void;onClose:()=>void}){
   const a=analystById(sig.analyst);
   return <Sheet kicker={`되돌아보기 · ${LOOKBACK}일 전`} title={holding.name} label="되돌아보기" onClose={()=>{g.ops.skipLookback();onClose()}}>
     <div className="rt-note-head" style={{marginBottom:12}}><Face id={a.id} name={a.name}/>
       <div><strong>{say(LINES.lookbackIntro[a.id],sig.id,{n:LOOKBACK})}</strong><small>{line(UI.lookbackNote,{n:LOOKBACK})}</small></div></div>
     <NoteCard sig={sig} trustStage={g.s.trust[sig.analyst].stage}/>
-    <JudgeForm holding={holding} sig={sig} g={g} lookback onDone={onJudged}/>
+    <LookbackForm name={holding.name} onDone={onJudged}/>
   </Sheet>;
+}
+
+function LookbackForm({name,onDone}:{name:string;onDone:(p:LookbackPick)=>void}){
+  const [dir,setDir]=useState<'상승'|'하락'|null>(null),[reason,setReason]=useState(''),[conf,setConf]=useState('');
+  const ok=!!dir&&reason.trim().length>0;
+  return <form className="jg-look" aria-label="그때의 일지" onSubmit={e=>{e.preventDefault();if(ok)onDone({dir:dir!,reason,conf})}}>
+    <p className="jg-diary">그때 {name} 주가는 한 달 안에
+      <span className="rt-seg jg-look-dir" role="group" aria-label="방향">{(['상승','하락'] as const).map(d=><button key={d} type="button" aria-pressed={dir===d} onClick={()=>setDir(d)}>{d==='상승'?'오를':'내릴'}</button>)}</span>
+      것 같았다.</p>
+    <label className="jg-q"><span className="jg-prompt">왜 그렇게 생각했나요?</span>
+      <textarea className="jg-lined" rows={2} value={reason} onChange={e=>setReason(e.target.value)} placeholder="예: 적자가 길어서 반등은 아직 이르다고 봤다." aria-label="이유"/></label>
+    <div className="jg-q"><span className="jg-prompt">확신 (골라도 되고 안 골라도 돼요)</span>
+      <div className="rt-seg" role="group" aria-label="확신">{['낮음','보통','높음'].map(c=><button key={c} type="button" aria-pressed={conf===c} onClick={()=>setConf(conf===c?'':c)}>{c}</button>)}</div></div>
+    <button type="submit" className="rt-btn primary wide" disabled={!ok}>기록하고 결과 보기</button>
+    <p className="rt-hint" style={{marginTop:8}}>연습 일지로 남아요. 내 성적에는 들어가지 않아요.</p>
+  </form>;
 }
 
 // 되감기 (core/rewind.ts): a made-up company at a past moment, the analyst's note, the same call as in the real loop,
@@ -243,14 +265,14 @@ export function RewindView({g,onClose}:{g:G;onClose:()=>void}){
       <div className="rt-facts"><div><span>업종</span><b>{rc.sector}</b></div><div><span>보유</span><b>{rc.held}</b></div>
         <div><span>그때 수익률</span><b className={`rt-num ${rc.rate<0?'rt-down':'rt-up'}`}><Num v={rc.rate}/></b></div></div>
       <div style={{marginTop:10}}><NoteCard sig={rc.sig} trustStage={g.s.trust[rc.sig.analyst].stage}/></div>
-      <p className="rt-headline" style={{marginTop:16}}>그때 너라면?</p>
+      <p className="rt-headline" style={{marginTop:16}}>이때라면 어떻게 할까요?</p>
       <div className="rt-seg" role="group" aria-label="판단">
         {CHOICES.map(c=><button key={c.id} type="button" aria-pressed={choice===c.id} onClick={()=>setChoice(c.id)}>{c.label}<small>{c.sub}</small></button>)}</div>
       <div className="rt-field">확신도<div className="rt-conf" role="group" aria-label="확신도">{([1,2,3,4,5] as Confidence[]).map(n=>
         <button key={n} type="button" aria-pressed={conf===n} onClick={()=>setConf(n)}>{n}</button>)}</div></div>
       <button type="button" className="rt-btn primary" style={{width:'100%',marginTop:18}} disabled={!choice||!conf}
         onClick={()=>setRound(g.ops.playRewind(rc,choice!,conf!))}>결과 보기</button>
-      <p className="rt-hint" style={{marginTop:10}}>{left?`오늘 보상 남은 판 ${left} · 가상 회사, 모의 숫자야`:'오늘 보상은 다 받았어 · 연습은 계속 돼'}</p>
+      <p className="rt-hint" style={{marginTop:10}}>{left?`오늘 보상 남은 판 ${left} · 가상 회사 · 모의 데이터`:'오늘 보상은 모두 받았어요 · 연습은 계속할 수 있어요'}</p>
     </>}
     {round&&gr&&<Reveal key={rc.id} j={j} mark={REWIND.mark} gr={gr} onStamp={()=>{}} then="그때 너">{done=>done&&<div className="rt-fade">
       {round.paid&&<p className="rt-hint" style={{marginTop:12}}>+{EARN.rewind+(round.hit?EARN.rewindHit:0)} {CURRENCY}</p>}

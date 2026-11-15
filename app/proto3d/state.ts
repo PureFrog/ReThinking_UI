@@ -6,6 +6,18 @@
 //   ?reset     start over (the onboarding asks for the holdings again)
 //   ?demo      start over on the demo garden (seven made-up holdings and two old judgments; demos and tests)
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
+import {markLocal} from './sync';
+import {newJournal,saveJournal,purgeOld,type Journal,type Quick,type Hypo,type Reflection} from '../core/jigi/journal';
+import {confirmHypo} from '../core/jigi/extract';
+import {codeOf} from '../core/jigi/stocks';
+import {lookbackJournal} from '../core/jigi/lookback';
+import {workCount,weekWork,type StudyTask} from '../core/jigi/points';
+import type {Task} from '../core/jigi/analysis';
+// process points (core/jigi/points.ts) for the titles and the league
+export const workOf=(s:GardenSave)=>workCount(s.journals??[],s.jigi?.tasks??[]);
+export const weekWorkOf=(s:GardenSave,day:string)=>weekWork(s.journals??[],s.jigi?.tasks??[],day);
+const JIGI0={tasks:[] as StudyTask[],principles:[] as {text:string;at:number}[],typeNo:{} as Record<string,boolean>};
+import {demoJournals} from '../core/jigi/seed';
 import {record,grade,dueGrades,shiftDay,LOOKBACK,type Judgment,type Mark,type Graded,type Choice,type Confidence} from '../core/judgment';
 import {startCooldown,finishCooldown,type Cooldown} from '../core/cooldown';
 import {answerStreak,checkStreak,blankStreak,type Streak} from '../core/streak';
@@ -22,19 +34,25 @@ import {DEMO_HOLDINGS} from '../content/demo-garden';
 import type {Holding} from '../core/model';
 import {DEFAULT_LOOK,type Look} from '../core/wardrobe';
 import type {RunRecord} from '../core/game/run';
+import type {Share} from '../core/planets';
 import {stampById,type StampId} from '../core/stamps';
 
 export type Owned={uid:string;itemId:string;got:string;slot:string|null};
 // settings (ui/Settings.tsx): effect volume, keeping still, text size, tilt
-export type Settings={sfx:number;still:boolean;text:'m'|'l'|'xl';tilt:boolean};
-export const DEFAULT_SETTINGS:Settings={sfx:0.7,still:false,text:'m',tilt:true};
+// share: what my garden shows in other players' skies (core/planets.ts); missing in old saves means the default
+export type Settings={sfx:number;still:boolean;text:'m'|'l'|'xl';tilt:boolean;share?:Share};
+export const DEFAULT_SETTINGS:Settings={sfx:0.7,still:false,text:'m',tilt:true,share:'hide'};
 // seen: how many times each long scene was played (docs/brief-wow.md: long the first time, short after)
 export type Seen={birth:number;cutaway:number;bury:number};
 // name, look: the player's observer (ui/MyPage.tsx) · stamps: achievements and the day each was earned · wardrobe: pieces bought
 export type GardenSave={v:1;holdings:Holding[];onboarded:boolean;lookedBack:boolean;sound:boolean;seen:Seen;name:string;look:Look;stamps:{id:StampId;day:string}[];wardrobe:string[];tips:string[];settings:Settings;letters:string[];weeksDone:string[];rewinds:RewindRound[];daysDone:string[];rankSeen:number;judgments:Judgment[];graded:Graded[];cooldowns:Cooldown[];cases:CaseAnswer[];streak:Streak;currency:number;
   trust:Record<AnalystId,Relation>;owned:Owned[];gifted:AnalystId[];bought:{itemId:string;day:string}[];
   // 관측소 원정 runs (core/game/run.ts): the 판, its decisions and score; the latest of a 판 is the next run's ghost
-  expeditions:RunRecord[]};
+  expeditions:RunRecord[];
+  // 지기 투자일지 (core/jigi, docs/jigi.md): missing in older saves means none yet
+  journals?:Journal[];
+  // 지기 J3: study tasks taken from the analysis (on the next journal's checklist), my principles, types I said don't fit
+  jigi?:{tasks:StudyTask[];principles:{text:string;at:number}[];typeNo:Record<string,boolean>}};
 export const SAVE_KEY='rethink-garden-v1';
 
 // Clock: real today, or N days ahead with ?ahead=N
@@ -51,12 +69,13 @@ export function blankSave():GardenSave{
 // The demo garden opens with two judgments made months ago, so the first visit already has grades to open (the moment
 // the whole loop is built around). Both are on the demo holdings.
 export function demoSave(today:string):GardenSave{
-  const j1:Judgment={id:'demo-1',holdingId:7,name:'강철중공업',day:shiftDay(today,-92),choice:'hold',reason:'수주 잔고 3년치. 일시적 하락.',confidence:4,rate:-6.1,
+  const j1:Judgment={id:'demo-1',holdingId:7,name:'POSCO홀딩스',day:shiftDay(today,-92),choice:'hold',reason:'수주 잔고 3년치. 일시적 하락.',confidence:4,rate:-6.1,
     signalId:'ohlson:7:demo',analyst:'tori',model:'ohlson',rebuttal:'kept'};
-  const j2:Judgment={id:'demo-2',holdingId:6,name:'은하바이오',day:shiftDay(today,-35),choice:'watch',reason:'임상 발표까지만 본다.',confidence:2,rate:2.3,
+  const j2:Judgment={id:'demo-2',holdingId:6,name:'삼성전자',day:shiftDay(today,-35),choice:'watch',reason:'임상 발표까지만 본다.',confidence:2,rate:2.3,
     signalId:'crash:6:demo',analyst:'moa',model:'crash',rebuttal:'skipped'};
   // the demo garden is for showing and testing the loop: the first-time pointers are taken as read
-  return {...blankSave(),holdings:DEMO_HOLDINGS,onboarded:true,lookedBack:true,judgments:[j1,j2],currency:4,tips:['map','me','house','lapse']};
+  return {...blankSave(),holdings:DEMO_HOLDINGS,onboarded:true,lookedBack:true,judgments:[j1,j2],currency:4,tips:['map','me','house','lapse'],
+    journals:demoJournals(Date.parse(today+'T12:00:00Z'),code=>DEMO_HOLDINGS.find(h=>h.code===code)?.id??null)};
 }
 function loadSave(today:string):GardenSave{
   try{
@@ -77,7 +96,9 @@ export function useGarden(){
   const cur=useRef(s);
   const setS=useCallback((fn:(p:GardenSave)=>GardenSave)=>{const next=fn(cur.current);if(next!==cur.current){cur.current=next;setState(next)}},[]);
   const [toast,setToast]=useState<Toast|null>(null);
-  useEffect(()=>{try{localStorage.setItem(SAVE_KEY,JSON.stringify(s))}catch{}},[s]);
+  // when it was last changed goes with it (proto3d/sync.ts compares it with the server's copy); opening is not a change
+  const first=useRef(true);
+  useEffect(()=>{try{localStorage.setItem(SAVE_KEY,JSON.stringify(s));if(!first.current)markLocal()}catch{}first.current=false},[s]);
   // opening the garden settles the run of days (a missed day opens the rescue or ends the run)
   useEffect(()=>{setS(p=>({...p,streak:checkStreak(p.streak,c.today)}))},[c.today]);
   const say=useCallback((text:string)=>setToast({id:Date.now(),text}),[]);
@@ -145,7 +166,9 @@ export function useGarden(){
     setName(name:string){setS(p=>({...p,name}))},
     setSettings(settings:Settings){setS(p=>({...p,settings}))},
     // start over: the save goes and the page opens on the onboarding
-    wipe(){try{localStorage.removeItem(SAVE_KEY)}catch{}location.replace(location.pathname+'?reset')},
+    // the server's copy won on sign-in (core/sync.ts): it replaces this device's garden as it is
+    adopt(save:GardenSave){setS(()=>({...blankSave(),...save}))},
+    wipe(){try{localStorage.removeItem(SAVE_KEY);localStorage.removeItem('rethink-garden-at')}catch{}location.replace(location.pathname+'?reset')},
     // this week's three goals done (core/weekly.ts): paid once a week
     closeWeek(start:string){let paid=false;setS(p=>{if(p.weeksDone.includes(start))return p;paid=true;return {...p,weeksDone:[...p.weeksDone.slice(-30),start],currency:p.currency+EARN.weekDone}});
       if(paid)say(line(UI.weekDone,{n:EARN.weekDone}))},
@@ -161,6 +184,36 @@ export function useGarden(){
     playRewind(rc:RewindCase,choice:Choice,confidence:Confidence){let round=null as RewindRound|null;
       setS(p=>{const r=playRewind(rc,choice,confidence,c.today,p.rewinds);round=r;return {...p,rewinds:[...p.rewinds,r],currency:p.currency+(r.paid?EARN.rewind+(r.hit?EARN.rewindHit:0):0)}});
       return round!},
+    // 지기 투자일지: a new page (from a tree, a quick chip or a signal), edits as drafts, save (a version), archive, trash
+    journalNew(o:{holdingId?:number|null;quick?:Quick;signalId?:string|null}={}){const id='j'+c.now.toString(36)+Math.random().toString(36).slice(2,6);
+      setS(p=>{const h=o.holdingId!=null?p.holdings.find(x=>x.id===o.holdingId):undefined;
+        return {...p,journals:[...purgeOld(p.journals??[],c.now),newJournal(id,c.now,c.today,{holdingId:h?.id??null,code:h?codeOf(h):null,name:h?.name,quick:o.quick,signalId:o.signalId})]}});return id},
+    // the first visit's 되돌아보기 as a practice journal (core/jigi/lookback.ts): written as of 30 days ago, graded at once
+    journalLookback(o:{holdingId:number;dir:'상승'|'하락';reason:string;conf:string;signalId?:string|null;analyst?:AnalystId|null}){let out:{journalId:string;hypoId:string}|null=null;
+      setS(p=>{const h=p.holdings.find(x=>x.id===o.holdingId);if(!h)return p;const id='look-'+c.now.toString(36),hypoId=id+'-h';
+        const j=lookbackJournal({id,hypoId,holdingId:h.id,code:codeOf(h),name:h.name,today:c.today,now:c.now,dir:o.dir,reason:o.reason,conf:o.conf,signalId:o.signalId});if(!j)return p;
+        out={journalId:id,hypoId};let next:GardenSave={...p,lookedBack:true,journals:[...(p.journals??[]),j],currency:p.currency+EARN.judgment};
+        if(o.analyst){const t=trusted(next,o.analyst,TRUST.briefing);next=t.save}return next});
+      return out as {journalId:string;hypoId:string}|null},
+    jigiTask(t:Task){setS(p=>{const j=p.jigi??JIGI0;return j.tasks.some(x=>x.id===t.id)?p:{...p,jigi:{...j,tasks:[...j.tasks,{id:t.id,text:t.act,at:c.now}]}}});say('다음 일지 체크리스트에 넣었어요')},
+    jigiTaskDone(id:string){setS(p=>{const j=p.jigi??JIGI0;return {...p,jigi:{...j,tasks:j.tasks.map(x=>x.id===id?{...x,done:true}:x)}}})},
+    jigiTaskDrop(id:string){setS(p=>{const j=p.jigi??JIGI0;return {...p,jigi:{...j,tasks:j.tasks.filter(x=>x.id!==id)}}})},
+    jigiPrinciple(text:string){setS(p=>{const j=p.jigi??JIGI0;return j.principles.some(x=>x.text===text)?p:{...p,jigi:{...j,principles:[...j.principles,{text,at:c.now}]}}});say('내 원칙으로 저장했어요')},
+    jigiTypeNo(id:string){setS(p=>{const j=p.jigi??JIGI0;return {...p,jigi:{...j,typeNo:{...j.typeNo,[id]:!j.typeNo[id]}}}})},
+    journalEdit(id:string,fn:(j:Journal)=>Journal){setS(p=>({...p,journals:(p.journals??[]).map(j=>j.id===id?fn(j):j)}))},
+    journalSave(id:string){let out:ReturnType<typeof saveJournal>|null=null;
+      setS(p=>{const j=(p.journals??[]).find(x=>x.id===id);if(!j)return p;const r=saveJournal(j,c.now);out=r;if(!r.ok)return p;
+        return {...p,journals:(p.journals??[]).map(x=>x.id===id?r.journal:x)}});return out as ReturnType<typeof saveJournal>|null},
+    // J2: a journal's hypotheses (drafts edited in place), confirming one (base close, end date), the review, a verdict opened
+    journalHypos(id:string,hypos:Hypo[]){setS(p=>({...p,journals:(p.journals??[]).map(j=>j.id===id?{...j,hypos}:j)}))},
+    journalConfirm(id:string,hypoId:string){let say='';let buried=false;
+      setS(p=>({...p,journals:(p.journals??[]).map(j=>{if(j.id!==id)return j;return {...j,hypos:j.hypos.map(h=>{if(h.id!==hypoId)return h;const r=confirmHypo(j,h,c.today,c.now);say=r.say;buried=r.h.status==='confirmed'&&!!r.h.auto;return r.h})}})}));
+      return {say,buried}},
+    journalReflect(id:string,r:Reflection){setS(p=>({...p,journals:(p.journals??[]).map(j=>j.id===id?{...j,reflection:r}:j)}))},
+    journalOpened(id:string,hypoId:string){setS(p=>({...p,journals:(p.journals??[]).map(j=>j.id===id?{...j,hypos:j.hypos.map(h=>h.id===hypoId?{...h,opened:c.now}:h)}:j)}))},
+    journalArchive(id:string,on:boolean){setS(p=>({...p,journals:(p.journals??[]).map(j=>j.id===id?{...j,archivedAt:on?c.now:null}:j)}))},
+    journalTrash(id:string,on:boolean){setS(p=>({...p,journals:(p.journals??[]).map(j=>j.id===id?{...j,deletedAt:on?c.now:null}:j)}))},
+    journalPurge(id:string){setS(p=>({...p,journals:(p.journals??[]).filter(j=>j.id!==id)}))},
     place(uid:string,slot:string|null){setS(p=>({...p,owned:p.owned.map(o=>o.uid===uid?{...o,slot}:o.slot&&o.slot===slot?{...o,slot:null}:o)}))},
   };
   const due=useMemo(()=>dueGrades(s.judgments,s.graded,c.today),[s.judgments,s.graded,c.today]);

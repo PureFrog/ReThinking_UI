@@ -4,23 +4,23 @@
 // Also the memo folding into its capsule when a judgment is recorded, and the look-back's "30일 뒤" in between.
 import {useEffect,useRef} from 'react';
 import {screenPoints} from '../screen';
-import {capsuleLabel,type Capsule} from '../../core/capsule';
 import {CHOICE_LABEL,type Judgment} from '../../core/judgment';
 
-export function CapsuleTags({items,names,onPick}:{items:Capsule[];names:Record<number,string>;onPick:(holdingId:number)=>void}){
+// items: one marker per tree, an old judgment's (core/capsule.ts) or a 지기 hypothesis's (core/jigi/capsules.ts), with its label
+export function CapsuleTags({items,names,onPick}:{items:{holdingId:number;due:boolean;label:string}[];names:Record<number,string>;onPick:(holdingId:number)=>void}){
   const refs=useRef(new Map<number,HTMLButtonElement>());
   useEffect(()=>{let raf=0;const tick=()=>{for(const [id,el] of refs.current){const p=screenPoints.get('capsule-'+id);
       if(!p||!p.visible||p.y<70){el.style.visibility='hidden';continue}el.style.visibility='visible';el.style.transform=`translate(${p.x}px,${p.y}px) translate(-50%,-100%)`}
     raf=requestAnimationFrame(tick)};tick();return()=>cancelAnimationFrame(raf)},[]);
   return <>{items.map(c=><button key={c.holdingId} type="button" className="rt-cap-tag" data-due={c.due} style={{visibility:'hidden'}}
-    aria-label={`${names[c.holdingId]??''} 캡슐 · ${capsuleLabel(c)}`}
+    aria-label={`${names[c.holdingId]??''} · ${c.label}`}
     ref={el=>{if(el)refs.current.set(c.holdingId,el);else refs.current.delete(c.holdingId)}} onClick={()=>onPick(c.holdingId)}>
-    {capsuleLabel(c)}</button>)}</>;
+    {c.label}</button>)}</>;
 }
 
 // the memo card folding up into its capsule (Briefing, once the judgment is recorded)
 export function Pack({j}:{j:Judgment}){
-  return <div className="rt-pack" aria-label="캡슐에 담긴 메모">
+  return <div className="rt-pack" aria-label="저장한 메모">
     <div className="rt-pack-memo"><b>{CHOICE_LABEL[j.choice]} · 확신 {j.confidence}</b><span>{j.reason}</span></div>
     <div className="rt-pack-capsule" aria-hidden><i/></div>
   </div>;

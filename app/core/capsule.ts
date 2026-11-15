@@ -15,4 +15,4 @@ export function capsulesOf(list:Judgment[],graded:Graded[],today:string,holdingI
   return [...out.values()];
 }
 // the label on the marker
-export const capsuleLabel=(c:Capsule)=>c.due?'판정 도착':`D-${c.inDays}`;
+export const capsuleLabel=(c:Capsule)=>c.due?'채점 완료':`D-${c.inDays}`;
