@@ -148,7 +148,7 @@ test('every friend has its four stage scenes, its secret, and never talks trades
 // ux-spec 3장 memory: each greeting may bring up one remembered thing, once, in a fixed order; templates fill particles
 const M=await load('core/memory');const {memoryLine,greetLine,giftLine,setLineContext}=await load('content/content');
 test('memory picks one untold thing in order, and templates fill names with the right particle',()=>{
- const facts={today:'2026-11-20',lastVisit:'2026-11-09',holding:{item:'털실 바구니',day:'2026-11-09'},decor:{id:7,name:'들꽃 화병'},outfit:['산책 목도리'],decision:{tree:'새봄반도체',decision:'수정',reason:'신규 계약이 나올 거라 봐',day:'2026-11-08'}};
+ const facts={today:'2026-11-20',lastVisit:'2026-11-09',holding:{item:'털실 바구니',day:'2026-11-09'},decor:{id:7,name:'들꽃 화병'},outfit:['산책 목도리'],decision:{tree:'SK하이닉스',decision:'수정',reason:'신규 계약이 나올 거라 봐',day:'2026-11-08'}};
  const all=['absence','holding','loss','mine','decor','outfit','decision'];
  assert.equal(M.memoryTopic(facts,[],all).kind,'absence','a long absence comes first');
  assert.equal(M.memoryTopic({...facts,lastVisit:'2026-11-18'},[],all).kind,'holding','two days away is not long');
@@ -162,11 +162,11 @@ test('memory picks one untold thing in order, and templates fill names with the 
  assert.equal(M.remember(Array.from({length:M.TOLD_KEEP},(_,i)=>'k'+i),'new').length,M.TOLD_KEEP);
 });
 test('a friend greets with what it remembers once, then says hello as usual',()=>{
- const told=[];setLineContext({stages:{moa:0,tori:0,luon:0},placed:[],memory:{moa:{today:'2026-11-20',lastVisit:'2026-11-01'},tori:{today:'2026-11-20',loss:{id:3,tree:'꽃빛뷰티'}}},told:{}},(id,k)=>told.push(id+'|'+k));
+ const told=[];setLineContext({stages:{moa:0,tori:0,luon:0},placed:[],memory:{moa:{today:'2026-11-20',lastVisit:'2026-11-01'},tori:{today:'2026-11-20',loss:{id:3,tree:'카카오'}}},told:{}},(id,k)=>told.push(id+'|'+k));
  assert.equal(memoryLine('moa'),'19일 만이네. 오랜만이야, 보고 싶었어.');assert.deepEqual(told,['moa|absence:2026-11-20']);
  assert.equal(memoryLine('moa'),'','told once');assert.equal(greetLine('moa'),friendLine('moa','greet'));
  assert.equal(memoryLine('tori'),'','only moa worries about a tree in a loss');
- setLineContext({stages:{},placed:[],memory:{moa:{today:'2026-11-20',loss:{id:3,tree:'꽃빛뷰티'}}},told:{}});assert.match(memoryLine('moa'),/꽃빛뷰티 나무가 힘들어 보여서 먼저/);
+ setLineContext({stages:{},placed:[],memory:{moa:{today:'2026-11-20',loss:{id:3,tree:'카카오'}}},told:{}});assert.match(memoryLine('moa'),/카카오 나무가 힘들어 보여서 먼저/);
  assert.match(giftLine('moa','loved','들꽃 화병'),/들꽃 화병을 나한테/);assert.match(giftLine('tori','returned','x'),/내가 준/);
  setLineContext({stages:{},placed:[],memory:{},told:{}});
 });

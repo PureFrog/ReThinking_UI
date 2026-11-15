@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {load} from './load-app.mjs';
 const {shareCard, moveText, wrapLines, SHARE} = await load('core/share');
 
-const j = {id: 'demo-1', holdingId: 7, name: '강철중공업', day: '2026-08-13', choice: 'hold', reason: '수주 잔고 3년치. 일시적 하락.', confidence: 4, rate: -6.1};
+const j = {id: 'demo-1', holdingId: 7, name: 'POSCO홀딩스', day: '2026-08-13', choice: 'hold', reason: '수주 잔고 3년치. 일시적 하락.', confidence: 4, rate: -6.1};
 const g = {judgmentId: 'demo-1', mark: 30, after: -12.7, hit: false, signalRight: true, points: -7, day: '2026-11-13'};
 
 test('the share card holds the move in % and my memo, never money or quantities', () => {

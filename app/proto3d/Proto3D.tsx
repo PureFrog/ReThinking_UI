@@ -6,7 +6,24 @@
 import {still} from './still';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {Canvas} from '@react-three/fiber';
-import {Pin,Cross,Loupe,Specimen,Ledger,Drawer as DrawerIcon,Rosette,Scope,Sound,Mute,Hourglass,Tilt,MapIcon} from './ui/Icons';
+import {Cross,Ledger,Scope,MapIcon,Sprout,More} from './ui/Icons';
+import {MoreSheet,NextCard,Tutorial,type MoreId} from './ui/Home';
+import {JigiBook} from './ui/JigiBook';
+import {JigiWrite} from './ui/JigiWrite';
+import {QUICK,live as liveJournals,type Quick} from '../core/jigi/journal';
+import {needsReview} from '../core/jigi/hypothesis';
+import {hypoCapsules,hypoCapsuleLabel,type HypoCapsule} from '../core/jigi/capsules';
+import {capsuleLabel,type Capsule} from '../core/capsule';
+import {JigiVerdict} from './ui/JigiVerdict';
+import {JigiStats} from './ui/JigiStats';
+import {nextStep} from '../core/next';
+import {Welcome} from './ui/Welcome';
+import {authRepo} from './server';
+import {missingConsents,friendTalk,jigiAI} from './supabase';
+import {saveRepo,openedAt,markLocal} from './sync';
+import {syncPlan,SYNC} from '../core/sync';
+import type {GardenSave} from './state';
+import type {Account} from '../core/auth';
 import {tiltOffset} from '../core/tilt';
 import {tilt as tiltNow} from './screen';
 import {configure,unlock,cue,DEFAULT_SOUND,ambience} from '../core/sound';
@@ -27,8 +44,8 @@ import {ANALYSTS,UI,CURRENCY,line,type AnalystId} from '../content/analysts';
 import {itemById} from '../content/garden-items';
 import Scene3D,{type World} from './Scene3D';
 import {LOOK} from './look';
-import {useGarden} from './state';
-import {Briefing,Grades,CaseView,LookBack,RewindView} from './ui/Loop';
+import {useGarden,workOf,weekWorkOf} from './state';
+import {Briefing,Grades,CaseView,LookBack,RewindView,type LookbackPick} from './ui/Loop';
 import {paidLeft} from '../core/rewind';
 import {todayTasks,dayDone,type TaskId} from '../core/today';
 import {rankOf,xpOf} from '../core/rank';
@@ -40,6 +57,11 @@ import {RoomTags} from './ui/RoomTags';
 import {routineOf} from '../core/routine';
 import {chatOf} from '../content/routine-lines';
 import {MyPage,wearCtx} from './ui/MyPage';
+import {SkyView} from './ui/SkyView';
+import {myPlanet,type Planet,type Share} from '../core/planets';
+import {planetRepo} from './server';
+import {habitOf} from '../core/profile';
+import {PALETTES} from '../core/wardrobe';
 import {fitLook} from '../core/wardrobe';
 import {newStamps} from '../core/stamps';
 import {daylightOf,mixHex} from '../core/daylight';
@@ -53,6 +75,8 @@ import {stampById} from '../core/stamps';
 import {daysBetween as daysFrom} from '../core/judgment';
 import {place,type PlaceId} from './places';
 import {Bubbles} from './ui/Bubbles';
+import {FriendSheet} from './ui/Friend';
+import {FRIEND,friendOpener} from '../core/friend';
 import {Onboarding} from './ui/Onboarding';
 import {BirthCards} from './ui/Birth';
 import {DeepSheet} from './ui/Deep';
@@ -96,14 +120,19 @@ function useWeather(){
     setW({weather:isWeather(q)?q:weatherOf(m),index:m.index})},[]);
   return w;
 }
-type SheetState={kind:'onboard'}|{kind:'letter';month:string}|{kind:'settings'}|{kind:'map'}|{kind:'library'}|{kind:'grades';start:string}|{kind:'deep';holdingId:number;back:SheetState}|{kind:'lookback'}|{kind:'brief';start:{signalId?:string;holdingId?:number}|null}|{kind:'grades'|'case'|'rewind'|'today'|'records'|'drawer'|'cart'|'league'|'game'}|{kind:'analyst';id:AnalystId}|null;
+type SheetState={kind:'journal';openId?:string}|{kind:'more'}|{kind:'onboard'}|{kind:'letter';month:string}|{kind:'settings'}|{kind:'map'}|{kind:'library'}|{kind:'grades';start:string}|{kind:'deep';holdingId:number;back:SheetState}|{kind:'lookback'}|{kind:'brief';start:{signalId?:string;holdingId?:number}|null}|{kind:'grades'|'case'|'rewind'|'today'|'records'|'drawer'|'cart'|'league'|'game'}|{kind:'analyst';id:AnalystId}|{kind:'friend'}|{kind:'write';id:string}|{kind:'verdict';journalId:string;hypoId:string}|null;
 // where each pointer points (core/tips.ts)
-const TIP_AT:Record<TipId,{target?:string;point?:string}>={map:{target:'.proto3d-map'},me:{target:'.rt-me-chip'},house:{point:'house'},lapse:{target:'.rt-dock button:nth-child(4)'}};
+const TIP_AT:Record<TipId,{target?:string;point?:string}>={map:{target:'.proto3d-map'},me:{target:'.rt-me-chip'},house:{point:'house'},lapse:{target:'.rt-dock [data-tab="journal"]'}};
+// which tab a sheet belongs to: the journal's sheets light 일지, the rest of the daily loop's extras light 더보기
+const tabOf=(sh:SheetState)=>!sh?'garden':['journal','write','verdict','brief','grades','records','lookback','deep'].includes(sh.kind)?'journal':sh.kind==='game'?'game':
+  ['more','case','rewind','drawer','cart','league','settings','onboard'].includes(sh.kind)?'more':'garden';
 const CART_FLAGS=['#c4452f','#36557e','#1e6b4a','#b9801a','#6a5aa8'];
 // this week's league group on the square's flagpoles (the first is mine)
 const LEAGUE_FLAGS=['#b8372b','#36557e','#4b6638','#b9801a','#6a5aa8','#c4652e','#2c5c92','#7a5238','#5c5447','#9c6c12','#4d4a8a','#1e6b4a'];
 // the analysts come out of the house door when the garden is first born (W1)
 const DOOR={x:-4.2,z:-1.0};
+// where 보리 waits for a talk: near the middle, between the campfire and the cart, clear of the analysts' spots
+const FRIEND_SPOT={x:-1.6,z:1.8};
 type Birth={ids:number[];t0:number;plan:BirthPlan;after?:()=>void};
 
 export default function Proto3D(){
@@ -112,6 +141,25 @@ export default function Proto3D(){
   const [recenter,setRecenter]=useState(0);
   // a new player lands on the onboarding (ui/Onboarding.tsx); the garden stays empty until the first trees go in
   const [sheet,setSheet]=useState<SheetState>(()=>g.s.onboarded?null:{kind:'onboard'});
+  // the first screens (ui/Welcome.tsx): a new visitor with no account and no garden sees the landing first; sign up and
+  // log in go through authRepo (server.ts), "가입 없이 둘러보기" remembers itself on this device. e2e pages skip it unless
+  // the address has ?landing (tests/e2e/fixtures.ts)
+  const [account,setAccount]=useState<Account|null>(()=>typeof window==='undefined'?null:authRepo.current());
+  const [guest,setGuest]=useState(()=>{try{return localStorage.getItem('rethink-guest')==='1'}catch{return false}});
+  useEffect(()=>authRepo.onChange(a=>setAccount(a)),[]);
+  const owing=account&&missingConsents(account).length?account:null;
+  // signed in with Supabase: the garden is kept on the server too (proto3d/sync.ts). First the two copies are compared
+  // (core/sync.ts), then every change goes up after a quiet moment. Not for guests, device-only accounts or ?demo.
+  const syncOn=!!account&&!authRepo.local&&!!saveRepo&&!owing&&typeof window!=='undefined'&&!new URLSearchParams(location.search).has('demo');
+  const [synced,setSynced]=useState(false);
+  useEffect(()=>{if(!syncOn||!saveRepo){setSynced(false);return}let on=true;
+    saveRepo.pull().then(remote=>{if(!on||remote==='error')return;
+      const plan=syncPlan({body:g.s,at:openedAt??'1970-01-01T00:00:00Z'},remote);
+      if(plan==='take-remote'&&remote){g.ops.adopt(remote.body as GardenSave);markLocal(remote.at)}
+      setSynced(true)});
+    return()=>{on=false}},[syncOn,account?.email]);// eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{if(!synced||!saveRepo)return;const repo=saveRepo;const t=setTimeout(()=>{void repo.push(g.s).then(at=>{if(at){markLocal(at);void repo.pushJigi(g.s.journals??[])}})},SYNC.pushAfter);return()=>clearTimeout(t)},[synced,g.s]);
+  const welcome=!!owing||(!account&&!guest&&!g.s.onboarded&&!(typeof window!=='undefined'&&(window as {__noLanding?:boolean}).__noLanding));
   const [early,setEarly]=useState(false);
   // a grade being revealed makes its tree react in the garden (Scene3D Burst)
   const [burst,setBurst]=useState<World['burst']>(null),[focus,setFocus]=useState<number|null>(null);
@@ -157,7 +205,11 @@ export default function Proto3D(){
   const leaveGame=()=>{setFading(true);cue('door');setTimeout(()=>{setExpedition(null);setGameMarket(null);setTimeout(()=>setFading(false),80)},TIMING.roomFade)};
   const [wide,setWide]=useState(false);
   useEffect(()=>{const q=matchMedia('(min-width:760px) and (min-height:521px)'),f=()=>setWide(q.matches);f();q.addEventListener('change',f);return()=>q.removeEventListener('change',f)},[]);
-  const quiet=calm||!!lapse||me||!!expedition;
+  // 다른 정원들 (ui/SkyView.tsx, Sky3D.tsx): ?sky opens it; the garden is put away while it is open
+  const [skyOpen,setSkyOpen]=useState<{focus:string|null}|null>(()=>{try{return new URLSearchParams(location.search).has('sky')?{focus:null}:null}catch{return null}});
+  const [neighbours,setNeighbours]=useState<{planets:Planet[];sample:boolean}>({planets:[],sample:true});
+  useEffect(()=>{if(!skyOpen)return;let on=true;planetRepo.neighbours(weekStart(clock.today)).then(n=>{if(on)setNeighbours(n)});return()=>{on=false}},[!!skyOpen,clock.today]);// eslint-disable-line react-hooks/exhaustive-deps
+  const quiet=calm||!!lapse||me||!!expedition||!!skyOpen;
   // W3 time capsules (core/capsule.ts): one marker per tree; burying after a judgment, digging up as a grade opens
   const capsules=useMemo(()=>capsulesOf(s.judgments,s.graded,clock.today,s.holdings.map(x=>x.id)),[s.judgments,s.graded,clock.today,s.holdings]);
   const [capFx,setCapFx]=useState<World['capsuleFx']>(null),[jump,setJump]=useState(false);
@@ -170,11 +222,17 @@ export default function Proto3D(){
     setTimeout(()=>{setCapFx(f=>f&&f.t0===t0?null:f);setFocus(f=>f===holdingId?null:f);then?.()},len+TIMING.capsuleLook*(long?1.4:0.8))};
   const dig=(holdingId:number)=>{const t0=performance.now();setCapFx({kind:'dig',holdingId,t0,len:TIMING.capsuleDig});cue('capsule-dig');setTimeout(()=>cue('capsule-open'),TIMING.capsuleDig*0.72)};
   // a dug-up capsule stays open over its tree only while its grade is on screen
-  useEffect(()=>{if(sheet?.kind!=='grades')setCapFx(f=>f&&f.kind==='dig'?null:f)},[sheet]);
-  const onCapsule=(holdingId:number)=>{const c=capsules.find(x=>x.holdingId===holdingId),hh=holdings.find(x=>x.id===holdingId);if(!c||!hh)return;
+  useEffect(()=>{if(sheet?.kind!=='grades'&&sheet?.kind!=='verdict')setCapFx(f=>f&&f.kind==='dig'?null:f)},[sheet]);
+  const onCapsule=(holdingId:number)=>{const m=markers.find(x=>x.holdingId===holdingId),hh=holdings.find(x=>x.id===holdingId);if(!m||!hh)return;
+    // a 지기 hypothesis: dug up with its verdict, or how long until its end date
+    if(m.hypo){const hc=m.hypo;if(hc.due){setPicked(null);dig(holdingId);setSheet({kind:'verdict',journalId:hc.journalId,hypoId:hc.hypoId})}else g.say(`${hh.name} 가설 판정까지 ${hc.inDays}일 남았어요`);return}
+    const c=m.old!;
     if(c.due){setPicked(null);setSheet({kind:'grades',start:c.judgmentId})}else g.say(line(UI.capsuleWait,{name:hh.name,mark:c.mark,d:c.inDays}))};
   // the look-back: buried now, then "30일 뒤", then dug up with its grade
-  const lookJudged=(j:{holdingId:number})=>bury(j.holdingId,()=>{setJump(true);setTimeout(()=>{setJump(false);setSheet({kind:'grades'})},TIMING.lookbackJump)});
+  // 지기: a practice journal as of 30 days ago (core/jigi/lookback.ts); buried, "30일 뒤", dug up with its verdict
+  const lookJudged=(p:LookbackPick)=>{if(!lookSig||!lookHolding)return;const id=lookHolding.id;
+    const r=g.ops.journalLookback({holdingId:id,...p,signalId:lookSig.id,analyst:lookSig.analyst});if(!r){setSheet(null);return}
+    bury(id,()=>{setJump(true);setTimeout(()=>{setJump(false);dig(id);setSheet({kind:'verdict',journalId:r.journalId,hypoId:r.hypoId})},TIMING.lookbackJump)})};
   // W2: the ground opened under one tree (core/roots.ts, Roots3D.tsx); closing slides it shut, then it goes
   const [cut,setCut]=useState<World['cutaway']>(null);
   const openDeep=(holdingId:number,back:SheetState=null)=>{const hh=g.s.holdings.find(x=>x.id===holdingId);if(!hh)return;
@@ -188,10 +246,13 @@ export default function Proto3D(){
   const weather=expedition&&gameMarket!==null?weatherOf({index:gameMarket,swing:Math.abs(gameMarket)*1.6}):lapseMarket?weatherOf(lapseMarket):w?.weather??'clear',wl=LOOK.weather[weather];
   const holdings=g.s.holdings,ready=g.s.onboarded;
   // what the garden draws: the holdings now, or as they stood in the timelapse week (absent before they were bought)
-  const shown=useMemo(()=>lapse?holdings.flatMap(x=>{const p=holdingAt(x,lapseBack);return p?[p]:[]}):holdings,[holdings,lapse?.i]);// eslint-disable-line react-hooks/exhaustive-deps
+  // the first screens stand on the world itself: an example garden grows behind them (shown only, never saved)
+  const shown=useMemo(()=>welcome?DEMO_HOLDINGS:lapse?holdings.flatMap(x=>{const p=holdingAt(x,lapseBack);return p?[p]:[]}):holdings,[holdings,lapse?.i,welcome]);// eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{const hk=((window as {__proto3d?:{lapse?:unknown}}).__proto3d??={} as {lapse?:unknown});hk.lapse=lapse?{day:lapseDay,back:lapseBack,trees:shown.length,weather}:null},[lapse,shown]);// eslint-disable-line react-hooks/exhaustive-deps
   const signals=useMemo(()=>signalProvider.today(holdings,clock.today),[holdings,clock.today]);
-  const open=signals.filter(x=>!judgedToday(s.judgments,x.holdingId,clock.today));
+  // a signal is answered by a journal saved today on its stock (or, before 지기, a judgment)
+  const wroteToday=(holdingId:number)=>judgedToday(s.judgments,holdingId,clock.today)||(s.journals??[]).some(j=>j.holdingId===holdingId&&j.status==='saved'&&!j.demo&&!j.practice&&j.savedAt!=null&&isoDay(new Date(j.savedAt))===clock.today);
+  const open=signals.filter(x=>!wroteToday(x.holdingId));
   const todayCase=useMemo(()=>caseOfDay(CASES,clock.today,s.cases.filter(a=>a.day!==clock.today).map(a=>a.caseId)),[clock.today,s.cases]);
   const caseDone=!!answeredToday(s.cases,clock.today);
   const track=trackOf(s.judgments,s.graded);
@@ -199,7 +260,7 @@ export default function Proto3D(){
   const lookSig=s.lookedBack?null:lookbackPick(signals),lookHolding=lookSig?holdings.find(x=>x.id===lookSig.holdingId):undefined;
 
   // today's three (core/today.ts): ticked off as they happen; all three close the day once
-  const tasks=todayTasks({signals:signals.length,judgedToday:s.judgments.filter(j=>j.day===clock.today).length,caseDone,due:g.due.length,
+  const tasks=todayTasks({signals:signals.length,judgedToday:s.judgments.filter(j=>j.day===clock.today).length+(s.journals??[]).filter(j=>j.status==='saved'&&!j.demo&&!j.practice&&j.savedAt!=null&&isoDay(new Date(j.savedAt))===clock.today).length,caseDone,due:g.due.length,
     gradedToday:s.graded.filter(x=>x.day===clock.today).length,rewindsToday:s.rewinds.filter(r=>r.day===clock.today).length});
   const tasksDone=tasks.filter(t=>t.done).length,allDone=ready&&dayDone(tasks);
   useEffect(()=>{if(allDone)g.ops.closeDay()},[allDone]);// eslint-disable-line react-hooks/exhaustive-deps
@@ -207,9 +268,9 @@ export default function Proto3D(){
   const week=weekGoals(clock.today,weekCtx(g));
   useEffect(()=>{if(ready&&week.done)g.ops.closeWeek(week.start)},[ready,week.done,week.start]);// eslint-disable-line react-hooks/exhaustive-deps
   // a new title (core/rank.ts) brings its item
-  const rank=rankOf(xpOf({graded:s.graded.length,cases:s.cases.length,rewinds:s.rewinds.length}));
+  const rank=rankOf(xpOf({graded:s.graded.length,cases:s.cases.length,rewinds:s.rewinds.length,work:workOf(s)}));
   useEffect(()=>{if(rank.index>s.rankSeen)g.ops.rankUp(rank.index,rank.name)},[rank.index,s.rankSeen]);// eslint-disable-line react-hooks/exhaustive-deps
-  const goTask=(t:TaskId)=>setSheet(t==='judge'?{kind:'brief',start:null}:{kind:t==='grade'?'grades':t});
+  const goTask=(t:TaskId)=>setSheet(t==='judge'?{kind:'journal'}:{kind:t==='grade'?'grades':t});
   // nothing flagged in the new garden: no look-back to show
   useEffect(()=>{if(sheet?.kind==='lookback'&&!lookSig)setSheet(null)},[sheet,lookSig]);
   // sound (core/sound.ts, synthesised): on unless the player turned it off; the browser lets it start on the first press
@@ -231,10 +292,23 @@ export default function Proto3D(){
     return()=>clearInterval(t)},[inside,me,ready,light.day,light.night,weather]);
   // a first-time pointer (core/tips.ts), only in a quiet moment out in the garden
   // last month's letter (core/letter.ts), once the new month has opened
-  const letterFor=(m:string)=>letterOf(m,s.judgments,s.graded,{cases:s.cases,rewinds:s.rewinds,stamps:s.stamps,expeditions:s.expeditions??[]},id=>stampById(id as never).name);
+  const letterFor=(m:string)=>letterOf(m,s.judgments,s.graded,{cases:s.cases,rewinds:s.rewinds,stamps:s.stamps,expeditions:s.expeditions??[],journals:s.journals??[]},id=>stampById(id as never).name);
   const lastLetter=letterFor(prevMonth(monthOf(clock.today))),letterWaiting=ready&&letterDue(clock.today,s.letters,lastLetter);
   const oldest=s.judgments.reduce((m,j)=>Math.max(m,daysFrom(j.day,clock.today)),0);
-  const tip=ready&&!quiet&&!inside&&!sheet&&picked===null&&!g.due.length&&!letterWaiting&&!capFx&&!jump?nextTip(s.tips,{judgments:s.judgments.length,oldestDays:oldest}):null;
+  // the first-run tutorial (ui/Home.tsx): once, in the first quiet moment after the garden is planted; 설정 plays it again.
+  // e2e pages start with it off (tests/e2e/fixtures.ts) unless the address has ?tutorial
+  const [tutAgain,setTutAgain]=useState(false);
+  const tutAllowed=typeof window==='undefined'||!(window as {__noTutorial?:boolean}).__noTutorial;
+  const tutOn=ready&&!quiet&&!inside&&!sheet&&picked===null&&!capFx&&!jump&&(tutAgain||(tutAllowed&&!s.tips.includes('tutorial')));
+  const tip=!tutOn&&ready&&!quiet&&!inside&&!sheet&&picked===null&&!g.due.length&&!letterWaiting&&!capFx&&!jump?nextTip(s.tips,{judgments:s.judgments.length,oldestDays:oldest}):null;
+  // the one next step on the home screen (core/next.ts)
+  const firstOpen=open[0],firstHolding=firstOpen?holdings.find(x=>x.id===firstOpen.holdingId):undefined;
+  const next=nextStep({due:g.due.length,signal:firstOpen&&firstHolding?{id:firstOpen.id,name:firstHolding.name,analyst:firstOpen.analyst,headline:firstOpen.headline}:null,
+    letter:letterWaiting?monthLabel(lastLetter.month):null,caseOpen:!caseDone});
+  const newStampDot=s.stamps.some(x=>x.day===clock.today);
+  // one analyst bubble at a time over the garden; they take turns
+  const [turn,setTurn]=useState(0);
+  useEffect(()=>{const t=setInterval(()=>setTurn(n=>n+1),TIMING.bubbleTurn);return()=>clearInterval(t)},[]);
   // the sky behind the garden: the weather's, warmed at dawn and dusk, darkened at night
   const sky=(k:'top'|'mid'|'bottom')=>mixHex(mixHex(wl.sky[k],LOOK.daylight.dusk[k],light.warm*0.75),LOOK.daylight.night[k],light.night);
   // stamps (core/stamps.ts): whatever newly holds is stamped once, with today's date
@@ -242,6 +316,35 @@ export default function Proto3D(){
     bestStreak:s.streak.best,rewinds:s.rewinds.length,cases:s.cases.length,daysDone:s.daysDone.length,seen:s.seen,calibration:track.calibration,
     expeditions:(s.expeditions??[]).map(r=>({week:r.week,sureHit:r.decisions.some((d,i)=>d.chips>=4&&r.results?.[i]==='hit')}))},s.stamps.map(x=>x.id)):[];
   useEffect(()=>{if(fresh.length)g.ops.stamp(fresh)},[fresh.join(',')]);// eslint-disable-line react-hooks/exhaustive-deps
+  const share:Share=s.settings.share??'hide';
+  const myCtx={name:s.name,rank:rank.name,habit:habitOf(s.judgments,s.graded).name,color:(PALETTES.find(p=>p.id===look.palette)??PALETTES[0]).primary,
+    hit:track.hitRate,calibration:track.calibration,best:(s.expeditions??[]).length?Math.max(...(s.expeditions??[]).map(r=>r.total)):null,stamps:s.stamps.length};
+  // I always see my own planet; with sharing off it is marked so and nothing is published
+  const mine=myPlanet(holdings,defaultRules,share==='off'?'hide':share,myCtx);
+  const skyPlanets=useMemo(()=>mine?[{...mine,share},...neighbours.planets]:neighbours.planets,[JSON.stringify(mine),share,neighbours]);// eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{planetRepo.publish(share==='off'?null:mine)},[share,JSON.stringify(mine)]);// eslint-disable-line react-hooks/exhaustive-deps
+  const skyWorld=skyOpen?{planets:skyPlanets,focus:skyOpen.focus,onPick:(id:string)=>setSkyOpen({focus:id==='me'?null:id})}:null;
+  useEffect(()=>{const hk=((window as {__proto3d?:{sky?:unknown}}).__proto3d??={} as {sky?:unknown});hk.sky=skyOpen?{focus:skyOpen.focus,planets:skyPlanets.length,share,sample:neighbours.sample}:null},[skyOpen,skyPlanets,share,neighbours.sample]);
+  // 보리 (core/friend.ts): comes over once the garden is planted and starts a talk from what is going on today;
+  // after one talk a day it stays but says nothing more until tomorrow
+  const [friendDay,setFriendDay]=useState<string|null>(()=>{try{return localStorage.getItem('rethink-friend-day')}catch{return null}});
+  const friendHere=ready&&!lapse&&!calm&&!inside;
+  const friendCtx={hour:Math.floor(minutes/60),due:g.due.length,
+    signal:firstOpen&&firstHolding?{name:firstHolding.name,analyst:ANALYSTS.find(a=>a.id===firstOpen.analyst)?.name??''}:null,holdings:holdings.map(x=>x.name)};
+  const opener=friendOpener(friendCtx,clock.today);
+  const talkFriend=()=>{setPicked(null);setSheet({kind:'friend'});setFriendDay(clock.today);try{localStorage.setItem('rethink-friend-day',clock.today)}catch{/* stays for this visit */}};
+  // 지기 투자일지 (docs/jigi.md): a new page from a tree, a quick chip, a signal or the book; the camera goes to its tree
+  const journals=s.journals??[];
+  const writeNew=(o:{holdingId?:number|null;quick?:Quick;signalId?:string|null}={})=>{const id=g.ops.journalNew(o);setPicked(null);if(o.holdingId!=null)setFocus(o.holdingId);setSheet({kind:'write',id})};
+  const toReview=liveJournals(journals).filter(j=>!j.demo&&needsReview(j,clock.today)).length;
+  // one capsule marker per tree: an old judgment's grade or a hypothesis's verdict that has arrived, else the nearest to come
+  const hypoCaps=useMemo(()=>hypoCapsules(journals,clock.today,s.holdings.map(x=>x.id)),[journals,clock.today,s.holdings]);
+  type Marker={holdingId:number;due:boolean;label:string;old:Capsule|null;hypo:HypoCapsule|null};
+  const markers:Marker[]=s.holdings.flatMap((hh):Marker[]=>{const old=capsules.find(c=>c.holdingId===hh.id),hy=hypoCaps.find(c=>c.holdingId===hh.id);
+    const pickOld=old&&(old.due||!hy||(!hy.due&&old.inDays<=hy.inDays));
+    return pickOld?[{holdingId:hh.id,due:old.due,label:capsuleLabel(old),old,hypo:null}]:hy?[{holdingId:hh.id,due:hy.due,label:hypoCapsuleLabel(hy),old:null,hypo:hy}]:[]});
+  const confirmHypo=(id:string,hid:string)=>{const r=g.ops.journalConfirm(id,hid),j=journals.find(x=>x.id===id),hy=j?.hypos.find(x=>x.id===hid);
+    if(r.buried&&j?.holdingId!=null){const name=j.stock?.name??'';bury(j.holdingId,()=>g.say(`${name} 가설을 나무 아래 묻었어요. ${hy?.endDate??''} 종가로 판정해요`))}return r.say};
   const world:World={
     // the three come in with the first trees
     analysts:!ready||lapse||(calm&&(bStage==='trees'||bStage==='orbit'))?[]:ANALYSTS.map(a=>{
@@ -249,35 +352,42 @@ export default function Proto3D(){
       if(a.id==='tori'&&cut&&!cut.closing)return {id:a.id,at:cut.holdingId,bubble:null};
       const r=day[a.id];
       if(r.kind==='signal'){const sig=open.find(x=>x.analyst===a.id&&x.holdingId===r.holdingId)!,h=holdings.find(x=>x.id===sig.holdingId);return {id:a.id,at:r.holdingId,bubble:h?{text:`${h.name} · ${sig.headline}`,alert:sig.loss}:null}}
-      if(r.kind==='grade')return {id:a.id,at:r.holdingId,near:true,bubble:{text:`판정 ${g.due.length}건`,alert:true}};
+      if(r.kind==='grade')return {id:a.id,at:r.holdingId,near:true,bubble:{text:`채점 결과 ${g.due.length}건`,alert:true}};
       if(r.kind==='home')return {id:a.id,at:null,home:true,bubble:null};
       // two of them met: one says something, the other answers
       const talk=r.with?(()=>{const first=a.id<r.with!?a.id:r.with!,second=first===a.id?r.with!:a.id,c=chatOf(first as 'tori',second as 'tori',Math.floor(minutes/4));return first===a.id?c.a:c.b})():null;
-      const dueBubble=a.id==='luon'&&g.due.length?{text:`판정 ${g.due.length}건`,alert:true}:null;
+      const dueBubble=a.id==='luon'&&g.due.length?{text:`채점 결과 ${g.due.length}건`,alert:true}:null;
       return {id:a.id,at:null,spot:r.spot,bubble:talk?{text:talk,alert:false}:dueBubble};
     }),
     pots:holdings.map(h=>({holdingId:h.id,open:!!openFor(s.cooldowns,h.id),flowers:flowersOn(s.cooldowns,h.id)})).filter(p=>p.open||p.flowers),
     decor:s.owned.filter(o=>o.slot).map(o=>({slot:o.slot!,shape:itemById(o.itemId)!.shape})),
     burst,focus,birth,enterFrom:calm?DOOR:null,cutaway:cut,onDeep:id=>{if(!calm&&ready)openDeep(id)},
-    capsules:lapse?pinsAt(s.judgments,lapseDay,shown.map(x=>x.id)).map(id=>({holdingId:id,due:false})):capsules.map(c=>({holdingId:c.holdingId,due:c.due})),capsuleFx:capFx,onCapsule:id=>{if(!calm)onCapsule(id)},hitRate:track.hitRate,cartFlag:CART_FLAGS[Number(clock.today.slice(-2))%CART_FLAGS.length],gameLit:!(s.expeditions??[]).some(r=>r.week===weekStart(clock.today)),
+    capsules:lapse?pinsAt(s.judgments,lapseDay,shown.map(x=>x.id)).map(id=>({holdingId:id,due:false})):markers.map(c=>({holdingId:c.holdingId,due:c.due})),capsuleFx:capFx,onCapsule:id=>{if(!calm)onCapsule(id)},hitRate:track.hitRate,cartFlag:CART_FLAGS[Number(clock.today.slice(-2))%CART_FLAGS.length],gameLit:!(s.expeditions??[]).some(r=>r.week===weekStart(clock.today)),
     onAnalyst:id=>{if(id==='luon'&&g.due.length){setSheet({kind:'grades'});return}const sig=open.find(x=>x.analyst===id);
       setSheet(sig?{kind:'brief',start:{signalId:sig.id}}:{kind:'analyst',id})},
-    flags:LEAGUE_FLAGS,myFlag:0,caseOpen:!caseDone,goTo,inside,look,stage:me,light,
+    flags:LEAGUE_FLAGS,myFlag:0,caseOpen:!caseDone,goTo,inside,look,stage:me,light,sky:skyWorld,
     room:{books:s.judgments.slice(-36).map(j=>{const gr=s.graded.filter(x=>x.judgmentId===j.id).at(-1);return {state:gr?(gr.hit?'hit':'miss'):'waiting'} as const}),
       notes:capsules.map(c=>({holdingId:c.holdingId,due:c.due})),
       resting:ANALYSTS.filter(a=>day[a.id].kind==='home'||day[a.id].kind==='spot').map(a=>a.id),
       onDesk:()=>setSheet({kind:'today'}),onShelf:()=>setSheet({kind:'records'}),
       onBoard:()=>{if(g.due.length)setSheet({kind:'grades'});else g.say(capsules.length?line(UI.boardWait,{n:capsules.length}):UI.boardEmpty)},onDoor:()=>swapRoom(false)},
+    friend:friendHere?{at:FRIEND_SPOT,onPick:talkFriend}:null,
     onLandmark:k=>{if(k==='house'){enterHouse();return}setPicked(null);setSheet({kind:k==='observatory'?'game':k==='signpost'?'records':k==='library'?'library':k==='plaza'?'league':'cart'})},
   };
 
+  const bubbles:{id:string;text:string;alert:boolean}[]=[...(friendHere&&friendDay!==clock.today?[{id:FRIEND.id,text:'보리 · '+opener.short,alert:false}]:[]),
+    ...world.analysts.flatMap(a=>a.bubble?[{id:a.id,...a.bubble}]:[])];
+  // the bubbles hold still while the tutorial points at one
+  const heldTurn=useRef(0);if(!tutOn)heldTurn.current=turn;
+  const bubbleNow=bubbles.length?[bubbles[heldTurn.current%bubbles.length]]:[];
   const h=holdings.find(t=>t.id===picked);
   const st=h&&treeState(h,defaultRules);
   const cd=h?openFor(s.cooldowns,h.id):null;
   const close=()=>setSheet(null);
-  const dock:[NonNullable<SheetState>['kind'],string,typeof Loupe,boolean][]=[
-    ['brief','브리핑',Loupe,open.length>0],['case','케이스',Specimen,!caseDone],['rewind','되감기',Hourglass,paidLeft(s.rewinds,clock.today)>0],['records','기록',Ledger,g.due.length>0],
-    ['drawer','서랍',DrawerIcon,false],['league','리그',Rosette,false],['game','모의투자',Scope,false]];
+  const dock:['garden'|'journal'|'game'|'more',string,typeof Ledger,number][]=[
+    ['garden','정원',Sprout,0],['journal','일지',Ledger,g.due.length+open.length+toReview],['game','챌린지',Scope,0],['more','더보기',More,caseDone?0:1]];
+  const pickMore=(id:MoreId)=>{if(id==='me'){setSheet(null);setMe(true)}else if(id==='sky'){setSheet(null);setSkyOpen({focus:null})}
+    else setSheet(id==='holdings'?{kind:'onboard'}:{kind:id})};
   const decideCooldown=()=>{if(!cd||!h)return;const waited=g.ops.finishCooldown(cd.id);if(waited)g.say(UI.cooldownBloom);setEarly(false);setPicked(null);setSheet({kind:'brief',start:{holdingId:h.id}})};
 
   return (
@@ -288,56 +398,69 @@ export default function Proto3D(){
         camera={{fov:46,near:0.5,far:120,position:[0,21,14.5]}}>
         <Scene3D holdings={shown} picked={picked} onPick={id=>{setPicked(id);setEarly(false)}} recenter={recenter} weather={weather} world={world}/>
       </Canvas>}
-      <div className="proto3d-sun" aria-hidden
+      <div className="proto3d-sun" aria-hidden hidden={!!skyOpen}
         style={{width:LOOK.sunGlow.size,height:LOOK.sunGlow.size,opacity:wl.glow*light.day,
           background:`radial-gradient(circle at center,${LOOK.sunGlow.color} 0%,${LOOK.sunGlow.color}88 22%,transparent 62%)`}}/>
 
       <div className="proto3d-top">
         <div className="rt-top-left">
-        {w&&(!expedition||wide)&&<div className="rt-weather" aria-label="오늘 시장 날씨">
+        {w&&(!expedition||wide)&&!skyOpen&&!welcome&&<div className="rt-weather" aria-label="오늘 시장 날씨">
           <span className="rt-weather-k">{lapseMarket||(expedition&&gameMarket!==null)?'그날 시장':'오늘 시장'}</span>
           <strong>{WEATHER_LABEL[weather]}</strong>
           <span className="rt-num">{(()=>{const v=expedition&&gameMarket!==null?gameMarket:lapseMarket?.index??w.index;return (v>0?'+':'')+v.toFixed(2)})()}%</span>
           <small>{WEATHER_NOTE[weather]}</small>
         </div>}
-        {ready&&!quiet&&<button type="button" className="rt-today" data-done={allDone} aria-label={`오늘 할 일 ${tasksDone}/${tasks.length}`} onClick={()=>setSheet({kind:'today'})}>
-          <span className="rt-today-dots" aria-hidden>{tasks.map((t,i)=><i key={i} data-on={t.done}/>)}</span>{allDone?'오늘 끝':`오늘 ${tasksDone}/${tasks.length}`}</button>}
-        {ready&&!quiet&&<button type="button" className="rt-me-chip" aria-label={`내 관찰자 · ${s.name||'이름 없음'} · ${rank.name}`} onClick={()=>{setPicked(null);setSheet(null);setMe(true)}}><span className="rt-me-chip-face" aria-hidden/>{s.name||'내 관찰자'} · {rank.name}</button>}
         </div>
-        {ready&&!quiet&&<div className="rt-hud" aria-label="내 숫자">
-          {tiltCtl.need&&<button type="button" className="rt-sound" aria-label="기울이기 켜기" onClick={tiltCtl.ask}><Tilt size={18}/></button>}
-          <button type="button" className="rt-sound" aria-label={s.sound?'소리 끄기':'소리 켜기'} aria-pressed={!s.sound} onClick={()=>g.ops.setSound(!s.sound)}>{s.sound?<Sound size={18}/>:<Mute size={18}/>}</button>
-          <div className="rt-stat"><span>{CURRENCY}</span><b className="rt-num" data-testid="currency">{s.currency}</b></div>
-          <div className="rt-stat"><span>연속</span><b className="rt-num">{shownCount(s.streak,clock.today)}일</b></div>
-          <div className="rt-stat"><span>이번 주</span><b className="rt-num">{weekPoints(s.graded,s.cases,clock.today)}</b></div>
-        </div>}
+        {/* the top holds the weather and me; my numbers, sound and tilt live in 더보기 and 설정 */}
+        {ready&&!quiet&&<button type="button" className="rt-me-chip" aria-label={`내 프로필 · ${s.name||'이름 없음'} · ${rank.name}`} onClick={()=>{setPicked(null);setSheet(null);setMe(true)}}>
+          <span className="rt-me-chip-face" aria-hidden/>{newStampDot&&<i className="rt-me-dot" aria-label="새 도장"/>}</button>}
       </div>
-      {ready&&!h&&!quiet&&!inside&&!sheet&&!capFx&&<CapsuleTags items={capsules} names={Object.fromEntries(holdings.map(x=>[x.id,x.name]))} onPick={onCapsule}/>}
+      {ready&&!h&&!quiet&&!inside&&!sheet&&!capFx&&<CapsuleTags items={markers} names={Object.fromEntries(holdings.map(x=>[x.id,x.name]))} onPick={onCapsule}/>}
       {jump&&<div className="rt-jump" role="status">{UI.jump}</div>}
-      {!h&&!quiet&&!inside&&<Bubbles items={world.analysts.flatMap(a=>a.bubble?[{id:a.id,...a.bubble}]:[])} onPick={world.onAnalyst}/>}
+      {!h&&!quiet&&!inside&&<Bubbles items={bubbleNow} onPick={id=>id===FRIEND.id?talkFriend():world.onAnalyst(id as AnalystId)}/>}
       {!ready&&!sheet&&<button type="button" className="rt-banner" onClick={()=>setSheet({kind:'onboard'})}><span>정원이 비어 있어</span><b>내 종목 넣기</b></button>}
-      {g.due.length>0&&!sheet&&!quiet&&!capFx&&!jump&&<button type="button" className="rt-banner" onClick={()=>setSheet({kind:'grades'})}>
-        <span className="rt-face luon sm" aria-hidden>루</span><span>판정 <b className="rt-num">{g.due.length}</b>건 도착</span><b>열기</b></button>}
+      {ready&&!sheet&&!quiet&&!inside&&!capFx&&!jump&&h===undefined&&<NextCard step={next} tasks={{done:tasksDone,total:tasks.length}} onToday={()=>setSheet({kind:'today'})}
+        onGo={()=>{setPicked(null);setSheet(next.kind==='grades'?{kind:'grades'}:next.kind==='signal'?{kind:'brief',start:{signalId:next.id}}:next.kind==='letter'?{kind:'letter',month:lastLetter.month}:{kind:'case'})}}/>}
+      {tutOn&&<Tutorial trees={holdings.map(x=>x.id)}onDone={then=>{g.ops.tipDone('tutorial');setTutAgain(false);if(then)setSheet({kind:'journal'})}}/>}
       {inside&&!sheet&&<RoomTags items={[{k:'room-desk',text:`책상 · 오늘 ${tasksDone}/${tasks.length}`,onClick:()=>setSheet({kind:'today'})},
-        {k:'room-shelf',text:`판단 ${s.judgments.length}권`,onClick:()=>setSheet({kind:'records'})},
-        {k:'room-board',text:g.due.length?`판정 도착 ${g.due.length}`:`묻은 캡슐 ${capsules.length}`,alert:g.due.length>0,onClick:()=>g.due.length?setSheet({kind:'grades'}):g.say(capsules.length?line(UI.boardWait,{n:capsules.length}):UI.boardEmpty)},
+        {k:'room-shelf',text:`판단 ${s.judgments.length}개`,onClick:()=>setSheet({kind:'records'})},
+        {k:'room-board',text:g.due.length?`채점 완료 ${g.due.length}`:`채점 대기 ${capsules.length}`,alert:g.due.length>0,onClick:()=>g.due.length?setSheet({kind:'grades'}):g.say(capsules.length?line(UI.boardWait,{n:capsules.length}):UI.boardEmpty)},
         {k:'room-door',text:'밖으로',onClick:()=>swapRoom(false)}]}/>}
       {inside&&!sheet&&<button type="button" className="rt-btn rt-exit" onClick={()=>swapRoom(false)}>밖으로 나가기</button>}
       {fading&&<div className="rt-room-fade" aria-hidden/>}
       {tip&&<Tip text={tipText(tip)} target={TIP_AT[tip].target} point={TIP_AT[tip].point} onDone={()=>g.ops.tipDone(tip)}/>}
+      {skyOpen&&!sheet&&<SkyView planets={skyPlanets} sample={neighbours.sample} share={share} focus={skyOpen.focus} onPick={id=>setSkyOpen({focus:id})}
+        onShare={v=>g.ops.setSettings({...s.settings,share:v})} onClose={()=>setSkyOpen(null)}/>}
       {me&&!sheet&&<MyPage g={g} onClose={()=>setMe(false)} onRecords={()=>setSheet({kind:'records'})} onSettings={()=>setSheet({kind:'settings'})} onLetter={()=>setSheet({kind:'letter',month:monthOf(clock.today)})}/>}
-      {sheet?.kind==='settings'&&<SettingsSheet g={g} onClose={close}/>}
+      {sheet?.kind==='settings'&&<SettingsSheet g={g} onClose={close} tilt={tiltCtl} account={account?.email??null}
+        onLogOut={account?()=>{void authRepo.logOut();setAccount(null);setSheet(null)}:undefined}
+        onDelete={syncOn&&saveRepo?async()=>{const e=await saveRepo!.deleteMe();if(e)return e;try{localStorage.removeItem('rethink-account-v1');localStorage.removeItem('rethink-guest')}catch{/* nothing kept */}g.ops.wipe();return null}:undefined}
+        onWipe={synced&&saveRepo?()=>{void saveRepo!.push({v:1,holdings:null,judgments:[]}).finally(()=>g.ops.wipe())}:undefined} onTutorial={()=>{setSheet(null);setPicked(null);setTutAgain(true)}}/>}
+      {sheet?.kind==='journal'&&<JigiBook key={sheet.openId??'book'} openId={sheet.openId} ai={syncOn?jigiAI:null} journals={journals} today={clock.today} now={clock.now} oldCount={s.judgments.length} onClose={close}
+        onHypos={g.ops.journalHypos} onConfirm={confirmHypo} onReflect={g.ops.journalReflect}
+        renderStats={(openJ,stock)=><JigiStats ai={syncOn?jigiAI:null} journals={journals} today={clock.today} now={clock.now} tasks={s.jigi?.tasks??[]} principles={s.jigi?.principles??[]} typeNo={s.jigi?.typeNo??{}}
+          onTask={g.ops.jigiTask} onPrinciple={g.ops.jigiPrinciple} onTaskDone={g.ops.jigiTaskDone} onTaskDrop={g.ops.jigiTaskDrop} onTypeNo={g.ops.jigiTypeNo} onOpen={openJ} onStock={stock} onNew={()=>writeNew()}/>}
+        oldDue={g.due.length} onOldGrades={()=>setSheet({kind:'grades'})} onSignal={id=>setSheet({kind:'brief',start:{signalId:id}})}
+        signals={signals.flatMap(x=>{const hh=holdings.find(y=>y.id===x.holdingId),a=ANALYSTS.find(y=>y.id===x.analyst);if(!hh||!a)return [];
+          return [{id:x.id,name:hh.name,who:a.id,whoName:a.name,line:x.headline,loss:x.loss,written:wroteToday(hh.id)}]})}
+        onWrite={id=>setSheet({kind:'write',id})} onNew={code=>writeNew({holdingId:code?holdings.find(x=>x.code===code)?.id??null:null})}
+        onArchive={g.ops.journalArchive} onTrash={g.ops.journalTrash} onPurge={g.ops.journalPurge} onOld={()=>setSheet({kind:'records'})}/>}
+      {sheet?.kind==='verdict'&&(()=>{const j=journals.find(x=>x.id===sheet.journalId),hy=j?.hypos.find(x=>x.id===sheet.hypoId);if(!j||!hy)return null;
+        return <JigiVerdict j={j} h={hy} today={clock.today} onClose={()=>{g.ops.journalOpened(j.id,hy.id);close()}} onReview={()=>{g.ops.journalOpened(j.id,hy.id);setSheet({kind:'journal',openId:j.id})}}/>})()}
+      {sheet?.kind==='write'&&(()=>{const j=journals.find(x=>x.id===sheet.id);if(!j)return null;
+        const marks=liveJournals(journals).filter(x=>x.stock&&x.stock.code===j.stock?.code&&x.anchor).map(x=>({id:x.id,date:x.anchor!.date,price:x.anchor!.close}));
+        return <JigiWrite key={j.id} ai={syncOn?jigiAI:null} j={j} today={clock.today} marks={marks} tasks={(s.jigi?.tasks??[]).filter(t=>!t.done)} edit={fn=>g.ops.journalEdit(j.id,fn)} onClose={()=>setSheet({kind:'journal'})}
+          onSave={()=>{const r=g.ops.journalSave(j.id);if(!r)return {missing:[]};return r.ok?{version:r.version}:{missing:r.missing}}}/>})()}
+      {sheet?.kind==='more'&&<MoreSheet currency={s.currency} streak={shownCount(s.streak,clock.today)} week={weekPoints(s.graded,s.cases,clock.today,weekWorkOf(s,clock.today))}
+        dots={{case:!caseDone,rewind:paidLeft(s.rewinds,clock.today)>0}} onPick={pickMore} onClose={close}/>}
       {sheet?.kind==='letter'&&<LetterSheet letter={letterFor(sheet.month)} onClose={()=>{g.ops.letterRead(sheet.month);close()}}/>}
-      {letterWaiting&&!sheet&&!quiet&&!inside&&!g.due.length&&<button type="button" className="rt-banner" onClick={()=>setSheet({kind:'letter',month:lastLetter.month})}>
-        <span>{monthLabel(lastLetter.month)} 편지 도착</span><b>열기</b></button>}
-      {ready&&!sheet&&!h&&!quiet&&!inside&&<p className="proto3d-hint">끌어서 둘러보기 · 땅을 눌러 걷기 · 나무와 분석가를 눌러 보기</p>}
-
       {ready&&!quiet&&!inside&&<button type="button" className="proto3d-locate proto3d-map" aria-label="지도" onClick={()=>{setPicked(null);setSheet({kind:'map'})}}><MapIcon size={20}/></button>}
-      {ready&&!quiet&&!inside&&<button type="button" className="proto3d-locate" aria-label="내 위치로" onClick={()=>setRecenter(n=>n+1)}><Pin size={20}/></button>}
 
+      {/* four tabs: 정원 closes whatever is open, 일지 is the journal only, 원정 the game, 더보기 the rest */}
       {ready&&!quiet&&<nav className="rt-dock" aria-label="메뉴">
-        {dock.map(([k,label,Icon,dot])=><button key={k} type="button" aria-pressed={sheet?.kind===k} onClick={()=>{setPicked(null);setSheet(sheet?.kind===k?null:k==='brief'?{kind:'brief',start:null}:{kind:k} as SheetState)}}>
-          <Icon size={20}/>{label}{dot&&<i aria-label="새 소식"/>}</button>)}
+        {dock.map(([k,label,Icon,count])=><button key={k} type="button" data-tab={k} aria-pressed={tabOf(sheet)===k} onClick={()=>{setPicked(null);
+          if(k==='garden'){setSheet(null);setRecenter(n=>n+1);return}setSheet(tabOf(sheet)===k?null:{kind:k})}}>
+          <Icon size={22}/>{label}{count>0&&<i className="rt-dock-n" aria-label={`새 소식 ${count}`}>{count}</i>}</button>)}
       </nav>}
 
       {h&&st&&!sheet&&(
@@ -350,27 +473,29 @@ export default function Proto3D(){
           <button type="button" aria-label="닫기" onClick={()=>setPicked(null)}><Cross size={18}/></button>
           {early&&cd&&<p className="rt-hint" style={{flexBasis:'100%',marginTop:8}}>{line(UI.cooldownEarly,{left:leftLabel(cd,clock.now)})}</p>}
           {!s.seen.cutaway&&<p className="rt-hint rt-deep-hint" style={{flexBasis:'100%',marginTop:8}}>{UI.deepHint}</p>}
+          {/* the old one-tap judgment, now a quick start: a journal with 한 일 filled (손절 검토 opens the exit plan) */}
+          <div className="rt-quick" role="group" aria-label="빠른 기록">{(Object.keys(QUICK) as Quick[]).map(q=><button key={q} type="button" onClick={()=>writeNew({holdingId:h.id,quick:q})}>{QUICK[q].label}</button>)}</div>
           <div className="rt-card-acts">
-            <button type="button" className="rt-btn primary" onClick={()=>{setPicked(null);setSheet({kind:'brief',start:{holdingId:h.id}})}}>판단 기록</button>
-            <button type="button" className="rt-btn" onClick={()=>openDeep(h.id)}>땅 속</button>
-            {!cd&&<button type="button" className="rt-btn" onClick={()=>g.ops.startCooldown(h.id)}>팔고 싶어</button>}
-            {cd&&isReady(cd,clock.now)&&<button type="button" className="rt-btn" onClick={decideCooldown}>결정하기</button>}
+            <button type="button" className="rt-btn primary" onClick={()=>writeNew({holdingId:h.id})}>일지 쓰기</button>
+            <button type="button" className="rt-btn" onClick={()=>openDeep(h.id)}>재무 체력</button>
+            {!cd&&<button type="button" className="rt-btn" onClick={()=>g.ops.startCooldown(h.id)}>쿨다운 걸기</button>}
+            {cd&&isReady(cd,clock.now)&&<button type="button" className="rt-btn" onClick={decideCooldown}>지금 결정하기</button>}
             {cd&&!isReady(cd,clock.now)&&(early
-              ?<button type="button" className="rt-btn" onClick={decideCooldown}>지금 결정</button>
-              :<button type="button" className="rt-btn" onClick={()=>setEarly(true)}>냉각 중 · {leftLabel(cd,clock.now)}</button>)}
+              ?<button type="button" className="rt-btn" onClick={decideCooldown}>지금 결정하기</button>
+              :<button type="button" className="rt-btn" onClick={()=>setEarly(true)}>쿨다운 {leftLabel(cd,clock.now)} 남음</button>)}
           </div>
         </section>
       )}
 
       {sheet?.kind==='brief'&&<Briefing key={JSON.stringify(sheet.start)} g={g} signals={signals} holdings={holdings} start={sheet.start} onClose={close}
-        onDeep={id=>openDeep(id,{kind:'brief',start:{holdingId:id}})} onBury={id=>bury(id)}/>}
+        onDeep={id=>openDeep(id,{kind:'brief',start:{holdingId:id}})} onBury={id=>bury(id)} onWrite={(id,sig)=>writeNew({holdingId:id,signalId:sig})}/>}
       {sheet?.kind==='deep'&&(()=>{const hh=holdings.find(x=>x.id===sheet.holdingId);const back=sheet.back;
         return hh&&<DeepSheet holding={hh} health={healthProvider.of(hh,signals.find(x=>x.holdingId===hh.id)??null)} onClose={()=>closeDeep(back)}/>})()}
       {sheet?.kind==='grades'&&<Grades g={g} onClose={close} start={'start' in sheet?sheet.start:undefined} onDig={dig} onStamp={(holdingId,hit)=>setBurst({holdingId,hit,stamp:Date.now()})} onFocus={setFocus} onRewind={()=>setSheet({kind:'rewind'})}/>}
       {sheet?.kind==='rewind'&&<RewindView g={g} onClose={close}/>}
       {sheet?.kind==='today'&&<TodaySheet g={g} tasks={tasks} onGo={goTask} onClose={close}/>}
       {sheet?.kind==='case'&&<CaseView g={g} c={caseDone?CASES.find(c=>c.id===answeredToday(s.cases,clock.today)!.caseId)??todayCase:todayCase} onClose={close}/>}
-      {sheet?.kind==='onboard'&&<Onboarding g={g} onClose={close}
+      {sheet?.kind==='onboard'&&!welcome&&<Onboarding g={g} onClose={close}
         onPlanted={(ids,first)=>{setSheet(null);startBirth(ids,first&&s.seen.birth===0,first?()=>setSheet({kind:'lookback'}):undefined)}}
         onDemo={()=>{setSheet(null);startBirth(DEMO_HOLDINGS.map(x=>x.id),s.seen.birth===0)}}/>}
       {birth&&<BirthCards birth={birth} holdings={holdings} onSkip={skipBirth}/>}
@@ -379,17 +504,22 @@ export default function Proto3D(){
       {lapse&&<TimelapseBar i={lapse.i} n={frames.length} day={lapseDay} back={lapseBack} playing={lapse.playing}
         onSeek={i=>setLapse({i,playing:false})} onPlay={()=>setLapse(l=>l&&{i:l.playing||l.i<frames.length-1?l.i:0,playing:!l.playing})} onClose={()=>setLapse(null)}/>}
       {sheet?.kind==='league'&&<League g={g} onClose={close}/>}
-      {sheet?.kind==='map'&&<MapSheet me={(window as unknown as {__proto3d?:{player?:{x:number;z:number}}}).__proto3d?.player??{x:0,z:0}} onGo={goPlace} onClose={close}/>}
+      {sheet?.kind==='map'&&<MapSheet me={(window as unknown as {__proto3d?:{player?:{x:number;z:number}}}).__proto3d?.player??{x:0,z:0}} onGo={goPlace} onSky={()=>{setSheet(null);setPicked(null);setSkyOpen({focus:null})}} onClose={close}/>}
       {sheet?.kind==='library'&&<LibrarySheet caseDone={caseDone} rewindLeft={paidLeft(s.rewinds,clock.today)} onCase={()=>setSheet({kind:'case'})} onRewind={()=>setSheet({kind:'rewind'})} onClose={close}/>}
       {sheet?.kind==='game'&&<GameDoor runs={s.expeditions??[]} week={weekStart(clock.today)} onEnter={()=>enterGame(null)} onClose={close}/>}
       {expedition&&<Expedition packId={expedition.pack} today={clock.today} history={s.expeditions??[]} handle={s.name} onFinish={g.ops.finishExpedition} onClose={()=>leaveGame()}
         garden={open.map(x=>({holdingId:x.holdingId,name:holdings.find(h=>h.id===x.holdingId)?.name??'',model:x.model}))}
         onSimilar={id=>{leaveGame();setSheet({kind:'brief',start:{holdingId:id}})}} onMarket={setGameMarket}/>}
       {sheet?.kind==='cart'&&<CartView g={g} onClose={close}/>}
+      {sheet?.kind==='friend'&&<FriendSheet opener={opener.text} topic={opener.topic} seed={clock.today} onClose={close}
+        talk={syncOn?(history,m)=>friendTalk(friendCtx,history,m):null}
+        onGo={to=>setSheet(to==='grades'?{kind:'grades'}:to==='case'?{kind:'case'}:{kind:'journal'})}/>}
       {sheet?.kind==='drawer'&&<Drawer g={g} onClose={close} onCart={()=>setSheet({kind:'cart'})}/>}
       {sheet?.kind==='analyst'&&<AnalystCard g={g} id={sheet.id} signal={open.find(x=>x.analyst===sheet.id)??null} onClose={close}
         onBrief={()=>{const sig=open.find(x=>x.analyst===sheet.id);if(sig)setSheet({kind:'brief',start:{signalId:sig.id}})}}/>}
       {g.toast&&<div key={g.toast.id} className="rt-toast" role="status">{g.toast.text}</div>}
+      {welcome&&<Welcome owing={owing} onAccount={(a,isNew)=>{setAccount(a);if(isNew||!s.name)g.ops.setName(a.nickname)}}
+        onGuest={()=>{try{localStorage.setItem('rethink-guest','1')}catch{/* this visit only */}setGuest(true)}}/>}
     </div>
   );
 }

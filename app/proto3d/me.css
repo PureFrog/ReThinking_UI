@@ -72,3 +72,56 @@ html[data-text="l"] .proto3d :is(.rt-sheet,.rt-me-panel,.rt-me-plate,.proto3d-to
 html[data-text="xl"] .proto3d :is(.rt-sheet,.rt-me-panel,.rt-me-plate,.proto3d-top,.rt-dock,.rt-tip,.rt-toast,.rt-banner){zoom:1.25}
 .rt-me-chip{white-space:nowrap}
 .proto3d input[type=range]{accent-color:var(--rt-ink);width:100%}
+
+/* 다른 정원들 (ui/SkyView.tsx) over the night sky (Sky3D.tsx): paper plates and tags, a sheet from the bottom (side on wide) */
+.sky{position:absolute;inset:0;z-index:9;pointer-events:none}
+.sky>*{pointer-events:auto}
+.sky-top{position:absolute;left:16px;right:16px;top:calc(14px + env(safe-area-inset-top,0px));display:flex;justify-content:space-between;align-items:flex-start;gap:8px;z-index:3;pointer-events:none}
+.sky-top>*{pointer-events:auto}
+.sky-plate{padding:10px 14px;background:var(--rt-paper);border:1px solid var(--rt-rule);outline:1px solid var(--rt-rule);outline-offset:-4px;border-radius:2px;box-shadow:0 14px 40px #0006}
+.sky-plate .rt-kicker{white-space:nowrap}
+.sky-title{font-family:'Gowun Batang',serif;font-weight:700;font-size:20px;letter-spacing:-.6px;color:var(--rt-ink)}
+.sky-sample{display:inline-block;margin-top:4px;font-size:10px;padding:2px 6px;background:var(--rt-rule);border-radius:2px;color:var(--rt-ink)}
+.sky-right{display:flex;gap:6px}
+.sky-pill{white-space:nowrap;display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 12px;background:var(--rt-paper);border:1px solid var(--rt-rule);border-radius:2px;font-size:12px;font-weight:700;color:var(--rt-ink);box-shadow:0 10px 30px #0006}
+.sky-tags{position:absolute;inset:0;pointer-events:none;z-index:1}
+.sky-tag{position:absolute;transform:translate(-50%,-100%);pointer-events:auto;display:grid;gap:1px;padding:5px 9px 6px;background:var(--rt-paper);border:1px solid var(--rt-rule);outline:1px solid var(--rt-rule);outline-offset:-4px;border-radius:2px;
+  box-shadow:0 10px 30px #0007;font-size:11px;white-space:nowrap;color:var(--rt-ink);text-align:left;transition:opacity .3s}
+.sky-tag::after{content:'';position:absolute;left:50%;bottom:-6px;width:10px;height:10px;margin-left:-5px;background:inherit;border-right:1px solid var(--rt-rule);border-bottom:1px solid var(--rt-rule);transform:rotate(45deg)}
+.sky-tag b{font-family:'Gowun Batang',serif;font-size:13px}.sky-tag small{font-size:10px;color:var(--rt-mute)}
+.sky-tag.me{background:var(--rt-ink);color:var(--rt-paper);border-color:var(--rt-ink);outline-color:#ffffff30}.sky-tag.me small{color:var(--rt-rule)}
+.sky-tag.dim{opacity:0!important;pointer-events:none}
+.sky-hint{position:absolute;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);color:#e9e1cc;font-size:12px;white-space:nowrap;opacity:.85;pointer-events:none}
+.sky-sheet{position:absolute;left:0;right:0;bottom:0;max-height:58dvh;display:flex;flex-direction:column;background:var(--rt-paper);border-top:1px solid var(--rt-rule);box-shadow:0 -20px 60px #0008;z-index:4;
+  transform:translateY(105%);transition:transform .45s cubic-bezier(.32,.72,0,1)}
+.sky-sheet.on{transform:none}
+.sky-body{overflow:auto;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));display:grid;gap:12px;color:var(--rt-ink)}
+.sky-name{display:flex;align-items:center;gap:12px}
+.sky-avatar{width:54px;height:54px;border-radius:50%;flex:none;background:radial-gradient(circle at 50% 38%,#f2d3b5 0 30%,#3b2f2a 31% 46%,transparent 47%),var(--c,#4b6638);box-shadow:0 0 0 1px var(--rt-ink),0 0 0 4px var(--rt-paper),0 0 0 5px var(--rt-rule)}
+.sky-seal{display:inline-block;font-family:'Gowun Batang',serif;font-weight:700;font-size:11px;color:#fff;background:var(--rt-seal);padding:2px 8px;transform:rotate(-2deg)}
+.sky-who{display:block;font-family:'Gowun Batang',serif;font-weight:700;font-size:24px;letter-spacing:-.6px}
+.sky-habit{font-family:'Nanum Pen Script',cursive;font-size:21px;color:#3e4a6e;line-height:1}
+.sky-grid{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--rt-ink);border-left:1px solid var(--rt-rule)}
+.sky-grid>div{padding:9px 11px;border-right:1px solid var(--rt-rule);border-bottom:1px solid var(--rt-rule)}
+.sky-grid span{display:block;font-size:10px;color:var(--rt-mute)}.sky-grid b{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:24px;letter-spacing:-1px}.sky-grid small{font-size:12px}
+.sky-sec{font-family:'Gowun Batang',serif;font-weight:700;font-size:12px;color:var(--rt-mute);display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.sky-note{font-size:10.5px;color:var(--rt-mute);line-height:1.45;font-family:inherit;font-weight:400}
+.sky-trees{display:grid;gap:6px}
+.sky-tree{display:grid;grid-template-columns:14px 1fr auto;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--rt-rule);background:var(--rt-paper2);border-radius:2px;font-size:12.5px}
+.sky-tree i{width:12px;height:12px;border-radius:50%;background:var(--c)}.sky-tree small{color:var(--rt-mute);font-size:11px}
+.sky-tree b{font-family:'Gowun Batang',serif}
+.sky-ink{display:inline-block;width:3.6em;height:.9em;background:var(--rt-ink);border-radius:2px 6px 3px 5px/5px 2px 6px 3px;vertical-align:-1px;margin-right:6px}
+.sky-row{position:relative;display:grid;grid-template-columns:1fr 2fr;gap:8px}
+.sky-cheer{position:absolute;right:12px;top:-16px;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-family:'Gowun Batang',serif;font-weight:700;color:var(--rt-seal);border:2px double var(--rt-seal);background:var(--rt-paper);animation:sky-stamp .3s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes sky-stamp{from{opacity:0;transform:scale(1.7) rotate(-16deg)}to{opacity:1;transform:scale(1) rotate(-6deg)}}
+.sky-opts{display:grid;gap:8px}
+.sky-opt{display:grid;grid-template-columns:22px 1fr;gap:4px 10px;text-align:left;padding:12px;border:1px solid var(--rt-rule);background:var(--rt-paper2);border-radius:2px}
+.sky-opt .dot{grid-row:span 2;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--rt-ink);margin-top:2px;display:grid;place-items:center}
+.sky-opt[aria-checked=true]{border-color:var(--rt-ink);box-shadow:inset 0 0 0 1px var(--rt-ink)}
+.sky-opt[aria-checked=true] .dot::after{content:'';width:10px;height:10px;border-radius:50%;background:var(--rt-ink)}
+.sky-opt strong{font-family:'Gowun Batang',serif;font-size:14px}.sky-opt small{font-size:11.5px;color:var(--rt-mute);line-height:1.4}
+.sky-never{display:flex;flex-wrap:wrap;gap:6px}
+.sky-never span{font-size:11px;padding:3px 8px;border:1px solid var(--rt-seal);color:var(--rt-seal);border-radius:2px;text-decoration:line-through}
+@media(min-width:760px) and (min-height:521px){.sky-sheet{left:auto;right:24px;bottom:24px;top:96px;width:400px;max-height:none;border:1px solid var(--rt-rule);outline:1px solid var(--rt-rule);outline-offset:-5px;transform:translateX(calc(100% + 40px))}.sky-sheet.on{transform:none}}
+@media(orientation:landscape) and (max-height:520px){.sky-sheet{left:auto;right:8px;top:8px;bottom:8px;width:min(400px,52vw);max-height:none;transform:translateX(calc(100% + 20px))}.sky-sheet.on{transform:none}.sky-title{font-size:16px}}
+@media(prefers-reduced-motion:reduce){.sky-sheet,.sky-tag{transition:none}}

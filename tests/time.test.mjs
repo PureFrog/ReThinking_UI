@@ -48,7 +48,7 @@ test('away long enough: one friend came by, not the one coming now, and watered 
 test('every friend has a note for each case, without advice',()=>{
  const advice=/팔아|사라|사 둬|손절|매도|매수|오를|내릴|떨어질|수익/;
  for(const id of friends){const b=DIALOGUE[id].lines;assert.ok(b.away?.length&&b.awayPlain?.length,id);
-  assert.ok(awayLine(id,'꽃빛뷰티').includes('꽃빛뷰티'),id+' names the tree');assert.doesNotMatch(awayLine(id,null),/\{stock\}/);
+  assert.ok(awayLine(id,'카카오').includes('카카오'),id+' names the tree');assert.doesNotMatch(awayLine(id,null),/\{stock\}/);
   for(const l of [...b.away,...b.awayPlain])assert.doesNotMatch(l.text,advice,id)}
 });
 

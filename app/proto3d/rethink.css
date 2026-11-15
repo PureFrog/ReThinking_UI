@@ -1,6 +1,6 @@
 /* D2 (docs/brief-design.md): direction A 현장 노트·표본실. Free (OFL) fonts: Gowun Batang titles, Gowun Dodum text,
    IBM Plex Mono numbers, Nanum Pen Script for the analyst's margin note. Google Fonts serves Korean in unicode-range slices. */
-@import url('https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&family=IBM+Plex+Mono:wght@400;500;600&family=Nanum+Pen+Script&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&family=IBM+Plex+Mono:wght@400;500;600&family=Nanum+Pen+Script&family=Jua&display=swap');
 /* ReThink Garden UI (redesign 6장, docs/brief-design.md A): a field notebook. Paper, fine rules, specimen labels, a red seal.
    Surfaces: 1 paper (sheets, HUD tags, menu strip) · 2 ruled page inside (notes, records) · 3 ink (the one thing to press).
    Shape: 2px corners, 1px rules, 4px spacing unit. Every class starts with rt-. Colours as tokens: world values in look.ts. */
@@ -529,3 +529,64 @@ button.rt-row:hover{filter:none;background:#16211b05}
   animation:rt-twinkle 4s ease-in-out infinite alternate}
 @keyframes rt-twinkle{to{filter:brightness(.6)}}
 @media(prefers-reduced-motion:reduce){.proto3d-stars{animation:none}}
+
+/* ── home, cut down to one job (ui/Home.tsx, docs/mockups/home.html) ── */
+.proto3d .proto3d-top{justify-content:space-between}
+.proto3d .rt-me-chip{position:relative;width:42px;height:42px;min-height:0;padding:0;justify-content:center;border-radius:50%;flex:none}
+.proto3d .rt-me-chip .rt-me-chip-face{width:34px;height:34px}
+.rt-me-dot{position:absolute;right:-2px;top:-2px;width:10px;height:10px;border-radius:50%;background:var(--rt-seal);box-shadow:0 0 0 2px var(--rt-paper)}
+/* tabs: four, a count where something waits */
+.proto3d .rt-dock button{font-size:11px}
+.proto3d .rt-dock i.rt-dock-n{width:auto;height:15px;min-width:15px;padding:0 4px;border-radius:8px;transform:none;top:4px;right:auto;left:calc(50% + 6px);
+  display:grid;place-items:center;color:#fff;font-style:normal;font:600 9.5px/1 'IBM Plex Mono',monospace}
+@media(min-width:701px){.proto3d .rt-dock button{min-width:76px}}
+/* the one next step, just above the tabs */
+.rt-next{position:absolute;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:5;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;
+  padding:11px 11px 11px 13px;background:var(--rt-paper);border:1px solid var(--rt-rule);outline:1px solid var(--rt-rule);outline-offset:-4px;border-radius:2px;box-shadow:var(--rt-shadow);
+  animation:rt-next-in .4s cubic-bezier(.16,1,.3,1) both}
+@keyframes rt-next-in{from{opacity:0;transform:translateY(10px)}}
+.rt-next .rt-face{width:38px;height:38px;font-size:15px}
+.rt-next-text{display:grid;gap:1px;min-width:0}
+.rt-next-k{justify-self:start;font-size:10.5px;color:var(--rt-sub);padding:0}
+.rt-next-k .rt-num{color:var(--rt-ink)}
+.rt-next-text strong{font-family:'Gowun Batang',serif;font-size:15px;letter-spacing:-.4px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rt-next-text small{font-size:11.5px;color:var(--rt-sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.proto3d .rt-next-go{min-height:42px;padding:0 14px;white-space:nowrap}
+@media(min-width:701px){.rt-next{left:50%;right:auto;width:440px;transform:translateX(-50%);bottom:96px}
+  @keyframes rt-next-in{from{opacity:0;transform:translate(-50%,10px)}}}
+@media(orientation:landscape) and (max-height:520px){.rt-next{left:calc(var(--rail) + 76px);right:auto;width:min(400px,calc(100% - var(--rail) - 150px));bottom:calc(10px + env(safe-area-inset-bottom,0px));transform:none}
+  @keyframes rt-next-in{from{opacity:0;transform:translateY(10px)}}}
+@media(max-width:700px){.proto3d-locate.proto3d-map{bottom:calc(170px + env(safe-area-inset-bottom,0px))}}
+@media(orientation:landscape) and (max-height:520px){.proto3d-locate.proto3d-map{bottom:calc(10px + env(safe-area-inset-bottom,0px))}}
+@media(min-width:701px) and (min-height:521px){.proto3d-locate.proto3d-map{bottom:96px}}
+/* 일지 */
+.proto3d .rt-jr-sec{justify-content:space-between}
+.proto3d .rt-jr-sec span:last-child{font-weight:400;font-size:11.5px;color:var(--rt-sub)}
+.rt-jr-past{list-style:none;padding:0;margin:0}
+.rt-jr-past li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:baseline;padding:9px 2px;border-bottom:1px dashed var(--rt-rule);font-size:12.5px}
+.rt-jr-past li>span:first-child{font-size:11px;color:var(--rt-sub)}
+.rt-jr-v{font-size:11px;padding:1px 6px;border-radius:2px;border:1px dashed var(--rt-rule);color:var(--rt-sub)}
+.rt-jr-v.hit{border:1px solid var(--rt-accent);color:var(--rt-accent)}.rt-jr-v.miss{border:1px solid var(--rt-seal);color:var(--rt-seal)}
+/* 더보기 */
+.rt-more-nums{display:flex;gap:16px;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--rt-rule);background:var(--rt-paper2,#fbf7ec);font-size:12px;color:var(--rt-sub)}
+.rt-more-nums b{color:var(--rt-ink);margin-left:2px}
+.rt-more-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rt-more-tile{position:relative;display:grid;gap:3px;padding:12px;text-align:left;border:1px solid var(--rt-rule);background:var(--rt-paper2,#fbf7ec);border-radius:2px}
+.rt-more-tile strong{font-family:'Gowun Batang',serif;font-size:14px}
+.rt-more-tile small{font-size:11px;color:var(--rt-sub);line-height:1.35}
+.rt-more-tile i{position:absolute;right:10px;top:10px;width:8px;height:8px;border-radius:50%;background:var(--rt-seal)}
+/* the first-run tutorial: a spotlight over the real screen, one paper card */
+.rt-tut{position:absolute;inset:0;z-index:40}
+.rt-tut-spot{position:absolute;box-shadow:0 0 0 3000px #14110dc4;transition:left .5s cubic-bezier(.32,.72,0,1),top .5s cubic-bezier(.32,.72,0,1),width .5s cubic-bezier(.32,.72,0,1),height .5s cubic-bezier(.32,.72,0,1),border-radius .5s;pointer-events:none}
+.rt-tut-spot::after{content:'';position:absolute;inset:-6px;border-radius:inherit;border:2px solid var(--rt-paper);animation:rt-tut-ring 1.6s infinite}
+@keyframes rt-tut-ring{to{opacity:0;transform:scale(1.12)}}
+.rt-tut-card{position:absolute;width:min(360px,calc(100% - 32px));padding:14px 14px 12px;background:var(--rt-paper);border:1px solid var(--rt-rule);outline:1px solid var(--rt-rule);outline-offset:-4px;border-radius:2px;box-shadow:0 20px 50px #0008;transition:top .45s cubic-bezier(.32,.72,0,1),left .45s cubic-bezier(.32,.72,0,1)}
+.rt-tut-n{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--rt-sub)}
+.rt-tut-pips{display:flex;gap:4px}.rt-tut-pips i{width:6px;height:6px;border-radius:50%;background:var(--rt-rule)}.rt-tut-pips i[data-on=true]{background:var(--rt-ink)}
+.rt-tut-card h3{font-family:'Gowun Batang',serif;font-size:18px;letter-spacing:-.5px;margin:4px 0}
+.rt-tut-card p{font-size:13px;line-height:1.5}
+.rt-tut-acts{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+.rt-tut-skip{font-size:12px;color:var(--rt-sub);text-decoration:underline;padding:6px 0}
+@media(prefers-reduced-motion:reduce){.rt-tut-spot,.rt-tut-card{transition:none}.rt-tut-spot::after,.rt-next{animation:none}}
+/* sideways phone: the tabs start under the two-line weather chip */
+@media(orientation:landscape) and (max-height:520px){.proto3d .rt-dock{top:calc(88px + env(safe-area-inset-top,0px))}}

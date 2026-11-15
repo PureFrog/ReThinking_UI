@@ -45,23 +45,23 @@ test('titles come from judging experience, and each one after the first brings a
 });
 
 test('an analyst remembers the last call on their signal, and how it came out', () => {
-  const j = {id: 'j1', holdingId: 7, name: '강철중공업', day: '2026-08-01', choice: 'hold', reason: 'r', confidence: 4, rate: -6, analyst: 'tori', signalId: 's'};
+  const j = {id: 'j1', holdingId: 7, name: 'POSCO홀딩스', day: '2026-08-01', choice: 'hold', reason: 'r', confidence: 4, rate: -6, analyst: 'tori', signalId: 's'};
   assert.equal(recallOf('tori', [j], [], '2026-08-20').kind, 'waiting');
   assert.equal(recallOf('tori', [j], [], '2026-08-20').days, 11);
   const g = {judgmentId: 'j1', mark: 30, after: -12, hit: false, signalRight: true, points: -7, day: '2026-08-31'};
   const r = recallOf('tori', [j], [g], '2026-09-02');
-  assert.deepEqual(r, {kind: 'miss', name: '강철중공업', choice: '홀드', mark: 30});
+  assert.deepEqual(r, {kind: 'miss', name: 'POSCO홀딩스', choice: '홀드', mark: 30});
   assert.equal(recallOf('moa', [j], [g], '2026-09-02'), null);
   assert.equal(recallOf('tori', [j], [g], '2026-09-02', 99), null);
   // a judgment made today is not a memory yet
   assert.equal(recallOf('tori', [{...j, day: '2026-09-02'}], [], '2026-09-02'), null);
   const text = say(LINES.remember.tori[r.kind], 'x', r);
-  assert.match(text, /강철중공업/);
+  assert.match(text, /POSCO홀딩스/);
   assert.doesNotMatch(text, /\{/);
 });
 
 test('a grade that already arrived does not hide the later one of the same judgment', () => {
-  const j = {id: 'j2', holdingId: 6, name: '은하바이오', day: '2026-10-09', choice: 'watch', reason: 'r', confidence: 2, rate: 2};
+  const j = {id: 'j2', holdingId: 6, name: '삼성전자', day: '2026-10-09', choice: 'watch', reason: 'r', confidence: 2, rate: 2};
   // its 30-day grade is due (not opened), its 90-day one is 55 days ahead
-  assert.deepEqual(nextGrade([j], [], '2026-11-13'), {name: '은하바이오', mark: 90, day: '2027-01-07', inDays: 55});
+  assert.deepEqual(nextGrade([j], [], '2026-11-13'), {name: '삼성전자', mark: 90, day: '2027-01-07', inDays: 55});
 });

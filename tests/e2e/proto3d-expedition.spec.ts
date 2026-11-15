@@ -79,7 +79,7 @@ test("a whole 판: brief, the flow, every moment decided, the reveal, and the ru
   await expect(rk).toContainText("예시 순위 · 서버 연결 전");
   await expect(rk.locator("li.me")).toHaveCount(1);
   await rk.getByRole("button", { name: "공개로 돌아가기" }).click();
-  await page.getByTestId("gx-reveal").getByRole("button", { name: "정원으로" }).click();
+  await page.getByTestId("gx-reveal").getByRole("button", { name: "나가기" }).click();
   await expect(page.getByTestId("expedition")).toHaveCount(0, { timeout: 5_000 });
   // the first finished run earns its stamp
   await expect.poll(() => page.evaluate(() => (JSON.parse(localStorage.getItem("rethink-garden-v1") ?? "{}").stamps ?? []).map((s: { id: string }) => s.id))).toContain("expedition");
@@ -90,13 +90,13 @@ test("the observatory door opens this week's 판", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?demo&weather=clear&gameTutorial=0");
   await expect(page.locator(".proto3d canvas")).toBeVisible({ timeout: 30_000 });
-  await page.getByRole("navigation", { name: "메뉴" }).getByRole("button", { name: "모의투자" }).click();
-  const door = page.getByRole("dialog", { name: "관측소 원정" });
-  await door.getByRole("button", { name: /이번 주 판 입장/ }).click();
+  await page.getByRole("navigation", { name: "메뉴" }).getByRole("button", { name: /^챌린지/ }).click();
+  const door = page.getByRole("dialog", { name: "주간 챌린지" });
+  await door.getByRole("button", { name: /이번 주 판 시작/ }).click();
   await expect(page.getByTestId("expedition")).toBeVisible();
   await expect.poll(async () => (await game(page))?.phase, { timeout: 30_000 }).toBe("brief");
   expect((await game(page))?.pack).toMatch(/^[0-9a-f]{8}$/);
-  await page.getByRole("button", { name: "원정 닫기" }).click();
+  await page.getByRole("button", { name: "챌린지 닫기" }).click();
   await expect(page.getByTestId("expedition")).toHaveCount(0);
 });
 

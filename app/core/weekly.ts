@@ -5,7 +5,7 @@ export type GoalId='judge3'|'grade2'|'case3'|'rewind3'|'humble1'|'rethink1'|'day
 export type WeekCtx={judgments:{day:string;confidence:number;rebuttal?:string}[];graded:{day:string}[];cases:{day:string}[];rewinds:{day:string}[];daysDone:string[]};
 export const GOALS:{id:GoalId;text:string;need:number;count:(c:WeekCtx,inW:(d:string)=>boolean)=>number}[]=[
   {id:'judge3',text:'신호에 판단 3개 남기기',need:3,count:(c,w)=>c.judgments.filter(j=>w(j.day)).length},
-  {id:'grade2',text:'판정 2개 열기',need:2,count:(c,w)=>c.graded.filter(g=>w(g.day)).length},
+  {id:'grade2',text:'채점 결과 2개 확인',need:2,count:(c,w)=>c.graded.filter(g=>w(g.day)).length},
   {id:'case3',text:'오늘의 케이스 3장 풀기',need:3,count:(c,w)=>c.cases.filter(x=>w(x.day)).length},
   {id:'rewind3',text:'되감기 3판',need:3,count:(c,w)=>c.rewinds.filter(x=>w(x.day)).length},
   {id:'humble1',text:'확신 1~2로 솔직하게 판단 하나',need:1,count:(c,w)=>c.judgments.filter(j=>w(j.day)&&j.confidence<=2).length},

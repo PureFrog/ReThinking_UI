@@ -36,8 +36,8 @@ test("upright: the whole farm is on screen, the menu is at the bottom, sheets ri
   const d = await box(page, dock(page));
   expect(d.y).toBeGreaterThan(UPRIGHT.height - 100);
   expect(d.width).toBeGreaterThan(d.height);
-  await dock(page).getByRole("button", { name: "브리핑" }).click();
-  const s = await box(page, page.getByRole("dialog", { name: "오늘 브리핑" }));
+  await dock(page).getByRole("button", { name: /^일지/ }).click();
+  const s = await box(page, page.getByRole("dialog", { name: "투자일지" }));
   expect(s.width).toBeGreaterThan(UPRIGHT.width - 40);
   expect(s.y + s.height).toBeLessThanOrEqual(d.y);
   expect(errors.filter(e => !/deprecated/i.test(e))).toEqual([]);
@@ -57,25 +57,25 @@ test("turned on its side: a rail on the left, a sheet on the right, and a half-w
     expect(r.height).toBeGreaterThanOrEqual(40);
     expect(r.y + r.height).toBeLessThanOrEqual(SIDEWAYS.height);
   }
-  await dock(page).getByRole("button", { name: "브리핑" }).click();
-  await page.getByRole("dialog", { name: "오늘 브리핑" }).getByRole("button", { name: /꽃빛뷰티/ }).click();
+  await dock(page).getByRole("button", { name: /^일지/ }).click();
+  await page.getByRole("dialog", { name: "투자일지" }).locator("button.rt-row").filter({ hasText: /카카오/ }).click();
   const brief = page.getByRole("dialog", { name: "브리핑" });
   const s = await box(page, brief);
   expect(s.x).toBeGreaterThan(SIDEWAYS.width / 2 - 40);
   expect(s.height).toBeGreaterThan(SIDEWAYS.height - 40);
-  const form = brief.getByRole("form", { name: "판단 기록" });
-  await form.getByRole("group", { name: "판단" }).getByRole("button", { name: /더 지켜봄/ }).click();
-  await form.getByRole("textbox").fill("저점 3주째. 한 주만 더 본다.");
-  // turn it upright and back: the sheet moves, nothing typed is lost
+  // the note leads to a journal page (지기): write on the 가설 page, turn the phone, nothing typed is lost
+  await brief.getByRole("button", { name: "이 종목 일지 쓰기" }).click();
+  const w = page.getByRole("dialog", { name: "일지 쓰기" });
+  await w.getByRole("navigation", { name: "일지 쪽" }).getByRole("button", { name: /가설/ }).click();
+  await w.getByRole("textbox").first().fill("저점이 3주째 낮아진다. 한 달은 더 본다.");
+  const side = await box(page, w);
+  expect(side.x).toBeGreaterThan(SIDEWAYS.width / 2 - 40);
   await page.setViewportSize(UPRIGHT);
   await expect.poll(async () => (await hooks(page))?.camera?.turn ?? 0).toBeGreaterThan(0.5);
-  const up = await box(page, brief);
+  const up = await box(page, w);
   expect(up.width).toBeGreaterThan(UPRIGHT.width - 40);
-  await expect(form.getByRole("textbox")).toHaveValue("저점 3주째. 한 주만 더 본다.");
-  await expect(form.getByRole("group", { name: "판단" }).getByRole("button", { name: /더 지켜봄/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(w.getByRole("textbox").first()).toHaveValue("저점이 3주째 낮아진다. 한 달은 더 본다.");
   await page.setViewportSize(SIDEWAYS);
-  await form.getByRole("group", { name: "확신도" }).getByRole("button", { name: "2" }).click();
-  await form.getByRole("button", { name: "기록" }).click();
-  await expect(brief.getByLabel("루온의 반박")).toBeVisible();
+  await expect(w.getByRole("textbox").first()).toHaveValue("저점이 3주째 낮아진다. 한 달은 더 본다.");
   expect(errors.filter(e => !/deprecated/i.test(e))).toEqual([]);
 });

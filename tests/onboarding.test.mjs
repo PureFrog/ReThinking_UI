@@ -14,22 +14,22 @@ test('a first capture: every line becomes a tree on the free plots, sized by how
  const {rows,missing}=drafts(MOCK_CAPTURE,[]);assert.equal(rows.length,4);assert.deepEqual(missing,[]);
  rows[2].held='half';rows[3].keep=false;
  const r=applyDrafts([],rows,[],[0,1,2,5],kindOf,1000);
- assert.deepEqual(r.planted.map(h=>[h.name,h.plot]),[['새봄반도체',0],['별숲게임즈',1],['꽃빛뷰티',2]]);
+ assert.deepEqual(r.planted.map(h=>[h.name,h.plot]),[['SK하이닉스',0],['NAVER',1],['카카오',2]]);
  assert.equal(heldDays(r.planted[2].date),HELD.find(h=>h.id==='half').days,'held time is the tree size');
- assert.equal(r.planted[0].kind,COMPANY_KINDS['새봄반도체']);assert.ok([0,1,2].includes(kindOf('처음보는회사')));
+ assert.equal(r.planted[0].kind,COMPANY_KINDS['SK하이닉스']);assert.ok([0,1,2].includes(kindOf('처음보는회사')));
  assert.equal(r.planted[2].rate,-13);
 });
 test('a later capture: same names take the new rate, new names are planted, missing ones only go when said',()=>{
- const holdings=[tree(1,'새봄반도체',3,0),tree(2,'달빛스튜디오',-30,1),tree(9,'푸른칩테크',-2,4)];
- const {rows,missing}=drafts([...MOCK_CAPTURE,{name:' 새봄반도체 ',rate:1}],holdings);
+ const holdings=[tree(1,'SK하이닉스',3,0),tree(2,'현대차',-30,1),tree(9,'푸른칩테크',-2,4)];
+ const {rows,missing}=drafts([...MOCK_CAPTURE,{name:' SK하이닉스 ',rate:1}],holdings);
  assert.equal(rows.length,4,'a name read twice counts once');assert.deepEqual(missing.map(h=>h.name),['푸른칩테크']);
- assert.equal(rows.find(r=>r.name==='새봄반도체').existing,1);
+ assert.equal(rows.find(r=>r.name==='SK하이닉스').existing,1);
  const kept=applyDrafts(holdings,rows,[],[2,3],kindOf);assert.equal(kept.holdings.length,5,'not gone unless the player says so');
  const r=applyDrafts(holdings,rows,[9],[2,3,4],kindOf);
  assert.equal(r.holdings.find(h=>h.id===1).rate,12.4);assert.equal(r.updated,2);
  assert.equal(r.holdings.find(h=>h.id===2).lossDays,40,'a deep loss that goes on keeps its days');
  assert.deepEqual(r.gone.map(h=>h.name),['푸른칩테크']);assert.equal(r.planted.length,2);
- const full=applyDrafts(holdings,rows,[],[],kindOf);assert.deepEqual(full.left.map(d=>d.name),['별숲게임즈','꽃빛뷰티'],'no plot left: said, not planted');
+ const full=applyDrafts(holdings,rows,[],[],kindOf);assert.deepEqual(full.left.map(d=>d.name),['NAVER','카카오'],'no plot left: said, not planted');
 });
 test('onboarding steps move on by doing; a save from before skips it; a new player starts with empty plots',()=>{
  assert.equal(startStep({}),'name');assert.equal(startStep({onboarded:true}),'done');assert.equal(startStep({onboard:'water'}),'water');
@@ -41,7 +41,7 @@ test('onboarding steps move on by doing; a save from before skips it; a new play
 });
 test("moa's round lines exist, name the tree, and carry no advice",()=>{
  for(const k of ['welcome','capture','water','bye'])assert.ok(DIALOGUE.moa.onboard[k],k);
- assert.ok(onboardLine('moa','water','꽃빛뷰티').includes('꽃빛뷰티'));
+ assert.ok(onboardLine('moa','water','카카오').includes('카카오'));
  for(const t of Object.values(DIALOGUE.moa.onboard))assert.doesNotMatch(t,/팔아|사라|매수|매도|수익|오를|떨어질/);
 });
 

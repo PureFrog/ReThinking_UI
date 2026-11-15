@@ -2,7 +2,7 @@
 // people, each in their own voice; no comfort, no buy/sell, no price calls). What the game itself says (rules, counts,
 // status) is plain UI text in UI below, never put in a character's mouth.
 // Renaming a character or the currency is one line here.
-export const CURRENCY='근거';
+export const CURRENCY='포인트';
 export type AnalystId='tori'|'moa'|'luon';
 export type ModelId='ohlson'|'fscore'|'dupont'|'gradual'|'crash'|'rebuttal';
 export const ANALYSTS:{id:AnalystId;name:string;role:string;models:ModelId[];color:string;tagline:string}[]=[
@@ -62,8 +62,8 @@ export const LINES={
   // {name} company, {choice} 홀드·손절 검토·더 지켜봄, {mark} 30·90, {days} days left
   remember:{
     tori:{hit:['{name} 기억나? 저번 {choice}, 맞았잖아.','{name} 지난번엔 네 판단이 맞았더라. 이번 숫자도 보자.'],
-      miss:['{name} 저번 판단은 {mark}일 판정에서 빗나갔어.','{name} 지난번엔 틀렸지. 같은 항목부터 다시 보자.'],
-      waiting:['{name} 저번 판단, 판정까지 {days}일 남았어.']},
+      miss:['{name} 저번 판단은 {mark}일 채점에서 빗나갔어.','{name} 지난번엔 틀렸지. 같은 항목부터 다시 보자.'],
+      waiting:['{name} 저번 판단, 채점까지 {days}일 남았어.']},
     moa:{hit:['어, {name}! 저번엔 네 감이 맞았잖아.','{name} 지난번 판단 맞았지? 이번 차트도 봐.'],
       miss:['{name} 저번엔 빗나갔어. 이번엔 차트부터 보자.','{name} 지난번엔 놓쳤잖아. 이번엔 같이 보자.'],
       waiting:['{name} 지난번 거, {days}일 뒤에 결과 나와.']},
@@ -85,42 +85,42 @@ export const LINES={
 };
 // What the game says: rules, counts and status, in plain words (no character's voice)
 export const UI={
-  noSignal:'오늘 잡힌 신호 없음',
-  lookbackNote:'처음 한 번만 · 기록하면 그 뒤 {n}일 결과가 바로 열려',
-  skipped:'넘겼어. 판단은 그대로 기록됐어.',
+  noSignal:'오늘은 신호가 없어요',
+  lookbackNote:'처음 한 번만 · 기록하면 {n}일 뒤 결과를 바로 볼 수 있어요',
+  skipped:'넘겼어요. 판단은 그대로 기록됐어요',
   streak:'연속 {n}일',
-  streakReset:'이틀 비워서 연속 {run}일이 끊겼어. 오늘부터 1일.',
-  streakRescue:'어제 비웠어. 오늘 케이스를 풀면 연속이 이어져.',
-  cooldownStart:'씨앗을 심었어. 24시간 뒤에 결정할 수 있어.',
-  cooldownEarly:'아직 {left} 남았어. 지금 정하면 꽃은 안 펴.',
-  cooldownBloom:'하루 기다렸어. 화분에 꽃이 하나 폈어.',
-  caseIntro:'이름은 가렸어 · 30초',
-  caseTimeout:'시간 끝 · 정답 공개',
+  streakReset:'이틀 쉬어서 연속 {run}일이 끊겼어요. 오늘부터 다시 1일',
+  streakRescue:'어제 쉬었어요. 오늘 케이스를 풀면 연속이 이어져요',
+  cooldownStart:'24시간 쿨다운을 걸었어요. 내일 결정할 수 있어요',
+  cooldownEarly:'쿨다운이 {left} 남았어요. 지금 결정하면 충동 억제로 안 쳐요',
+  cooldownBloom:'24시간을 기다렸어요. 충동 억제 +1',
+  caseIntro:'회사 이름은 가렸어요 · 30초',
+  caseTimeout:'시간 종료 · 정답 공개',
   caseRight:'정답 · 먼저 잡은 모델은 {model}',
-  caseWrong:'오답 · {model} 모델은 이미 신호를 냈었어',
-  levelUp:'{who} 신뢰 {n} · 보여주는 분석이 늘었어.',
-  planted:'{n}그루 심었어. 신호 잡힌 나무엔 분석가가 가 있어.',
-  replanted:'반영했어. 지금 {n}그루.',
-  marketClosed:'시장 쉬는 날. 기록 정리하기 좋은 날.',
+  caseWrong:'오답 · {model} 모델은 이미 신호를 냈어요',
+  levelUp:'{who} 신뢰 {n} · 볼 수 있는 분석이 늘었어요',
+  planted:'{n}종목을 정원에 넣었어요',
+  replanted:'반영했어요 · {n}종목',
+  marketClosed:'오늘은 휴장일이에요',
   // W2 the first time a tree card opens: how to see under it
-  deepHint:'나무를 길게 누르면 땅 속 뿌리가 보여.',
+  deepHint:'나무를 길게 누르면 재무 체력을 볼 수 있어요',
   // W3 the time capsule (core/capsule.ts)
-  buried:'{name} 밑에 묻었어 · {mark}일 뒤에 파내',
-  capsuleWait:'{name} 캡슐 · {mark}일 판정까지 {d}일',
-  capsuleMemo:'캡슐에서 꺼낸 메모 · {when} 기록',
+  buried:'저장했어요. {mark}일 뒤에 채점돼요',
+  capsuleWait:'{name} · {mark}일 채점까지 {d}일',
+  capsuleMemo:'{when}에 쓴 메모',
   jump:'30일 뒤',
   // inside the house: the cork board
-  stamped:'도장 받음 · {name}',
-  weekDone:'이번 주 목표 끝. +{n} 근거.',
-  boardWait:'묻어 둔 캡슐 {n}개 · 판정일이 오면 여기 빨간 핀이 켜져',
-  boardEmpty:'아직 묻은 캡슐 없음 · 판단을 남기면 여기 꽂혀',
+  stamped:'업적 달성 · {name}',
+  weekDone:'이번 주 목표 완료 · +{n}P',
+  boardWait:'채점 대기 {n}건',
+  boardEmpty:'채점 대기 없음 · 판단을 기록하면 여기 쌓여요',
   // today's three (core/today.ts)
-  today:{judge:'신호 하나에 판단 남기기',case:'오늘의 케이스 풀기',grade:'도착한 판정 열기',rewind:'되감기 한 판'} as Record<'judge'|'case'|'grade'|'rewind',string>,
-  dayDone:'오늘 할 거 끝. +{n} 근거.',
-  nextGrade:'다음 판정 · {name} {mark}일 · D-{d}',
-  noNext:'기다리는 판정 없음 · 판단을 남기면 30일 뒤에 와',
+  today:{judge:'일지 한 편 쓰기',case:'오늘의 케이스 풀기',grade:'채점 결과 확인하기',rewind:'되감기 1판'} as Record<'judge'|'case'|'grade'|'rewind',string>,
+  dayDone:'오늘 할 일 완료 · +{n}P',
+  nextGrade:'다음 채점 · {name} {mark}일 · D-{d}',
+  noNext:'채점 대기 없음 · 판단을 기록하면 30일 뒤에 채점돼요',
   // the player's title (core/rank.ts) and what it brings
-  rankUp:'{rank} 됨 · {item} 받음',
+  rankUp:'{rank}로 올랐어요 · {item} 획득',
 };
 export function line(t:string,v:Record<string,string|number>={}){return t.replace(/\{(\w+)\}/g,(_,k)=>String(v[k]??''))}
 const hash=(t:string)=>{let h=2166136261;for(const c of t)h=Math.imul(h^c.charCodeAt(0),16777619)>>>0;return h};

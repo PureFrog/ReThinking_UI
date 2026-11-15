@@ -42,7 +42,7 @@ export function isOpen(u:Unlock,c:WearCtx,id:string){
 }
 // how to get it, said plainly (the locked tile shows this)
 export function howTo(u:Unlock,names:{rank:(i:number)=>string;stamp:(id:StampId)=>string;who:(w:Who)=>string}){
-  switch(u.kind){case 'start':return '처음부터';case 'rank':return `${names.rank(u.index)} 되면`;case 'stamp':return `도장 '${names.stamp(u.id)}'`;
+  switch(u.kind){case 'start':return '처음부터';case 'rank':return `${names.rank(u.index)} 되면`;case 'stamp':return `업적 '${names.stamp(u.id)}'`;
     case 'trust':return `${names.who(u.who)} 신뢰 ${u.stage+1}`;case 'buy':return `근거 ${u.price} 내고 사기`}
 }
 // the look as it can be shown: anything not unlocked falls back to the start piece (or nothing)

@@ -12,7 +12,7 @@ test("a stop-loss signal brings a friend who asks why, and keeps the answer", as
   // nobody pressed anything: the friend walks in and up to the player
   const bubble = page.locator(".formal-bubble");
   await expect(bubble).toBeVisible({ timeout: 40_000 });
-  await expect(bubble).toContainText("꽃빛뷰티");
+  await expect(bubble).toContainText("카카오");
   await expect(bubble).not.toContainText("가상 사건");
   const asker = await canvas(page).evaluate(c => (c as HTMLCanvasElement).dataset.cameBy ?? "");
   expect(["moa", "tori", "luon"]).toContain(asker);

@@ -42,24 +42,24 @@ export function Onboarding({g,onClose,onPlanted,onDemo}:{g:G;onClose:()=>void;on
   const picker=<input ref={file} type="file" accept="image/*" hidden aria-label="캡처 파일" onChange={e=>{const f=e.target.files?.[0];if(f)void read(f);e.target.value=''}}/>;
 
   if(!rows)return <Sheet kicker="시작" title="내 종목부터" label="내 종목 넣기" onClose={onClose}
-    foot={<button type="button" className="rt-btn wide" onClick={()=>{g.ops.useDemo();if(onDemo)onDemo();else onClose()}}>예시 정원으로 둘러보기</button>}>
+    foot={<button type="button" className="rt-btn wide" onClick={()=>{g.ops.useDemo();if(onDemo)onDemo();else onClose()}}>예시 정원으로 시작</button>}>
     {picker}
-    <label className="rt-field" style={{marginTop:0}}>뭐라고 부를까 <span className="rt-hint">정원 관찰자의 이름 · 나중에 바꿀 수 있어</span>
-      <input className="rt-input" value={g.s.name} maxLength={12} placeholder="이름 (안 적어도 돼)" aria-label="내 이름" onChange={e=>g.ops.setName(e.target.value)}/></label>
-    <p className="rt-hint" style={{marginTop:14}}>종목 하나가 나무 하나야. 분석가 셋이 그 나무들에서 손실 신호를 찾아.</p>
+    <label className="rt-field" style={{marginTop:0}}>닉네임 <span className="rt-hint">나중에 바꿀 수 있어요</span>
+      <input className="rt-input" value={g.s.name} maxLength={12} placeholder="닉네임 (선택)" aria-label="내 이름" onChange={e=>g.ops.setName(e.target.value)}/></label>
+    <p className="rt-hint" style={{marginTop:14}}>종목 하나가 나무 하나예요. 분석가 셋이 손실 신호를 찾아 알려줘요.</p>
     <div className="rt-pick">
       <button type="button" className="rt-pick-card" disabled={reading} onClick={()=>file.current?.click()}>
-        <Lens size={20}/><strong>{reading?'읽는 중':'캡처 올리기'}</strong><small>증권 앱 보유 종목 화면. 이 기기 밖으로 안 나가.</small></button>
+        <Lens size={20}/><strong>{reading?'읽는 중':'캡처 올리기'}</strong><small>증권 앱 보유 종목 화면. 이 기기 밖으로 보내지 않아요.</small></button>
       <button type="button" className="rt-pick-card" onClick={()=>setRows([blankDraft()])}>
-        <Plus size={20}/><strong>직접 입력</strong><small>이름과 수익률만 있으면 돼.</small></button>
+        <Plus size={20}/><strong>직접 입력</strong><small>종목명과 수익률만 있으면 돼요.</small></button>
     </div>
-    <p className="rt-hint" style={{marginTop:14}}>캡처 판독은 아직 모의야. 올리면 예시 4종목이 나와.</p>
+    <p className="rt-hint" style={{marginTop:14}}>캡처 인식은 아직 모의 버전이에요. 올리면 예시 4종목이 나와요.</p>
   </Sheet>;
 
   return <Sheet kicker={first?'시작 · 확인':'내 종목'} title={`${kept.length}종목`} label="종목 확인" onClose={onClose}
-    foot={<button type="button" className="rt-btn primary wide" disabled={(kept.length===0&&staying===0)||over} onClick={plant}>{first?`심기 · ${kept.length}그루`:'반영'}</button>}>
+    foot={<button type="button" className="rt-btn primary wide" disabled={(kept.length===0&&staying===0)||over} onClick={plant}>{first?`정원에 넣기 · ${kept.length}종목`:'반영'}</button>}>
     {picker}
-    <p className="rt-hint">이름과 수익률을 확인해. 새 종목은 얼마나 들고 있었는지가 나무 크기야.</p>
+    <p className="rt-hint">종목명과 수익률을 확인해 주세요. 보유 기간이 길수록 나무가 커요.</p>
     <ul className="rt-drafts">{rows.map((r,i)=>!r.keep&&r.existing===null?null:<li key={i} className={r.keep?'':'off'}>
       <div className="rt-draft-top">
         <input className="rt-input" value={r.name} placeholder="종목 이름" maxLength={20} aria-label={`${i+1}번 종목 이름`} disabled={!r.keep||r.existing!==null} onChange={e=>edit(i,{name:e.target.value})}/>

@@ -47,6 +47,8 @@ export const LOOK={
     sky:'#cfe9f2',outside:'#3b3128',under:'#4a3c30',bookHit:'#4b6638',bookMiss:'#5c5447',bookWait:'#d8ccae',camDist:10.5,camPitch:0.92},
   // the observer's stage (Showroom3D.tsx, ui/MyPage.tsx): the dome dark above and warm below, the spotlight and rim light,
   // the floor and pedestal, how big the observer stands there
+  // 다른 정원들 (Sky3D.tsx): the night sky around the planets, the planets' ground and ponds
+  space:{top:'#0d1426',bottom:'#3b4a74',land:'#7d9a52',pond:'#6d9cb8'},
   stage:{top:'#141b16',bottom:'#3b3128',spot:'#ffe7b0',rim:'#9fc6ff',floor:'#2b2620',wood:'#6f5040',top2:'#d9ccb0',scale:1.55,spotPower:55,camTall:14,camWide:8.4},
   // the player's observer in the garden (Explorer3D.tsx)
   explorer:{scale:1.05},

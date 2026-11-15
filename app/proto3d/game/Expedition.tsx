@@ -1,5 +1,5 @@
 'use client';
-// 관측소 원정 (docs/game.md): a blind window of the real past, played through the observatory door. This keeps the run
+// 주간 챌린지 (docs/game.md): a blind window of the real past, played through the observatory door. This keeps the run
 // (core/game/play.ts) and the clock; Moment.tsx stops time, Reveal.tsx opens the file. ?game=<id> opens a 판 directly,
 // ?gameSpeed=N runs the days N times faster (tests). window.__proto3d.game reports where the run is.
 import './game.css';
@@ -64,7 +64,7 @@ export function Expedition({packId,today,history,garden=[],handle='',onFinish,on
   const saved=useRef(false);
   useEffect(()=>{if(!pack||play?.phase!=='reveal'||saved.current)return;saved.current=true;const s=scoreRun(pack,play.decisions);
     onFinish({pack:pack.id,week:weekStart(today),decisions:play.decisions,total:s.total,at:new Date().toISOString(),hits:s.hits,results:s.items.map(i=>i.result),ret:Math.round(paths(pack,play.orders).me*10)/10,follow:followsOf(pack,s.items),orders:play.orders,swaps:play.swaps});
-    expeditionRepo.submit({pack:pack.id,week:weekStart(today),decisions:play.decisions,orders:play.orders,swaps:play.swaps,handle:handle||'관찰자'})},[pack,play,today,onFinish,handle]);
+    expeditionRepo.submit({pack:pack.id,week:weekStart(today),decisions:play.decisions,orders:play.orders,swaps:play.swaps,handle:handle||'익명'})},[pack,play,today,onFinish,handle]);
   useEffect(()=>{const hk=((window as {__proto3d?:{game?:unknown}}).__proto3d??={} as {game?:unknown});
     hk.game=play&&pack?{pack:pack.id,phase:play.phase,coach:coachUp?part:null,tick:play.tick,chips:chipsLeft(play.decisions),decisions:play.decisions.length,pins:play.pins.length,moment:play.moment?{kind:play.moment.kind,code:play.moment.code}:null,swap:!!swap}:{phase:'loading'};
     return()=>{hk.game=null}},[play,pack,swap,coachUp,part]);
@@ -76,11 +76,11 @@ export function Expedition({packId,today,history,garden=[],handle='',onFinish,on
     const sw=next.swaps.length>play.swaps.length?next.swaps[next.swaps.length-1]:null;
     if(sw&&!still()){setSwap({out:sw.out,in:sw.in});fx('game-tear',20);setTimeout(()=>setSwap(null),TIMING.gameSwap)}
     setPlay(next)};
-  const close=<button type="button" className="gx-x" aria-label="원정 닫기" onClick={onClose}><Cross size={16}/></button>;
-  return <div className="gx" role="dialog" aria-label="관측소 원정" data-testid="expedition">
+  const close=<button type="button" className="gx-x" aria-label="챌린지 닫기" onClick={onClose}><Cross size={16}/></button>;
+  return <div className="gx" role="dialog" aria-label="주간 챌린지" data-testid="expedition">
     {play.phase==='brief'&&<Brief pack={pack} weekly={!packId} runs={runs} close={close} onStart={()=>setPlay(begin(play))}/>}
     {play.phase==='flow'&&<>
-      <div className="gx-top"><div><div className="gx-kick">관측소 원정{!packId?' · 이번 주 공통 판':''}</div><div className="gx-title">{pack.titleHidden}</div></div>
+      <div className="gx-top"><div><div className="gx-kick">주간 챌린지{!packId?' · 이번 주 공통 판':''}</div><div className="gx-title">{pack.titleHidden}</div></div>
         <div style={{display:'flex',gap:6}}><span className="gx-pill" data-pins aria-label={`핀 ${play.pins.length}/${MAX_PINS}`}>{PIN}<span className="gx-mono">{play.pins.length}/{MAX_PINS}</span></span><span className="gx-pill"><span className="gx-chip"/><span className="gx-mono">{left}</span></span>{close}</div></div>
       <div><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:11,color:'var(--rt-mute)'}}>
         <span>방 <b className="gx-mono">{roomOf(pack,play.tick)+1}</b> / {ROOMS} · <b className="gx-mono" data-testid="gx-day">D+{play.tick}</b></span>
@@ -103,7 +103,7 @@ export function Expedition({packId,today,history,garden=[],handle='',onFinish,on
 function Brief({pack,weekly,runs,close,onStart}:{pack:GamePack;weekly:boolean;runs:number;close:React.ReactNode;onStart:()=>void}){
   const held=pack.companies.filter(c=>c.start==='held');
   return <>
-    <div className="gx-top"><div><div className="gx-kick">관측소 원정{weekly?' · 이번 주 공통 판':''}{runs?` · ${runs+1}번째`:''}</div><div className="gx-title big">{pack.titleHidden}</div></div>{close}</div>
+    <div className="gx-top"><div><div className="gx-kick">주간 챌린지{weekly?' · 이번 주 공통 판':''}{runs?` · ${runs+1}번째`:''}</div><div className="gx-title big">{pack.titleHidden}</div></div>{close}</div>
     <div className="gx-brief" style={{display:'grid',gap:10}}>
       <div className="gx-panel" style={{padding:12,transformOrigin:'50% 0',animation:'gx-open .64s var(--in) both'}}>
         <div className="gx-kick" style={{marginBottom:8}}>{marketName(pack)} · 회사 이름과 날짜는 끝에 공개</div>

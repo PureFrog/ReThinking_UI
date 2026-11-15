@@ -38,3 +38,7 @@ export const Lock=(p:P)=><Svg {...p}><path d="M5.6 10.6h12.8v9.6H5.6z"/><path d=
 export const Tilt=(p:P)=><Svg {...p}><path d="M9.2 4.4l6.4 1.6-3.6 14.2-6.4-1.6z"/><path d="M10.6 17.6l1.4.4"/><path d="M18.6 9.4c1.4 1.8 1.6 4.2.6 6.2M4.6 8.2c-1.2 1.6-1.4 3.6-.8 5.4"/></Svg>;
 // 지도: a folded field map with a route dotted across it
 export const MapIcon=(p:P)=><Svg {...p}><path d="M3.8 6.2l5.2-1.8 6 1.9 5.2-1.8v13.3l-5.2 1.8-6-1.9-5.2 1.8z"/><path d="M9 4.4v13.3M15 6.3v13.3" strokeDasharray="0.1 0"/><path d="M6.2 14.2l1.4-1.2M10.6 11.6l1.5-.4M14.4 10.4l1.8-1.6" /></Svg>;
+// 정원: a sprout with two leaves
+export const Sprout=(p:P)=><Svg {...p}><path d="M12 20.2v-8.4"/><path d="M12 12.2c-.2-3.4-2.6-5.6-6.4-5.6.1 3.6 2.6 5.7 6.4 5.6z"/><path d="M12 14.4c.3-3.2 2.5-5.2 6-5.1-.2 3.3-2.5 5.2-6 5.1z"/><path d="M8.2 20.4h7.6"/></Svg>;
+// 더보기: three dots, a little uneven like pen taps
+export const More=(p:P)=><Svg {...p}><circle cx="5.6" cy="12.2" r="1.2"/><circle cx="12" cy="11.9" r="1.2"/><circle cx="18.4" cy="12.1" r="1.2"/></Svg>;

@@ -56,16 +56,16 @@ export function ShareSheet({card,onClose}:{card:ShareCard;onClose:()=>void}){
   useEffect(()=>{let live=true,u='';const shot=snapshot.take?.()??null;
     drawCard(card,shot).then(b=>{if(!live)return;u=URL.createObjectURL(b);setBlob(b);setUrl(u)});
     return()=>{live=false;if(u)URL.revokeObjectURL(u)}},[card]);
-  const file=()=>new File([blob!],`rethink-${card.mark}일판정.png`,{type:'image/png'});
-  const save=()=>{const a=document.createElement('a');a.href=url!;a.download=file().name;document.body.appendChild(a);a.click();a.remove();setNote('사진으로 저장했어.')};
+  const file=()=>new File([blob!],`rethink-${card.mark}일채점.png`,{type:'image/png'});
+  const save=()=>{const a=document.createElement('a');a.href=url!;a.download=file().name;document.body.appendChild(a);a.click();a.remove();setNote('이미지로 저장했어요')};
   const share=async()=>{const f=file();
-    if(navigator.canShare?.({files:[f]})){try{await navigator.share({files:[f],title:`${card.name} ${card.mark}일 판정`});setNote('')}catch{/* the player closed the share sheet */}}
+    if(navigator.canShare?.({files:[f]})){try{await navigator.share({files:[f],title:`${card.name} ${card.mark}일 채점`});setNote('')}catch{/* the player closed the share sheet */}}
     else save()};
-  return <Sheet kicker="공유 카드 · 수익률만 들어가" title={`${card.name} · ${card.mark}일 판정`} label="공유 카드" onClose={onClose}
+  return <Sheet kicker="공유 카드 · 수익률만 표시" title={`${card.name} · ${card.mark}일 채점`} label="공유 카드" onClose={onClose}
     foot={<><button type="button" className="rt-btn primary wide" disabled={!blob} onClick={share}>공유하기</button>
       <button type="button" className="rt-btn" disabled={!blob} onClick={save}>저장</button></>}>
-    <div className="rt-share-preview">{url?<img src={url} alt={`${card.name} ${card.mark}일 판정 공유 카드`}/>:<p className="rt-empty">그리는 중</p>}</div>
+    <div className="rt-share-preview">{url?<img src={url} alt={`${card.name} ${card.mark}일 채점 공유 카드`}/>:<p className="rt-empty">만드는 중</p>}</div>
     {note&&<p className="rt-hint" role="status" style={{marginTop:8}}>{note}</p>}
-    <p className="rt-hint" style={{marginTop:8}}>금액·계좌·수량은 안 들어가. 아래에 "모의 데이터 · 투자 권유 아님"이 붙어.</p>
+    <p className="rt-hint" style={{marginTop:8}}>금액·계좌·수량은 들어가지 않아요. 아래에 "모의 데이터 · 투자 권유 아님"이 붙어요</p>
   </Sheet>;
 }

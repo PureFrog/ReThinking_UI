@@ -35,13 +35,13 @@ test('the rows say the plain word first, then the model, then the number', () =>
 
 test('the mock reads the research note when there is one, and is steady without one', () => {
   const sigs = mockSignals(DEMO_HOLDINGS, '2026-11-13');
-  const steel = DEMO_HOLDINGS.find(h => h.name === '강철중공업');
+  const steel = DEMO_HOLDINGS.find(h => h.name === 'POSCO홀딩스');
   const h = mockHealth(steel, sigs.find(s => s.holdingId === steel.id));
   assert.deepEqual(h, {fscore: 3, ohlson: 17, debt: 214});
-  const chip = DEMO_HOLDINGS.find(h => h.name === '새봄반도체');
+  const chip = DEMO_HOLDINGS.find(h => h.name === 'SK하이닉스');
   assert.equal(mockHealth(chip, sigs.find(s => s.holdingId === chip.id)).debt, 110);
   // no note: steady per name, weaker in the red
-  const wind = DEMO_HOLDINGS.find(h => h.name === '바람에너지');
+  const wind = DEMO_HOLDINGS.find(h => h.name === '한화에어로스페이스');
   assert.deepEqual(mockHealth(wind, null), mockHealth(wind, null));
   assert.ok(mockHealth(wind, null).fscore >= 6);
   assert.ok(mockHealth({...wind, rate: -30}, null).fscore <= 4);
@@ -50,7 +50,7 @@ test('the mock reads the research note when there is one, and is steady without 
 test("tori's line has the number in it and never says sell", () => {
   for (const hh of [healthy, weak, {fscore: 5, ohlson: 8, debt: 130}]) {
     const {main, extra} = rootsSay(hh);
-    const vars = {name: '강철중공업', f: hh.fscore, o: hh.ohlson, d: hh.debt};
+    const vars = {name: 'POSCO홀딩스', f: hh.fscore, o: hh.ohlson, d: hh.debt};
     for (let s = 0; s < 4; s++) {
       const text = say(LINES.roots[main], s, vars) + (extra ? ' ' + say(LINES.roots[extra], s, vars) : '');
       assert.match(text, new RegExp(String(hh.fscore)));

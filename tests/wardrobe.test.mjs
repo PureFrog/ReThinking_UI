@@ -25,7 +25,7 @@ test('locked pieces open by title, stamp, trust or buying, and a look falls back
   const wanted = {coat: 'coat_rain', hat: 'hat_lamp', bag: 'bag_brief', tool: 'tool_trowel', palette: 'seal'};
   assert.deepEqual(fitLook(wanted, fresh), {coat: 'coat_vest', hat: null, bag: null, tool: null, palette: 'moss'});
   const names = {rank: () => '기록자', stamp: id => STAMPS.find(s => s.id === id).name, who: () => '토리'};
-  assert.equal(howTo(lamp.unlock, names), "도장 '확신 적중'");
+  assert.equal(howTo(lamp.unlock, names), "업적 '확신 5 적중'");
   assert.equal(howTo(rain.unlock, names), '근거 6 내고 사기');
 });
 

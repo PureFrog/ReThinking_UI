@@ -13,7 +13,7 @@ test('one capsule per tree: the arrived grade first, otherwise the nearest one t
   const t1 = caps.find(c => c.holdingId === 1);
   // a's 30-day grade (10-31) has arrived
   assert.deepEqual(t1, {holdingId: 1, judgmentId: 'a', mark: 30, day: '2026-10-31', due: true, inDays: -13});
-  assert.equal(capsuleLabel(t1), '판정 도착');
+  assert.equal(capsuleLabel(t1), '채점 완료');
   const t2 = caps.find(c => c.holdingId === 2);
   assert.equal(t2.due, false);
   assert.equal(t2.inDays, 18);

@@ -38,9 +38,9 @@ test("the door asks first, then the farm shows the trees; a tree leads to its jo
   await page.getByRole("button", { name: "나가기" }).click();
   await expect(page.locator(".proto-room-name")).toHaveText("농장");
   await expect(page.locator(".proto-tree")).toHaveCount(4);
-  await page.getByRole("button", { name: "꽃빛뷰티 나무" }).click();
-  await page.getByRole("dialog", { name: "꽃빛뷰티 나무" }).getByRole("button", { name: "일지 쓰기" }).click();
-  await expect(page.getByRole("button", { name: "꽃빛뷰티" })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "카카오 나무" }).click();
+  await page.getByRole("dialog", { name: "카카오 나무" }).getByRole("button", { name: "일지 쓰기" }).click();
+  await expect(page.getByRole("button", { name: "카카오" })).toHaveAttribute("aria-pressed", "true");
   await page.getByLabel("그래서 내 생각").fill("이유는 그대로");
   await page.getByRole("button", { name: "일지 남기기" }).click();
   await expect(page.locator(".proto-note")).toContainText("햇살 조각 1개");

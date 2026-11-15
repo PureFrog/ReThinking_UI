@@ -5,6 +5,9 @@ import {useEffect,useState} from 'react';
 import Proto3D from './proto3d/Proto3D';
 import './proto3d/rethink.css';
 import './proto3d/me.css';
+import './proto3d/welcome.css';
+import './proto3d/glass.css';
+import './proto3d/jigi.css';
 export default function Page(){
   const [mounted,setMounted]=useState(false);
   useEffect(()=>setMounted(true),[]);

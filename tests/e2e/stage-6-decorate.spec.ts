@@ -72,7 +72,7 @@ test("11.9 꾸미기: 놓인 가구를 누르면 옮기기·돌리기·서랍에
 });
 
 test("11.9 꾸미기를 마치면 와 있는 친구가 새 가구를 보러 와서 한마디 한다", async ({ page }) => {
-  await seed(page, { ...base, holdings: [{ id: 1, name: "새봄반도체", kind: 0, price: 52000, quantity: 12, date: "2026-08-01", rate: 12.4, plot: 0, lossDays: 0 }] });
+  await seed(page, { ...base, holdings: [{ id: 1, name: "SK하이닉스", kind: 0, price: 52000, quantity: 12, date: "2026-08-01", rate: 12.4, plot: 0, lossDays: 0 }] });
   await openGarden(page);
   await clickWorld(page, 485, 527);
   await page.getByRole("button", { name: /모아/ }).click();

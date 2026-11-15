@@ -7,11 +7,11 @@ const stages = (page: Page) =>
   page.locator(".game canvas").evaluate(c => (c as HTMLCanvasElement).dataset.treeStages ?? "");
 const panel = (page: Page) => page.locator(".object-panel");
 
-// 새봄반도체 is the first holding: 87 days held, +12.4% → a sapling with ripe fruit
+// SK하이닉스 is the first holding: 87 days held, +12.4% → a sapling with ripe fruit
 async function reshape(page: Page, rate: string, date: string, lossDays: string) {
   await clickWorld(page, 700, 298);
   await expect(panel(page)).toHaveAttribute("data-skin", "notebook", { timeout: 15_000 });
-  await panel(page).locator(".holding", { hasText: "새봄반도체" }).click();
+  await panel(page).locator(".holding", { hasText: "SK하이닉스" }).click();
   await panel(page).locator('input[name="rate"]').fill(rate);
   await panel(page).locator('input[name="date"]').fill(date);
   await panel(page).locator('input[name="lossDays"]').fill(lossDays);
@@ -34,5 +34,5 @@ test("012 나무는 보유 기간으로 씨앗부터 큰 나무까지 자라고,
   await expect.poll(() => stages(page)).toMatch(/^grand:dead,/);
   // the record book names the stage in words, not just colour
   await clickWorld(page, 700, 298);
-  await expect(panel(page).locator(".holding", { hasText: "새봄반도체" })).toContainText("큰 나무 · 말라 죽은 그루터기");
+  await expect(panel(page).locator(".holding", { hasText: "SK하이닉스" })).toContainText("큰 나무 · 말라 죽은 그루터기");
 });

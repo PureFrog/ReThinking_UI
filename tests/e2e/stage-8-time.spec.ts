@@ -31,7 +31,7 @@ test("realtime: a new garden — moa comes right away for the trees in loss, not
 });
 
 test("realtime: back after hours away — tori comes for the mock event, another friend left traces", async ({ page }) => {
-  // the losses were already seen, the mock event (새봄반도체) not talked through yet
+  // the losses were already seen, the mock event (SK하이닉스) not talked through yet
   await open(page, { ...live, lossSeen: [3, 4], lastSeen: Date.now() - 8 * 3600_000 });
   await expect.poll(() => data(page, "firstVisit"), { timeout: 10_000 }).toBe("tori");
   await expect.poll(() => data(page, "traces"), { timeout: 10_000 }).toMatch(/^footprints soil:\d$/);
@@ -61,7 +61,7 @@ test("realtime: back after hours away — tori comes for the mock event, another
 
 test("realtime: '?away=N' opens as if away N hours; a journal left long brings luon", async ({ page }) => {
   const old = new Date(Date.now() - 20 * 86400_000), day = old.getFullYear() + "-" + String(old.getMonth() + 1).padStart(2, "0") + "-" + String(old.getDate()).padStart(2, "0");
-  await open(page, { ...live, lossSeen: [3, 4], decision: "유지", journal: [{ id: "j", holdingId: 2, name: "별숲게임즈", day, saw: "", think: "신작 기대", mood: "" }] }, "/classic?away=7");
+  await open(page, { ...live, lossSeen: [3, 4], decision: "유지", journal: [{ id: "j", holdingId: 2, name: "NAVER", day, saw: "", think: "신작 기대", mood: "" }] }, "/classic?away=7");
   await expect.poll(() => data(page, "firstVisit"), { timeout: 10_000 }).toBe("luon");
   await expect.poll(() => data(page, "traces"), { timeout: 10_000 }).toMatch(/^footprints/);
 });

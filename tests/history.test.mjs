@@ -14,17 +14,17 @@ test('a holding\'s past runs from 0 on the day it was bought to today\'s return,
     assert.equal(rateAt(h, Math.floor(held / 2)), rateAt(h, Math.floor(held / 2)));
   }
   // it wanders: not a straight line from 0 to today
-  const h = DEMO_HOLDINGS.find(x => x.name === '달빛스튜디오'), held = heldDays(h.date);
+  const h = DEMO_HOLDINGS.find(x => x.name === '현대차'), held = heldDays(h.date);
   const mid = rateAt(h, Math.floor(held / 2));
   assert.notEqual(mid, Math.round(h.rate * 0.5 * 10) / 10);
 });
 
 test('the holding as it stood then is younger, and absent before it was bought', () => {
-  const h = DEMO_HOLDINGS.find(x => x.name === '새봄반도체');// bought 2026-08-01
+  const h = DEMO_HOLDINGS.find(x => x.name === 'SK하이닉스');// bought 2026-08-01
   const then = holdingAt(h, 30);
   assert.equal(heldDays(then.date), heldDays(h.date) - 30);
   assert.equal(holdingAt(h, 365), null);
-  const old = DEMO_HOLDINGS.find(x => x.name === '별숲게임즈');// bought 2025-06-01: there a year ago
+  const old = DEMO_HOLDINGS.find(x => x.name === 'NAVER');// bought 2025-06-01: there a year ago
   assert.ok(holdingAt(old, 365));
 });
 

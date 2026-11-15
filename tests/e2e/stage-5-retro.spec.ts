@@ -8,7 +8,7 @@ const flag = (page: Page, key: string) =>
 const pad = (n: number) => String(n).padStart(2, "0");
 const dayOf = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const daysAgo = (n: number) => { const d = new Date(); d.setDate(d.getDate() - n); return dayOf(d) };
-const page1 = (day: string) => ({ id: "p1", holdingId: 1, name: "새봄반도체", day, saw: "고객사 계약 연장 소식", think: "계약이 이어지면 매출이 버틸 것 같아서 두기로", mood: "curious" });
+const page1 = (day: string) => ({ id: "p1", holdingId: 1, name: "SK하이닉스", day, saw: "고객사 계약 연장 소식", think: "계약이 이어지면 매출이 버틸 것 같아서 두기로", mood: "curious" });
 const seed = (page: Page, state: object) => page.addInitScript(([s, key]) => {
   if (!sessionStorage.getItem("seeded")) { localStorage.setItem(key as string, JSON.stringify(s)); sessionStorage.setItem("seeded", "1") }
 }, [state, "little-garden-v3"] as const);

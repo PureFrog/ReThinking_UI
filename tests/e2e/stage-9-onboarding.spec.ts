@@ -39,17 +39,17 @@ test("a new player: name, moa, a capture becomes trees, first journal, candy and
   await openSeedbox(page);
   await page.getByLabel("내 주식 화면 캡처 올리기").setInputFiles(PNG);
   await expect(panel(page).locator(".capture-row")).toHaveCount(4, { timeout: 10_000 });
-  await panel(page).getByLabel("꽃빛뷰티 보유 기간").selectOption("half");
-  await panel(page).getByLabel("달빛스튜디오 반영하기").uncheck();
+  await panel(page).getByLabel("카카오 보유 기간").selectOption("half");
+  await panel(page).getByLabel("현대차 반영하기").uncheck();
   await page.getByRole("button", { name: "정원에 반영하기" }).click();
   await expect(panel(page)).toHaveCount(0);
   await expect(page.locator(".thought-bubble")).toContainText("나무 3그루를 심었어");
   const s = await saved(page);
-  expect(s.holdings.map((h: any) => h.name)).toEqual(["새봄반도체", "별숲게임즈", "꽃빛뷰티"]);
+  expect(s.holdings.map((h: any) => h.name)).toEqual(["SK하이닉스", "NAVER", "카카오"]);
   expect(s.holdings.map((h: any) => h.plot)).toEqual([0, 1, 2]);
   // next: water the first tree
   await expect.poll(() => data(page, "pointing"), { timeout: 20_000 }).toMatch(/^tree:/);
-  await expect(bubble).toContainText("새봄반도체 나무에 물", { timeout: 20_000 });
+  await expect(bubble).toContainText("SK하이닉스 나무에 물", { timeout: 20_000 });
   const t = iso(9, 11);
   await clickWorld(page, t.x, t.y - 60);
   await page.locator(".tree-menu").getByRole("button", { name: /물 주기/ }).click({ timeout: 15_000 });
@@ -79,7 +79,7 @@ test("a later capture: new rates, a new tree, and a tree missing from it is aske
     if (sessionStorage.getItem("seeded")) return;
     sessionStorage.setItem("seeded", "1");
     localStorage.setItem("little-garden-v3", JSON.stringify({ holdings: [
-      { id: 1, name: "새봄반도체", kind: 0, price: 52000, quantity: 12, date: "2026-08-01", rate: 3, plot: 0, lossDays: 0 },
+      { id: 1, name: "SK하이닉스", kind: 0, price: 52000, quantity: 12, date: "2026-08-01", rate: 3, plot: 0, lossDays: 0 },
       { id: 9, name: "푸른칩테크", kind: 0, price: 10000, quantity: 5, date: "2026-07-01", rate: -2, plot: 4, lossDays: 0 },
     ] }));
   });
@@ -93,7 +93,7 @@ test("a later capture: new rates, a new tree, and a tree missing from it is aske
   await page.getByRole("button", { name: "정원에 반영하기" }).click();
   await expect(page.locator(".thought-bubble")).toContainText("나무 3그루를 심었어 · 1그루는 수익률이 바뀌었어 · 1그루를 정리했어");
   const s = await saved(page);
-  expect(s.holdings.find((h: any) => h.name === "새봄반도체").rate).toBe(12.4);
+  expect(s.holdings.find((h: any) => h.name === "SK하이닉스").rate).toBe(12.4);
   expect(s.holdings.some((h: any) => h.name === "푸른칩테크")).toBe(false);
   expect(s.holdings).toHaveLength(4);
 });

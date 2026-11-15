@@ -166,7 +166,7 @@ test('G4: leans, trust, the garden look-alike, sample ranking, what came after, 
   assert.deepEqual(MT.followsOf(p,items),[{who:'moa',result:'hit'}]);
   const t=MT.trustOf([{follow:[{who:'moa',result:'hit'},{who:'tori',result:'tie'}]},{follow:[{who:'moa',result:'miss'}]},{}]);
   assert.deepEqual(t.moa,{n:2,hit:1});assert.deepEqual(t.tori,{n:0,hit:0});
-  const like=MT.similarOf(p,[d],[{holdingId:3,name:'은하바이오',model:'ohlson'},{holdingId:6,name:'강철',model:'crash'}]);
+  const like=MT.similarOf(p,[d],[{holdingId:3,name:'삼성전자',model:'ohlson'},{holdingId:6,name:'강철',model:'crash'}]);
   assert.equal(like.signal.holdingId,6);assert.ok(like.why[0].includes('급락'));
   assert.equal(MT.similarOf(p,[d],[{holdingId:3,name:'x',model:'ohlson'}]),null);
   const r=MT.sampleRanking('abc','2026-11-16',{score:40,ret:-2});

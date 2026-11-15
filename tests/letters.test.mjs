@@ -1,14 +1,14 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import ts from 'typescript';import {pathToFileURL} from 'node:url';
 import {load} from './load-app.mjs';
 const {monthlyLetter,dueLetter,letterLines,prevMonth}=await load('core/letters');
-const e=(day,think,mood='',name='새봄반도체')=>({id:day+think,holdingId:1,name,day,saw:'',think,mood});
-const journal=[e('2026-10-02','계약 연장 소식이 궁금했어','curious'),e('2026-10-02','',''),e('2026-10-09','공장 증설 계획이 내 이유랑 아직 맞는지 다시 보고 싶어','curious','꽃빛뷰티'),e('2026-10-20','짧게','calm'),e('2026-11-01','이번 달 첫 기록','sunny')];
+const e=(day,think,mood='',name='SK하이닉스')=>({id:day+think,holdingId:1,name,day,saw:'',think,mood});
+const journal=[e('2026-10-02','계약 연장 소식이 궁금했어','curious'),e('2026-10-02','',''),e('2026-10-09','공장 증설 계획이 내 이유랑 아직 맞는지 다시 보고 싶어','curious','카카오'),e('2026-10-20','짧게','calm'),e('2026-11-01','이번 달 첫 기록','sunny')];
 
 // 12.7 the letter counts days written (not entries), the most picked mood and quotes the user's own line back
 test('the October letter sums up October only',()=>{
  const l=monthlyLetter(journal,{'b1':'2026-10-15','b2':'2026-09-30'},'2026-10');
  assert.equal(l.days,3);assert.deepEqual(l.gold,['b1']);assert.equal(l.mood,'curious');
- assert.equal(l.quote.name,'꽃빛뷰티');assert.equal(l.quote.day,'2026-10-09');assert.equal(l.read,false);
+ assert.equal(l.quote.name,'카카오');assert.equal(l.quote.day,'2026-10-09');assert.equal(l.read,false);
 });
 test('a month with nothing written or finished brings no letter',()=>{assert.equal(monthlyLetter(journal,{},'2026-08'),null)});
 test('last month\'s letter is due once, January looks back at December',()=>{

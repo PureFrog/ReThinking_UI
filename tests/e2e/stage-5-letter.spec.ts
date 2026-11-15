@@ -8,13 +8,13 @@ const letterFlag = (page: Page) =>
 const pad = (n: number) => String(n).padStart(2, "0");
 const now = new Date(), last = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 const lastMonth = `${last.getFullYear()}-${pad(last.getMonth() + 1)}`;
-const entry = (d: number, think: string, mood: string, name = "새봄반도체") =>
+const entry = (d: number, think: string, mood: string, name = "SK하이닉스") =>
   ({ id: `${d}${think}`, holdingId: 1, name, day: `${lastMonth}-${pad(d)}`, saw: "", think, mood });
 
 test("12.7 매달 1일 모아의 편지: 우편함이 반짝이고, 열면 지난달 일지를 돌아본다 (수익률 없이)", async ({ page }) => {
   await page.addInitScript(([journal, key]) => {
     if (!sessionStorage.getItem("seeded")) { localStorage.setItem(key as string, JSON.stringify({ journal })); sessionStorage.setItem("seeded", "1") }
-  }, [[entry(3, "계약 연장 소식이 궁금했어", "curious"), entry(3, "", ""), entry(12, "공장 증설이 내 이유랑 아직 맞는지 다시 보고 싶어", "curious", "꽃빛뷰티")], "little-garden-v3"] as const);
+  }, [[entry(3, "계약 연장 소식이 궁금했어", "curious"), entry(3, "", ""), entry(12, "공장 증설이 내 이유랑 아직 맞는지 다시 보고 싶어", "curious", "카카오")], "little-garden-v3"] as const);
   await openGarden(page);
   // 11.3 the mailbox itself shows it, no number badge
   await expect.poll(() => letterFlag(page), { timeout: 10_000 }).toBe("1");

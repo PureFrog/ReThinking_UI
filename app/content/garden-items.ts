@@ -8,7 +8,7 @@ export const GARDEN_ITEMS:GardenItem[]=[
   {id:'lamp',name:'관측 램프',shape:'lamp',price:6,desc:'밤에 켜지는 작은 램프. 늦게까지 차트 볼 때.'},
   {id:'bench',name:'복기 벤치',shape:'bench',price:8,desc:'앉아서 지난 판단 다시 보는 자리.'},
   {id:'vane',name:'풍향계',shape:'vane',price:10,desc:'오늘 시장 바람 방향을 가리켜.'},
-  {id:'planter',name:'화분 줄',shape:'planter',price:5,desc:'낮은 화분 셋. 냉각 씨앗 옮겨 심기 좋음.'},
+  {id:'planter',name:'화분 줄',shape:'planter',price:5,desc:'낮은 화분 셋.'},
   {id:'flag',name:'리그 깃발',shape:'flag',price:12,desc:'주간 리그 티어 색으로 펄럭여.'},
   {id:'crate',name:'자료 상자',shape:'crate',price:4,desc:'다 본 리포트 넣어 두는 상자.'},
   // trust gifts (not for sale)
@@ -16,10 +16,11 @@ export const GARDEN_ITEMS:GardenItem[]=[
   {id:'scope',name:'휴대용 망원경',shape:'scope',from:'moa',desc:'모아의 예비 망원경. 받침대 포함.',note:'예비용. 렌즈는 닦아 놨어.'},
   {id:'dissent-flag',name:'반대 의견 깃발',shape:'flag',from:'luon',desc:'루온이 꽂아 둔 보라색 깃발.',note:'반대할 게 없을 때 꽂아 둬.'},
   // titles (core/rank.ts RANKS index): judging experience, not returns
-  {id:'rank-board',name:'관찰 노트대',shape:'board',rank:1,desc:'관찰자가 되면 받아. 오늘 본 것 적어 두는 판.'},
-  {id:'rank-flag',name:'기록자 깃발',shape:'flag',rank:2,desc:'기록자가 되면 받아. 판단을 쌓아 온 표시.'},
-  {id:'rank-bench',name:'분석가 의자',shape:'bench',rank:3,desc:'분석가가 되면 받아. 오래 앉아 복기하는 자리.'},
-  {id:'rank-scope',name:'수석의 망원경',shape:'scope',rank:4,desc:'수석 분석가가 되면 받아.'},
+  {id:'rank-board',name:'메모 보드',shape:'board',rank:1,desc:'주니어 애널리스트가 되면 받아요. 오늘 본 것을 적어 두는 판.'},
+  {id:'rank-flag',name:'애널리스트 깃발',shape:'flag',rank:2,desc:'애널리스트가 되면 받아요. 판단을 쌓아 온 표시.'},
+  {id:'rank-bench',name:'시니어의 의자',shape:'bench',rank:3,desc:'시니어 애널리스트가 되면 받아요. 오래 앉아 복기하는 자리.'},
+  {id:'rank-scope',name:'수석의 망원경',shape:'scope',rank:4,desc:'수석 애널리스트가 되면 받아요.'},
+  {id:'rank-plate',name:'리서치 헤드 명패',shape:'board',rank:5,desc:'리서치 헤드가 되면 받아요.'},
 ];
 export const itemById=(id:string)=>GARDEN_ITEMS.find(i=>i.id===id);
 export const CART_STOCK=GARDEN_ITEMS.filter(i=>i.price);

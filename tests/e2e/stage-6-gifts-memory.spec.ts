@@ -13,7 +13,7 @@ const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(
 const daysAgo = (n: number) => { const d = new Date(); d.setDate(d.getDate() - n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}` };
 const box = (id: string, sender: string, item: string, x: number, day?: string) => ({ id, sender, anonymous: false, item, x, y: 8, day });
 // no tree in a deep loss, so moa's greeting is free for the thing being tested
-const calm = [{ id: 1, name: "새봄반도체", kind: 0, price: 52000, quantity: 12, date: "2026-08-01", rate: 12.4, plot: 0, lossDays: 0 }];
+const calm = [{ id: 1, name: "SK하이닉스", kind: 0, price: 52000, quantity: 12, date: "2026-08-01", rate: 12.4, plot: 0, lossDays: 0 }];
 
 async function invite(page: Page, name: RegExp) {
   await expect(page.locator(".object-panel")).toHaveCount(0);
@@ -79,7 +79,7 @@ test("3장 기억: 오래 안 왔으면 오랜만이라고 하고, 지난번 판
   await seed(page, {
     holdings: calm,
     relationships: { moa: { points: 3, stage: 0, daily: {}, lastVisit: daysAgo(12) } },
-    decisions: [{ friend: "moa", tree: "새봄반도체", decision: "유보", reason: "신규 계약 소식을 확인하고 싶어", day: "2026-11-01" }],
+    decisions: [{ friend: "moa", tree: "SK하이닉스", decision: "유보", reason: "신규 계약 소식을 확인하고 싶어", day: "2026-11-01" }],
   });
   await openGarden(page);
   await invite(page, /모아/);
@@ -88,11 +88,11 @@ test("3장 기억: 오래 안 왔으면 오랜만이라고 하고, 지난번 판
   // the next greeting brings up the decision, once
   await expect(page.locator(".ambient-bubble")).toHaveCount(0, { timeout: 20_000 });
   await invite(page, /토리/);
-  await expect(page.locator(".ambient-bubble")).toContainText("11월 1일에 새봄반도체 나무 유보로 정했제?", { timeout: 10_000 });
+  await expect(page.locator(".ambient-bubble")).toContainText("11월 1일에 SK하이닉스 나무 유보로 정했제?", { timeout: 10_000 });
 });
 
 test("3장 기억: 손실 나무가 있으면 모아가 그 나무 걱정부터 한다", async ({ page }) => {
   await openGarden(page);
   await invite(page, /모아/);
-  await expect(page.locator(".ambient-bubble")).toContainText("꽃빛뷰티 나무가 힘들어 보여서 먼저 와 봤어.", { timeout: 10_000 });
+  await expect(page.locator(".ambient-bubble")).toContainText("카카오 나무가 힘들어 보여서 먼저 와 봤어.", { timeout: 10_000 });
 });

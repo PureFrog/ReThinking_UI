@@ -7,15 +7,15 @@ export type PortfolioReader={read(file:Blob):Promise<ReadHolding[]>};
 
 // What the mock capture "shows": the four companies the demo garden used to start with.
 export const MOCK_CAPTURE:ReadHolding[]=[
- {name:'새봄반도체',rate:12.4,quantity:12,price:52000},
- {name:'별숲게임즈',rate:7.2,quantity:8,price:34000},
- {name:'꽃빛뷰티',rate:-13,quantity:20,price:28000},
- {name:'달빛스튜디오',rate:-24,quantity:10,price:24000},
+ {name:'SK하이닉스',rate:12.4,quantity:12,price:52000},
+ {name:'NAVER',rate:7.2,quantity:8,price:34000},
+ {name:'카카오',rate:-13,quantity:20,price:28000},
+ {name:'현대차',rate:-24,quantity:10,price:24000},
 ];
 // a moment of "reading" so the panel shows it working (ms)
 export const READ_DELAY=700;
 export const portfolioReader:PortfolioReader={read:()=>new Promise(r=>setTimeout(()=>r(MOCK_CAPTURE.map(h=>({...h}))),READ_DELAY))};
 
 // Tree kind per company (0 chip tree, 1 flower tree, 2 star-fruit tree); a company not listed gets one by its name.
-export const COMPANY_KINDS:Record<string,number>={새봄반도체:0,푸른칩테크:0,꽃빛뷰티:1,이슬코스메틱:1,별숲게임즈:2,달빛스튜디오:2};
+export const COMPANY_KINDS:Record<string,number>={SK하이닉스:0,푸른칩테크:0,카카오:1,이슬코스메틱:1,NAVER:2,현대차:2};
 export function kindOf(name:string){if(name in COMPANY_KINDS)return COMPANY_KINDS[name];let h=0;for(const c of name)h=(h*31+c.charCodeAt(0))>>>0;return h%3}

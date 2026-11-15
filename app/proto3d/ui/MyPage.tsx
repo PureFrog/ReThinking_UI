@@ -15,6 +15,7 @@ import {analystById,CURRENCY} from '../../content/analysts';
 import {formatDay} from '../../core/items';
 import {Cross,Lock} from './Icons';
 import type {useGarden} from '../state';
+import {workOf} from '../state';
 type G=ReturnType<typeof useGarden>;
 
 function Count({to,suffix=''}:{to:number|null;suffix?:string}){
@@ -24,27 +25,27 @@ function Count({to,suffix=''}:{to:number|null;suffix?:string}){
   return <>{to===null?'—':v}{to===null?'':<span className="rt-unit">{suffix}</span>}</>;
 }
 export function wearCtx(g:G):WearCtx{
-  const rank=rankOf(xpOf({graded:g.s.graded.length,cases:g.s.cases.length,rewinds:g.s.rewinds.length})).index;
+  const rank=rankOf(xpOf({graded:g.s.graded.length,cases:g.s.cases.length,rewinds:g.s.rewinds.length,work:workOf(g.s)})).index;
   return {rank,stamps:g.s.stamps.map(s=>s.id),trust:{tori:g.s.trust.tori.stage,moa:g.s.trust.moa.stage,luon:g.s.trust.luon.stage},bought:g.s.wardrobe};
 }
 export function MyPage({g,onClose,onRecords,onSettings,onLetter}:{g:G;onClose:()=>void;onRecords:()=>void;onSettings?:()=>void;onLetter?:()=>void}){
   const [tab,setTab]=useState<'wear'|'record'|'stamps'>('wear'),[slot,setSlot]=useState<Slot|'color'>('coat'),[naming,setNaming]=useState(false),[name,setName]=useState(g.s.name);
-  const ctx=wearCtx(g),look=fitLook(g.s.look,ctx),rk=rankOf(xpOf({graded:g.s.graded.length,cases:g.s.cases.length,rewinds:g.s.rewinds.length}));
+  const ctx=wearCtx(g),look=fitLook(g.s.look,ctx),rk=rankOf(xpOf({graded:g.s.graded.length,cases:g.s.cases.length,rewinds:g.s.rewinds.length,work:workOf(g.s)}));
   const habit=habitOf(g.s.judgments,g.s.graded),t=trackOf(g.s.judgments,g.s.graded);
   const names={rank:(i:number)=>RANKS[i].name,stamp:(id:Parameters<typeof stampById>[0])=>stampById(id).name,who:(w:'tori'|'moa'|'luon')=>analystById(w).name};
   const wear=(l:Look)=>g.ops.setLook(l);
   const pieces=slot==='color'?[]:WEAR.filter(w=>w.slot===slot);
-  return <div className="rt-me" role="dialog" aria-label="내 관찰자">
+  return <div className="rt-me" role="dialog" aria-label="내 프로필">
     <header className="rt-me-plate">
       <div className="rt-me-rank">{rk.name}</div>
-      {naming?<form onSubmit={e=>{e.preventDefault();g.ops.setName(name.trim()||'관찰자');setNaming(false)}}><input className="rt-input" value={name} maxLength={12} autoFocus aria-label="내 이름" onChange={e=>setName(e.target.value)}/></form>
-        :<button type="button" className="rt-me-name" onClick={()=>setNaming(true)} aria-label="이름 바꾸기">{g.s.name||'이름 짓기'}</button>}
+      {naming?<form onSubmit={e=>{e.preventDefault();g.ops.setName(name.trim()||'나');setNaming(false)}}><input className="rt-input" value={name} maxLength={12} autoFocus aria-label="내 이름" onChange={e=>setName(e.target.value)}/></form>
+        :<button type="button" className="rt-me-name" onClick={()=>setNaming(true)} aria-label="이름 바꾸기">{g.s.name||'이름 정하기'}</button>}
       <div className="rt-me-habit"><strong>{habit.name}</strong><small>{habit.why}</small></div>
-      {rk.next&&<div className="rt-me-xp" aria-label={`${rk.next.name}까지 ${rk.next.left}`}><i style={{width:`${Math.round(rk.progress*100)}%`}}/><span>{rk.next.name}까지 {rk.next.left}</span></div>}
+      {rk.next&&<div className="rt-me-xp" aria-label={`${rk.next.name}까지 ${rk.next.left}`}><i style={{width:`${Math.round(rk.progress*100)}%`}}/><span>{rk.next.name}까지 {rk.next.left}XP</span></div>}
     </header>
-    <div className="rt-me-top">{onSettings&&<button type="button" className="rt-btn" onClick={onSettings}>설정</button>}<button type="button" className="rt-btn" onClick={onClose}><Cross size={18}/>정원으로</button></div>
+    <div className="rt-me-top">{onSettings&&<button type="button" className="rt-btn" onClick={onSettings}>설정</button>}<button type="button" className="rt-btn" onClick={onClose}><Cross size={18}/>닫기</button></div>
     <section className="rt-me-panel">
-      <div className="rt-tabs" role="tablist">{([['wear','꾸미기'],['record','기록'],['stamps','도장첩']] as const).map(([k,l])=>
+      <div className="rt-tabs" role="tablist">{([['wear','꾸미기'],['record','기록'],['stamps','업적']] as const).map(([k,l])=>
         <button key={k} type="button" role="tab" aria-selected={tab===k} onClick={()=>setTab(k)}>{l}</button>)}</div>
       {tab==='wear'&&<>
         <div className="rt-me-slots">{[...SLOTS,{id:'color' as const,label:'색'}].map(s=><button key={s.id} type="button" aria-pressed={slot===s.id} onClick={()=>setSlot(s.id)}>{s.label}</button>)}</div>
@@ -66,7 +67,7 @@ export function MyPage({g,onClose,onRecords,onSettings,onLetter}:{g:G;onClose:()
         <div className="rt-section">확신도별 실제 적중</div>
         <div className="rt-me-bars">{byConfidence(g.s.judgments,g.s.graded).map(x=><div key={x.c}><span>확신 {x.c}</span><i style={{width:`${x.rate??0}%`}}/><b className="rt-num">{x.rate===null?'—':`${x.rate}%`}</b></div>)}</div>
         <button type="button" className="rt-btn" style={{width:'100%',marginTop:12}} onClick={onRecords}>판단 목록과 케이스 도감</button>
-        {onLetter&&<button type="button" className="rt-btn" style={{width:'100%',marginTop:8}} onClick={onLetter}>이번 달 편지 미리 보기</button>}
+        {onLetter&&<button type="button" className="rt-btn" style={{width:'100%',marginTop:8}} onClick={onLetter}>이번 달 리포트 미리 보기</button>}
       </div>}
       {tab==='stamps'&&<div className="rt-me-stamps">{STAMPS.map(s=>{const got=g.s.stamps.find(x=>x.id===s.id);
         return <div key={s.id} className="rt-me-stamp" data-got={!!got}><i aria-hidden>{got?s.name[0]:''}</i><strong>{s.name}</strong><small>{got?formatDay(got.day,g.clock.today):s.how}</small></div>})}

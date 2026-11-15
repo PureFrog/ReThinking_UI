@@ -43,7 +43,7 @@ export function RevealView({pack,play,today,history,ghost,garden,onSimilar,onDon
   const left=10-play.decisions.reduce((s,d)=>s+d.chips,0);
   if(rank)return <Ranking pack={pack} week={weekStart(today)} me={{score:score.total,ret:Math.round(p3.me*10)/10}} onBack={()=>setRank(false)}/>;
   return <div style={{display:'flex',flexDirection:'column',gap:10,flex:1,minHeight:0}} data-testid="gx-reveal">
-    <div className="gx-top"><div><div className="gx-kick">관측소 원정 · 공개</div><div className="gx-title">사건 파일의 정체</div></div>
+    <div className="gx-top"><div><div className="gx-kick">주간 챌린지 · 결과</div><div className="gx-title">사건 파일의 정체</div></div>
       <div className="gx-pill"><span className="gx-chip"/><span className="gx-mono">{left} 남음</span></div></div>
     <div className="gx-scroll">
       <div className="gx-names">{names.map((c,i)=><div key={c.code}><span>회사 {c.slot}</span><span className={`gx-rev${step>=1?' open':''}`}>
@@ -75,7 +75,7 @@ export function RevealView({pack,play,today,history,ghost,garden,onSimilar,onDon
         <small>D+{like.decision.tick}의 {nameOf(like.decision.code)}와 내 정원의 {like.signal.name}: {like.why.join(' · ')}. 닮은 점만 보여줘.</small></button>}
       {step>=totalAt+4&&<button type="button" className="gx-panel gx-link gx-in" onClick={()=>setRank(true)}><strong>이번 주 순위</strong><em>›</em><small>판단 점수 순 · 예시 순위 · 서버 연결 전</small></button>}
     </div>
-    <div style={{display:'grid',gridTemplateColumns:'1fr 2fr',gap:8}}><button type="button" className="gx-btn ghost" onClick={onAgain}>다시 하기</button><button type="button" className="gx-btn" onClick={onDone}>정원으로</button></div>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 2fr',gap:8}}><button type="button" className="gx-btn ghost" onClick={onAgain}>다시 하기</button><button type="button" className="gx-btn" onClick={onDone}>나가기</button></div>
   </div>;
 }
 
@@ -101,7 +101,7 @@ function Ranking({pack,week,me,onBack}:{pack:GamePack;week:string;me:{score:numb
     el.animate([{transform:`translateY(${from}px)`},{transform:'none'}],{duration:520,easing:'cubic-bezier(.32,.72,0,1)',delay:200,fill:'backwards'});
     el.scrollIntoView({block:'center'});fx('game-deal')},[by,data]);
   return <div style={{display:'flex',flexDirection:'column',gap:10,flex:1,minHeight:0}} data-testid="gx-ranking">
-    <div className="gx-top"><div><div className="gx-kick">관측소 원정 · 이번 주 공통 판</div><div className="gx-title">순위</div></div></div>
+    <div className="gx-top"><div><div className="gx-kick">주간 챌린지 · 이번 주 공통 판</div><div className="gx-title">순위</div></div></div>
     <div className="gx-tabs"><button type="button" aria-pressed={by==='score'} onClick={()=>setBy('score')}>판단 점수</button><button type="button" aria-pressed={by==='ret'} onClick={()=>setBy('ret')}>수익</button></div>
     <div className="gx-sample"><span>{data.sample?'예시 순위 · 서버 연결 전':'이번 주 순위'}</span><span className="gx-mono">참가 {rows.length}</span></div>
     <div style={{flex:1,minHeight:0,overflow:'auto'}}><ol className="gx-rank" ref={list}>{rows.map((r,i)=><li key={r.name} className={r.me?'me':''}><span className="n gx-mono">{i+1}</span><span>{r.name}</span>

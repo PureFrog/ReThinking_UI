@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import ts from 'typescript';
 const {saveJournal,answerNews,canSave,wateredToday,journalPrompt}=await load('core/care');
 const {mockQuizFor,NEWS_ITEMS,newsProvider}=await load('content/news');
-const entry=(holdingId,day,saw='')=>({id:day+holdingId,holdingId,name:'새봄반도체',day,saw,think:'',mood:''});
+const entry=(holdingId,day,saw='')=>({id:day+holdingId,holdingId,name:'SK하이닉스',day,saw,think:'',mood:''});
 
 // 13.7-7 watering = journal: one sunlight piece per tree per day, more writing is kept but not paid
 test('a journal pays once per tree per day and is always kept',()=>{
@@ -21,13 +21,13 @@ test('one filled box is enough to save a journal (12.1)',()=>{
 });
 // 13.7-8 fertilizer = news OX: the statement is the news as it happened or turned around, never "is there such news"
 test('the news quiz shows a real item either way round and the answer key follows it',()=>{
- const seen=new Set();for(let d=1;d<=20;d++){const q=mockQuizFor(NEWS_ITEMS,'새봄반도체','2026-11-'+String(d).padStart(2,'0'),[]);const item=NEWS_ITEMS.find(n=>n.id===q.id);
+ const seen=new Set();for(let d=1;d<=20;d++){const q=mockQuizFor(NEWS_ITEMS,'SK하이닉스','2026-11-'+String(d).padStart(2,'0'),[]);const item=NEWS_ITEMS.find(n=>n.id===q.id);
   assert.equal(q.statement,q.truth?item.fact:item.flipped);assert.equal(q.fact,item.fact);assert.ok(q.why);assert.doesNotMatch(q.statement,/정보가 있|사실일까|소식이 있/);seen.add(q.truth)}
  assert.deepEqual([...seen].sort(),[false,true],'some days true, some turned around');
  for(const n of NEWS_ITEMS)for(const s of [n.fact,n.flipped,n.why])assert.doesNotMatch(s,/매수|매도|사라|팔아|오를 것|내릴 것|목표가/,'no trading advice or price calls');
 });
 test('the next quiz is an item not answered yet; a right answer pays once a day',()=>{
- const day='2026-11-02';const q=newsProvider.quizFor('별숲게임즈',day,[]);const next=newsProvider.quizFor('별숲게임즈',day,[q.id]);assert.notEqual(next.id,q.id);
+ const day='2026-11-02';const q=newsProvider.quizFor('NAVER',day,[]);const next=newsProvider.quizFor('NAVER',day,[q.id]);assert.notEqual(next.id,q.id);
  let r=answerNews({},1,q.id,false,day);assert.equal(r.reward,false);assert.deepEqual(r.care[1].answered,[q.id]);
  r=answerNews(r.care,1,next.id,true,day);assert.equal(r.reward,true);
  assert.equal(answerNews(r.care,1,'bs-3',true,day).reward,false,'one paid answer a day');
@@ -64,7 +64,7 @@ test('milestones are reached once and wait for a friend to bring them',()=>{
 });
 // 12.4 retrospective: luon brings a page back at 30 and 90 days; a reply ties a knot on that tree's ribbon
 test('a journal page comes back at 30 and 90 days, once a day, and each answer ties a knot',async()=>{
- const R=await load('core/retro');const page=(id,holdingId,day,think='계약이 이어질 것 같아서')=>({id,holdingId,name:'새봄반도체',day,saw:'',think,mood:''});
+ const R=await load('core/retro');const page=(id,holdingId,day,think='계약이 이어질 것 같아서')=>({id,holdingId,name:'SK하이닉스',day,saw:'',think,mood:''});
  const j=[page('a',1,'2026-10-01'),page('b',2,'2026-10-05'),page('c',1,'2026-10-20'),page('m',1,'2026-09-01',''/* mood only: nothing to reread */)];
  assert.equal(R.dueRetro(j,[],[1,2],'2026-10-30'),null,'29 days is not yet');
  let d=R.dueRetro(j,[],[1,2],'2026-10-31');assert.equal(d.entry.id,'a');assert.equal(d.mark,30);assert.equal(d.days,30);assert.equal(R.retroLine(d),'…30일 전에 이렇게 써놨더라.');
@@ -92,7 +92,7 @@ test('weeks that reached the aim are congratulated once, newest first',async()=>
 // ux-spec 2장 vitality: only care raises it, it fades, 30 days without a journal page switches it off; the ribbon holds the newest reason
 test('vitality follows the player\'s care, not the return, and the ribbon keeps the newest reason',async()=>{
  const V=await load('core/vitality');
- const pg=(day,think='')=>({id:day,holdingId:1,name:'새봄반도체',day,saw:'',think,mood:''});
+ const pg=(day,think='')=>({id:day,holdingId:1,name:'SK하이닉스',day,saw:'',think,mood:''});
  assert.equal(V.vitalityOf(1,{},[],[],'2026-11-08',30),0,'never cared for');
  const j=[pg('2026-11-01','계약이 이어질 것 같아서'),pg('2026-11-05'),pg('2026-11-07','공장 증설이 아직 이유야')];
  assert.equal(V.vitalityOf(1,{},j,[],'2026-11-08',30),2);

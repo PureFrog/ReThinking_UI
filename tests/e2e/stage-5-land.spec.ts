@@ -15,7 +15,7 @@ function fourGoalWeeks() {
   const out = [];
   for (let w = 0; w < 4; w++) for (let d = 0; d < 4; d++) {
     const t = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + w * 7 + d);
-    out.push({ id: `seed-${w}-${d}`, holdingId: 1, name: "새봄반도체", day: day(t), saw: "기록", think: "", mood: "calm" });
+    out.push({ id: `seed-${w}-${d}`, holdingId: 1, name: "SK하이닉스", day: day(t), saw: "기록", think: "", mood: "calm" });
   }
   return out;
 }
@@ -44,7 +44,7 @@ test("12.5 주 목표 4주를 채운 일지를 남기면 울타리 옆 땅이 �
   await expect(page.locator(".tree-menu")).toBeVisible({ timeout: 15_000 });
   await page.locator(".tree-menu").getByRole("button", { name: /물 주기/ }).click();
   await expect(panel(page)).toBeVisible({ timeout: 20_000 });
-  await panel(page).getByLabel(/오늘 새봄반도체에서 본 것/).fill("오늘도 한 줄");
+  await panel(page).getByLabel(/오늘 SK하이닉스에서 본 것/).fill("오늘도 한 줄");
   await page.getByRole("button", { name: "일지 남기고 물 주기" }).click();
   await expect(panel(page)).toHaveCount(0);
   await expect.poll(() => data(page, "plots"), { timeout: 10_000 }).toBe("14");

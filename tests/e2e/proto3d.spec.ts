@@ -51,7 +51,7 @@ test("the 3D garden renders and a tree opens its card", async ({ page }) => {
   await page.mouse.click(pt.x, pt.y);
   const card = page.getByRole("dialog", { name: /나무$/ });
   await expect(card).toBeVisible();
-  const names = ["새봄반도체", "별숲게임즈", "꽃빛뷰티", "달빛스튜디오", "바람에너지", "은하바이오", "강철중공업"];
+  const names = ["SK하이닉스", "NAVER", "카카오", "현대차", "한화에어로스페이스", "삼성전자", "POSCO홀딩스"];
   await expect(card).toContainText(names[Number(id) - 1]);
   await expect(card).toContainText(/강세|양호|약세|손실 확대|장기 손실|손실 고착/);
   await expect(card).not.toContainText(/팔아|사세요|매도|매수/);
@@ -72,7 +72,8 @@ test("the scene wears the shared soft material and the sun haze sits under the U
   await expect(sun).toHaveCSS("pointer-events", "none");
   await expect(sun).toHaveCSS("mix-blend-mode", "screen");
   // the haze must not swallow taps meant for the buttons
-  await page.getByRole("button", { name: "내 위치로" }).click();
+  await page.getByRole("button", { name: "지도" }).click();
+  await expect(page.getByRole("dialog", { name: "정원 지도" })).toBeVisible();
   expect(errors.filter(e => !/deprecated/i.test(e))).toEqual([]);
 });
 

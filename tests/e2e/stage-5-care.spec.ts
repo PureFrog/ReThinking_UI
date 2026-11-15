@@ -7,7 +7,7 @@ const data = (page: Page, key: string) =>
   page.locator(".game canvas").evaluate((c, k) => (c as HTMLCanvasElement).dataset[k] ?? "", key);
 const panel = (page: Page) => page.locator(".object-panel");
 
-// 새봄반도체 grows on plot 1, cell (9,11); its branches are about 60px above the cell
+// SK하이닉스 grows on plot 1, cell (9,11); its branches are about 60px above the cell
 async function openTreeMenu(page: Page) {
   const p = iso(9, 11);
   await clickWorld(page, p.x, p.y - 60);
@@ -20,12 +20,12 @@ test("13.7-7 물 주기 = 그 종목 투자 일지: 물뿌리개와 함께 일�
   await page.locator(".tree-menu").getByRole("button", { name: /물 주기/ }).click();
   await expect(panel(page)).toBeVisible({ timeout: 20_000 });
   await expect(panel(page)).toHaveAttribute("data-skin", "notebook");
-  await expect(panel(page).locator("h2")).toHaveText("새봄반도체 일지");
+  await expect(panel(page).locator("h2")).toHaveText("SK하이닉스 일지");
   await expect(panel(page).locator(".journal-prompt")).not.toBeEmpty();
   // an empty page is not kept
   await page.getByRole("button", { name: "일지 남기고 물 주기" }).click();
   await expect(panel(page)).toBeVisible();
-  await panel(page).getByLabel(/오늘 새봄반도체에서 본 것/).fill("고객사 계약 연장 소식");
+  await panel(page).getByLabel(/오늘 SK하이닉스에서 본 것/).fill("고객사 계약 연장 소식");
   await panel(page).locator(".mood-stickers label", { hasText: "궁금" }).click();
   await page.getByRole("button", { name: "일지 남기고 물 주기" }).click();
   await expect(panel(page)).toHaveCount(0);
@@ -47,9 +47,9 @@ test("13.7-8 비료 주기 = 뉴스 OX 퀴즈: 뉴스 문장에 '이게 맞을�
   await openTreeMenu(page);
   await page.locator(".tree-menu").getByRole("button", { name: /비료 주기/ }).click();
   await expect(panel(page)).toBeVisible({ timeout: 20_000 });
-  await expect(panel(page).locator("h2")).toHaveText("새봄반도체 소식");
+  await expect(panel(page).locator("h2")).toHaveText("SK하이닉스 소식");
   const statement = (await panel(page).locator(".news-statement").innerText()).trim();
-  expect(statement).toContain("새봄반도체");
+  expect(statement).toContain("SK하이닉스");
   expect(statement).not.toMatch(/정보가 있|사실일까/);
   await expect(panel(page).locator(".news-ask")).toHaveText("이게 맞을까?");
   await expect(panel(page).locator(".demo-note")).toContainText("모의 뉴스");
@@ -133,7 +133,7 @@ test("12.2 한 주에 4일 일지를 채우면 벽 달력에 리본이 걸리고
   const pad = (n: number) => String(n).padStart(2, "0");
   const now = new Date(), mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
   const day = (i: number) => { const d = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` };
-  const journal = [0, 1, 2, 3].map(i => ({ id: "w" + i, holdingId: 1, name: "새봄반도체", day: day(i), saw: "", think: "", mood: "calm" }));
+  const journal = [0, 1, 2, 3].map(i => ({ id: "w" + i, holdingId: 1, name: "SK하이닉스", day: day(i), saw: "", think: "", mood: "calm" }));
   await page.addInitScript(([s, key]) => {
     if (!sessionStorage.getItem("seeded")) { localStorage.setItem(key as string, JSON.stringify(s)); sessionStorage.setItem("seeded", "1") }
   }, [{ journal }, "little-garden-v3"] as const);

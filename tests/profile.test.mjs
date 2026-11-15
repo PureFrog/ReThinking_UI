@@ -14,13 +14,14 @@ test('how often I chose each, and how right I was at each confidence', () => {
   assert.deepEqual(b.find(x => x.c === 1), {c: 1, n: 0, rate: null});
 });
 
-test('the habit name comes from my own record: sure but often wrong reads bold, mostly holding reads as holding on', () => {
-  assert.equal(habitOf([j('a', 'hold', 3)], []).name, '새내기 관찰자');
+test('my judging style is plain numbers from my own record: what I pick most, how sure calls came out', () => {
+  assert.equal(habitOf([j('a', 'hold', 3)], []).name, '집계 전');
   const list = [j('a', 'hold', 5), j('b', 'hold', 5), j('c', 'hold', 4), j('d', 'review', 3)];
   const h = habitOf(list, [g('a', true), g('b', false), g('c', false)]);
-  assert.equal(h.name, '과감한 버팀꾼');
+  assert.equal(h.name, '홀드 위주');
   assert.match(h.why, /적중 33%/);
   const careful = habitOf([j('a', 'watch', 1), j('b', 'watch', 2), j('c', 'watch', 2)], [g('a', true), g('b', true)]);
-  assert.equal(careful.name, '신중한 관망꾼');
+  assert.equal(careful.name, '지켜봄 위주');
+  assert.match(careful.why, /확신 1~2 적중 100%/);
   assert.doesNotMatch(JSON.stringify([h, careful]), /수익|원\b/);
 });

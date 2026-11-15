@@ -15,7 +15,7 @@ const PF = await load('core/portfolio');
 const {kindOf} = await load('content/portfolio');
 const {GARDEN_ITEMS, CART_STOCK, giftOf} = await load('content/garden-items');
 
-const j = (o = {}) => ({id: 'j1', holdingId: 7, name: '강철중공업', day: '2026-08-01', choice: 'hold', reason: '수주 잔고', confidence: 4, rate: -10, ...o});
+const j = (o = {}) => ({id: 'j1', holdingId: 7, name: 'POSCO홀딩스', day: '2026-08-01', choice: 'hold', reason: '수주 잔고', confidence: 4, rate: -10, ...o});
 
 test('a hit depends on the choice and what the stock did after', () => {
   assert.equal(J.hitOf('review', -5), true);
@@ -150,7 +150,7 @@ test('each analyst speaks in their own lines, varied but steady for the same mom
   assert.equal(say(LINES.rebuttalKept, 'j-1'), say(LINES.rebuttalKept, 'j-1'));
   const seen = new Set(Array.from({length: 40}, (_, i) => say(LINES.rebuttalIntro, 'j-' + i)));
   assert.equal(seen.size, LINES.rebuttalIntro.length);
-  assert.equal(say(LINES.greet.tori, 'x', {name: '강철중공업'}).includes('강철중공업'), true);
+  assert.equal(say(LINES.greet.tori, 'x', {name: 'POSCO홀딩스'}).includes('POSCO홀딩스'), true);
   assert.match(say(LINES.again, 'j', {choice: '홀드'}), /홀드/);
   // rules and counts are UI text: no character line explains the scoring schedule or a count by itself
   const spoken = []; const walk = v => typeof v === 'string' ? spoken.push(v) : Object.values(v).forEach(walk); walk(LINES);
@@ -185,7 +185,7 @@ test('a company with no hand-written note still gets a signal that keeps the ton
   assert.equal(mockSignals([mine('한빛전자', -30)], 'd')[0].model, 'fscore');
   assert.equal(mockSignals([mine('한빛전자', -12)], 'd')[0].model, 'gradual');
   // a demo company keeps its hand-written note under any id
-  assert.equal(mockSignals([mine('강철중공업', -22, 55)], 'd')[0].model, 'ohlson');
+  assert.equal(mockSignals([mine('POSCO홀딩스', -22, 55)], 'd')[0].model, 'ohlson');
   assert.equal(mockAfter(123456, '2026-11-01', 30), mockAfter(123456, '2026-11-01', 30));
 });
 

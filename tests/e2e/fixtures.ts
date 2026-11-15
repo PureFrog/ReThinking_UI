@@ -13,6 +13,12 @@ export const test = base.extend({
       // "?fresh" opens as a brand-new player (no save at all: the onboarding, stage-9-onboarding.spec.ts)
       if (!localStorage.getItem(key) && !new URLSearchParams(location.search).has("fresh")) set.call(localStorage, key, JSON.stringify({ settings: { timeMode: "demo" } }));
     }, KEY);
+    // the first-run tutorial (app/proto3d/ui/Home.tsx) covers the screen; tests start without it unless the address has ?tutorial
+    await page.addInitScript(() => { (window as unknown as { __noTutorial?: boolean }).__noTutorial = !new URLSearchParams(location.search).has("tutorial") });
+    // the first screens (app/proto3d/ui/Welcome.tsx) cover a brand-new player; tests start past them unless the address has ?landing
+    await page.addInitScript(() => { (window as unknown as { __noLanding?: boolean }).__noLanding = !new URLSearchParams(location.search).has("landing") });
+    // accounts stay on the device in e2e, even when .env.local points at the Supabase project (app/proto3d/server.ts)
+    await page.addInitScript(() => { (window as unknown as { __localAuth?: boolean }).__localAuth = true });
     await use(page);
   },
 });

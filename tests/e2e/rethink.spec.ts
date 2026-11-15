@@ -29,6 +29,15 @@ async function settled(page: Page) {
 }
 const sheet = (page: Page, name: string | RegExp) => page.getByRole("dialog", { name });
 const dock = (page: Page, name: string) => page.getByRole("navigation", { name: "메뉴" }).getByRole("button", { name });
+// the four-tab home (ui/Home.tsx): 일지 holds the notes and the record, 더보기 the rest, the next-step card the grades
+const journal = (page: Page) => sheet(page, "투자일지");
+// an analyst signal row in the 일지 tab (not the stock's card on the shelf)
+const noteRow = (page: Page, name: RegExp) => journal(page).locator("button.rt-row").filter({ hasText: name }).filter({ hasNotText: "일 채점" });
+// the old judgments' track record: 일지 → 이전 판단 (지기, docs/jigi.md)
+async function records(page: Page) { await dock(page, "일지").click(); await journal(page).getByRole("button", { name: /^이전 판단 \d/ }).click() }
+async function more(page: Page, name: string) { await dock(page, "더보기").click(); await sheet(page, "더보기").getByRole("button", { name: new RegExp("^" + name) }).click() }
+const coins = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem("rethink-garden-v1") ?? "{}").currency as number);
+const nextCard = (page: Page) => page.getByRole("region", { name: "다음 할 일" });
 const onScreen = (p: { x: number; y: number } | undefined, vp: { width: number; height: number }) => !!p && p.x > 30 && p.x < vp.width - 30 && p.y > 150 && p.y < vp.height - 130;
 // on screen and not under a panel, bubble or banner (the tap must reach the canvas)
 const tappable = async (page: Page, p: { x: number; y: number } | undefined, vp: { width: number; height: number }) =>
@@ -38,12 +47,11 @@ const clean = (errors: string[]) => expect(errors.filter(e => !/deprecated/i.tes
 test("old judgments come back graded: the reveal, the score and the track record", async ({ page }) => {
   const errors: string[] = [];
   await open(page, errors, "&demo");
-  const banner = page.getByRole("button", { name: /판정 2건 도착/ });
-  await expect(banner).toBeVisible();
-  await banner.click();
-  await page.getByRole("button", { name: "결과 열기" }).click();
-  const result = sheet(page, "판정 결과");
-  await expect(result).toContainText("강철중공업");
+  await expect(nextCard(page)).toContainText("채점 결과 2건");
+  await nextCard(page).getByRole("button", { name: "확인" }).click();
+  await page.getByRole("button", { name: "결과 보기" }).click();
+  const result = sheet(page, "채점 결과");
+  await expect(result).toContainText("POSCO홀딩스");
   await expect(result).toContainText(/[+-]\d+(\.\d)?%/);
   // tori speaks on her own signal; the plain status sits next to it
   await expect(result).toContainText("올슨 신호 적중");
@@ -54,15 +62,15 @@ test("old judgments come back graded: the reveal, the score and the track record
   await expect(page.locator("html")).toHaveAttribute("data-last-slot", /^grade-(hit|miss)$/);
   expect(await page.evaluate(() => (window as unknown as { __proto3d: { burst?: { holdingId: number } } }).__proto3d.burst?.holdingId)).toBe(7);
   // the 90-day mark of the same judgment follows, then the other one
-  await result.getByRole("button", { name: /다음 판정/ }).click();
+  await result.getByRole("button", { name: /다음 결과/ }).click();
   for (let i = 0; i < 2; i++) {
-    await page.getByRole("button", { name: "결과 열기" }).click();
-    const r = sheet(page, "판정 결과");
+    await page.getByRole("button", { name: "결과 보기" }).click();
+    const r = sheet(page, "채점 결과");
     await r.locator(".rt-sheet-body .rt-btn.primary").click();
-    if (await page.getByRole("button", { name: "결과 열기" }).count() === 0) break;
+    if (await page.getByRole("button", { name: "결과 보기" }).count() === 0) break;
   }
-  await expect(page.getByRole("button", { name: /판정 \d건 도착/ })).toHaveCount(0);
-  await dock(page, "기록").click();
+  await expect(nextCard(page)).not.toContainText("채점 결과");
+  await records(page);
   const rec = sheet(page, "내 판단의 질");
   await expect(rec).toContainText("판단 적중");
   await expect(rec.locator(".rt-cell").first()).toContainText("%");
@@ -71,43 +79,31 @@ test("old judgments come back graded: the reveal, the score and the track record
   clean(errors);
 });
 
-test("briefing: a research note, a judgment, luon's counter, and the reward", async ({ page }) => {
+test("briefing: a research note leads to a journal on that stock, and the signal counts as answered", async ({ page }) => {
   const errors: string[] = [];
   await open(page, errors, "&demo");
-  const before = Number(await page.getByTestId("currency").textContent());
-  await dock(page, "브리핑").click();
-  const list = sheet(page, "오늘 브리핑");
-  await expect(list).toContainText("신호 5건");
-  await list.getByRole("button", { name: /강철중공업/ }).click();
+  await dock(page, "일지").click();
+  await expect(journal(page)).toContainText("신호 5건");
+  await noteRow(page, /POSCO홀딩스/).click();
   const brief = sheet(page, "브리핑");
   const note = brief.getByRole("article", { name: "토리 리서치 노트" });
   await expect(note).toContainText("부도 위험");
   await expect(note).toContainText("올슨");
-  const form = brief.getByRole("form", { name: "판단 기록" });
-  await expect(form.getByRole("button", { name: "기록" })).toBeDisabled();
-  await form.getByRole("group", { name: "판단" }).getByRole("button", { name: /홀드/ }).click();
-  await form.getByRole("textbox").fill("수주 잔고 3년치. 이자만 버티면 돼.");
-  await form.getByRole("group", { name: "확신도" }).getByRole("button", { name: "3" }).click();
-  await form.getByRole("button", { name: "기록" }).click();
-  const counter = brief.getByLabel("루온의 반박");
-  // luon opens in his own words, then the note's counter to a hold (content/signals.ts)
-  await expect(counter).toContainText("이자보상 1.1배야");
-  await counter.getByRole("button", { name: "그래도 유지" }).click();
-  await expect(brief.getByRole("status")).toContainText("채점 예정");
-  await expect(page.getByTestId("currency")).toHaveText(String(before + 3));
-  await brief.getByRole("button", { name: "닫기" }).first().click();
-  // tori moves on to the next flagged tree; the recorded one shows as done
-  await dock(page, "브리핑").click();
-  await expect(sheet(page, "오늘 브리핑")).toContainText("신호 4건");
-  await expect(sheet(page, "오늘 브리핑").getByRole("button", { name: /강철중공업/ })).toContainText("기록함");
+  // 지기 (docs/jigi.md): no one-line judgment any more; the note opens a journal page on that stock
+  await expect(brief.getByRole("form", { name: "판단 기록" })).toHaveCount(0);
+  await brief.getByRole("button", { name: "이 종목 일지 쓰기" }).click();
+  const w = sheet(page, "일지 쓰기");
+  await w.getByRole("navigation", { name: "일지 쪽" }).getByRole("button", { name: /종목과 차트/ }).click();
+  await expect(w.getByRole("button", { name: /종목: POSCO홀딩스/ })).toBeVisible();
   clean(errors);
 });
 
 test("an analyst's bubble in the world opens their note", async ({ page }) => {
   const errors: string[] = [];
   await open(page, errors, "&demo");
+  // one bubble at a time: wait for moa's turn
   const bubble = page.locator('[data-analyst="moa"]');
-  await expect(bubble).toBeVisible();
+  await expect(bubble).toBeVisible({ timeout: 20_000 });
   await bubble.click();
   await expect(sheet(page, "브리핑").getByRole("article", { name: "모아 리서치 노트" })).toBeVisible();
   clean(errors);
@@ -125,27 +121,27 @@ test("cooldown: wanting to sell plants a seed; deciding a day later counts as wa
   await page.mouse.click(pt.x, pt.y);
   const card = page.getByRole("dialog", { name: /나무$/ });
   await expect(card).toBeVisible();
-  await card.getByRole("button", { name: "팔고 싶어" }).click();
+  await card.getByRole("button", { name: "쿨다운 걸기" }).click();
   await expect(page.getByRole("status")).toContainText("24시간");
-  await expect(card.getByRole("button", { name: /냉각 중/ })).toBeVisible();
+  await expect(card.getByRole("button", { name: /쿨다운 .* 남음/ })).toBeVisible();
   // a day later (the save is kept in the browser)
   await page.goto("/proto3d?weather=clear&ahead=1");
   await expect.poll(async () => (await hooks(page))?.treeModels ?? 0, { timeout: 30_000 }).toBeGreaterThanOrEqual(7);
   await settled(page);
   const p2 = (await hooks(page))!.trees[Number(id)];
   await page.mouse.click(p2.x, p2.y);
-  await page.getByRole("dialog", { name: /나무$/ }).getByRole("button", { name: "결정하기" }).click();
-  await expect(sheet(page, "브리핑").getByRole("form", { name: "판단 기록" })).toBeVisible();
+  await page.getByRole("dialog", { name: /나무$/ }).getByRole("button", { name: "지금 결정하기" }).click();
+  await expect(sheet(page, "브리핑").getByRole("button", { name: "이 종목 일지 쓰기" })).toBeVisible();
   await sheet(page, "브리핑").getByRole("button", { name: "닫기" }).click();
-  await dock(page, "기록").click();
-  await expect(sheet(page, "내 판단의 질")).toContainText("냉각 1번 중 1번 기다림");
+  await records(page);
+  await expect(sheet(page, "내 판단의 질")).toContainText("쿨다운 1번 중 1번 기다림");
   clean(errors);
 });
 
 test("today's case: hidden name, a hint card, the reveal and the run of days", async ({ page }) => {
   const errors: string[] = [];
   await open(page, errors, "&demo");
-  await dock(page, "케이스").click();
+  await more(page, "오늘의 케이스");
   const c = sheet(page, "오늘의 케이스");
   await expect(c).toContainText("이 회사, 어떻게 됐을까");
   await expect(c.getByLabel(/남은 시간/)).toBeVisible();
@@ -155,9 +151,11 @@ test("today's case: hidden name, a hint card, the reveal and the run of days", a
   await expect(c.getByRole("status")).toContainText(/\d{4}/);
   await expect(c).toContainText("출처");
   await expect(c).not.toContainText(BANNED);
-  await expect(page.getByLabel("내 숫자")).toContainText("1일");
   await c.getByRole("button", { name: "닫기" }).click();
-  await dock(page, "기록").click();
+  await dock(page, "더보기").click();
+  await expect(page.getByLabel("내 숫자")).toContainText("연속 1일");
+  await sheet(page, "더보기").getByRole("button", { name: "닫기" }).first().click();
+  await records(page);
   await sheet(page, "내 판단의 질").getByRole("tab", { name: "케이스 도감" }).click();
   await expect(sheet(page, "내 판단의 질")).toContainText("1 / 6장");
   clean(errors);
@@ -166,29 +164,29 @@ test("today's case: hidden name, a hint card, the reveal and the run of days", a
 test("league, game door, cart and drawer", async ({ page }) => {
   const errors: string[] = [];
   await open(page, errors, "&demo");
-  await dock(page, "리그").click();
+  await more(page, "리그");
   const lg = sheet(page, /리그$/);
   await expect(lg.locator(".rt-row")).toHaveCount(12);
   await expect(lg).toContainText("(나)");
-  await dock(page, "모의투자").click();
-  const game = sheet(page, "관측소 원정");
+  await dock(page, "챌린지").click();
+  const game = sheet(page, "주간 챌린지");
   await expect(game).toContainText("반박");
-  await expect(game.getByRole("button", { name: /이번 주 판 입장/ })).toBeEnabled();
+  await expect(game.getByRole("button", { name: /이번 주 판 시작/ })).toBeEnabled();
   await game.getByRole("button", { name: "닫기" }).click();
   // the cart is a landmark in the world: tap it when it is on screen, otherwise go through the drawer
   const cartPt = (await hooks(page))!.points.cart, vp = page.viewportSize()!;
   if (await tappable(page, cartPt, vp)) await page.mouse.click(cartPt.x, cartPt.y);
-  else { await dock(page, "서랍").click(); await page.getByRole("button", { name: "행상 수레 열기" }).click(); }
-  const cart = sheet(page, /^근거 \d+$/);
+  else { await more(page, "꾸미기"); await page.getByRole("button", { name: "상점" }).click(); }
+  const cart = sheet(page, /^포인트 \d+$/);
   await expect(cart).toBeVisible();
   await cart.getByRole("button", { name: "자료 상자 사기" }).click();
-  await expect(page.getByTestId("currency")).toHaveText("0");
+  await expect.poll(() => coins(page)).toBe(0);
   await cart.getByRole("button", { name: "닫기" }).click();
-  await dock(page, "서랍").click();
+  await more(page, "꾸미기");
   const drawer = sheet(page, /^물건/);
   await drawer.getByLabel("자료 상자 놓을 곳").selectOption({ label: "현관 왼쪽" });
   await page.goto("/proto3d?weather=clear");
-  await dock(page, "서랍").click();
+  await more(page, "꾸미기");
   await expect(sheet(page, /^물건/).getByLabel("자료 상자 놓을 곳")).toHaveValue("door-l");
   clean(errors);
 });
@@ -196,12 +194,11 @@ test("league, game door, cart and drawer", async ({ page }) => {
 test("the observatory and the signpost in the world open the game door and the track record", async ({ page }) => {
   const errors: string[] = [];
   await open(page, errors, "&demo");
-  const close = page.getByRole("button", { name: /판정 \d건 도착/ });
-  await expect(close).toBeVisible();
+  await expect(nextCard(page)).toContainText("채점 결과 2건");
   const pts = (await hooks(page))!.points, vp = page.viewportSize()!;
   // on a phone the observatory can be off screen until the player turns the camera; check whichever is in view
   const seen: (readonly ["signpost" | "observatory", string])[] = [];
-  for (const e of [["signpost", "내 판단의 질"], ["observatory", "관측소 원정"]] as const) if (await tappable(page, pts[e[0]], vp)) seen.push(e);
+  for (const e of [["signpost", "내 판단의 질"], ["observatory", "주간 챌린지"]] as const) if (await tappable(page, pts[e[0]], vp)) seen.push(e);
   expect(seen.length).toBeGreaterThan(0);
   for (const [k, name] of seen) {
     await page.mouse.click(pts[k].x, pts[k].y);
@@ -217,7 +214,7 @@ test("the main page is the 3D garden and the classic garden lives at /classic", 
   await expect(page.getByTestId("proto3d")).toBeVisible({ timeout: 30_000 });
   // a first visit lands on the onboarding
   await expect(page.getByRole("dialog", { name: "내 종목 넣기" })).toBeVisible();
-  await expect(page).toHaveTitle("ReThink Garden");
+  await expect(page).toHaveTitle("rethinking!");
   await page.goto("/classic");
   await expect(page.locator(".world")).toBeVisible({ timeout: 30_000 });
 });
@@ -226,10 +223,13 @@ test("the main page is the 3D garden and the classic garden lives at /classic", 
 test("sound can be turned off and stays off", async ({ page }) => {
   const errors: string[] = [];
   await open(page, errors, "&demo");
-  await page.getByRole("button", { name: "소리 끄기" }).click();
-  await expect(page.getByRole("button", { name: "소리 켜기" })).toHaveAttribute("aria-pressed", "true");
+  await more(page, "설정");
+  await sheet(page, "설정").getByRole("button", { name: "소리 끄기" }).click();
+  await expect(sheet(page, "설정").getByRole("button", { name: "소리 켜기" })).toHaveAttribute("aria-pressed", "true");
   await page.goto("/proto3d?weather=clear");
-  await expect(page.getByRole("button", { name: "소리 켜기" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator(".proto3d canvas")).toBeVisible({ timeout: 30_000 });
+  await more(page, "설정");
+  await expect(sheet(page, "설정").getByRole("button", { name: "소리 켜기" })).toBeVisible();
   clean(errors);
 });
 
@@ -239,12 +239,12 @@ test("rewind: a made-up past case graded at once, round after round", async ({ p
   test.setTimeout(300_000);// four rounds, each with the full reveal: the slowest test on a software-rendered desktop
   const errors: string[] = [];
   await open(page, errors, "&demo");
-  const before = Number(await page.getByTestId("currency").textContent());
-  await dock(page, "되감기").click();
+  const before = await coins(page);
+  await more(page, "되감기");
   const rw = sheet(page, "되감기");
   await expect(rw).toContainText("가상 회사");
   await expect(rw).toContainText("1번째 판");
-  await expect(rw).toContainText("그때 너라면?");
+  await expect(rw).toContainText("이때라면 어떻게 할까요?");
   await expect(rw.getByRole("article")).toBeVisible();
   const play = async (choice: RegExp) => {
     await rw.getByRole("group", { name: "판단" }).getByRole("button", { name: choice }).click();
@@ -256,7 +256,8 @@ test("rewind: a made-up past case graded at once, round after round", async ({ p
     await expect(rw).toContainText(/판단 (적중|빗나감)/);
   };
   await play(/손절 검토/);
-  const paid1 = Number(await page.getByTestId("currency").textContent()) - before;
+  await page.waitForTimeout(300);
+  const paid1 = (await coins(page)) - before;
   expect(paid1 === 1 || paid1 === 2).toBe(true);
   for (let i = 2; i <= 4; i++) {
     await rw.getByRole("button", { name: "다음 판" }).click();
@@ -264,10 +265,10 @@ test("rewind: a made-up past case graded at once, round after round", async ({ p
     if (i < 4) await play(/더 지켜봄/);
   }
   // the fourth round is practice only
-  await expect(rw).toContainText("오늘 보상은 다 받았어");
+  await expect(rw).toContainText("오늘 보상은 모두 받았어요");
   await play(/홀드/);
   await rw.getByRole("button", { name: "그만" }).click();
-  await dock(page, "기록").click();
+  await records(page);
   await expect(sheet(page, "내 판단의 질")).toContainText("4판");
   clean(errors);
 });
@@ -281,12 +282,12 @@ test("today's three: the chip, the list, and the way to each one", async ({ page
   await expect(chip).toBeVisible();
   await chip.click();
   const today = sheet(page, "오늘 할 일");
-  await expect(today).toContainText("신호 하나에 판단 남기기");
-  await expect(today).toContainText("도착한 판정 열기");
-  await expect(today).toContainText("다음 판정 · 은하바이오 90일");
-  await expect(today).toContainText("견습 관찰자");
-  await today.locator(".rt-task").filter({ hasText: "도착한 판정 열기" }).getByRole("button", { name: "하기" }).click();
-  await expect(page.getByRole("button", { name: "결과 열기" })).toBeVisible();
+  await expect(today).toContainText("일지 한 편 쓰기");
+  await expect(today).toContainText("채점 결과 확인하기");
+  await expect(today).toContainText("다음 채점 · 삼성전자 90일");
+  await expect(today).toContainText("인턴");
+  await today.locator(".rt-task").filter({ hasText: "채점 결과 확인하기" }).getByRole("button", { name: "하기" }).click();
+  await expect(page.getByRole("button", { name: "결과 보기" })).toBeVisible();
   clean(errors);
 });
 
@@ -311,16 +312,16 @@ test("the ground opens under a tree: weak and healthy roots look different", asy
   await settled(page);
   const q = (await hooks(page))!.trees[id];
   await page.mouse.move(q.x, q.y); await page.mouse.down(); await page.waitForTimeout(900); await page.mouse.up();
-  await expect(sheet(page, "땅 속 보기")).toBeVisible();
+  await expect(sheet(page, "재무 체력")).toBeVisible();
   await expect.poll(async () => (await cutaway(page))?.holdingId).toBe(id);
-  await sheet(page, "땅 속 보기").getByRole("button", { name: "닫기" }).click();
+  await sheet(page, "재무 체력").getByRole("button", { name: "닫기" }).click();
   await expect.poll(async () => (await cutaway(page))?.open).toBe(false);
 
-  // from the research note: a weak company (the demo's 강철중공업: F-score 3, Ohlson 17%, debt 214%)
-  await dock(page, "브리핑").click();
-  await sheet(page, "오늘 브리핑").getByRole("button", { name: /강철중공업/ }).click();
-  await sheet(page, "브리핑").getByRole("button", { name: /땅 속 보기/ }).click();
-  const deep = sheet(page, "땅 속 보기");
+  // from the research note: a weak company (the demo's POSCO홀딩스: F-score 3, Ohlson 17%, debt 214%)
+  await dock(page, "일지").click();
+  await noteRow(page, /POSCO홀딩스/).click();
+  await sheet(page, "브리핑").getByRole("button", { name: /재무 체력/ }).click();
+  const deep = sheet(page, "재무 체력");
   await expect(deep).toContainText("회사 체력");
   await expect(deep).toContainText("F-score");
   await expect(deep).toContainText("3/9");
@@ -334,14 +335,14 @@ test("the ground opens under a tree: weak and healthy roots look different", asy
   expect(weak.stone).toBeGreaterThan(0.5);
   // closing covers the ground and goes back to the note
   await deep.getByRole("button", { name: "닫기" }).click();
-  await expect(sheet(page, "브리핑")).toContainText("강철중공업");
+  await expect(sheet(page, "브리핑")).toContainText("POSCO홀딩스");
   await expect.poll(async () => (await cutaway(page))?.open).toBe(false);
   await sheet(page, "브리핑").getByRole("button", { name: "닫기" }).first().click();
 
-  // a healthy one (새봄반도체): more and thicker roots, no spots
-  await dock(page, "브리핑").click();
-  await sheet(page, "오늘 브리핑").getByRole("button", { name: /새봄반도체/ }).click();
-  await sheet(page, "브리핑").getByRole("button", { name: /땅 속 보기/ }).click();
+  // a healthy one (SK하이닉스): more and thicker roots, no spots
+  await dock(page, "일지").click();
+  await noteRow(page, /SK하이닉스/).click();
+  await sheet(page, "브리핑").getByRole("button", { name: /재무 체력/ }).click();
   await expect.poll(async () => (await cutaway(page))?.holdingId).toBe(1);
   const good = (await cutaway(page))!.roots!;
   expect(good.count).toBeGreaterThan(weak.count);
@@ -360,40 +361,18 @@ test("a judgment is buried as a capsule and dug up when its grade arrives", asyn
   await open(page, errors, "&demo");
   // the demo's two old judgments are due: their markers glow from the start
   await expect.poll(async () => (await caps(page)).capsules?.filter(c => c.due).map(c => c.holdingId).sort()).toEqual([6, 7]);
-  await expect(page.getByRole("button", { name: "강철중공업 캡슐 · 판정 도착" })).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "POSCO홀딩스 · 채점 완료" })).toHaveCount(1);
 
-  // a new judgment: the memo folds into a capsule, then goes under its tree
-  await dock(page, "브리핑").click();
-  await sheet(page, "오늘 브리핑").getByRole("button", { name: /꽃빛뷰티/ }).click();
-  const brief = sheet(page, "브리핑");
-  const form = brief.getByRole("form", { name: "판단 기록" });
-  await form.getByRole("group", { name: "판단" }).getByRole("button", { name: /더 지켜봄/ }).click();
-  await form.getByRole("textbox").fill("전저점 깨지면 그때 다시 본다.");
-  await form.getByRole("group", { name: "확신도" }).getByRole("button", { name: "3" }).click();
-  await form.getByRole("button", { name: "기록" }).click();
-  await brief.getByLabel("루온의 반박").getByRole("button", { name: "그래도 유지" }).click();
-  await expect(brief.getByLabel("캡슐에 담긴 메모")).toContainText("전저점 깨지면");
-  await brief.getByRole("button", { name: "꽃빛뷰티 밑에 묻기" }).click();
-  await expect(brief).toBeHidden();
-  // (a slow test machine may be past the burying already: the save counts it)
-  await expect.poll(async () => page.evaluate(() => JSON.parse(localStorage.getItem("rethink-garden-v1")!).seen.bury)).toBe(1);
-  await expect.poll(async () => (await caps(page)).capsules?.find(c => c.holdingId === 3)?.due).toBe(false);
-  await expect.poll(async () => (await caps(page)).capsuleFx, { timeout: 10_000 }).toBeNull();
-  // not due yet: its marker says how long, and a tap says it again
-  const waiting = page.getByRole("button", { name: "꽃빛뷰티 캡슐 · D-30" });
-  await expect(waiting).toHaveCount(1);
-  await waiting.dispatchEvent("click");
-  await expect(page.getByRole("status")).toContainText("30일 판정까지 30일");
-
+  // (no new judgment capsules since 지기, docs/jigi.md 2.4: hypothesis capsules come in J2; the old ones still open)
   // a glowing one: dug up, the memo of that day first, then the reveal
-  await page.getByRole("button", { name: "강철중공업 캡슐 · 판정 도착" }).dispatchEvent("click");
-  const memo = sheet(page, "30일 전 너의 판단");
-  await expect(memo).toContainText("강철중공업");
-  await expect(memo).toContainText("캡슐에서 꺼낸 메모");
+  await page.getByRole("button", { name: "POSCO홀딩스 · 채점 완료" }).dispatchEvent("click");
+  const memo = sheet(page, "30일 전 내 판단");
+  await expect(memo).toContainText("POSCO홀딩스");
+  await expect(memo).toContainText("에 쓴 메모");
   await expect(memo).toContainText("수주 잔고 3년치");
   await expect.poll(async () => (await caps(page)).capsuleFx).toEqual({ kind: "dig", holdingId: 7 });
-  await memo.getByRole("button", { name: "결과 열기" }).click();
-  const result = sheet(page, "판정 결과");
+  await memo.getByRole("button", { name: "결과 보기" }).click();
+  const result = sheet(page, "채점 결과");
   await expect(result.locator(".rt-verdict")).toHaveAttribute("data-phase", "done");
   await result.getByRole("button", { name: "닫기" }).first().click();
   await expect.poll(async () => (await caps(page)).capsuleFx).toBeNull();
@@ -408,13 +387,13 @@ test("a judgment is buried as a capsule and dug up when its grade arrives", asyn
 test("a grade becomes a share card that can be saved", async ({ page }) => {
   const errors: string[] = [];
   await open(page, errors, "&demo");
-  await page.getByRole("button", { name: /판정 2건 도착/ }).click();
-  await page.getByRole("button", { name: "결과 열기" }).click();
-  const result = sheet(page, "판정 결과");
+  await nextCard(page).getByRole("button", { name: "확인" }).click();
+  await page.getByRole("button", { name: "결과 보기" }).click();
+  const result = sheet(page, "채점 결과");
   await expect(result.locator(".rt-verdict")).toHaveAttribute("data-phase", "done");
-  await result.getByRole("button", { name: "공유 카드" }).click();
+  await result.getByRole("button", { name: "공유하기" }).click();
   const card = sheet(page, "공유 카드");
-  const img = card.getByRole("img", { name: /강철중공업 30일 판정 공유 카드/ });
+  const img = card.getByRole("img", { name: /POSCO홀딩스 30일 채점 공유 카드/ });
   await expect(img).toBeVisible({ timeout: 20_000 });
   expect(await img.evaluate(e => [(e as HTMLImageElement).naturalWidth, (e as HTMLImageElement).naturalHeight])).toEqual([1080, 1920]);
   await expect(card).toContainText("투자 권유 아님");
@@ -422,7 +401,7 @@ test("a grade becomes a share card that can be saved", async ({ page }) => {
   expect(file.suggestedFilename()).toMatch(/\.png$/);
   // back to the result
   await card.getByRole("button", { name: "닫기" }).first().click();
-  await expect(sheet(page, "판정 결과")).toBeVisible();
+  await expect(sheet(page, "채점 결과")).toBeVisible();
   clean(errors);
 });
 
@@ -431,15 +410,15 @@ test("a grade becomes a share card that can be saved", async ({ page }) => {
 test("the timelapse shows the garden a year ago and comes back to today", async ({ page }) => {
   const errors: string[] = [];
   await open(page, errors, "&demo");
-  await dock(page, "기록").click();
-  await sheet(page, "내 판단의 질").getByRole("button", { name: "정원 타임랩스" }).click();
+  await records(page);
+  await sheet(page, "내 판단의 질").getByRole("button", { name: "1년 돌려보기" }).click();
   const bar = page.getByRole("dialog", { name: "타임랩스" });
   await expect(bar).toBeVisible();
   await bar.getByRole("button", { name: "멈춤" }).click();
   const lapse = async () => (await page.evaluate(() => (window as unknown as { __proto3d: { lapse: { back: number; trees: number; weather: string } | null } }).__proto3d.lapse));
   await bar.getByLabel("타임랩스 날짜").fill("0");
   await expect.poll(async () => (await lapse())?.back).toBe(365);
-  // a year ago only the demo's oldest holding (별숲게임즈, bought 2025-06) stood there
+  // a year ago only the demo's oldest holding (NAVER, bought 2025-06) stood there
   await expect.poll(async () => (await lapse())?.trees).toBe(1);
   await expect(page.locator(".rt-weather")).toContainText("그날 시장");
   await expect(page.getByRole("navigation", { name: "메뉴" })).toBeHidden();
@@ -461,7 +440,7 @@ test("tilting the phone leans the view", async ({ page }) => {
   const t = async () => page.evaluate(() => { const h = (window as unknown as { __proto3d: { tilt: T } }).__proto3d.tilt; return { on: h.on, need: h.need, x: h.x, y: h.y } });
   // a browser with a permission step (iPhone, recent Chrome) shows the button and asks only when it is pressed
   await page.context().grantPermissions(["accelerometer", "gyroscope"]);// what the player would allow in the prompt
-  if ((await t()).need) await page.getByRole("button", { name: "기울이기 켜기" }).click();
+  if ((await t()).need) { await more(page, "설정"); await sheet(page, "설정").getByRole("button", { name: "기울이기 켜기" }).click(); await sheet(page, "설정").getByRole("button", { name: "닫기" }).first().click() }
   await expect.poll(async () => (await t()).on).toBe(true);
   const tilt = (beta: number, gamma: number) => page.evaluate(([b, g]) => window.dispatchEvent(new DeviceOrientationEvent("deviceorientation", { beta: b, gamma: g })), [beta, gamma]);
   await tilt(40, 0);// how it is held: the middle
@@ -504,7 +483,7 @@ test("the map walks to the library and over the bridge to the league square", as
   const sq = (await hooks(page))!.points.plaza;
   expect(await tappable(page, sq, vp)).toBe(true);
   await page.mouse.click(sq.x, sq.y);
-  await expect(page.getByRole("dialog", { name: /리그/ })).toContainText("판단 점수");
+  await expect(page.getByRole("dialog", { name: /리그/ })).toContainText("기록 점수");
   clean(errors);
 });
 
@@ -522,8 +501,8 @@ test("the house opens into the analysts' workroom and back out", async ({ page }
   await expect(page.getByRole("navigation", { name: "메뉴" })).toBeVisible();
   await expect(page.getByRole("button", { name: "지도" })).toHaveCount(0);
   // the demo's two judgments are two books; both of their grades have arrived, so the board says so
-  await expect(page.getByRole("button", { name: "판단 2권" })).toHaveCount(1);
-  await expect(page.getByRole("button", { name: /판정 도착 2/ })).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "판단 2개" })).toHaveCount(1);
+  await expect(page.getByRole("button", { name: /채점 완료 2/ })).toHaveCount(1);
   await page.getByRole("button", { name: /^책상/ }).dispatchEvent("click");
   await expect(sheet(page, /오늘 할 일/)).toBeVisible();
   await sheet(page, /오늘 할 일/).getByRole("button", { name: "닫기" }).first().click();
@@ -543,14 +522,17 @@ async function quietGarden(page: Page, errors: string[], hour: string) {
   const list = sheet(page, "종목 확인");
   await list.getByLabel("1번 종목 이름").fill("나래식품");// a small gain: nothing is flagged
   await list.getByLabel("나래식품 수익률").fill("6.5");
-  await list.getByRole("button", { name: /심기/ }).click();
+  await list.getByRole("button", { name: /정원에 넣기/ }).click();
   await page.getByRole("button", { name: "건너뛰기" }).click({ timeout: 4_000 }).catch(() => {});
 }
 test("with nothing flagged the analysts go about their day, meet and talk, and go home at night", async ({ page }) => {
   const errors: string[] = [];
   await quietGarden(page, errors, "14");// 14:00 is a meeting slot
-  await expect(page.locator(".rt-bubble")).toHaveCount(2, { timeout: 30_000 });
-  const talk = await page.locator(".rt-bubble").allTextContents();
+  // the two who meet take turns: one bubble at a time (TIMING.bubbleTurn), so both lines show within a few turns
+  await expect(page.locator(".rt-bubble")).toHaveCount(1, { timeout: 30_000 });
+  const seen = new Set<string>();
+  await expect.poll(async () => { for (const t of await page.locator(".rt-bubble").allTextContents()) seen.add(t); return seen.size }, { timeout: 30_000 }).toBeGreaterThanOrEqual(2);
+  const talk = [...seen];
   expect(talk.every(t => !/팔아|사라|매수|매도/.test(t))).toBe(true);
   await page.goto("/proto3d?weather=clear&hour=23");
   await expect.poll(async () => (await hooks(page))?.frames ?? 0, { timeout: 60_000 }).toBeGreaterThan(10);
@@ -566,8 +548,8 @@ test("with nothing flagged the analysts go about their day, meet and talk, and g
 test("my observer's stage: dress up, see my record and stamps, back to the garden", async ({ page }) => {
   const errors: string[] = [];
   await open(page, errors, "&demo");
-  await page.getByRole("button", { name: "내 관찰자" }).click();
-  const me = page.getByRole("dialog", { name: "내 관찰자" });
+  await page.getByRole("button", { name: "내 프로필" }).click();
+  const me = page.getByRole("dialog", { name: "내 프로필" });
   await expect(me).toBeVisible();
   await expect.poll(async () => (await page.evaluate(() => (window as unknown as { __proto3d: { stage?: boolean } }).__proto3d.stage))).toBe(true);
   await expect(page.getByRole("navigation", { name: "메뉴" })).toBeHidden();
@@ -578,7 +560,7 @@ test("my observer's stage: dress up, see my record and stamps, back to the garde
   await expect(me).toContainText("새벽");
   // a locked piece says how; an open one is put on and saved
   await me.getByRole("button", { name: "모자" }).click();
-  await expect(me.getByRole("button", { name: /헤드램프/ })).toContainText("확신 적중");
+  await expect(me.getByRole("button", { name: /헤드램프/ })).toContainText("확신 5 적중");
   await me.getByRole("button", { name: /^없음/ }).click();
   await me.getByRole("button", { name: "색" }).click();
   await me.getByRole("button", { name: /먹/ }).click();
@@ -586,10 +568,10 @@ test("my observer's stage: dress up, see my record and stamps, back to the garde
   await expect.poll(async () => (await saved()).look).toMatchObject({ hat: null, palette: "ink" });
   await me.getByRole("tab", { name: "기록" }).click();
   await expect(me).toContainText("확신도별 실제 적중");
-  await me.getByRole("tab", { name: "도장첩" }).click();
-  await expect(me).toContainText("첫 기록");
+  await me.getByRole("tab", { name: "업적" }).click();
+  await expect(me).toContainText("첫 판단");
   expect((await saved()).stamps.map((s: { id: string }) => s.id)).toContain("first-judgment");
-  await me.getByRole("button", { name: "정원으로" }).click();
+  await me.getByRole("button", { name: "닫기" }).click();
   await expect(me).toBeHidden();
   await expect(page.getByRole("button", { name: /새벽/ })).toBeVisible();
   clean(errors);
@@ -599,8 +581,8 @@ test("my observer's stage: dress up, see my record and stamps, back to the garde
 test("settings change the text size and keep things still; the letter and the week's goals are there", async ({ page }) => {
   const errors: string[] = [];
   await open(page, errors, "&demo");
-  await page.getByRole("button", { name: "내 관찰자" }).click();
-  const me = page.getByRole("dialog", { name: "내 관찰자" });
+  await page.getByRole("button", { name: "내 프로필" }).click();
+  const me = page.getByRole("dialog", { name: "내 프로필" });
   await me.getByRole("button", { name: "설정" }).click();
   const st = sheet(page, "설정");
   await st.getByRole("group", { name: "글자 크기" }).getByRole("button", { name: "크게", exact: true }).click();
@@ -609,18 +591,18 @@ test("settings change the text size and keep things still; the letter and the we
   await expect(page.locator("html")).toHaveAttribute("data-still", "1");
   expect((await page.evaluate(() => JSON.parse(localStorage.getItem("rethink-garden-v1")!))).settings).toMatchObject({text: "l", still: true});
   // starting over asks twice
-  await st.getByRole("button", { name: "정원을 처음부터 다시 시작" }).click();
+  await st.getByRole("button", { name: "처음부터 다시 시작" }).click();
   await expect(st).toContainText("되돌릴 수 없어");
-  await st.getByRole("button", { name: "그만둘래" }).click();
+  await st.getByRole("button", { name: "취소" }).click();
   await st.getByRole("button", { name: "닫기" }).first().click();
   // this month's letter so far, from the record tab
   await me.getByRole("tab", { name: "기록" }).click();
-  await me.getByRole("button", { name: "이번 달 편지 미리 보기" }).click();
-  const letter = sheet(page, "한 달 편지");
-  await expect(letter).toContainText("의 판단");
-  await expect(letter).toContainText("판단을 적은 편지");
+  await me.getByRole("button", { name: "이번 달 리포트 미리 보기" }).click();
+  const letter = sheet(page, "월간 리포트");
+  await expect(letter).toContainText("월 리포트");
+  await expect(letter).toContainText("판단 기록 리포트");
   await letter.getByRole("button", { name: "닫기" }).first().click();
-  await me.getByRole("button", { name: "정원으로" }).click();
+  await me.getByRole("button", { name: "닫기" }).click();
   // the week's three in today's sheet
   await page.getByRole("button", { name: /^오늘 할 일/ }).click();
   await expect(sheet(page, /오늘 할 일/)).toContainText("이번 주 목표");

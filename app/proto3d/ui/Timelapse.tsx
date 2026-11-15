@@ -7,7 +7,7 @@ export function TimelapseBar({i,n,day,back,playing,onSeek,onPlay,onClose}:{i:num
   const when=back===0?'오늘':back>=360?'1년 전':`${Math.round(back/7)}주 전`;
   return <section className="rt-lapse" role="dialog" aria-label="타임랩스">
     <div className="rt-lapse-head">
-      <div><span className="rt-kicker">타임랩스 · 모의 경로</span><strong><span className="rt-num">{day}</span> · {when}</strong></div>
+      <div><span className="rt-kicker">1년 돌려보기 · 모의 경로</span><strong><span className="rt-num">{day}</span> · {when}</strong></div>
       <button type="button" className="rt-btn" onClick={onPlay} aria-pressed={playing}>{playing?'멈춤':'재생'}</button>
       <button type="button" className="rt-close" aria-label="닫기" onClick={onClose}><Cross size={20}/></button>
     </div>
