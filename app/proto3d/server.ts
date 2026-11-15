@@ -54,3 +54,61 @@ export function supabaseExpeditions(url:string,anonKey:string):ExpeditionRepo{
   };
 }
 export const expeditionRepo:ExpeditionRepo=localExpeditions;
+
+// 다른 정원들 (docs/planets.md): the neighbours' planets for my league group, and where my own planet summary goes.
+// Only core/planets.ts wireOf(...) ever leaves the device. Local: example neighbours, always labelled.
+import {examplePlanets,wireOf,type Planet} from '../core/planets';
+export type PlanetRepo={neighbours(week:string):Promise<{planets:Planet[];sample:boolean}>;publish(me:Planet|null):Promise<void>};
+export const localPlanets:PlanetRepo={async neighbours(week){return {planets:examplePlanets(week),sample:true}},async publish(){}};
+export function supabasePlanets(url:string,anonKey:string,token:()=>string|null):PlanetRepo{
+  const h=()=>({apikey:anonKey,authorization:`Bearer ${token()??anonKey}`,'content-type':'application/json'});
+  return {
+    async neighbours(week){const r=await fetch(`${url}/rest/v1/planet_neighbours?week=eq.${week}`,{headers:h()}).catch(()=>null);
+      if(!r?.ok)return {planets:examplePlanets(week),sample:true};
+      const rows=(await r.json()) as {player:string;body:ReturnType<typeof wireOf>}[];return {planets:rows.map(x=>({id:x.player,...x.body})),sample:false}},
+    async publish(me){await fetch(`${url}/rest/v1/planets`,{method:'POST',headers:{...h(),prefer:'resolution=merge-duplicates'},body:JSON.stringify(me?{body:wireOf(me)}:{body:null})}).catch(()=>{})},
+  };
+}
+export const planetRepo:PlanetRepo=localPlanets;
+
+// Accounts (core/auth.ts): sign up, log in, who is signed in. Local: one account kept on this device only, and never
+// its password (the local check only matches the e-mail; the real check is the server's). Kakao and Google need the
+// server. Supabase Auth replaces this with email + Kakao + Google when the project keys are set (docs/server.md).
+import {checkSignUp,checkLogIn,type Account,type SignUp} from '../core/auth';
+export type AuthResult={ok:true;account:Account}|{ok:false;error:string};
+export type AuthRepo={
+  current():Account|null;
+  signUp(f:SignUp):Promise<AuthResult>;
+  logIn(email:string,password:string):Promise<AuthResult>;
+  social(provider:'kakao'|'google'):Promise<AuthResult>;
+  // a Kakao or Google sign-in never saw the sign-up form: its nickname and consents are asked once, then saved
+  saveConsents(nickname:string,consents:import('../core/auth').ConsentId[]):Promise<AuthResult>;
+  // who is signed in changes outside our calls too (coming back from Kakao or Google, a token running out)
+  onChange(f:(a:Account|null)=>void):()=>void;
+  logOut():Promise<void>;
+  local:boolean;
+};
+const ACCOUNT_KEY='rethink-account-v1';
+const read=():Account|null=>{try{const v=localStorage.getItem(ACCOUNT_KEY);return v?JSON.parse(v) as Account:null}catch{return null}};
+export const localAuth:AuthRepo={
+  local:true,
+  current:read,
+  async signUp(f){const e=checkSignUp(f);const first=Object.values(e)[0];if(first)return {ok:false,error:first};
+    const account:Account={email:f.email.trim().toLowerCase(),nickname:f.nickname.trim(),createdAt:new Date().toISOString(),consents:f.consents,provider:'email'};
+    try{localStorage.setItem(ACCOUNT_KEY,JSON.stringify(account))}catch{/* private mode: signed in for this visit only */}
+    return {ok:true,account}},
+  async logIn(email,password){const e=checkLogIn(email,password);if(e)return {ok:false,error:e};
+    const a=read();if(!a||a.email!==email.trim().toLowerCase())return {ok:false,error:'이 기기에 가입한 계정이 아니에요. 서버를 연결하면 어디서든 로그인돼요'};
+    return {ok:true,account:a}},
+  async social(){return {ok:false,error:'카카오·구글 로그인은 서버를 연결하면 쓸 수 있어요'}},
+  async saveConsents(nickname,consents){const a=read();if(!a)return {ok:false,error:'로그인이 필요해요'};
+    const next={...a,nickname:nickname.trim()||a.nickname,consents};try{localStorage.setItem(ACCOUNT_KEY,JSON.stringify(next))}catch{/* this visit only */}
+    return {ok:true,account:next}},
+  onChange(){return()=>{}},
+  async logOut(){try{localStorage.removeItem(ACCOUNT_KEY)}catch{/* nothing kept */}},
+};
+// Supabase when the project keys are in .env.local (supabase.ts), the device-only one otherwise
+import {supabaseReady,supabaseAuth} from './supabase';
+// e2e pages use the device-only one (tests/e2e/fixtures.ts sets __localAuth) so they never reach the real project
+const testLocal=typeof window!=='undefined'&&!!(window as {__localAuth?:boolean}).__localAuth;
+export const authRepo:AuthRepo=supabaseReady&&!testLocal?supabaseAuth:localAuth;

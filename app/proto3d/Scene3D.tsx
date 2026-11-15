@@ -34,6 +34,7 @@ import {Interior,type Book,type Note} from './Interior3D';
 import {Explorer} from './Explorer3D';
 import {mixHex,type Daylight} from '../core/daylight';
 import {Showroom} from './Showroom3D';
+import {SkyScene,type SkyWorld} from './Sky3D';
 import type {Look} from '../core/wardrobe';
 
 // The ground (a big sphere's top) is ground.tsx; where everything is, places.ts.
@@ -415,6 +416,8 @@ function Hooks({pos,treePos,points}:{pos:React.MutableRefObject<THREE.Vector3>;t
 // placed items, and what the landmarks show.
 export type Landmark='observatory'|'signpost'|'cart'|'library'|'plaza'|'house';
 export type World={
+  // 보리, the friend who comes over to talk (core/friend.ts): where it waits and what a tap does; null keeps it home
+  friend?:{at:{x:number;z:number};onPick:()=>void}|null;
   // at: the tree they stand at (a signal) · near: luon waiting by that tree's capsule marker · spot: where their day has
   // them (core/routine.ts), facing `face`, doing `act` · home: indoors (not drawn out here)
   analysts:{id:AnalystId;at:number|null;near?:boolean;spot?:{x:number;z:number;face:number;act:string}|null;home?:boolean;bubble:{text:string;alert:boolean}|null}[];
@@ -439,6 +442,8 @@ export type World={
   // inside the house (Interior3D.tsx): the garden is put away and the workroom drawn instead
   // my observer: how it is dressed (core/wardrobe.ts), and whether its stage (ui/MyPage.tsx) is open instead of the garden
   look:Look;stage:boolean;
+  // 다른 정원들: the sky of planets replaces the garden while it is open (ui/SkyView.tsx)
+  sky:SkyWorld|null;
   // the time of day (core/daylight.ts): how light, how warm, how dark
   light:Daylight;
   inside:boolean;room:{books:Book[];notes:Note[];resting:AnalystId[];onDesk:()=>void;onShelf:()=>void;onBoard:()=>void;onDoor:()=>void};
@@ -482,7 +487,9 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
   const treePos=useMemo(()=>trees.map(t=>({id:t.h.id,v:new THREE.Vector3(t.x,surfaceY(t.x,t.z)+0.5,t.z)})),[trees]);
   const onTops=useMemo(()=>treePos.map(p=>(y:number)=>{p.v.y=surfaceY(p.v.x,p.v.z)+0.12+y*0.75}),[treePos]);
   // each analyst reports its head top: the body point is for tapping it, the bubble point sits above the head
-  const reportAnalyst=useCallback((id:AnalystId,v:THREE.Vector3)=>{for(const [k,dy] of [['analyst-'+id,-1.2],['bubble-'+id,0.55]] as const){let p=points.get(k);if(!p){p=new THREE.Vector3();points.set(k,p)}p.copy(v).y+=dy}},[points]);
+  // the friend reports as friend-<id> (not analyst-), so the analysts' count stays theirs; its bubble point is shared
+  const reportFriend=useCallback((id:string,v:THREE.Vector3)=>{for(const [k,dy] of [['friend-'+id,-1.2],['bubble-'+id,0.55]] as const){let p=points.get(k);if(!p){p=new THREE.Vector3();points.set(k,p)}p.copy(v).y+=dy}},[points]);
+  const reportAnalyst=useCallback((id:string,v:THREE.Vector3)=>{for(const [k,dy] of [['analyst-'+id,-1.2],['bubble-'+id,0.55]] as const){let p=points.get(k);if(!p){p=new THREE.Vector3();points.set(k,p)}p.copy(v).y+=dy}},[points]);
   // an analyst with a flag stands in front of that tree, a little to one side (so two on one tree do not overlap)
   const spotFor=(id:AnalystId,at:number|null,near?:boolean,spot?:{x:number;z:number}|null)=>{const t=at===null?null:trees.find(x=>x.h.id===at);
     if(!t)return spot??IDLE[id];const side=id==='moa'?-1:1;
@@ -493,14 +500,14 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
   const reportPoint=useCallback((k:string,v:THREE.Vector3)=>{let p=points.get(k);if(!p){p=new THREE.Vector3();points.set(k,p)}p.copy(v)},[points]);
   useEffect(()=>{testHooks().inside=world.inside;testHooks().stage=world.stage},[world.inside,world.stage]);
   return <>
-    {!world.inside&&!world.stage&&<fog attach="fog" args={[mixHex(wl.fog,LOOK.daylight.nightFog,world.light.night*0.85),LOOK.fog.near,LOOK.fog.far]}/>}
+    {!world.inside&&!world.stage&&!world.sky&&<fog attach="fog" args={[mixHex(wl.fog,LOOK.daylight.nightFog,world.light.night*0.85),LOOK.fog.near,LOOK.fog.far]}/>}
     <hemisphereLight ref={hemi} args={[LOOK.hemi.sky,LOOK.hemi.ground,LOOK.hemi.intensity*wl.hemi*(LOOK.daylight.floor+(1-LOOK.daylight.floor)*world.light.day)]}/>
     <SunFollow pos={pos} sun={sun}/>
     <directionalLight ref={sun} position={LOOK.sun.position} intensity={wl.sun.intensity*Math.max(0.08,world.light.day)} color={mixHex(wl.sun.color,LOOK.daylight.lowSun,world.light.warm)} castShadow
       shadow-mapSize={[LOOK.shadow.mapSize,LOOK.shadow.mapSize]} shadow-radius={LOOK.shadow.radius} shadow-bias={-0.0004} shadow-normalBias={0.04}
       shadow-camera-left={-16} shadow-camera-right={16} shadow-camera-top={16} shadow-camera-bottom={-16} shadow-camera-near={1} shadow-camera-far={50}/>
 
-    {world.stage?<Showroom look={world.look}/>:world.inside?<Interior books={world.room.books} notes={world.room.notes} resting={world.room.resting} decor={world.decor}
+    {world.sky?<SkyScene sky={world.sky}/>:world.stage?<Showroom look={world.look}/>:world.inside?<Interior books={world.room.books} notes={world.room.notes} resting={world.room.resting} decor={world.decor}
       onDesk={world.room.onDesk} onShelf={world.room.onShelf} onBoard={world.room.onBoard} onDoor={world.room.onDoor} onAnalyst={world.onAnalyst}
       report={reportPoint} reportAnalyst={reportAnalyst}/>:<>
     <Ground onWalk={walk}/>
@@ -533,16 +540,17 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
     <Suspense fallback={null}>
       {world.analysts.filter(a=>!a.home).map(a=><Analyst key={a.id} id={a.id} to={spotFor(a.id,a.at,a.near,a.spot)} act={a.at===null&&a.spot?a.spot.act:a.at!==null&&!a.near?'look':undefined} faceTo={a.at===null&&a.spot?a.spot.face:undefined} from={world.enterFrom} face={pos} surface={surfaceY} tilt={tiltAt} bubble={a.bubble}
         onPick={()=>world.onAnalyst(a.id)} report={reportAnalyst}/>)}
+      {world.friend&&<Analyst key="bori" id="bori" to={world.friend.at} act="look" from={world.enterFrom} face={pos} surface={surfaceY} tilt={tiltAt} bubble={null} onPick={world.friend.onPick} report={reportFriend}/>}
     </Suspense>
     {/* out of the way while the camera looks into the open ground */}
     <Player look={world.look} target={target} stops={stops} pos={pos} hidden={(!!cut&&!cut.c.closing)||!!world.capsuleFx}/>
-    <FollowCam pos={pos} recenter={recenter} focus={focusPos} orbit={orbit} near={!!world.capsuleFx} low={cut&&!cut.c.closing?cut.yaw:null}/>
+    {!world.sky&&<FollowCam pos={pos} recenter={recenter} focus={focusPos} orbit={orbit} near={!!world.capsuleFx} low={cut&&!cut.c.closing?cut.yaw:null}/>}
     </>}
     <Hooks pos={pos} treePos={treePos} points={points}/>
 
     <EffectComposer multisampling={0}>
       <Bloom mipmapBlur luminanceThreshold={LOOK.post.bloom.threshold} luminanceSmoothing={LOOK.post.bloom.smoothing} intensity={LOOK.post.bloom.intensity} radius={LOOK.post.bloom.radius}/>
-      <TiltShift2 blur={world.stage?0:world.inside?blur*0.35:blur} taper={LOOK.post.tiltShift.taper}/>
+      <TiltShift2 blur={world.stage||world.sky?0:world.inside?blur*0.35:blur} taper={LOOK.post.tiltShift.taper}/>
       <HueSaturation saturation={wl.saturation}/>
       <Vignette offset={LOOK.post.vignette.offset} darkness={LOOK.post.vignette.darkness}/>
       <Noise premultiply blendFunction={BlendFunction.SOFT_LIGHT} opacity={LOOK.post.grain.opacity}/>

@@ -2,8 +2,9 @@
 #
 #   blender -b --factory-startup --python tools/blender/analysts.py -- public/models/analysts
 #
-# Writes tori.glb (auditor: glasses, clipboard), moa.glb (tracker: long ears, scarf, telescope) and
-# luon.glb (rebutter: hood, one raised brow). Node names the scene animates (app/proto3d/Analyst3D.tsx):
+# Writes tori.glb (auditor: glasses, clipboard), moa.glb (tracker: long ears, scarf, telescope),
+# luon.glb (rebutter: hood, one raised brow) and bori.glb (the guinea pig friend who comes over to talk: a squat loaf
+# of a body, small round ears, a patch over one eye, a white blaze, two front teeth, a mint scarf, a sprout leaf). Node names the scene animates (app/proto3d/Analyst3D.tsx):
 #   body          hips pivot, the whole figure bobs and turns on it
 #   head          neck pivot, looks around and nods
 #   arm_l, arm_r  shoulder pivots, swing and gesture
@@ -238,6 +239,42 @@ def luon():
     p['arms']['r'].rotation_euler = (0.2, 0, 0.35)
 
 
+def bori():
+    c = dict(fur='#e3b47a', belly='#fff3e1')
+    p = base(c)
+    patch, blaze, inner, tooth, scarf, leaf = (material('patch', '#8a5a34'), material('blaze', '#fffaf2'), material('ear_in', '#f2b8a4'),
+                                               material('tooth', '#ffffff'), material('scarf', '#3fa98a'), material('leaf', '#6cc04a'))
+    # a guinea pig is a loaf: wider, lower, rounder than the others
+    for o in bpy.data.objects:
+        # (sizes only: these are parented to the pivots, so their locations are not world positions)
+        if o.name.startswith('torso'): o.scale = (0.45, 0.38, 0.38)
+        if o.name.startswith('belly'): o.scale = (0.3, 0.17, 0.27); o.location.y -= 0.05   # pivots do not rotate: a shift is a shift
+        if o.name.startswith('skull'): o.scale = (0.41, 0.34, 0.33)
+    s = set(bpy.data.objects)
+    # small round ears that flop out, pink inside
+    for x, rz in ((-0.3, 0.5), (0.3, -0.5)):
+        e = ball('ear', (x, 0.04, 1.4), (0.12, 0.045, 0.085), p['mats']['fur'])
+        e.rotation_euler = (0, rz, 0)
+        e2 = ball('ear_in', (x * 0.98, 0.0, 1.4), (0.08, 0.03, 0.055), inner)
+        e2.rotation_euler = (0, rz, 0)
+    # a brown patch around the right eye, a white blaze down the forehead, two front teeth under the nose
+    ball('patch', (0.16, -0.23, 1.26), (0.16, 0.08, 0.15), patch)
+    ball('blaze', (0, -0.29, 1.31), (0.05, 0.04, 0.1), blaze)
+    for x in (-0.018, 0.018):
+        rbox('tooth', (x, -0.37, 1.05), (0.03, 0.012, 0.045), tooth, bevel=0.3)
+    attach_new(p['head'], s | {p['head']})
+    s = set(bpy.data.objects)
+    ring('scarf', (0, 0, 0.86), 0.31, 0.065, scarf, rot=(0, 0, 0))
+    capsule('scarf_tail', (-0.15, -0.27, 0.84), (-0.23, -0.33, 0.62), 0.055, scarf)
+    attach_new(p['root'], s | {p['root']})
+    # a sprout leaf in the right hand, the garden's sign
+    s = set(bpy.data.objects)
+    capsule('stem', (0.42, -0.14, 0.46), (0.46, -0.2, 0.72), 0.014, leaf)
+    lf = ball('leaf', (0.5, -0.22, 0.78), (0.1, 0.03, 0.06), leaf)
+    lf.rotation_euler = (0, -0.6, 0.2)
+    attach_new(p['arms']['r'], s | {p['arms']['r']})
+
+
 def export(path):
     bpy.ops.object.select_all(action='SELECT')
     bpy.ops.export_scene.gltf(filepath=path, export_format='GLB', use_selection=True, export_apply=True,
@@ -247,7 +284,7 @@ def export(path):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    for name, build in (('tori', tori), ('moa', moa), ('luon', luon)):
+    for name, build in (('tori', tori), ('moa', moa), ('luon', luon), ('bori', bori)):
         reset()
         build()
         export(os.path.join(OUT, name + '.glb'))

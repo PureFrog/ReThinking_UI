@@ -2,11 +2,34 @@
 -- the types relaxed to TEXT/INTEGER). Not applied anywhere yet: the app runs on the local mock in app/proto3d/server.ts.
 -- No orders or trades are stored, ever. Returns appear only as the graded move after a judgment.
 
+-- one row per Supabase Auth user (email, Kakao or Google). Made by the trigger below from the sign-up's nickname and
+-- consents (core/auth.ts CONSENTS); a Kakao or Google user fills them in on the consent step (ui/Welcome.tsx), which
+-- updates the auth metadata and so this row. Deleting the auth user deletes everything of theirs (cascade).
 create table players (
-  id          uuid primary key default gen_random_uuid(),
-  handle      text not null unique,          -- shown in the league, never a real name by default
+  id          uuid primary key references auth.users(id) on delete cascade,
+  handle      text not null unique,          -- the nickname: shown in the league and on planets, never a real name by default
+  consents    jsonb not null default '[]',   -- ["age14","terms","privacy","overseas","marketing"?] as agreed
+  consented_at timestamptz,
   created_at  timestamptz not null default now()
 );
+alter table players enable row level security;
+create policy "players: read own" on players for select using (id = auth.uid());
+create policy "players: update own" on players for update using (id = auth.uid());
+
+-- the nickname must be free; if two people pick the same one at once, the later gets a short suffix
+create or replace function public.handle_auth_user() returns trigger language plpgsql security definer set search_path = public as $$
+declare nick text := coalesce(nullif(trim(new.raw_user_meta_data->>'nickname'),''), nullif(trim(new.raw_user_meta_data->>'name'),''), split_part(new.email,'@',1), '익명');
+        agreed jsonb := coalesce(new.raw_user_meta_data->'consents','[]'::jsonb);
+begin
+  nick := left(nick, 12);
+  if exists (select 1 from players where handle = nick and id <> new.id) then nick := left(nick, 8) || '-' || substr(md5(new.id::text), 1, 3); end if;
+  insert into players (id, handle, consents, consented_at) values (new.id, nick, agreed, case when jsonb_array_length(agreed) > 0 then now() end)
+  on conflict (id) do update set handle = excluded.handle, consents = excluded.consents,
+    consented_at = coalesce(players.consented_at, excluded.consented_at);
+  return new;
+end $$;
+create trigger on_auth_user_created after insert on auth.users for each row execute function public.handle_auth_user();
+create trigger on_auth_user_updated after update of raw_user_meta_data on auth.users for each row execute function public.handle_auth_user();
 
 -- what the models flagged (the team's model output, one row per holding per day)
 create table signals (
@@ -119,3 +142,31 @@ create view expedition_week as
 -- Supabase row level security: players read the week's table, only the edge function (service role) writes runs
 alter table expedition_runs enable row level security;
 create policy expedition_runs_read_own on expedition_runs for select using (player_id = auth.uid());
+
+-- 다른 정원들 (docs/planets.md, app/core/planets.ts). One row per player: the planet summary its owner chose to share
+-- (core/planets.ts wireOf: tree states and sectors, names only when opened, the judging numbers). Never amounts,
+-- quantities, returns, notes or captures. A null body means the player keeps the planet private.
+create table planets (
+  player_id   uuid primary key references players(id) default auth.uid(),
+  body        jsonb,
+  updated_at  timestamptz not null default now()
+);
+alter table planets enable row level security;
+create policy planets_write_own on planets for insert with check (player_id = auth.uid());
+create policy planets_update_own on planets for update using (player_id = auth.uid());
+-- what a player sees: the other members of their league group this week, only planets that are shared
+create view planet_neighbours with (security_invoker = false) as
+  select lg.week, p.player_id::text as player, p.body
+  from league_members me
+  join league_groups lg on lg.id = me.group_id
+  join league_members other on other.group_id = me.group_id and other.player_id <> me.player_id
+  join planets p on p.player_id = other.player_id
+  where me.player_id = auth.uid() and p.body is not null;
+create table planet_cheers (
+  from_player uuid not null references players(id) default auth.uid(),
+  to_player   uuid not null references players(id),
+  week        date not null,
+  primary key (from_player, to_player, week)   -- one cheer per neighbour per week
+);
+alter table planet_cheers enable row level security;
+create policy planet_cheers_write_own on planet_cheers for insert with check (from_player = auth.uid());

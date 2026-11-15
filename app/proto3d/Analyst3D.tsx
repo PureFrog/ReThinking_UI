@@ -13,8 +13,9 @@ import type {AnalystId} from '../content/analysts';
 
 export type AnalystSpot={x:number;z:number};
 // act: what they do where their day has them (core/routine.ts) · faceTo: which way they look while doing it
-type Props={id:AnalystId;to:AnalystSpot;from?:AnalystSpot|null;act?:string;faceTo?:number;face:React.MutableRefObject<THREE.Vector3>;surface:(x:number,z:number)=>number;tilt:(x:number,z:number)=>THREE.Quaternion;
-  bubble:{text:string;alert:boolean}|null;onPick:()=>void;report:(id:AnalystId,v:THREE.Vector3)=>void};
+// id: an analyst, or 'bori' the guinea pig friend (core/friend.ts), who walks and blinks the same way
+type Props={id:AnalystId|'bori';to:AnalystSpot;from?:AnalystSpot|null;act?:string;faceTo?:number;face:React.MutableRefObject<THREE.Vector3>;surface:(x:number,z:number)=>number;tilt:(x:number,z:number)=>THREE.Quaternion;
+  bubble:{text:string;alert:boolean}|null;onPick:()=>void;report:(id:string,v:THREE.Vector3)=>void};
 const SPEED=2.2;
 const eyeMat=new THREE.MeshStandardMaterial({color:'#1d1f24',roughness:0.3});
 
@@ -61,4 +62,4 @@ export function Analyst({id,to,from,act,faceTo,face,surface,tilt,bubble,onPick,r
     <group ref={turn} onClick={e=>{e.stopPropagation();onPick()}} scale={1.45}><primitive object={model}/></group>
   </group>;
 }
-(['tori','moa','luon'] as AnalystId[]).forEach(a=>useGLTF.preload(MODELS.analyst(a)));
+(['tori','moa','luon','bori'] as const).forEach(a=>useGLTF.preload(MODELS.analyst(a)));
