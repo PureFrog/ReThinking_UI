@@ -64,3 +64,6 @@ sonjeol-game/
 __MACOSX/
 .DS_Store
 INVEST_GAME/
+
+# Blender logo layers (tools/blender/logo.py renders them again; the cut WebP are in public/brand)
+/docs/mockups/landing/logo3d/layer-*.png
