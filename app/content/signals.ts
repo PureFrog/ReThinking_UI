@@ -65,3 +65,14 @@ export function mockSignals(holdings:Holding[],day:string):Signal[]{
 }
 export type SignalProvider={today(holdings:Holding[],day:string):Signal[]};
 export const signalProvider:SignalProvider={today:mockSignals};
+
+// 되돌아보기 needs a note even when nothing in the garden is flagged (stocks typed in that are up, or barely down):
+// moa's plain chart note on the tree that moved most, not a loss signal. Only the first visit uses it.
+export function lookbackNote(holdings:Holding[]):Signal|null{
+  if(!holdings.length)return null;
+  const h=[...holdings].sort((a,b)=>Math.abs(b.rate)-Math.abs(a.rate))[0],r=hash(h.name),n=(lo:number,hi:number)=>lo+r%(hi-lo+1),up=h.rate>=0;
+  return {id:`look:${h.id}`,holdingId:h.id,analyst:'moa',model:'gradual',loss:false,headline:up?`20일선 위에서 ${n(2,4)}주째`:`20일선 근처에서 ${n(2,4)}주째 옆걸음`,
+    evidence:[{k:'20일선',v:up?`위 ${n(8,18)}거래일`:`위아래 ${n(6,12)}번`},{k:'거래량',v:`평균의 ${n(8,12)/10}배`},{k:'수익률',v:`${h.rate}%`}],
+    say:up?'차트는 조용히 위쪽이야. 이럴 때 뭘 근거로 들고 있었는지 적어 두면 좋아.':'방향이 아직 안 정해졌어. 그때 너라면 어느 쪽으로 봤을까?',
+    counter:{hold:'계속 들고 있을 이유, 한 줄로 말할 수 있어?',review:'흔들리는 구간에서 정리하면 나중에 아쉽지 않을까?',watch:'언제까지 볼지 날짜는 정했어?'}};
+}

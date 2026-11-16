@@ -97,6 +97,7 @@ test("writing: a tree's quick chip starts a draft, blanks jump to their page, sa
 // J2: hypotheses pulled from my own words, the stock-direction one confirmed and buried as a capsule under its tree;
 // when its end date has a close it comes up with its verdict (automatic, no manual buttons), then the review.
 test("hypotheses: pull, confirm, buried as a capsule, dug up with the verdict, then the review", async ({ page }, info) => {
+  test.setTimeout(360_000);// writes a whole journal, buries, reloads 95 days ahead and digs up: the longest walk-through here
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(e.message));
   await page.goto("/proto3d?demo&weather=clear");

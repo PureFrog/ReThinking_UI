@@ -7,7 +7,10 @@ import {cue} from '../../core/sound';
 export function Sheet({kicker,title,onClose,children,foot,label,compact}:{kicker:string;title:string;onClose:()=>void;children:ReactNode;foot?:ReactNode;label?:string;compact?:boolean}){
   const ref=useRef<HTMLElement>(null);
   useEffect(()=>{cue('panel-open');return()=>cue('panel-close')},[]);
-  useEffect(()=>{const k=(e:KeyboardEvent)=>{if(e.key==='Escape')onClose()};addEventListener('keydown',k);ref.current?.focus();return()=>removeEventListener('keydown',k)},[onClose]);
+  // focus moves in once, when the sheet opens. (It used to run again on every new onClose — i.e. every re-render — and
+  // pull focus out of the field being typed in: one letter at a time, and Korean composition broke.)
+  const close=useRef(onClose);close.current=onClose;
+  useEffect(()=>{ref.current?.focus();const k=(e:KeyboardEvent)=>{if(e.key==='Escape'&&!e.isComposing)close.current()};addEventListener('keydown',k);return()=>removeEventListener('keydown',k)},[]);
   return <section ref={ref} tabIndex={-1} role="dialog" aria-label={label??title} className={`rt-sheet${compact?" compact":""}`} onPointerDown={e=>e.stopPropagation()}>
     <header className="rt-sheet-head">
       <div><div className="rt-kicker">{kicker}</div><h2>{title}</h2></div>

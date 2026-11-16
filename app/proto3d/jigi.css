@@ -180,3 +180,7 @@
 .proto3d .jg-steps button{display:grid;text-align:left;border:1px solid var(--rt-line);background:#fff;border-radius:10px;padding:6px 9px;font:inherit;font-size:12px;cursor:pointer;color:var(--rt-ink)}
 .proto3d .jg-steps small{color:var(--rt-mute)}
 .proto3d .jg-check-list{font-size:13px;background:var(--jg-seal-soft);border-radius:8px;padding:7px 10px;margin:8px 0}
+/* the 분석 section buttons wrap instead of scrolling sideways (a mouse could not drag the strip) */
+.proto3d .jg-secs{flex-wrap:wrap;overflow:visible}
+.proto3d .jg-tw{cursor:grab}
+.proto3d .jg-tw.dragging{cursor:grabbing;user-select:none}

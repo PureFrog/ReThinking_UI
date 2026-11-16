@@ -31,7 +31,14 @@ export const LOOK={
       {aspect:2.16,fov:42,dist:19,turn:0,pitch:0.6,blur:0.15,lead:0},// phone on its side (844×390)
     ],
     minDist:9,maxDist:40,
+    // drag and wheel feel (OrbitControls): lower damping glides longer after letting go
+    damping:0.07,rotateSpeed:0.8,zoomSpeed:0.9,
+    // keyboard: Q/E turn (radians a second), +/- zoom (share of the distance a second)
+    keyTurn:1.7,keyZoom:0.9,
   },
+  // walking (Scene3D Player): speeds up and slows down instead of starting and stopping at once, and turns smoothly;
+  // keyStep: how far ahead a held arrow / WASD key keeps the walk target
+  walk:{speed:3.2,accel:10,turn:12,brake:0.7,keyStep:0.8},
 
   // the grade reveal reaching the tree (Scene3D Burst): sparks for a hit, autumn leaves for a miss
   burst:{hit:'#fff3a8',miss:'#d39a3a'},

@@ -38,7 +38,7 @@ import {SkyScene,type SkyWorld} from './Sky3D';
 import type {Look} from '../core/wardrobe';
 
 // The ground (a big sphere's top) is ground.tsx; where everything is, places.ts.
-const SPEED=3.2;// player walking speed, units per second
+const SPEED=LOOK.walk.speed;// player walking speed, units per second (look.ts walk)
 const PLAYER_START=new THREE.Vector3(0,0,2.5);
 export {surfaceY};
 
@@ -276,12 +276,40 @@ function Butterflies({count=14}:{count?:number}){
 
 // A placeholder player: coat, round head, a fluffy two-tone hair puff.
 // stops: where to go after the current target (places.ts route: the bridge's near and far end, then the tap)
+// Keyboard (besides tap/drag): arrows or WASD walk the way the camera faces, Q/E turn the view, +/- zoom. Keys typed
+// into a field, or while composing Korean, are left alone.
+const WALK_KEYS:Record<string,[number,number]>={ArrowUp:[0,1],KeyW:[0,1],ArrowDown:[0,-1],KeyS:[0,-1],ArrowLeft:[-1,0],KeyA:[-1,0],ArrowRight:[1,0],KeyD:[1,0]};
+// inside an open panel the keys belong to the panel (arrows scroll it, Enter presses its buttons)
+const typing=(e:KeyboardEvent)=>{const t=e.target as HTMLElement|null;return e.isComposing||!!t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)||!!t.closest?.('[role=dialog]'))};
+function Keys({pos,target,stops,onMove,enabled}:{pos:React.MutableRefObject<THREE.Vector3>;target:React.MutableRefObject<THREE.Vector3>;stops:React.MutableRefObject<{x:number;z:number}[]>;onMove:()=>void;enabled:boolean}){
+  const held=useRef(new Set<string>()),{camera,controls}=useThree() as unknown as {camera:THREE.Camera;controls:OrbitControlsImpl|null};
+  const v=useMemo(()=>new THREE.Vector3(),[]),f=useMemo(()=>new THREE.Vector3(),[]),r=useMemo(()=>new THREE.Vector3(),[]);
+  useEffect(()=>{const down=(e:KeyboardEvent)=>{if(typing(e)||e.ctrlKey||e.metaKey||e.altKey)return;const k=e.code;
+      if(k in WALK_KEYS||k==='KeyQ'||k==='KeyE'||k==='Equal'||k==='Minus'||k==='NumpadAdd'||k==='NumpadSubtract'){held.current.add(k);if(k.startsWith('Arrow'))e.preventDefault()}};
+    const up=(e:KeyboardEvent)=>{held.current.delete(e.code)},blur=()=>held.current.clear();
+    addEventListener('keydown',down);addEventListener('keyup',up);addEventListener('blur',blur);return()=>{removeEventListener('keydown',down);removeEventListener('keyup',up);removeEventListener('blur',blur)}},[]);
+  useFrame((_,dt)=>{if(!enabled||!held.current.size)return;const h=held.current,t=Math.min(dt,0.1);
+    let mx=0,mz=0;for(const k of h){const w=WALK_KEYS[k];if(w){mx+=w[0];mz+=w[1]}}
+    if(mx||mz){f.subVectors(controls?.target??pos.current,camera.position).setY(0);if(f.lengthSq()<1e-6)f.set(0,0,-1);f.normalize();r.set(-f.z,0,f.x);
+      v.copy(f).multiplyScalar(mz).addScaledVector(r,mx).normalize().multiplyScalar(LOOK.walk.keyStep);
+      const nx=pos.current.x+v.x,nz=pos.current.z+v.z;
+      if(Math.hypot(nx,nz)<WORLD.walk&&!inPond(nx,nz,0.2)){target.current.set(nx,0,nz);stops.current=[];onMove()}}
+    if(controls){const c=controls.target,turn=(h.has('KeyE')?1:0)-(h.has('KeyQ')?1:0),zoom=(h.has('Minus')||h.has('NumpadSubtract')?1:0)-(h.has('Equal')||h.has('NumpadAdd')?1:0);
+      if(turn){v.subVectors(camera.position,c).applyAxisAngle(THREE.Object3D.DEFAULT_UP,turn*LOOK.camera.keyTurn*t);camera.position.copy(c).add(v)}
+      if(zoom){v.subVectors(camera.position,c);const d=THREE.MathUtils.clamp(v.length()*(1+zoom*LOOK.camera.keyZoom*t),LOOK.camera.minDist,LOOK.camera.maxDist);camera.position.copy(c).add(v.setLength(d))}
+      if(turn||zoom)controls.update()}});
+  return null;
+}
+
 // the player: my observer as I dressed it (Explorer3D.tsx, core/wardrobe.ts), walking where I tap
 function Player({target,stops,pos,hidden,look}:{target:React.MutableRefObject<THREE.Vector3>;stops:React.MutableRefObject<{x:number;z:number}[]>;pos:React.MutableRefObject<THREE.Vector3>;hidden?:boolean;look:Look}){
-  const g=useRef<THREE.Group>(null),body=useRef<THREE.Group>(null),moving=useRef(false);
-  useFrame((_,dt)=>{const p=pos.current,tg=target.current,gr=g.current,b=body.current;if(!gr||!b)return;
-    const dx=tg.x-p.x,dz=tg.z-p.z,d=Math.hypot(dx,dz),step=Math.min(d,SPEED*Math.min(dt,0.25))/* by time: a slow phone walks as fast */;moving.current=d>0.05;
-    if(moving.current){p.x+=dx/d*step;p.z+=dz/d*step;b.rotation.y=Math.atan2(dx,dz)}
+  const g=useRef<THREE.Group>(null),body=useRef<THREE.Group>(null),moving=useRef(false),speed=useRef(0);
+  useFrame((_,dt)=>{const p=pos.current,tg=target.current,gr=g.current,b=body.current;if(!gr||!b)return;const t=Math.min(dt,0.25)/* by time: a slow phone walks as fast */;
+    const dx=tg.x-p.x,dz=tg.z-p.z,d=Math.hypot(dx,dz);moving.current=d>0.05;
+    // speeds up from a stand, slows down over the last stretch, turns toward where it goes instead of snapping
+    const want=moving.current?SPEED*Math.min(1,d/LOOK.walk.brake+0.25):0;speed.current+=(want-speed.current)*Math.min(1,LOOK.walk.accel*t);
+    if(moving.current){const step=Math.min(d,speed.current*t);p.x+=dx/d*step;p.z+=dz/d*step;
+      const yaw=Math.atan2(dx,dz),diff=Math.atan2(Math.sin(yaw-b.rotation.y),Math.cos(yaw-b.rotation.y));b.rotation.y+=diff*Math.min(1,LOOK.walk.turn*t)}
     else if(stops.current.length){const n=stops.current.shift()!;tg.set(n.x,0,n.z)}
     gr.position.set(p.x,surfaceY(p.x,p.z),p.z);gr.quaternion.copy(tiltAt(p.x,p.z))});
   return <group ref={g} visible={!hidden}><group ref={body} scale={LOOK.explorer.scale}>
@@ -342,7 +370,7 @@ function FollowCam({pos,recenter,focus,orbit,low,near}:{pos:React.MutableRefObje
     side.set(1,0,0).applyQuaternion(camera.quaternion);lean.copy(side).multiplyScalar(tv.current.x*LOOK.tilt.amount);
     side.set(0,1,0).applyQuaternion(camera.quaternion);lean.addScaledVector(side,-tv.current.y*LOOK.tilt.amount*0.6);
     camera.position.add(lean);camera.lookAt(c.target)});
-  return <OrbitControls ref={ctl} makeDefault enablePan={false} enableDamping dampingFactor={0.12}
+  return <OrbitControls ref={ctl} makeDefault enablePan={false} enableDamping dampingFactor={LOOK.camera.damping} rotateSpeed={LOOK.camera.rotateSpeed} zoomSpeed={LOOK.camera.zoomSpeed}
     minPolarAngle={0.3} maxPolarAngle={1.12} minDistance={LOOK.camera.minDist} maxDistance={LOOK.camera.maxDist} target={[0,0.8,2.5]}/>;
 }
 
@@ -543,6 +571,7 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
       {world.friend&&<Analyst key="bori" id="bori" to={world.friend.at} act="look" from={world.enterFrom} face={pos} surface={surfaceY} tilt={tiltAt} bubble={null} onPick={world.friend.onPick} report={reportFriend}/>}
     </Suspense>
     {/* out of the way while the camera looks into the open ground */}
+    <Keys pos={pos} target={target} stops={stops} onMove={()=>onPick(null)} enabled={!world.inside&&!world.stage&&!world.sky&&!cut&&!world.capsuleFx}/>
     <Player look={world.look} target={target} stops={stops} pos={pos} hidden={(!!cut&&!cut.c.closing)||!!world.capsuleFx}/>
     {!world.sky&&<FollowCam pos={pos} recenter={recenter} focus={focusPos} orbit={orbit} near={!!world.capsuleFx} low={cut&&!cut.c.closing?cut.yaw:null}/>}
     </>}

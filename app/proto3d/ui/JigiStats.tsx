@@ -12,11 +12,18 @@ import type {StudyTask} from '../../core/jigi/points';
 const ymd=(ms:number)=>new Date(ms).toISOString().slice(0,10);
 const SECS=['요약','유형','분야·논리','확신·기간','판단 변화','과제','학습 후 변화'] as const;
 const Ci=({w}:{w:Wilson|null})=>w?<span className="jg-ci" title={`${pc(w.lo)} ~ ${pc(w.hi)}`}><i style={{left:`${w.lo*100}%`,width:`${(w.hi-w.lo)*100}%`}}/><b style={{left:`${w.p*100}%`}}/></span>:null;
+// a wide table scrolls sideways by touch, wheel, or dragging with the mouse
+function DragX({children}:{children:React.ReactNode}){
+  const drag=(e:React.PointerEvent<HTMLDivElement>)=>{if(e.pointerType!=='mouse')return;const el=e.currentTarget,x0=e.clientX,s0=el.scrollLeft;el.classList.add('dragging');
+    const move=(m:PointerEvent)=>{el.scrollLeft=s0-(m.clientX-x0)},up=()=>{el.classList.remove('dragging');removeEventListener('pointermove',move);removeEventListener('pointerup',up)};
+    addEventListener('pointermove',move);addEventListener('pointerup',up)};
+  return <div className="jg-tw" onPointerDown={drag}>{children}</div>;
+}
 function Table({rows,head}:{rows:Group[];head:string}){
   if(!rows.length)return <p className="rt-empty">아직 기록이 없어요</p>;
-  return <div className="jg-tw"><table className="jg-table"><thead><tr><th>{head}</th><th className="n">적중/판정</th><th>95% 구간</th><th className="n">제외</th></tr></thead>
+  return <DragX><table className="jg-table"><thead><tr><th>{head}</th><th className="n">적중/판정</th><th>95% 구간</th><th className="n">제외</th></tr></thead>
     <tbody>{rows.map(o=><tr key={o.key}><td>{o.key}{o.n>0&&o.n<MIN_N&&<span className="jg-pill wait" style={{marginLeft:4}}>추가 관찰 필요</span>}</td>
-      <td className="n rt-num">{o.k}/{o.n}{o.n?<small> · {pc(o.p!)}</small>:<small> · 결과 대기</small>}</td><td>{o.n?<Ci w={o.w}/>:null}</td><td className="n rt-num">{o.ex}</td></tr>)}</tbody></table></div>;
+      <td className="n rt-num">{o.k}/{o.n}{o.n?<small> · {pc(o.p!)}</small>:<small> · 결과 대기</small>}</td><td>{o.n?<Ci w={o.w}/>:null}</td><td className="n rt-num">{o.ex}</td></tr>)}</tbody></table></DragX>;
 }
 // 분석 설명 (call C): the rule-based sentence first; signed in, the server may reword it from the same facts (cached per facts)
 const said=new Map<string,string|null>();
