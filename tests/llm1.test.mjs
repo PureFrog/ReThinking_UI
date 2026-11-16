@@ -16,10 +16,10 @@ function harness(){
   let now=Date.parse('2026-11-16T01:00:00Z');const queue=[],calls=[];
   const world={persona,registry,strategyTemplate,userTemplate,examples,holdings:[{company_id:'005930',name:'삼성전자',industry:'반도체'}],news:[],now:()=>now};
   const model=async msgs=>{calls.push(msgs);const next=queue.shift();if(next instanceof Error)throw next;return typeof next==='function'?next(msgs):next};
-  const h={conv:E.openSession('u1',persona,now),profile:E.newProfile('u1',userTemplate),calls,
+  const h={store:E.newStore('u1',persona,userTemplate,now),get conv(){return h.store.conv},set conv(v){h.store.conv=v},get profile(){return h.store.profile},calls,
     advance:hrs=>{now+=hrs*3600e3},
-    async say(text,...outs){queue.push(...outs);const r=await E.runTurn(h.conv,h.profile,world,model,{text});h.conv=r.conv;h.profile=r.profile;return r.result},
-    async visit(...outs){queue.push(...outs);const r=await E.runTurn(h.conv,h.profile,world,model,{text:null,spontaneous:true});h.conv=r.conv;h.profile=r.profile;return r.result},
+    async say(text,...outs){queue.push(...outs);const r=await E.runTurn(h.store,world,model,{text});h.store=r.store;return r.result},
+    async visit(...outs){queue.push(...outs);const r=await E.runTurn(h.store,world,model,{text:null,spontaneous:true});h.store=r.store;return r.result},
     lastUser:()=>[...h.conv.recent_messages].reverse().find(m=>m.role==='user'),lastChar:()=>[...h.conv.recent_messages].reverse().find(m=>m.role==='character')};
   return h;
 }
@@ -112,8 +112,8 @@ test('duplicate client ids reuse the result; 보리 speaks first once a visit; t
   const h=harness();
   const q=[daily('어, 왔어?')];const world={persona,registry,strategyTemplate,userTemplate,examples,holdings:[],news:[],now:()=>Date.parse('2026-11-16T01:00:00Z')};
   const model=async()=>q.shift();
-  const a=await E.runTurn(h.conv,h.profile,world,model,{text:'안녕',clientMessageId:'c1'});
-  const b=await E.runTurn(a.conv,a.profile,world,model,{text:'안녕',clientMessageId:'c1'});
+  const a=await E.runTurn(h.store,world,model,{text:'안녕',clientMessageId:'c1'});
+  const b=await E.runTurn(a.store,world,model,{text:'안녕',clientMessageId:'c1'});
   assert.equal(b.skipped,true);assert.equal(b.result.reply.text,'어, 왔어?');assert.match(b.result.notes.at(-1),/중복 client_message_id/);
   const v=harness();v.conv=E.startVisit(v.conv);
   assert.equal((await v.visit(daily('어, 밭 넓어졌네?','curious'))).reply.text,'어, 밭 넓어졌네?');

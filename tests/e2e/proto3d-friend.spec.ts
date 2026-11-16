@@ -32,3 +32,27 @@ test("보리 comes over, talks about today, and a reply opens the grades", async
   await expect(bubble).toHaveCount(0);
   expect(errors).toEqual([]);
 });
+
+// 정균 1번 LLM 2단계: with a stop-loss signal on a holding, 보리 opens that talk (the server is stood in by __boriOpen)
+test("with a loss signal, 보리 opens the stop-loss talk instead of small talk", async ({ page }, info) => {
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(e.message));
+  await page.addInitScript(() => {
+    const w = window as unknown as { __boriOpen: (codes: string[]) => Promise<string>; __boriCodes?: string[] };
+    w.__boriOpen = async codes => { w.__boriCodes = codes; return "손절 신호가 하나 떴더라. 이 종목은 처음에 어떤 이유로 샀었어?"; };
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/proto3d?demo&weather=clear");
+  await expect(page.getByRole("navigation", { name: "메뉴" })).toBeVisible({ timeout: 30_000 });
+  const bubble = page.locator('.rt-bubble[data-analyst="bori"]');
+  await expect(bubble).toBeVisible({ timeout: 20_000 });
+  await bubble.click();
+  const talk = page.getByRole("dialog", { name: "보리와 대화" });
+  await expect(talk).toContainText("손절 신호가 하나 떴더라");
+  await expect(talk.getByRole("button", { name: "응, 보여줘" })).toHaveCount(0);
+  const codes = await page.evaluate(() => (window as unknown as { __boriCodes?: string[] }).__boriCodes ?? []);
+  expect(codes.length).toBeGreaterThan(0);
+  await expect(talk).not.toContainText(/팔아|사 둬|매도|매수|오를 거|내릴 거/);
+  await page.screenshot({ path: info.outputPath("bori-stoploss.png") });
+  expect(errors).toEqual([]);
+});

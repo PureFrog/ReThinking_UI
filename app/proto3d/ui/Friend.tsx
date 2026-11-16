@@ -1,16 +1,19 @@
 'use client';
 // Talking with 보리 (core/friend.ts): the opener, a few quick replies, and free talk once the player is signed in with
-// the server (talk: db/functions/friend-chat through supabase.ts friendTalk). Glass sheet like the rest (glass.css).
+// the server (talk: db/functions/bori-talk through supabase.ts boriTalk). With a stop-loss signal on a holding, opening
+// asks the server first: 보리 then starts that talk instead of the small talk (supabase.ts boriOpen). Glass sheet (glass.css).
 import {useEffect,useRef,useState} from 'react';
 import {Sheet} from './Sheet';
 import {FRIEND,FRIEND_TALK,friendReplies,type FriendReply,type FriendTopic,type TalkLine} from '../../core/friend';
 
-export function FriendSheet({opener,topic,seed,onGo,onClose,talk}:{opener:string;topic:FriendTopic;seed:string;onGo:(to:'grades'|'journal'|'case')=>void;onClose:()=>void;
-  talk?:((history:TalkLine[],message:string)=>Promise<string>)|null}){
+export function FriendSheet({opener,topic,seed,onGo,onClose,talk,opening}:{opener:string;topic:FriendTopic;seed:string;onGo:(to:'grades'|'journal'|'case')=>void;onClose:()=>void;
+  talk?:((history:TalkLine[],message:string)=>Promise<string>)|null;opening?:(()=>Promise<string|null>)|null}){
   const [lines,setLines]=useState<TalkLine[]>([{who:'bori',text:opener}]);
   const [used,setUsed]=useState(false),[draft,setDraft]=useState(''),[busy,setBusy]=useState(false);
   const end=useRef<HTMLDivElement>(null);
   useEffect(()=>{end.current?.scrollIntoView?.({block:'nearest'})},[lines.length,busy]);
+  useEffect(()=>{if(!opening)return;let live=true;setBusy(true);
+    void opening().then(t=>{if(!live)return;setBusy(false);if(t){setUsed(true);setLines([{who:'bori',text:t}])}});return ()=>{live=false}},[opening]);
   const replies=friendReplies(topic,seed);
   const answer=(r:FriendReply)=>{setUsed(true);setLines(l=>[...l,{who:'me',text:r.label},{who:'bori',text:r.answer}]);if(r.go){const to=r.go;setTimeout(()=>onGo(to),700)}};
   const send=async()=>{const m=draft.trim();if(!m||busy||!talk)return;const before=lines;setDraft('');setUsed(true);setBusy(true);

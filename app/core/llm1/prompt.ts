@@ -43,6 +43,12 @@ const change={type:'object',additionalProperties:false,required:['op','path','va
   op:{type:'string',enum:['set','remove','unblock']},path:S('string'),value:{anyOf:[S('string'),quantity,age,S('null')]},
   basis:{type:['string','null'],enum:['explicit','inferred',null]},confidence:{type:['string','null'],enum:['low','medium','high',null]},
   scope:S(['string','null']),evidence_summary:S(['string','null']),source_refs:refs}};
+const evidenceChange={type:'object',additionalProperties:false,required:['op','target_id','kind','origin','source_refs','context_message_ids','summary','is_prior_reason'],properties:{
+  op:{type:'string',enum:['add','replace','retract']},target_id:S(['string','null']),kind:{type:['string','null'],enum:['claim','reason','horizon','condition','background',null]},
+  origin:{type:['string','null'],enum:['user_initiated','topic_prompted','new_reflection',null]},source_refs:refs,context_message_ids:{type:'array',items:S('string')},summary:S(['string','null']),is_prior_reason:S(['boolean','null'])}};
+const elicitationBlock={type:'object',additionalProperties:false,required:['base_revision','decision','finish_reason','decision_note','evidence_changes','unresolved_points','next_question_goal'],properties:{
+  base_revision:S('integer'),decision:{type:'string',enum:['continue','finish','pause']},finish_reason:{type:['string','null'],enum:['sufficient','limited_more','no_basis',null]},
+  decision_note:S('string'),evidence_changes:{type:'array',items:evidenceChange},unresolved_points:{type:'array',items:S('string')},next_question_goal:S(['string','null'])}};
 export const DAILY_SCHEMA={name:'daily_turn',strict:true,schema:{type:'object',additionalProperties:false,required:['reply','conversation_state_update','profile_update','elicitation'],properties:{
   reply:{anyOf:[{type:'object',additionalProperties:false,required:['text','emotion','mentioned_news_ids'],properties:{text:S('string'),emotion:S('string'),mentioned_news_ids:{type:'array',items:S('string')}}},S('null')]},
   conversation_state_update:{anyOf:[{type:'object',additionalProperties:false,required:['last_topic','open_question','mood','paused_topics'],properties:{last_topic:S(['string','null']),open_question:S(['string','null']),mood:S(['string','null']),paused_topics:{anyOf:[{type:'array',items:S('string')},S('null')]}}},S('null')]},
@@ -51,3 +57,5 @@ export const DAILY_SCHEMA={name:'daily_turn',strict:true,schema:{type:'object',a
       proposal_key:S('string'),target_strategy_id:S(['string','null']),name:S(['string','null']),usage_status:{type:['string','null'],enum:['unknown','example_only','considering','in_use','inactive',null]},
       source_refs:refs,initial_changes:{type:'array',items:change}}}}}},
   elicitation:S('null')}}};
+// 탐지 호출 모드 (ElicitationTurnOutput): the same, with the elicitation block required
+export const ELICITATION_SCHEMA={name:'elicitation_turn',strict:true,schema:{...DAILY_SCHEMA.schema,properties:{...DAILY_SCHEMA.schema.properties,elicitation:elicitationBlock}}};

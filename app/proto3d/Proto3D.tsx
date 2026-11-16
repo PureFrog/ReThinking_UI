@@ -4,7 +4,7 @@
 // luon's counter → graded 30/90 days later. Around it: today's case, cooldown seeds, track record, league, game door,
 // cart and drawer.
 import {still} from './still';
-import {useEffect,useMemo,useRef,useState} from 'react';
+import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {Canvas} from '@react-three/fiber';
 import {Cross,Ledger,Scope,MapIcon,Sprout,More} from './ui/Icons';
 import {MoreSheet,NextCard,Tutorial,type MoreId} from './ui/Home';
@@ -23,7 +23,7 @@ const CITY_SPOT=(id:string)=>CITIES.find(c=>c.id===id)?.at;
 import {nextStep} from '../core/next';
 import {Welcome} from './ui/Welcome';
 import {authRepo} from './server';
-import {missingConsents,boriTalk,jigiAI,readCapture} from './supabase';
+import {missingConsents,boriTalk,boriOpen,jigiAI,readCapture} from './supabase';
 import {codeOf} from '../core/jigi/stocks';
 import {saveRepo,openedAt,markLocal} from './sync';
 import {syncPlan,SYNC} from '../core/sync';
@@ -260,6 +260,12 @@ export default function Proto3D(){
   // a signal is answered by a journal saved today on its stock (or, before 지기, a judgment)
   const wroteToday=(holdingId:number)=>judgedToday(s.judgments,holdingId,clock.today)||(s.journals??[]).some(j=>j.holdingId===holdingId&&j.status==='saved'&&!j.demo&&!j.practice&&j.savedAt!=null&&isoDay(new Date(j.savedAt))===clock.today);
   const open=signals.filter(x=>!wroteToday(x.holdingId));
+  // 보리's stop-loss talk (db/functions/bori-talk): today's loss signals by company code
+  const boriHoldings=useMemo(()=>holdings.map(x=>({company_id:codeOf(x),name:x.name})),[holdings]);
+  const lossCodes=useMemo(()=>signals.filter(x=>x.loss).map(x=>holdings.find(h=>h.id===x.holdingId)).flatMap(h=>h?[codeOf(h)]:[]),[signals,holdings]);
+  // e2e: window.__boriOpen stands in for the server (it gets the loss codes)
+  const testOpen=typeof window!=='undefined'?(window as unknown as {__boriOpen?:(codes:string[])=>Promise<string|null>}).__boriOpen:undefined;
+  const boriOpening=useCallback(()=>testOpen?testOpen(lossCodes):boriOpen(boriHoldings,lossCodes),[boriHoldings,lossCodes,testOpen]);
   const todayCase=useMemo(()=>caseOfDay(CASES,clock.today,s.cases.filter(a=>a.day!==clock.today).map(a=>a.caseId)),[clock.today,s.cases]);
   const caseDone=!!answeredToday(s.cases,clock.today);
   const track=trackOf(s.judgments,s.graded);
@@ -534,7 +540,7 @@ export default function Proto3D(){
         onSimilar={id=>{leaveGame();setSheet({kind:'brief',start:{holdingId:id}})}} onMarket={setGameMarket}/>}
       {sheet?.kind==='cart'&&<CartView g={g} onClose={close}/>}
       {sheet?.kind==='friend'&&<FriendSheet opener={opener.text} topic={opener.topic} seed={clock.today} onClose={close}
-        talk={syncOn?(_history,m)=>boriTalk(holdings.map(x=>({company_id:codeOf(x),name:x.name})),m):null}
+        talk={syncOn?(_history,m)=>boriTalk(boriHoldings,m):null} opening={(syncOn||testOpen)&&lossCodes.length?boriOpening:null}
         onGo={to=>setSheet(to==='grades'?{kind:'grades'}:to==='case'?{kind:'case'}:{kind:'journal'})}/>}
       {sheet?.kind==='drawer'&&<Drawer g={g} onClose={close} onCart={()=>setSheet({kind:'cart'})}/>}
       {sheet?.kind==='analyst'&&<AnalystCard g={g} id={sheet.id} signal={open.find(x=>x.analyst===sheet.id)??null} onClose={close}

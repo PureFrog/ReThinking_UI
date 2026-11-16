@@ -116,3 +116,10 @@ export async function boriTalk(holdings:BoriHolding[],message:string):Promise<st
   try{const {data,error}=await supabase().functions.invoke('bori-talk',{body:{action:'message',text:message,holdings,client_message_id:`c${Date.now().toString(36)}${++boriSeq}`}});
     return !error&&typeof data?.reply?.text==='string'?data.reply.text:fallback}catch{return fallback}
 }
+// stop-loss signals on holdings (company codes): 보리 opens the talk about the oldest one and listens for why the player
+// holds it; the quotes go to the analysis model on the server. null = nothing new to open (no call, or one under way)
+export async function boriOpen(holdings:BoriHolding[],signals:string[]):Promise<string|null>{
+  if(!signals.length)return null;
+  try{const {data,error}=await supabase().functions.invoke('bori-talk',{body:{action:'open',holdings,signals}});
+    return !error&&typeof data?.reply?.text==='string'?data.reply.text:null}catch{return null}
+}

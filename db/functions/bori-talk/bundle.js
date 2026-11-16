@@ -95,6 +95,11 @@ function setPath(o, dotted, v) {
 }
 
 // app/core/llm1/validate.ts
+var BACKCHANNELS = /* @__PURE__ */ new Set(["\uC751", "\uC5B4", "\u3147\u3147", "\uC6C5", "\uADF8\uB798", "\uADF8\uB807\uC9C0", "\uB9DE\uC544", "\uADF8\uB7F4 \uC218\uB3C4 \uC788\uC9C0", "\uADF8\uB7F4\uC218\uB3C4", "\uAE00\uC384", "\uC74C", "\uC544", "\uC624", "\uB135", "\uB124", "\uC608", "\u314B\u314B", "\u314E\u314E", "\uADF8\uCE58", "\uADF8\uB7EC\uAC8C", "\uADF8\uB7F4\uC9C0\uB3C4"]);
+var isBackchannel = (t2) => {
+  const s = t2.trim().replace(/[.!?~… ]+$/, "").trim();
+  return BACKCHANNELS.has(s) || [...s].length <= 1;
+};
 var MessageIndex = class {
   constructor(ms) {
     this.byId = /* @__PURE__ */ new Map();
@@ -158,7 +163,7 @@ function checkChange(c, at, errs) {
     source_refs: checkRefs(o.source_refs, `${at}.source_refs`, errs)
   };
 }
-function checkDaily(raw) {
+function checkTurn(raw, mode) {
   let v;
   try {
     v = JSON.parse(raw);
@@ -234,13 +239,74 @@ function checkDaily(raw) {
       });
     }
   }
-  if (o.elicitation != null) errs.push("elicitation: daily \uBAA8\uB4DC\uC5D0\uC11C\uB294 null");
-  return errs.length ? { out: null, errors: errs.slice(0, 10) } : { out: { reply, conversation_state_update: state, profile_update: pu, elicitation: null }, errors: [] };
+  let el = null;
+  if (mode === "daily") {
+    if (o.elicitation != null) errs.push("elicitation: daily \uBAA8\uB4DC\uC5D0\uC11C\uB294 null");
+  } else el = checkElicitation(o.elicitation, errs);
+  return errs.length ? { out: null, errors: errs.slice(0, 10) } : { out: { reply, conversation_state_update: state, profile_update: pu, elicitation: el }, errors: [] };
 }
-function semanticErrors(out, spontaneous) {
+var EKIND = ["claim", "reason", "horizon", "condition", "background"];
+var EORIGIN = ["user_initiated", "topic_prompted", "new_reflection"];
+function checkElicitation(v, errs) {
+  if (!v || typeof v !== "object" || Array.isArray(v)) {
+    errs.push("elicitation: \uD0D0\uC9C0 \uBAA8\uB4DC\uC5D0\uC11C\uB294 \uAC1D\uCCB4 \uD544\uC694");
+    return null;
+  }
+  const e = v;
+  keysOnly(e, ["base_revision", "decision", "finish_reason", "decision_note", "evidence_changes", "unresolved_points", "next_question_goal"], "elicitation", errs);
+  if (!Number.isInteger(e.base_revision)) errs.push("elicitation.base_revision: \uC815\uC218");
+  if (!["continue", "finish", "pause"].includes(e.decision)) errs.push("elicitation.decision: continue|finish|pause");
+  if (e.finish_reason != null && !["sufficient", "limited_more", "no_basis"].includes(e.finish_reason)) errs.push("elicitation.finish_reason: sufficient|limited_more|no_basis|null");
+  if (!orNull(isStr)(e.decision_note)) errs.push("elicitation.decision_note: \uBB38\uC790\uC5F4");
+  if (!orNull(isStr)(e.next_question_goal)) errs.push("elicitation.next_question_goal: \uBB38\uC790\uC5F4|null");
+  if (e.unresolved_points != null && (!Array.isArray(e.unresolved_points) || e.unresolved_points.some((x) => !isStr(x)))) errs.push("elicitation.unresolved_points: \uBB38\uC790\uC5F4 \uBC30\uC5F4");
+  const changes = [];
+  (Array.isArray(e.evidence_changes) ? e.evidence_changes : []).forEach((c, i) => {
+    const at = "elicitation.evidence_changes." + i;
+    if (!c || typeof c !== "object") {
+      errs.push(at + ": \uAC1D\uCCB4");
+      return;
+    }
+    const q = c;
+    keysOnly(q, ["op", "target_id", "kind", "origin", "source_refs", "context_message_ids", "summary", "is_prior_reason"], at, errs);
+    if (!["add", "replace", "retract"].includes(q.op)) errs.push(at + ".op: add|replace|retract");
+    if (!orNull((v2) => EKIND.includes(v2))(q.kind)) errs.push(at + ".kind: enum|null");
+    if (!orNull((v2) => EORIGIN.includes(v2))(q.origin)) errs.push(at + ".origin: enum|null");
+    if (q.is_prior_reason != null && typeof q.is_prior_reason !== "boolean") errs.push(at + ".is_prior_reason: bool|null");
+    if (q.context_message_ids != null && (!Array.isArray(q.context_message_ids) || q.context_message_ids.some((x) => !isStr(x)))) errs.push(at + ".context_message_ids: \uBB38\uC790\uC5F4 \uBC30\uC5F4");
+    changes.push({
+      op: q.op,
+      target_id: q.target_id ?? null,
+      kind: q.kind ?? null,
+      origin: q.origin ?? null,
+      source_refs: checkRefs(q.source_refs, at + ".source_refs", errs),
+      context_message_ids: q.context_message_ids ?? [],
+      summary: q.summary ?? null,
+      is_prior_reason: q.is_prior_reason ?? null
+    });
+  });
+  return {
+    base_revision: e.base_revision,
+    decision: e.decision,
+    finish_reason: e.finish_reason ?? null,
+    decision_note: e.decision_note ?? "",
+    evidence_changes: changes,
+    unresolved_points: e.unresolved_points ?? [],
+    next_question_goal: e.next_question_goal ?? null
+  };
+}
+function semanticErrors(out, spontaneous, mode = "daily") {
   const e = [];
   if (out.reply == null && !spontaneous) e.push("\uC0AC\uC6A9\uC790 \uBC1C\uD654\uC5D0 \uB300\uD55C reply\uB294 null\uC77C \uC218 \uC5C6\uC74C");
+  if (out.reply == null && mode === "elicitation") e.push("\uD0D0\uC9C0 \uD638\uCD9C \uBAA8\uB4DC\uC5D0\uC11C\uB294 reply\uAC00 \uD544\uC694\uD568(\uC218\uC9D1 \uC2DC\uC791\xB7\uC7AC\uAC1C \uC2DC \uBA3C\uC800 \uB9D0\uC744 \uAC74\uB2E4)");
   if (out.reply != null && !out.reply.text.trim()) e.push("reply.text\uAC00 \uBE44\uC5B4 \uC788\uC74C");
+  const el = out.elicitation;
+  if (mode === "elicitation" && el) {
+    if (el.decision === "finish" && el.finish_reason == null) e.push("finish\uC5D0\uB294 finish_reason(sufficient/limited_more/no_basis) \uD544\uC694");
+    if (el.decision !== "finish" && el.finish_reason != null) e.push("finish\uAC00 \uC544\uB2C8\uBA74 finish_reason\uC740 null");
+    if ((el.decision === "finish" || el.decision === "pause") && el.next_question_goal != null) e.push("finish/pause\uC5D0\uC11C next_question_goal\uC740 null");
+    if (el.decision === "finish" && out.reply && out.reply.text.includes("?")) e.push("finish \uC751\uB2F5\uC740 \uC0C8 \uC9C8\uBB38\uC744 \uD3EC\uD568\uD558\uC9C0 \uC54A\uC74C");
+  }
   return e;
 }
 var repairMessage = (errors) => ({ role: "user", content: "\uC9C1\uC804 \uCD9C\uB825\uC774 \uACC4\uC57D\uC744 \uC704\uBC18\uD588\uC5B4. \uC624\uB958: " + errors.join("; ") + "\n\uAC19\uC740 \uB300\uD654 \uC0C1\uD669\uC5D0 \uB300\uD574 \uACC4\uC57D\uC744 \uC9C0\uD0A8 JSON \uAC1D\uCCB4 \uD558\uB098\uB9CC \uB2E4\uC2DC \uCD9C\uB825\uD574." });
@@ -536,6 +602,25 @@ var change = { type: "object", additionalProperties: false, required: ["op", "pa
   evidence_summary: S(["string", "null"]),
   source_refs: refs
 } };
+var evidenceChange = { type: "object", additionalProperties: false, required: ["op", "target_id", "kind", "origin", "source_refs", "context_message_ids", "summary", "is_prior_reason"], properties: {
+  op: { type: "string", enum: ["add", "replace", "retract"] },
+  target_id: S(["string", "null"]),
+  kind: { type: ["string", "null"], enum: ["claim", "reason", "horizon", "condition", "background", null] },
+  origin: { type: ["string", "null"], enum: ["user_initiated", "topic_prompted", "new_reflection", null] },
+  source_refs: refs,
+  context_message_ids: { type: "array", items: S("string") },
+  summary: S(["string", "null"]),
+  is_prior_reason: S(["boolean", "null"])
+} };
+var elicitationBlock = { type: "object", additionalProperties: false, required: ["base_revision", "decision", "finish_reason", "decision_note", "evidence_changes", "unresolved_points", "next_question_goal"], properties: {
+  base_revision: S("integer"),
+  decision: { type: "string", enum: ["continue", "finish", "pause"] },
+  finish_reason: { type: ["string", "null"], enum: ["sufficient", "limited_more", "no_basis", null] },
+  decision_note: S("string"),
+  evidence_changes: { type: "array", items: evidenceChange },
+  unresolved_points: { type: "array", items: S("string") },
+  next_question_goal: S(["string", "null"])
+} };
 var DAILY_SCHEMA = { name: "daily_turn", strict: true, schema: { type: "object", additionalProperties: false, required: ["reply", "conversation_state_update", "profile_update", "elicitation"], properties: {
   reply: { anyOf: [{ type: "object", additionalProperties: false, required: ["text", "emotion", "mentioned_news_ids"], properties: { text: S("string"), emotion: S("string"), mentioned_news_ids: { type: "array", items: S("string") } } }, S("null")] },
   conversation_state_update: { anyOf: [{ type: "object", additionalProperties: false, required: ["last_topic", "open_question", "mood", "paused_topics"], properties: { last_topic: S(["string", "null"]), open_question: S(["string", "null"]), mood: S(["string", "null"]), paused_topics: { anyOf: [{ type: "array", items: S("string") }, S("null")] } } }, S("null")] },
@@ -553,6 +638,223 @@ var DAILY_SCHEMA = { name: "daily_turn", strict: true, schema: { type: "object",
   } },
   elicitation: S("null")
 } } };
+var ELICITATION_SCHEMA = { name: "elicitation_turn", strict: true, schema: { ...DAILY_SCHEMA.schema, properties: { ...DAILY_SCHEMA.schema.properties, elicitation: elicitationBlock } } };
+
+// app/core/llm1/elicitation.ts
+var EVIDENCE_KINDS = ["claim", "reason", "horizon", "condition", "background"];
+var ORIGINS = ["user_initiated", "topic_prompted", "new_reflection"];
+var CONTINUE = /(그리고\s*하나\s*더|하나\s*더\s*있|또\s*있어|그리고\.{0,3}$|\.\.\.$|…$|잠깐만?)/;
+var NO_MORE = /(더\s*는?\s*없|그게\s*다|잘\s*모르겠|몰라|그냥\s*그래|딱히\s*없|이유\s*없)/;
+var STOP = /(그만\s*(하자|해)|분석\s*하지\s*마|다음에\s*(하자|얘기)|나중에\s*(하자|얘기)|이\s*얘기\s*그만)/;
+var isStopRequest = (t2) => !!t2 && STOP.test(t2);
+function newSession(o) {
+  return {
+    elicitation_id: o.elicitationId,
+    user_id: o.userId,
+    conv_session_id: o.convSessionId,
+    detection_event_id: o.event.event_id,
+    company_id: o.event.company_id ?? null,
+    detection_reason: o.event.reason ?? null,
+    detection_reason_code: o.event.reason_code ?? null,
+    revision: 0,
+    status: "collecting",
+    evidence: [],
+    messages: [],
+    asked_questions: [],
+    last_new_evidence_ids: [],
+    unresolved_points: [],
+    finish_reason: null,
+    decision_note: null,
+    user_turns: 0,
+    request_id: null,
+    supersedes_request_id: o.supersedes ?? null,
+    created_at: o.now,
+    updated_at: o.now,
+    expires_at: o.expires
+  };
+}
+function stateForPrompt(s) {
+  if (!s) return null;
+  return {
+    elicitation_id: s.elicitation_id,
+    base_revision: s.revision,
+    status: s.status,
+    company_id: s.company_id,
+    user_turns_so_far: s.user_turns,
+    evidence: s.evidence.map((e) => ({
+      evidence_id: e.evidence_id,
+      active: e.active,
+      kind: e.kind,
+      origin: e.origin,
+      is_prior_reason: e.is_prior_reason,
+      summary: e.summary,
+      quotes: e.source_refs.map((r) => r.quote),
+      ...e.superseded_by ? { superseded_by: e.superseded_by } : {}
+    })),
+    asked_question_goals: s.asked_questions.filter((q) => q.goal).map((q) => q.goal),
+    last_turn_new_evidence_ids: s.last_new_evidence_ids ?? [],
+    unresolved_points: s.unresolved_points
+  };
+}
+var refsKey = (rs) => rs.map((r) => r.message_id + "\0" + r.quote).sort().join("");
+function applyEvidenceChanges(session, changes, index, issueId) {
+  const s = JSON.parse(JSON.stringify(session)), applied = [], rejected = [], byId = new Map(s.evidence.map((e) => [e.evidence_id, e])), newIds = [];
+  for (const ch of changes ?? []) {
+    if (!ch || typeof ch !== "object") {
+      rejected.push({ reason: "\uBCC0\uACBD \uD56D\uBAA9\uC774 \uAC1D\uCCB4\uAC00 \uC544\uB2D8" });
+      continue;
+    }
+    const tag = { op: ch.op, target_id: ch.target_id ?? null };
+    const err = validateSourceRefs(ch.source_refs, index);
+    if (err) {
+      rejected.push({ ...tag, reason: err });
+      continue;
+    }
+    const ctx = ch.context_message_ids ?? [];
+    if (!Array.isArray(ctx) || ctx.some((c) => !index.get(c))) {
+      rejected.push({ ...tag, reason: "context_message_ids\uAC00 \uC785\uB825\uC5D0 \uC5C6\uC74C" });
+      continue;
+    }
+    if (ch.op === "retract") {
+      const tgt2 = byId.get(ch.target_id ?? "");
+      if (!tgt2 || !tgt2.active) {
+        rejected.push({ ...tag, reason: "\uCCA0\uD68C \uB300\uC0C1 \uADFC\uAC70\uAC00 \uC5C6\uAC70\uB098 \uC774\uBBF8 \uBE44\uD65C\uC131" });
+        continue;
+      }
+      tgt2.active = false;
+      tgt2.retracted_by = ch.source_refs;
+      applied.push(tag);
+      continue;
+    }
+    if (ch.op !== "add" && ch.op !== "replace") {
+      rejected.push({ ...tag, reason: `\uC54C \uC218 \uC5C6\uB294 op: ${ch.op}` });
+      continue;
+    }
+    if (ch.op === "add" && ch.target_id != null) {
+      rejected.push({ ...tag, reason: "add\uB294 target_id=null" });
+      continue;
+    }
+    let tgt;
+    if (ch.op === "replace") {
+      tgt = byId.get(ch.target_id ?? "");
+      if (!tgt || !tgt.active) {
+        rejected.push({ ...tag, reason: "\uC815\uC815 \uB300\uC0C1 \uADFC\uAC70\uAC00 \uC5C6\uAC70\uB098 \uC774\uBBF8 \uBE44\uD65C\uC131" });
+        continue;
+      }
+    }
+    const kind = ch.kind ?? tgt?.kind ?? null, origin = ch.origin ?? tgt?.origin ?? null, prior = ch.is_prior_reason ?? null, summary = ch.summary;
+    if (!EVIDENCE_KINDS.includes(kind)) {
+      rejected.push({ ...tag, reason: `kind \uC624\uB958: ${kind}` });
+      continue;
+    }
+    if (!ORIGINS.includes(origin)) {
+      rejected.push({ ...tag, reason: `origin \uC624\uB958: ${origin}` });
+      continue;
+    }
+    if (![true, false, null].includes(prior)) {
+      rejected.push({ ...tag, reason: "is_prior_reason\uC740 true/false/null" });
+      continue;
+    }
+    if (origin === "new_reflection" && prior === true) {
+      rejected.push({ ...tag, reason: "new_reflection\uC744 \uAE30\uC874 \uBCF4\uC720 \uC774\uC720(is_prior_reason=true)\uB85C \uC18C\uAE09\uD560 \uC218 \uC5C6\uC74C" });
+      continue;
+    }
+    if (typeof summary !== "string" || !summary.trim() || summary.length > 300) {
+      rejected.push({ ...tag, reason: "summary\uB294 300\uC790 \uC774\uB0B4 \uBB38\uC790\uC5F4" });
+      continue;
+    }
+    if ((kind === "claim" || kind === "reason") && ch.source_refs.every((r) => isBackchannel(r.quote))) {
+      rejected.push({ ...tag, reason: "\uB2E8\uC21C \uD638\uC751\uB9CC\uC73C\uB85C \uC8FC\uC7A5\xB7\uC774\uC720\uB97C \uB9CC\uB4E4 \uC218 \uC5C6\uC74C" });
+      continue;
+    }
+    const key = refsKey(ch.source_refs);
+    if (ch.op === "add" && s.evidence.some((e) => e.active && refsKey(e.source_refs) === key)) {
+      rejected.push({ ...tag, reason: "\uB3D9\uC77C \uC6D0\uBB38 \uADFC\uAC70 \uC911\uBCF5 \u2014 \uCD94\uAC00\uD558\uC9C0 \uC54A\uC74C" });
+      continue;
+    }
+    const eid = issueId();
+    const ev = {
+      evidence_id: eid,
+      active: true,
+      kind,
+      origin,
+      is_prior_reason: prior,
+      summary,
+      source_refs: ch.source_refs.map((r) => ({ message_id: r.message_id, quote: r.quote })),
+      context_message_ids: ctx,
+      superseded_by: null
+    };
+    s.evidence.push(ev);
+    byId.set(eid, ev);
+    newIds.push(eid);
+    if (tgt) {
+      tgt.active = false;
+      tgt.superseded_by = eid;
+    }
+    applied.push({ ...tag, evidence_id: eid });
+  }
+  s.last_new_evidence_ids = newIds;
+  return { s, applied, rejected };
+}
+function validateFinish(s, el, current, minUserTurns, hadRejections) {
+  const active = s.evidence.filter((e) => e.active);
+  if (!s.company_id) return [false, "\uB300\uC0C1 \uC885\uBAA9 \uBBF8\uD655\uC815 \u2014 \uC804\uB2EC \uBCF4\uB958"];
+  if (hadRejections) return [false, "\uC774\uBC88 \uD134 \uADFC\uAC70 \uBCC0\uACBD \uC911 \uAC70\uBD80\uB41C \uD56D\uBAA9\uC774 \uC788\uC74C \u2014 \uC815\uC815 \uBC18\uC601\uC774 \uB05D\uB098\uC9C0 \uC54A\uC74C"];
+  if (current && CONTINUE.test(current.trim())) return [false, "\uC0AC\uC6A9\uC790\uAC00 \uCD94\uAC00 \uC124\uBA85\uC744 \uC2DC\uC791\uD568 \u2014 \uACC4\uC18D \uB4E3\uAE30"];
+  if (current && STOP.test(current)) return [false, "\uC911\uB2E8 \uC694\uCCAD\uC740 finish\uAC00 \uC544\uB2C8\uB77C pause"];
+  if (!active.length) return [false, "\uD65C\uC131 \uADFC\uAC70 \uC6D0\uBB38\uC774 \uC5C6\uC74C"];
+  if (!(el.decision_note ?? "").trim()) return [false, "decision_note \uC5C6\uC74C"];
+  if (el.finish_reason === "sufficient") {
+    if (!active.some((e) => e.kind === "claim" || e.kind === "reason")) return [false, "sufficient\uC778\uB370 \uC8FC\uC7A5/\uC774\uC720 \uADFC\uAC70\uAC00 \uC5C6\uC74C"];
+  } else if (el.finish_reason === "limited_more") {
+    const texts = s.messages.filter((m) => m.role === "user").slice(-2).map((m) => m.text);
+    if (!texts.some((t2) => NO_MORE.test(t2)) && s.user_turns < minUserTurns) return [false, "limited_more\uC758 \uAD6C\uCCB4\uC801 \uADFC\uAC70(\uB354 \uC5C6\uB2E4\uB294 \uBC1C\uC5B8\xB7\uBC18\uBCF5)\uAC00 \uBD80\uC871"];
+  } else if (el.finish_reason !== "no_basis") return [false, `\uC54C \uC218 \uC5C6\uB294 finish_reason: ${el.finish_reason}`];
+  return [true, "ok"];
+}
+function buildPacket(s, requestId) {
+  const msgs = new Map(s.messages.map((m) => [m.message_id, m]));
+  const items = [];
+  for (const e of s.evidence) {
+    if (!e.active) continue;
+    for (const r of e.source_refs) {
+      const m = msgs.get(r.message_id);
+      if (!m) continue;
+      items.push({ seq: m.seq ?? 0, pos: m.text.indexOf(r.quote), e, r, m });
+    }
+  }
+  items.sort((a, b) => a.seq - b.seq || a.pos - b.pos);
+  const segments = [], seen = [], ctx = [];
+  for (const { pos, e, r, m } of items) {
+    const start = pos, end = pos + r.quote.length;
+    if (seen.some(([mid, a, b]) => mid === r.message_id && a <= start && end <= b)) continue;
+    seen.push([r.message_id, start, end]);
+    segments.push({ message_id: r.message_id, quote: r.quote, kind: e.kind, origin: e.origin, is_prior_reason: e.is_prior_reason, context_message_ids: e.context_message_ids, created_at: m.created_at ?? null });
+    for (const c of e.context_message_ids) if (!ctx.includes(c)) ctx.push(c);
+  }
+  return {
+    schema_version: "1.0",
+    request_id: requestId,
+    detection_event_id: s.detection_event_id,
+    company_id: s.company_id,
+    collection_revision: s.revision,
+    finish_reason: s.finish_reason,
+    investor_natural_language: segments.map((x) => x.quote).join(" "),
+    segments,
+    context_messages: ctx.filter((c) => msgs.has(c)).map((c) => ({ message_id: c, speaker: msgs.get(c).role, text: msgs.get(c).text })),
+    unresolved_points: [...s.unresolved_points],
+    supersedes_request_id: s.supersedes_request_id ?? null
+  };
+}
+function consecutiveQuestionTurns(s) {
+  let n = 0;
+  for (const m of [...s.messages].reverse()) {
+    if (m.role !== "character") continue;
+    if (m.text.includes("?")) n++;
+    else break;
+  }
+  return n;
+}
 
 // app/core/llm1/engine.ts
 var LLM1 = {
@@ -566,12 +868,24 @@ var LLM1 = {
   processedClientIdLimit: 50,
   dialogueExamplesPerCall: 2,
   maxFormatRepairs: 1,
+  maxPendingDays: 7,
+  maxSessionChars: 2e4,
+  limitedMoreMinUserTurns: 3,
+  receiverSupportsNoBasis: true,
+  maxAttempts: 5,
+  retryBackoffSeconds: [5, 30, 120, 600, 1800],
+  jobMetaRetentionDays: 30,
   clientEmotions: ["neutral", "curious", "concerned", "happy", "thinking", "playful", "tired", "surprised"]
 };
 var FALLBACK_REPLY = { text: "\uC5B4\u2026 \uC7A0\uAE50 \uB9D0\uC774 \uAF2C\uC600\uB124. \uBC29\uAE08 \uAC70 \uB2E4\uC2DC \uD55C \uBC88 \uB9D0\uD574\uC904\uB798?", emotion: "thinking" };
 var iso = (ms) => new Date(ms + 9 * 36e5).toISOString().replace(/\.\d{3}Z$/, "+09:00");
 var plus = (ms, h) => iso(ms + h * 36e5);
 var clone2 = (x) => JSON.parse(JSON.stringify(x));
+var nextId = (conv, kind, prefix) => {
+  const c = conv.counters ??= {};
+  c[kind] = (c[kind] ?? 0) + 1;
+  return prefix + String(c[kind]).padStart(3, "0");
+};
 function openSession(userId, persona, now) {
   return {
     session_id: "s1",
@@ -586,7 +900,11 @@ function openSession(userId, persona, now) {
     processed_client_ids: {},
     visit: { visit_id: 0, spontaneous_count: 0 },
     last_active_at: iso(now),
-    expires_at: plus(now, LLM1.bufferInactiveHours)
+    expires_at: plus(now, LLM1.bufferInactiveHours),
+    active_elicitation_id: null,
+    pending_detection_events: [],
+    seen_detection_event_ids: [],
+    counters: {}
   };
 }
 function newProfile(userId, template) {
@@ -594,7 +912,9 @@ function newProfile(userId, template) {
   uj.user_id = userId;
   return { user_id: userId, revision: 0, updated_at: null, json: uj };
 }
+var newStore = (userId, persona, template, now) => ({ conv: openSession(userId, persona, now), profile: newProfile(userId, template), events: [], sessions: [], jobs: [] });
 var startVisit = (c) => ({ ...c, visit: { visit_id: c.visit.visit_id + 1, spontaneous_count: 0 } });
+var activeSession = (s) => s.conv.active_elicitation_id ? s.sessions.find((x) => x.elicitation_id === s.conv.active_elicitation_id) ?? null : null;
 function newMessage(conv, role, text, now) {
   conv.msg_seq += 1;
   const truncated = text.length > LLM1.maxMessageChars;
@@ -627,16 +947,21 @@ function applyStateUpdate(conv, u, now) {
   }
   if (Array.isArray(u.paused_topics)) st.paused_topics = u.paused_topics.filter((x) => typeof x === "string").slice(0, 10);
 }
-function companyContext(text, holdings) {
+var holdingOf = (w, id) => w.holdings.find((h) => h.company_id === id) ?? null;
+function companyContext(text, w, es) {
+  if (es) {
+    const h = holdingOf(w, es.company_id);
+    return h ? { ...h, context_version: null } : null;
+  }
   if (!text) return null;
-  for (const h of holdings) {
+  for (const h of w.holdings) {
     const name = (h.name ?? "").replace("(\uAC00\uC0C1)", "").trim();
     if (name && text.includes(name) || text.includes(h.company_id)) return { ...h, context_version: null };
   }
   return null;
 }
-function newsContext(conv, spontaneous, company, w) {
-  if (!(spontaneous || company)) return [];
+function newsContext(conv, mode, spontaneous, company, w) {
+  if (mode !== "daily" || !(spontaneous || company)) return [];
   let ids = new Set(w.holdings.map((h) => h.company_id));
   if (company) ids = new Set([...ids].filter((i) => i === company.company_id));
   const now = w.now(), rank = { high: 0, medium: 1, low: 2 }, seen = /* @__PURE__ */ new Set(), out = [];
@@ -651,32 +976,101 @@ function newsContext(conv, spontaneous, company, w) {
   out.sort((a, b) => (rank[a.importance ?? ""] ?? 3) - (rank[b.importance ?? ""] ?? 3) || a.published_at.localeCompare(b.published_at));
   return out.slice(0, LLM1.newsPerCall);
 }
-function dialogueExamples(text, w) {
-  if (!text) return [];
+function dialogueExamples(mode, text, w) {
+  if (mode !== "daily" || !text) return [];
   return w.examples.map((ex) => ({ s: ex.keywords.filter((k) => text.includes(k)).length, ex })).filter((x) => x.s).sort((a, b) => b.s - a.s).slice(0, LLM1.dialogueExamplesPerCall).map(({ ex }) => ({ topic: ex.topic, dialogue: ex.dialogue, update_candidate: ex.update_candidate, caution: ex.caution }));
 }
-async function runTurn(convIn, profileIn, w, model, o) {
-  const conv = clone2(convIn), now = w.now(), spontaneous = !!o.spontaneous, notes = [];
-  const empty = (n) => ({ session_id: conv.session_id, mode: "daily", reply: null, profile_applied: [], profile_rejected: [], notes: n });
+function investorBackground(uj, es, w) {
+  const leafs = (o, prefix) => {
+    const out = [];
+    if (!o || typeof o !== "object") return out;
+    for (const [k, v] of Object.entries(o)) {
+      const path = prefix ? `${prefix}.${k}` : k;
+      if (v && typeof v === "object" && "value" in v && "basis" in v) {
+        const x = v;
+        out.push({ path, value: x.value, basis: x.basis, confidence: x.confidence, scope: x.scope ?? null });
+      } else if (v && typeof v === "object") out.push(...leafs(v, path));
+    }
+    return out;
+  };
+  const ip = uj.investment_philosophy ?? {}, phil = Object.fromEntries(Object.entries(ip).filter(([k]) => k !== "strategies" && k !== "recurring_reasons"));
+  const rr = ip.recurring_reasons, cid = es?.company_id ?? null;
+  const strategies = Object.entries(ip.strategies ?? {}).filter(([, st]) => ["in_use", "considering"].includes(st?.usage_status)).map(([sid, st]) => ({
+    strategy_id: sid,
+    name: st.name ?? null,
+    usage_status: st.usage_status,
+    rules: leafs(Object.fromEntries(Object.entries(st).filter(([k]) => !["strategy_id", "name", "usage_status", "unresolved_points"].includes(k))), "")
+  }));
+  const others = Object.entries(uj.company_views ?? {}).filter(([o, v]) => o !== cid && v?.current_thesis).map(([o, v]) => ({ company_id: o, name: holdingOf(w, o)?.name ?? null, current_thesis: v.current_thesis.value, basis: v.current_thesis.basis }));
+  return {
+    recurring_reasons: rr && typeof rr === "object" ? { value: rr.value, basis: rr.basis, confidence: rr.confidence, scope: rr.scope ?? null } : null,
+    investment_philosophy: leafs(phil, "investment_philosophy"),
+    preferences: leafs(uj.preferences ?? {}, "preferences"),
+    personality_tendencies: leafs(uj.personality_tendencies ?? {}, "personality_tendencies"),
+    strategies_in_use: strategies,
+    this_company_previous_view: cid ? leafs((uj.company_views ?? {})[cid] ?? {}, `company_views.${cid}`) : [],
+    other_companies_previous_views: others,
+    knowledge_notes: leafs(uj.financial_knowledge ?? {}, "financial_knowledge"),
+    conversation_preferences: leafs(uj.conversation_preferences ?? {}, "conversation_preferences")
+  };
+}
+async function runTurn(storeIn, w, model, o) {
+  const store = clone2(storeIn), conv = store.conv, now = w.now(), spontaneous = !!o.spontaneous, notes = [];
+  const empty = (mode2, n) => ({ session_id: conv.session_id, mode: mode2, reply: null, profile_applied: [], profile_rejected: [], notes: n });
   if (o.clientMessageId && conv.processed_client_ids[o.clientMessageId]) {
     const r = conv.processed_client_ids[o.clientMessageId];
-    return { conv, profile: profileIn, result: { ...r, notes: [...r.notes, "\uC911\uBCF5 client_message_id \u2014 \uC774\uC804 \uACB0\uACFC \uC7AC\uC0AC\uC6A9(\uB300\uC0AC \uC7AC\uC0DD\uC131\xB7\uC7AC\uC804\uC1A1 \uC5C6\uC74C)"] }, skipped: true };
+    return { store, result: { ...r, notes: [...r.notes, "\uC911\uBCF5 client_message_id \u2014 \uC774\uC804 \uACB0\uACFC \uC7AC\uC0AC\uC6A9(\uB300\uC0AC \uC7AC\uC0DD\uC131\xB7\uC7AC\uC804\uC1A1 \uC5C6\uC74C)"] }, skipped: true };
   }
-  if (spontaneous && conv.visit.spontaneous_count >= LLM1.spontaneousPerVisit) return { conv, profile: profileIn, result: empty([`\uBC29\uBB38\uB2F9 \uC790\uBC1C \uBC1C\uD654 \uD55C\uB3C4(${LLM1.spontaneousPerVisit}) \uB3C4\uB2EC \u2014 \uD638\uCD9C \uC548 \uD568`]), skipped: true };
   if (conv.persona_version !== w.persona.persona_version) throw new Error(`\uC138\uC158\uC5D0 \uACE0\uC815\uB41C persona_version(${conv.persona_version})\uACFC \uC800\uC7A5\uC18C \uBC84\uC804(${w.persona.persona_version})\uC774 \uB2E4\uB984 \u2014 \uC0C8 \uC138\uC158 \uD544\uC694`);
+  let es = activeSession(store);
+  if (spontaneous) {
+    if (conv.visit.spontaneous_count >= LLM1.spontaneousPerVisit) return { store, result: empty("daily", [`\uBC29\uBB38\uB2F9 \uC790\uBC1C \uBC1C\uD654 \uD55C\uB3C4(${LLM1.spontaneousPerVisit}) \uB3C4\uB2EC \u2014 \uD638\uCD9C \uC548 \uD568`]), skipped: true };
+    if (es && es.status === "collecting") return { store, result: empty("elicitation", ["\uD0D0\uC9C0 \uB300\uD654 \uC9C4\uD589 \uC911 \u2014 \uC790\uBC1C \uBC1C\uD654 \uB07C\uC6CC \uB123\uC9C0 \uC54A\uC74C"]), skipped: true };
+    return turn(store, w, model, "daily", null, null, { spontaneous: true, notes: [`event=visit`] });
+  }
   expireBuffer(conv, now, notes);
-  let current = null;
-  if (!spontaneous && o.text != null) {
-    current = newMessage(conv, "user", o.text, now);
-    pushRecent(conv, current);
+  const msg = newMessage(conv, "user", o.text ?? "", now);
+  pushRecent(conv, msg);
+  let mode = "daily";
+  if (es) {
+    if (es.status === "collecting") mode = "elicitation";
+    else if (es.status === "ready") {
+      const job = store.jobs.find((j2) => j2.request_id === es.request_id);
+      if (job && job.status === "ready") {
+        store.jobs = store.jobs.filter((j2) => j2 !== job);
+        Object.assign(es, { status: "collecting", request_id: null, finish_reason: null });
+        mode = "elicitation";
+        notes.push("\uC804\uB2EC \uC804 \uCD94\uAC00 \uBC1C\uC5B8: ready \uC2A4\uB0C5\uC0F7 \uD3D0\uAE30 \uD6C4 collecting \uBCF5\uADC0");
+      } else notes.push("\uC804\uB2EC \uC9C4\uD589 \uC911 \u2014 \uC774\uBC88 \uBC1C\uC5B8\uC740 \uD3C9\uC0C1\uC2DC \uBAA8\uB4DC\uB85C \uCC98\uB9AC");
+    } else if (es.status === "paused") notes.push("\uD0D0\uC9C0 \uC138\uC158 paused \u2014 \uBA85\uC2DC\uC801 \uC7AC\uAC1C \uC804\uC5D0\uB294 \uD3C9\uC0C1\uC2DC \uBAA8\uB4DC");
+  }
+  if (mode === "elicitation" && es) {
+    es.messages.push(msg);
+    es.user_turns += 1;
+    es.updated_at = iso(now);
+    if (es.messages.reduce((n, m) => n + m.text.length, 0) > LLM1.maxSessionChars) {
+      notes.push("\uC6D0\uBB38 \uBD84\uB7C9 \uC548\uC804 \uD55C\uB3C4 \uCD08\uACFC \u2014 \uC790\uB3D9 \uC885\uB8CC \uAE08\uC9C0, \uBCF4\uB958");
+      es.status = "paused";
+      mode = "daily";
+    }
   }
   conv.last_active_at = iso(now);
-  const uj = profileIn.json, allowed = w.persona.json.system_state.allowed_emotions.filter((e) => LLM1.clientEmotions.includes(e));
-  const company = companyContext(current?.text ?? null, w.holdings), news = newsContext(conv, spontaneous, company, w);
-  const view = conv.recent_messages.filter((m) => m.message_id !== current?.message_id);
-  const builtAt = iso(now), turnSeq = conv.turn_seq;
+  return turn(store, w, model, mode, msg, mode === "elicitation" ? es : null, { spontaneous: false, clientMessageId: o.clientMessageId, notes });
+}
+async function turn(store, w, model, mode, current, es, o) {
+  const conv = store.conv, now = w.now(), notes = o.notes, turnSeq = conv.turn_seq;
+  const result = { session_id: conv.session_id, mode, reply: null, profile_applied: [], profile_rejected: [], notes };
+  const uj = store.profile.json, allowed = w.persona.json.system_state.allowed_emotions.filter((e) => LLM1.clientEmotions.includes(e));
+  const company = companyContext(current?.text ?? null, w, es), news = newsContext(conv, mode, o.spontaneous, company, w);
+  const merged = new Map(conv.recent_messages.map((m) => [m.message_id, m]));
+  if (es) {
+    for (const m of es.messages) if (!merged.has(m.message_id)) merged.set(m.message_id, m);
+  }
+  if (current) merged.delete(current.message_id);
+  const view = [...merged.values()].sort((a, b) => a.seq - b.seq);
+  const builtAt = iso(now), streak = es ? consecutiveQuestionTurns(es) : 0;
   const ci = {
-    mode: "daily",
+    mode,
     character_persona: w.persona.json,
     user_json: uj,
     current_message: current ? strip(current) : null,
@@ -685,47 +1079,53 @@ async function runTurn(convIn, profileIn, w, model, o) {
     company_context: company,
     holdings_context: w.holdings,
     news_context: news,
-    detection_context: null,
-    elicitation_state: null,
-    conversation_policy: { may_speak: true, spontaneous_event: spontaneous, max_questions_per_turn: 1, paused_topics: conv.state.paused_topics, already_mentioned_news_ids: conv.mentioned_news_ids.slice(-20), consecutive_question_turns: 0 },
-    investor_background: null,
-    dialogue_examples: dialogueExamples(current?.text ?? null, w),
-    server_meta: { user_id: conv.user_id, turn_id: `${conv.session_id}-t${turnSeq + 1}`, turn_seq: turnSeq + 1, profile_revision: uj.revision ?? 0, collection_revision: null, now: builtAt, persona_version: w.persona.persona_version, company_context_version: null }
+    detection_context: es ? { event_id: es.detection_event_id, company_id: es.company_id, reason_code: es.detection_reason_code, reason: es.detection_reason } : null,
+    elicitation_state: stateForPrompt(es),
+    conversation_policy: { may_speak: true, spontaneous_event: o.spontaneous, max_questions_per_turn: 1, paused_topics: conv.state.paused_topics, already_mentioned_news_ids: conv.mentioned_news_ids.slice(-20), consecutive_question_turns: streak },
+    investor_background: mode === "elicitation" ? investorBackground(uj, es, w) : null,
+    dialogue_examples: dialogueExamples(mode, current?.text ?? null, w),
+    server_meta: { user_id: conv.user_id, turn_id: `${conv.session_id}-t${turnSeq + 1}`, turn_seq: turnSeq + 1, profile_revision: uj.revision ?? 0, collection_revision: es?.revision ?? null, now: builtAt, persona_version: w.persona.persona_version, company_context_version: null }
   };
   const messages = buildMessages(ci, w.registry, allowed);
   const errors = [];
   let out = null;
-  for (let attempt = 0; attempt <= LLM1.maxFormatRepairs && !out; attempt++) {
+  for (let attempt = 0; attempt <= LLM1.maxFormatRepairs; attempt++) {
     let raw;
     try {
-      raw = await model(messages);
+      raw = await model(messages, mode);
     } catch (e) {
       errors.push(`llm_error: ${e.message}`);
       break;
     }
-    const c = checkDaily(raw || "{}");
+    const c = checkTurn(raw || "{}", mode);
     let errs = c.errors;
     if (c.out) {
-      errs = semanticErrors(c.out, spontaneous);
+      errs = semanticErrors(c.out, o.spontaneous, mode);
       if (!errs.length) {
-        out = c.out;
-        break;
+        const style = mode === "elicitation" && streak >= 2 && current && c.out.reply?.text.includes("?") ? [`\uCE90\uB9AD\uD130\uAC00 \uC774\uBBF8 ${streak}\uD134 \uC5F0\uC18D \uC9C8\uBB38\uD568 \u2014 \uC774\uBC88 \uD134\uC740 \uC9C8\uBB38 \uC5C6\uC774 \uBC18\uC751\xB7\uC0DD\uAC01\uB9CC \uB9D0\uD560 \uAC83`] : [];
+        if (!style.length || attempt === LLM1.maxFormatRepairs) {
+          out = c.out;
+          if (style.length) errors.push(...style.map((s) => `style(\uC218\uC6A9): ${s}`));
+          break;
+        }
+        errs = style;
       }
     }
     errors.push(...errs);
     messages.push({ role: "assistant", content: raw || "(\uBE48 \uC751\uB2F5)" }, repairMessage(errs));
   }
-  const result = { session_id: conv.session_id, mode: "daily", reply: null, profile_applied: [], profile_rejected: [], notes };
   if (!out) {
     notes.push(`LLM \uCD9C\uB825 \uC2E4\uD328 \u2192 \uBCF5\uAD6C \uC548\uB0B4\uB9CC, \uBCC0\uACBD \uC5C6\uC74C: ${JSON.stringify(errors).slice(0, 400)}`);
-    if (!spontaneous) {
+    if (!o.spontaneous) {
       const m = newMessage(conv, "character", FALLBACK_REPLY.text, now);
       pushRecent(conv, m);
       result.reply = { message_id: m.message_id, ...FALLBACK_REPLY, mentioned_news_ids: [] };
+      if (es && mode === "elicitation") es.messages.push(m);
     }
+    if (es) result.elicitation_status = es.status;
     conv.turn_seq += 1;
     remember(conv, o.clientMessageId, result);
-    return { conv, profile: profileIn, result };
+    return { store, result };
   }
   let reply = out.reply;
   if (reply) {
@@ -740,30 +1140,210 @@ async function runTurn(convIn, profileIn, w, model, o) {
   let seq = conv.strategy_seq ?? 0;
   const reg = new FieldRegistry(w.registry, () => w.holdings.map((h) => h.company_id));
   const upd = new ProfileUpdater(reg, w.strategyTemplate, () => `st${String(++seq).padStart(3, "0")}`, () => iso(w.now()));
-  const p = upd.apply(profileIn.json, out.profile_update, index, { inputRevision: uj.revision ?? 0, inputBuiltAt: builtAt });
+  const p = upd.apply(store.profile.json, out.profile_update, index, { inputRevision: uj.revision ?? 0, inputBuiltAt: builtAt });
   conv.strategy_seq = seq;
   result.profile_applied = p.applied;
   result.profile_rejected = p.rejected;
-  const profile = p.applied.length ? { ...profileIn, json: p.json, revision: p.json.revision, updated_at: p.json.updated_at } : profileIn;
+  if (p.applied.length) store.profile = { ...store.profile, json: p.json, revision: p.json.revision, updated_at: p.json.updated_at };
+  let charMsg = null;
   if (reply) {
-    const m = newMessage(conv, "character", reply.text, now);
-    pushRecent(conv, m);
-    result.reply = { message_id: m.message_id, ...reply };
+    charMsg = newMessage(conv, "character", reply.text, now);
+    pushRecent(conv, charMsg);
+    result.reply = { message_id: charMsg.message_id, ...reply };
+  }
+  if (mode === "elicitation" && es && out.elicitation) applyElicitation(store, es, out.elicitation, index, current, charMsg, result, now);
+  applyStateUpdate(conv, out.conversation_state_update, now);
+  if (reply) {
     for (const n of reply.mentioned_news_ids) if (!conv.mentioned_news_ids.includes(n)) conv.mentioned_news_ids.push(n);
   }
-  applyStateUpdate(conv, out.conversation_state_update, now);
-  if (spontaneous && reply) conv.visit.spontaneous_count += 1;
+  if (o.spontaneous && reply && mode === "daily") conv.visit.spontaneous_count += 1;
   conv.turn_seq += 1;
   conv.last_active_at = iso(now);
   conv.expires_at = plus(now, LLM1.bufferInactiveHours);
   remember(conv, o.clientMessageId, result);
-  return { conv, profile, result };
+  return { store, result };
+}
+function applyElicitation(store, es, el, index, current, charMsg, result, now) {
+  if (charMsg) es.messages.push(charMsg);
+  if (el.base_revision !== es.revision) {
+    result.notes.push("\uC218\uC9D1 revision \uCDA9\uB3CC \u2014 \uADFC\uAC70 \uBCC0\uACBD\xB7\uACB0\uC815 \uBC18\uC601 \uAE08\uC9C0");
+    result.elicitation_status = es.status;
+    return;
+  }
+  const r = applyEvidenceChanges(es, el.evidence_changes, index, () => nextId(store.conv, "evidence", "ev"));
+  const s = r.s;
+  result.evidence_applied = r.applied;
+  result.evidence_rejected = r.rejected;
+  for (const pt of el.unresolved_points ?? []) if (typeof pt === "string" && pt.trim() && !s.unresolved_points.includes(pt)) s.unresolved_points.push(pt);
+  if (el.next_question_goal) s.asked_questions.push({ goal: el.next_question_goal, message_id: charMsg?.message_id ?? null });
+  let decision = el.decision;
+  const cur = current?.text ?? null;
+  if (decision !== "pause" && isStopRequest(cur)) {
+    result.notes.push("\uC0AC\uC6A9\uC790 \uC911\uB2E8\xB7\uBCF4\uB958 \uC694\uCCAD \uAC10\uC9C0 \u2192 \uC11C\uBC84\uAC00 pause\uB85C \uCC98\uB9AC(\uBAB0\uB798 \uC804\uB2EC \uAE08\uC9C0)");
+    decision = "pause";
+  }
+  if (decision === "pause") {
+    s.status = "paused";
+    s.pause_reason = "user_request";
+  } else if (decision === "finish") {
+    const [ok, why] = validateFinish(s, el, cur, LLM1.limitedMoreMinUserTurns, r.rejected.length > 0);
+    result.finish_check = why;
+    if (ok) {
+      s.status = "ready";
+      s.finish_reason = el.finish_reason;
+      s.decision_note = el.decision_note;
+      const rid = nextId(store.conv, "request", "ar");
+      s.request_id = rid;
+      const route = el.finish_reason === "no_basis" && !LLM1.receiverSupportsNoBasis ? "insufficient_input" : "argument_analysis";
+      s.revision += 1;
+      const packet = buildPacket(s, rid);
+      store.jobs.push({ request_id: rid, elicitation_id: s.elicitation_id, payload_hash: "", payload: packet, route, status: "ready", receipt: null, attempts: 0, next_retry_at: iso(now), last_error: null, created_at: iso(now), updated_at: iso(now) });
+      result.delivery_request_id = rid;
+    } else {
+      s.status = "collecting";
+      result.notes.push(`finish \uAC70\uBD80 \u2192 \uACC4\uC18D \uC218\uC9D1: ${why}`);
+    }
+  } else s.status = "collecting";
+  if (s.status !== "ready" && (r.applied.length || s.status !== es.status)) s.revision += 1;
+  s.decision_note = el.decision_note;
+  s.updated_at = iso(now);
+  result.elicitation_status = s.status;
+  store.sessions = store.sessions.map((x) => x.elicitation_id === s.elicitation_id ? s : x);
 }
 function remember(conv, cid, r) {
   if (!cid) return;
   conv.processed_client_ids[cid] = r;
   const ks = Object.keys(conv.processed_client_ids);
   for (const k of ks.slice(0, Math.max(0, ks.length - LLM1.processedClientIdLimit))) delete conv.processed_client_ids[k];
+}
+function receiveStopLossSignal(storeIn, w, stocks, o = {}) {
+  const store = clone2(storeIn), accepted = [], rejected = [];
+  const held = new Set(w.holdings.filter((h) => (h.status ?? "holding") === "holding").map((h) => h.company_id));
+  for (const it of stocks) {
+    const cid = typeof it === "string" ? it : it?.company_id ?? null, detail = typeof it === "string" ? null : it?.detail ?? null;
+    if (!cid || !holdingOf(w, cid)) {
+      rejected.push({ stock: cid, reason: "\uAE30\uC5C5 \uC815\uBCF4 \uC5C6\uC74C \u2014 \uB300\uC0C1 \uC885\uBAA9 \uBD88\uBA85\uD655, \uBCF4\uB958" });
+      continue;
+    }
+    if (!held.has(cid)) {
+      rejected.push({ stock: cid, reason: "\uC0AC\uC6A9\uC790 \uBCF4\uC720\uC885\uBAA9\uC774 \uC544\uB2D8" });
+      continue;
+    }
+    if (store.events.some((e) => e.company_id === cid && (e.status === "pending" || e.status === "in_progress"))) {
+      rejected.push({ stock: cid, reason: "\uAC19\uC740 \uC885\uBAA9\uC758 \uCC98\uB9AC \uC911\uC778 \uC2E0\uD638\uAC00 \uC788\uC74C \u2014 \uC911\uBCF5 \uC81C\uAC70" });
+      continue;
+    }
+    const eid = nextId(store.conv, "signal", "sl");
+    store.events.push({
+      event_id: eid,
+      user_id: store.conv.user_id,
+      company_id: cid,
+      reason_code: "stop_loss_signal",
+      reason: "\uC790\uC0AC \uC190\uC808 \uBAA8\uB378\uC774 \uC774 \uBCF4\uC720\uC885\uBAA9\uC5D0 \uC190\uC808 \uC2E0\uD638\uB97C \uC90C",
+      source_model: o.sourceModel ?? "fds_stop_loss_model",
+      signal_id: o.signalId ?? null,
+      detail,
+      detected_at: o.signaledAt ?? iso(w.now()),
+      status: "pending"
+    });
+    accepted.push(eid);
+  }
+  enqueue(store);
+  return { store, accepted, rejected };
+}
+function enqueue(store) {
+  const c = store.conv;
+  c.pending_detection_events ??= [];
+  c.seen_detection_event_ids ??= [];
+  for (const ev of [...store.events].filter((e) => e.status === "pending").sort((a, b) => a.detected_at.localeCompare(b.detected_at)))
+    if (!c.pending_detection_events.includes(ev.event_id) && !c.seen_detection_event_ids.includes(ev.event_id)) c.pending_detection_events.push(ev.event_id);
+}
+async function startNextPendingDetection(storeIn, w, model) {
+  const store = clone2(storeIn), c = store.conv;
+  if (activeSession(store) || !(c.pending_detection_events ?? []).length) return null;
+  const eid = c.pending_detection_events.shift(), ev = store.events.find((e) => e.event_id === eid);
+  if (!ev) return null;
+  const now = w.now(), id = nextId(c, "elicitation", "es");
+  store.sessions.push(newSession({ elicitationId: id, userId: c.user_id, convSessionId: c.session_id, event: ev, now: iso(now), expires: plus(now, LLM1.maxPendingDays * 24) }));
+  c.active_elicitation_id = id;
+  (c.seen_detection_event_ids ??= []).includes(ev.event_id) || c.seen_detection_event_ids.push(ev.event_id);
+  ev.status = "in_progress";
+  return turn(store, w, model, "elicitation", null, store.sessions.at(-1), { spontaneous: true, notes: [`\uD0D0\uC9C0 \uC774\uBCA4\uD2B8 ${ev.event_id} \u2192 \uC218\uC9D1 \uC138\uC158 ${id} \uC2DC\uC791`] });
+}
+function pauseElicitation(storeIn, reason = "no_response") {
+  const store = clone2(storeIn), es = activeSession(store);
+  if (!es || !["collecting", "ready"].includes(es.status)) return store;
+  if (es.status === "ready" && es.request_id) {
+    const job = store.jobs.find((j2) => j2.request_id === es.request_id);
+    if (job?.status === "ready") {
+      store.jobs = store.jobs.filter((j2) => j2 !== job);
+      es.request_id = null;
+    }
+  }
+  es.status = "paused";
+  es.pause_reason = reason;
+  return store;
+}
+async function resumeElicitation(storeIn, w, model) {
+  const store = clone2(storeIn), es = activeSession(store);
+  if (!es || es.status !== "paused") return { store, result: { session_id: store.conv.session_id, mode: "daily", reply: null, profile_applied: [], profile_rejected: [], notes: ["\uC7AC\uAC1C\uD560 paused \uC138\uC158 \uC5C6\uC74C"] } };
+  es.status = "collecting";
+  es.pause_reason = null;
+  return turn(store, w, model, "elicitation", null, es, { spontaneous: true, notes: ["\uC0AC\uC6A9\uC790 \uC7AC\uAC1C \uC758\uC0AC \uD655\uC778 \u2192 collecting"] });
+}
+var canon = (o) => Array.isArray(o) ? "[" + o.map(canon).join(",") + "]" : o && typeof o === "object" ? "{" + Object.keys(o).sort().map((k) => JSON.stringify(k) + ":" + canon(o[k])).join(",") + "}" : JSON.stringify(o);
+async function sha256Json(o) {
+  const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canon(o)));
+  return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
+}
+async function runDeliveryWorker(storeIn, receive, now) {
+  const store = clone2(storeIn), results = [];
+  for (const job of store.jobs) {
+    if (job.status !== "ready" && job.status !== "queued") continue;
+    const nra = Date.parse(job.next_retry_at);
+    if (!isNaN(nra) && nra > now) continue;
+    if (!job.payload_hash && job.payload) job.payload_hash = await sha256Json(job.payload);
+    job.status = "queued";
+    job.attempts += 1;
+    job.updated_at = iso(now);
+    const later = (err) => {
+      const b = LLM1.retryBackoffSeconds, delay = job.attempts >= LLM1.maxAttempts ? b[b.length - 1] : b[Math.min(job.attempts - 1, b.length - 1)];
+      job.next_retry_at = iso(now + delay * 1e3);
+      job.last_error = err;
+      results.push({ request_id: job.request_id, status: "retry_scheduled", error: err });
+    };
+    let receipt;
+    try {
+      receipt = await receive({ request_id: job.request_id, payload_hash: job.payload_hash, payload: job.payload, route: job.route });
+    } catch (e) {
+      later(e.message);
+      continue;
+    }
+    if (receipt.status === "persisted" && receipt.request_id === job.request_id && receipt.payload_hash === job.payload_hash) {
+      job.status = "delivered";
+      job.receipt = receipt;
+      job.payload = null;
+      job.updated_at = iso(now);
+      const es = store.sessions.find((s) => s.elicitation_id === job.elicitation_id);
+      if (es) {
+        Object.assign(es, { status: "delivered", messages: [], unresolved_points: [], asked_questions: [], updated_at: iso(now) });
+        es.evidence = es.evidence.map((e) => ({ evidence_id: e.evidence_id, active: e.active, kind: e.kind }));
+        if (store.conv.active_elicitation_id === es.elicitation_id) store.conv.active_elicitation_id = null;
+        const ev = store.events.find((e) => e.event_id === es.detection_event_id);
+        if (ev) ev.status = "done";
+      }
+      results.push({ request_id: job.request_id, status: "delivered" });
+      continue;
+    }
+    if (receipt.status === "conflict") {
+      job.status = "failed_conflict";
+      job.last_error = "\uB3D9\uC77C request_id\uC5D0 \uB2E4\uB978 payload_hash";
+      results.push({ request_id: job.request_id, status: "failed_conflict" });
+      continue;
+    }
+    later(`\uC601\uC218\uC99D \uBD88\uC77C\uCE58: ${receipt.status}`);
+  }
+  return { store, results };
 }
 
 // app/core/llmModel.ts
@@ -1227,21 +1807,76 @@ Deno.serve(async (req) => {
   if (!openai) return json({ error: "no-llm" }, 503);
   let conv = await load("conversation");
   if (!conv || conv.persona_version !== persona_bori_default.persona_version) conv = openSession(me.id, persona_bori_default, now);
-  const holdings = (Array.isArray(b.holdings) ? b.holdings : []).filter((h) => h && typeof h.company_id === "string").slice(0, 30).map((h) => ({ company_id: h.company_id.slice(0, 20), name: String(h.name ?? "").slice(0, 40) || null }));
+  const det = await load("detection");
+  let store = { ...newStore(me.id, persona_bori_default, user_profile_template_default, now), conv, profile, ...det ?? {} };
+  const holdings = (Array.isArray(b.holdings) ? b.holdings : []).filter((h) => h && typeof h.company_id === "string").slice(0, 30).map((h) => ({ company_id: h.company_id.slice(0, 20), name: String(h.name ?? "").slice(0, 40) || null, status: "holding" }));
   const world = { persona: persona_bori_default, registry: field_registry_default, strategyTemplate: strategy_template_default, userTemplate: user_profile_template_default, examples: philosophy_examples_default.examples, holdings, news: [], now: () => Date.now() };
-  if (b.action === "visit") conv = startVisit(conv);
-  else if (b.action !== "message" || typeof b.text !== "string" || !b.text.trim()) return json({ error: "bad-request" }, 400);
+  const persist = async (s) => {
+    await save("conversation", s.conv);
+    if (s.profile !== profile) await save("profile", s.profile);
+    await save("detection", { events: s.events, sessions: s.sessions, jobs: s.jobs });
+  };
+  const status = (s) => {
+    const es = s.sessions.find((x) => x.elicitation_id === s.conv.active_elicitation_id);
+    return es ? { status: es.status, company_id: es.company_id } : null;
+  };
+  if (b.action === "pause") {
+    store = pauseElicitation(store, "user_request");
+    await persist(store);
+    return json({ detection: status(store) });
+  }
+  if (!["message", "visit", "open", "resume"].includes(b.action ?? "")) return json({ error: "bad-request" }, 400);
+  if (b.action === "message" && (typeof b.text !== "string" || !b.text.trim())) return json({ error: "bad-request" }, 400);
+  if (b.action === "open") {
+    const signals = (Array.isArray(b.signals) ? b.signals : []).filter((x) => typeof x === "string").slice(0, 10);
+    store = receiveStopLossSignal(store, world, signals, { sourceModel: "rethink_mock_signals" }).store;
+    const es = store.sessions.find((x) => x.elicitation_id === store.conv.active_elicitation_id);
+    if (es || !(store.conv.pending_detection_events ?? []).length) {
+      await persist(store);
+      return json({ reply: null, detection: status(store) });
+    }
+  }
   const day = new Date(now + 9 * 36e5).toISOString().slice(0, 10);
   const take = await fetch(`${url}/rest/v1/rpc/llm_take`, { method: "POST", headers: svc, body: JSON.stringify({ p: me.id, d: day, cap: LLM_LIMIT.perDay }) });
-  if (!take.ok || !await take.json()) return json({ reply: { text: "\uC624\uB298\uC740 \uC218\uB2E4 \uB9CE\uC774 \uB5A8\uC5C8\uB2E4! \uB0B4\uC77C \uB610 \uC598\uAE30\uD558\uC790.", emotion: "tired" }, limit: true });
-  const model = async (messages) => {
-    const body = { ...chatBody(Deno.env.get("OPENAI_MODEL") ?? LLM_DEFAULT, messages, { out: 700, temperature: 0.7 }), response_format: { type: "json_schema", json_schema: DAILY_SCHEMA } };
+  if (!take.ok || !await take.json()) return json({ reply: b.action === "message" ? { text: "\uC624\uB298\uC740 \uC218\uB2E4 \uB9CE\uC774 \uB5A8\uC5C8\uB2E4! \uB0B4\uC77C \uB610 \uC598\uAE30\uD558\uC790.", emotion: "tired" } : null, limit: true });
+  const model = async (messages, mode) => {
+    const body = {
+      ...chatBody(Deno.env.get("OPENAI_MODEL") ?? LLM_DEFAULT, messages, { out: mode === "elicitation" ? 900 : 700, temperature: 0.7 }),
+      response_format: { type: "json_schema", json_schema: mode === "elicitation" ? ELICITATION_SCHEMA : DAILY_SCHEMA }
+    };
     const r = await fetch("https://api.openai.com/v1/chat/completions", { method: "POST", headers: { authorization: `Bearer ${openai}`, "content-type": "application/json" }, body: JSON.stringify(body) });
     if (!r.ok) throw new Error(`openai ${r.status}`);
     return (await r.json())?.choices?.[0]?.message?.content ?? "";
   };
-  const out = await runTurn(conv, profile, world, model, { text: b.action === "message" ? b.text.slice(0, 2e3) : null, spontaneous: b.action === "visit", clientMessageId: b.client_message_id ?? null });
-  await save("conversation", out.conv);
-  if (out.profile !== profile) await save("profile", out.profile);
-  return json({ reply: out.result.reply, learned: out.result.profile_applied.length });
+  let result = null;
+  if (b.action === "open") {
+    const r = await startNextPendingDetection(store, world, model);
+    if (r) {
+      store = r.store;
+      result = r.result;
+    }
+  } else if (b.action === "resume") {
+    const r = await resumeElicitation(store, world, model);
+    store = r.store;
+    result = r.result;
+  } else {
+    if (b.action === "visit") store = { ...store, conv: startVisit(store.conv) };
+    const r = await runTurn(store, world, model, { text: b.action === "message" ? b.text.slice(0, 2e3) : null, spontaneous: b.action === "visit", clientMessageId: b.client_message_id ?? null });
+    store = r.store;
+    result = r.result;
+  }
+  const receive = async (job) => {
+    await fetch(`${url}/rest/v1/analysis_inbox?on_conflict=request_id`, {
+      method: "POST",
+      headers: { ...svc, prefer: "resolution=ignore-duplicates" },
+      body: JSON.stringify({ request_id: job.request_id, player_id: me.id, payload_hash: job.payload_hash, route: job.route, payload: job.payload })
+    });
+    const r = await fetch(`${url}/rest/v1/analysis_inbox?request_id=eq.${encodeURIComponent(job.request_id)}&player_id=eq.${me.id}&select=payload_hash`, { headers: svc });
+    const row = r.ok ? (await r.json())[0] : null;
+    if (!row) throw new Error("inbox write failed");
+    return { request_id: job.request_id, payload_hash: row.payload_hash, status: row.payload_hash === job.payload_hash ? "persisted" : "conflict" };
+  };
+  if (store.jobs.some((j2) => j2.status === "ready" || j2.status === "queued")) store = (await runDeliveryWorker(store, receive, Date.now())).store;
+  await persist(store);
+  return json({ reply: result?.reply ?? null, learned: result?.profile_applied.length ?? 0, detection: status(store) });
 });

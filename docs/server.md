@@ -52,6 +52,7 @@
     - 국외 이전 동의 문구에 "올린 캡처"를 넣었어. 이미 동의한 사람은 예전 문구에 동의한 거라, 정식 출시 전에 다시 받을지 정해야 해.
 
 14. **보리 대화 (정균 1번 LLM, `docs/llm1.md`)**: SQL Editor에서 `db/migrations/004_llm1.sql` Run → `node tools/build-functions.mjs bori-talk` → Edge Functions에 `bori-talk` 이름으로 `db/functions/bori-talk/bundle.js`를 붙여 넣고 Deploy. 시크릿은 같은 `OPENAI_API_KEY`.
+   - 손절 신호 대화(2단계): `db/migrations/005_llm1_detection.sql`도 Run (004 다음). 함수는 같은 `bori-talk`를 다시 빌드해서 붙여 넣으면 된다.
     - 로그인한 상태에서 보리를 눌러 말을 걸면 이 함수가 대답하고, 내가 한 말에서 투자 성향·종목 생각을 배워 프로필에 남겨(보리의 말은 근거가 안 됨).
     - 예전 `friend-chat` 함수는 더 이상 앱이 부르지 않아. 지워도 돼.
     - 모델: 모든 텍스트 함수의 기본은 GPT-6 Luna(`app/core/llmModel.ts`). 바꾸려면 시크릿 `OPENAI_MODEL`.
