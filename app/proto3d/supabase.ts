@@ -34,7 +34,7 @@ function readReturn(){try{
   if(err)notice='로그인이 끝나지 않았어요: '+err.split('+').join(' ');
   return q.has('code')}catch{return false}}
 const listeners=new Set<(a:Account|null)=>void>();
-let watching=false;
+let watching=false,settled=false;
 function watch(){if(watching||!supabaseReady)return;watching=true;
   const sb=supabase();
   const hadCode=readReturn();
@@ -42,14 +42,15 @@ function watch(){if(watching||!supabaseReady)return;watching=true;
     // came back with a code but no session: the code could not be swapped (opened on another address, or expired)
     if(hadCode&&!cached&&!notice)notice='로그인이 끝나지 않았어요. 처음 연 주소(localhost/127.0.0.1)와 돌아온 주소가 같은지 확인해 주세요'+(error?' ('+error.message+')':'');
     if(hadCode||notice){try{history.replaceState(null,'',location.pathname)}catch{/* keep the address */}}
-    listeners.forEach(f=>f(cached))});
+    settled=true;listeners.forEach(f=>f(cached))});
   sb.auth.onAuthStateChange((_e,session)=>{cached=session?toAccount(session.user):null;listeners.forEach(f=>f(cached))});
 }
 
 export const supabaseAuth:AuthRepo={
   local:false,
   current(){watch();return cached},
-  onChange(f){watch();listeners.add(f);return()=>{listeners.delete(f)}},
+  onChange(f){watch();listeners.add(f);if(settled)f(cached);return()=>{listeners.delete(f)}},
+  maybeSignedIn(){try{return Object.keys(localStorage).some(k=>/^sb-.+-auth-token$/.test(k))}catch{return false}},
   async signUp(f){const e=checkSignUp(f);const first=Object.values(e)[0];if(first)return {ok:false,error:first};
     const {data,error}=await supabase().auth.signUp({email:f.email.trim(),password:f.password,
       options:{data:{nickname:f.nickname.trim(),consents:f.consents},emailRedirectTo:location.origin}});

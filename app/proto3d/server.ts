@@ -85,6 +85,9 @@ export type AuthRepo={
   saveConsents(nickname:string,consents:import('../core/auth').ConsentId[]):Promise<AuthResult>;
   // who is signed in changes outside our calls too (coming back from Kakao or Google, a token running out)
   onChange(f:(a:Account|null)=>void):()=>void;
+  // a saved sign-in may still be loading (the server's session is read after the first paint): hold the landing until
+  // onChange has said who it is, so a signed-in player does not see it flash
+  maybeSignedIn():boolean;
   logOut():Promise<void>;
   local:boolean;
 };
@@ -105,6 +108,7 @@ export const localAuth:AuthRepo={
     const next={...a,nickname:nickname.trim()||a.nickname,consents};try{localStorage.setItem(ACCOUNT_KEY,JSON.stringify(next))}catch{/* this visit only */}
     return {ok:true,account:next}},
   onChange(){return()=>{}},
+  maybeSignedIn:()=>!!read(),
   async logOut(){try{localStorage.removeItem(ACCOUNT_KEY)}catch{/* nothing kept */}},
 };
 // Supabase when the project keys are in .env.local (supabase.ts), the device-only one otherwise

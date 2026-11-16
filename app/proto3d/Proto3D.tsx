@@ -146,14 +146,15 @@ export default function Proto3D(){
   const [recenter,setRecenter]=useState(0);
   // a new player lands on the onboarding (ui/Onboarding.tsx); the garden stays empty until the first trees go in
   const [sheet,setSheet]=useState<SheetState>(()=>g.s.onboarded?null:{kind:'onboard'});
-  // the first screens (ui/Welcome.tsx): a new visitor with no account and no garden sees the landing first; sign up and
-  // log in go through authRepo (server.ts), "가입 없이 둘러보기" remembers itself on this device. e2e pages skip it unless
-  // the address has ?landing (tests/e2e/fixtures.ts)
+  // the first screens (ui/Welcome.tsx): every visit that is not signed in starts on the landing (sign up / log in /
+  // look around), even with a garden kept on this device; "가입 없이 둘러보기" lasts for this visit (sessionStorage).
+  // Sign up and log in go through authRepo (server.ts). e2e pages skip it unless the address has ?landing (tests/e2e/fixtures.ts)
   const [account,setAccount]=useState<Account|null>(()=>typeof window==='undefined'?null:authRepo.current());
   // 부지·건물·랜드마크 (core/land.ts, ui/Build.tsx): 넓히기 mode shows the closed lots on the garden; a tap asks first
   const [buildMode,setBuildMode]=useState(false),[want,setWant]=useState<Want|null>(null);
-  const [guest,setGuest]=useState(()=>{try{return localStorage.getItem('rethink-guest')==='1'}catch{return false}});
-  useEffect(()=>authRepo.onChange(a=>setAccount(a)),[]);
+  const [guest,setGuest]=useState(()=>{try{return sessionStorage.getItem('rethink-guest')==='1'}catch{return false}});
+  const [authKnown,setAuthKnown]=useState(()=>typeof window==='undefined'||authRepo.local||!authRepo.maybeSignedIn());
+  useEffect(()=>authRepo.onChange(a=>{setAccount(a);setAuthKnown(true)}),[]);
   const owing=account&&missingConsents(account).length?account:null;
   // signed in with Supabase: the garden is kept on the server too (proto3d/sync.ts). First the two copies are compared
   // (core/sync.ts), then every change goes up after a quiet moment. Not for guests, device-only accounts or ?demo.
@@ -166,7 +167,7 @@ export default function Proto3D(){
       setSynced(true)});
     return()=>{on=false}},[syncOn,account?.email]);// eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{if(!synced||!saveRepo)return;const repo=saveRepo;const t=setTimeout(()=>{void repo.push(g.s).then(at=>{if(at){markLocal(at);void repo.pushJigi(g.s.journals??[])}})},SYNC.pushAfter);return()=>clearTimeout(t)},[synced,g.s]);
-  const welcome=!!owing||(!account&&!guest&&!g.s.onboarded&&!(typeof window!=='undefined'&&(window as {__noLanding?:boolean}).__noLanding));
+  const welcome=!!owing||(!account&&!guest&&authKnown&&!(typeof window!=='undefined'&&(window as {__noLanding?:boolean}).__noLanding));
   const [early,setEarly]=useState(false);
   // a grade being revealed makes its tree react in the garden (Scene3D Burst)
   const [burst,setBurst]=useState<World['burst']>(null),[focus,setFocus]=useState<number|null>(null);
@@ -547,7 +548,7 @@ export default function Proto3D(){
         onBrief={()=>{const sig=open.find(x=>x.analyst===sheet.id);if(sig)setSheet({kind:'brief',start:{signalId:sig.id}})}}/>}
       {g.toast&&<div key={g.toast.id} className="rt-toast" role="status">{g.toast.text}</div>}
       {welcome&&<Welcome owing={owing} onAccount={(a,isNew)=>{setAccount(a);if(isNew||!s.name)g.ops.setName(a.nickname)}}
-        onGuest={()=>{try{localStorage.setItem('rethink-guest','1')}catch{/* this visit only */}setGuest(true)}}/>}
+        onGuest={()=>{try{sessionStorage.setItem('rethink-guest','1')}catch{/* this page only */}setGuest(true)}}/>}
     </div>
   );
 }

@@ -68,3 +68,22 @@ test("log in finds the account on this device; looking around skips sign-up", as
   await welcome(page).getByRole("button", { name: "가입 없이 둘러보기" }).click();
   await expect(page.getByRole("dialog", { name: "내 종목 넣기" })).toBeVisible();
 });
+
+// coming back without signing in: the landing comes first again even with a garden on this device; looking around
+// lasts for this visit (a reload keeps it, a new visit asks again)
+test("a returning visitor who is not signed in starts on the landing again", async ({ page, context }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/proto3d?reset&landing&weather=clear");
+  await welcome(page).getByRole("button", { name: "가입 없이 둘러보기" }).click();
+  await expect(page.getByRole("dialog", { name: "내 종목 넣기" })).toBeVisible({ timeout: 30_000 });
+  await page.reload();
+  await expect(page.getByRole("dialog", { name: "내 종목 넣기" })).toBeVisible({ timeout: 30_000 });
+  await expect(welcome(page)).toHaveCount(0);
+  // a new visit (new tab): the garden is still on this device, but the landing asks first
+  const next = await context.newPage();
+  await next.setViewportSize({ width: 390, height: 844 });
+  await next.goto("/proto3d?landing&weather=clear");
+  await expect(welcome(next).getByRole("button", { name: "로그인", exact: true }).first()).toBeVisible({ timeout: 30_000 });
+  await welcome(next).getByRole("button", { name: "가입 없이 둘러보기" }).click();
+  await expect(welcome(next)).toHaveCount(0);
+});
