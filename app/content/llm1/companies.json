@@ -1,0 +1,828 @@
+{
+ "105560": {
+  "company_id": "105560",
+  "name": "KB금융",
+  "as_of": "2026-11-16",
+  "context_version": "rt-v1",
+  "field_sources": {
+   "industry": [
+    "rt_overview_v1"
+   ],
+   "business_summary": [
+    "rt_overview_v1"
+   ],
+   "value_chain": [
+    "rt_overview_v1"
+   ]
+  },
+  "industry": "금융지주",
+  "business_summary": "국민은행을 중심으로 증권·보험·카드 회사를 거느린 금융지주회사다",
+  "value_chain": {
+   "position": "예금·대출·투자 같은 금융 서비스",
+   "upstream": [
+    "예금자",
+    "자금 시장"
+   ],
+   "direct_customers": [
+    "개인·기업 고객"
+   ],
+   "end_users": [
+    "개인·기업 고객"
+   ],
+   "revenue_model": "대출 이자와 예금 이자의 차이, 수수료",
+   "cost_drivers": [
+    "예금 이자",
+    "대손 비용",
+    "인건비"
+   ],
+   "demand_drivers": [
+    "대출 수요",
+    "금리 수준"
+   ]
+  },
+  "revenue_mix": {
+   "period": null,
+   "domestic_share": null,
+   "overseas_share": null
+  },
+  "sales_channels": [
+   "지점",
+   "모바일 앱"
+  ],
+  "linkage_factors": [
+   "금리",
+   "경기와 연체율",
+   "금융 규제"
+  ],
+  "recent_events": [],
+  "sources": [
+   {
+    "source_id": "rt_overview_v1",
+    "title": "회사 공개 사업 개요를 바탕으로 정리한 요약 (원문 대조 전)",
+    "as_of": "2026-11-16"
+   }
+  ],
+  "unknowns": [
+   "최근 분기 실적과 사업부별 매출 비중",
+   "최근 계약·투자·규제 같은 사업 변화 (확인된 자료 없음)"
+  ],
+  "fictional": false
+ },
+ "196170": {
+  "company_id": "196170",
+  "name": "알테오젠",
+  "as_of": "2026-11-16",
+  "context_version": "rt-v1",
+  "field_sources": {
+   "industry": [
+    "rt_overview_v1"
+   ],
+   "business_summary": [
+    "rt_overview_v1"
+   ],
+   "value_chain": [
+    "rt_overview_v1"
+   ]
+  },
+  "industry": "바이오 기술",
+  "business_summary": "정맥 주사약을 피하 주사로 바꾸는 효소 기술을 제약사에 빌려주고(기술 수출), 바이오시밀러도 개발한다",
+  "value_chain": {
+   "position": "바이오 플랫폼 기술 개발과 기술 수출",
+   "upstream": [
+    "연구 인력",
+    "위탁 생산 업체"
+   ],
+   "direct_customers": [
+    "글로벌 제약사"
+   ],
+   "end_users": [
+    "환자"
+   ],
+   "revenue_model": "계약금·단계별 기술료·판매 로열티",
+   "cost_drivers": [
+    "연구개발비",
+    "임상 비용"
+   ],
+   "demand_drivers": [
+    "제약사 계약",
+    "파트너 약의 허가·판매"
+   ]
+  },
+  "revenue_mix": {
+   "period": null,
+   "domestic_share": null,
+   "overseas_share": null
+  },
+  "sales_channels": [
+   "기술 수출 계약"
+  ],
+  "linkage_factors": [
+   "파트너사 임상·허가 결과",
+   "특허"
+  ],
+  "recent_events": [],
+  "sources": [
+   {
+    "source_id": "rt_overview_v1",
+    "title": "회사 공개 사업 개요를 바탕으로 정리한 요약 (원문 대조 전)",
+    "as_of": "2026-11-16"
+   }
+  ],
+  "unknowns": [
+   "최근 분기 실적과 사업부별 매출 비중",
+   "최근 계약·투자·규제 같은 사업 변화 (확인된 자료 없음)"
+  ],
+  "fictional": false
+ },
+ "247540": {
+  "company_id": "247540",
+  "name": "에코프로비엠",
+  "as_of": "2026-11-16",
+  "context_version": "rt-v1",
+  "field_sources": {
+   "industry": [
+    "rt_overview_v1"
+   ],
+   "business_summary": [
+    "rt_overview_v1"
+   ],
+   "value_chain": [
+    "rt_overview_v1"
+   ]
+  },
+  "industry": "2차전지 소재",
+  "business_summary": "전기차 배터리의 양극재(하이니켈 계열)를 만든다",
+  "value_chain": {
+   "position": "배터리 양극재 생산",
+   "upstream": [
+    "리튬·니켈·코발트 공급사",
+    "전구체 회사"
+   ],
+   "direct_customers": [
+    "배터리 셀 제조사"
+   ],
+   "end_users": [
+    "전기차 운전자"
+   ],
+   "revenue_model": "양극재 판매",
+   "cost_drivers": [
+    "원재료 금속 값",
+    "공장 투자"
+   ],
+   "demand_drivers": [
+    "전기차 판매",
+    "배터리 회사 주문"
+   ]
+  },
+  "revenue_mix": {
+   "period": null,
+   "domestic_share": null,
+   "overseas_share": null
+  },
+  "sales_channels": [
+   "기업 직접 공급"
+  ],
+  "linkage_factors": [
+   "전기차 수요",
+   "금속 가격"
+  ],
+  "recent_events": [],
+  "sources": [
+   {
+    "source_id": "rt_overview_v1",
+    "title": "회사 공개 사업 개요를 바탕으로 정리한 요약 (원문 대조 전)",
+    "as_of": "2026-11-16"
+   }
+  ],
+  "unknowns": [
+   "최근 분기 실적과 사업부별 매출 비중",
+   "최근 계약·투자·규제 같은 사업 변화 (확인된 자료 없음)"
+  ],
+  "fictional": false
+ },
+ "373220": {
+  "company_id": "373220",
+  "name": "LG에너지솔루션",
+  "as_of": "2026-11-16",
+  "context_version": "rt-v1",
+  "field_sources": {
+   "industry": [
+    "rt_overview_v1"
+   ],
+   "business_summary": [
+    "rt_overview_v1"
+   ],
+   "value_chain": [
+    "rt_overview_v1"
+   ]
+  },
+  "industry": "2차전지",
+  "business_summary": "전기차·에너지저장장치(ESS)·소형 기기에 쓰는 배터리를 만든다",
+  "value_chain": {
+   "position": "배터리 셀·모듈 생산",
+   "upstream": [
+    "양극재·음극재 등 소재 회사",
+    "광물 공급사"
+   ],
+   "direct_customers": [
+    "완성차 업체",
+    "ESS 사업자",
+    "전자기기 제조사"
+   ],
+   "end_users": [
+    "전기차 운전자",
+    "전력 사업자"
+   ],
+   "revenue_model": "배터리 판매",
+   "cost_drivers": [
+    "리튬·니켈 같은 원재료 값",
+    "공장 투자"
+   ],
+   "demand_drivers": [
+    "전기차 판매",
+    "ESS 설치"
+   ]
+  },
+  "revenue_mix": {
+   "period": null,
+   "domestic_share": null,
+   "overseas_share": null
+  },
+  "sales_channels": [
+   "기업 직접 공급"
+  ],
+  "linkage_factors": [
+   "전기차 수요",
+   "원재료 가격",
+   "각국 보조금 정책"
+  ],
+  "recent_events": [],
+  "sources": [
+   {
+    "source_id": "rt_overview_v1",
+    "title": "회사 공개 사업 개요를 바탕으로 정리한 요약 (원문 대조 전)",
+    "as_of": "2026-11-16"
+   }
+  ],
+  "unknowns": [
+   "최근 분기 실적과 사업부별 매출 비중",
+   "최근 계약·투자·규제 같은 사업 변화 (확인된 자료 없음)"
+  ],
+  "fictional": false
+ },
+ "005930": {
+  "company_id": "005930",
+  "name": "삼성전자",
+  "as_of": "2026-11-16",
+  "context_version": "rt-v1",
+  "field_sources": {
+   "industry": [
+    "rt_overview_v1"
+   ],
+   "business_summary": [
+    "rt_overview_v1"
+   ],
+   "value_chain": [
+    "rt_overview_v1"
+   ]
+  },
+  "industry": "반도체·전자제품",
+  "business_summary": "메모리 반도체와 파운드리(위탁 생산), 스마트폰·TV·가전을 만들어 판다",
+  "value_chain": {
+   "position": "메모리·시스템 반도체 설계·생산, 완제품 브랜드",
+   "upstream": [
+    "반도체 장비 회사",
+    "소재·부품 공급사"
+   ],
+   "direct_customers": [
+    "서버·PC·스마트폰 제조사",
+    "데이터센터 운영사",
+    "통신사·유통사"
+   ],
+   "end_users": [
+    "기업",
+    "개인 소비자"
+   ],
+   "revenue_model": "반도체 칩과 완제품 판매, 위탁 생산",
+   "cost_drivers": [
+    "공장 설비 투자",
+    "원재료·부품 값"
+   ],
+   "demand_drivers": [
+    "서버·AI 투자",
+    "스마트폰·PC 수요",
+    "메모리 가격"
+   ]
+  },
+  "revenue_mix": {
+   "period": null,
+   "domestic_share": null,
+   "overseas_share": null
+  },
+  "sales_channels": [
+   "기업 직접 공급",
+   "통신사·유통사"
+  ],
+  "linkage_factors": [
+   "메모리 가격 흐름",
+   "환율"
+  ],
+  "recent_events": [],
+  "sources": [
+   {
+    "source_id": "rt_overview_v1",
+    "title": "회사 공개 사업 개요를 바탕으로 정리한 요약 (원문 대조 전)",
+    "as_of": "2026-11-16"
+   }
+  ],
+  "unknowns": [
+   "최근 분기 실적과 사업부별 매출 비중",
+   "최근 계약·투자·규제 같은 사업 변화 (확인된 자료 없음)"
+  ],
+  "fictional": false
+ },
+ "000660": {
+  "company_id": "000660",
+  "name": "SK하이닉스",
+  "as_of": "2026-11-16",
+  "context_version": "rt-v1",
+  "field_sources": {
+   "industry": [
+    "rt_overview_v1"
+   ],
+   "business_summary": [
+    "rt_overview_v1"
+   ],
+   "value_chain": [
+    "rt_overview_v1"
+   ]
+  },
+  "industry": "메모리 반도체",
+  "business_summary": "D램·낸드 같은 메모리 반도체를 만들고, AI 가속기용 고대역폭 메모리(HBM)를 공급한다",
+  "value_chain": {
+   "position": "메모리 반도체 설계·생산",
+   "upstream": [
+    "반도체 장비 회사",
+    "소재 공급사"
+   ],
+   "direct_customers": [
+    "AI 가속기·서버 업체",
+    "PC·스마트폰 제조사"
+   ],
+   "end_users": [
+    "데이터센터",
+    "개인 소비자"
+   ],
+   "revenue_model": "메모리 칩 판매",
+   "cost_drivers": [
+    "공장 설비 투자",
+    "원재료 값"
+   ],
+   "demand_drivers": [
+    "AI·서버 투자",
+    "PC·스마트폰 수요",
+    "메모리 가격"
+   ]
+  },
+  "revenue_mix": {
+   "period": null,
+   "domestic_share": null,
+   "overseas_share": null
+  },
+  "sales_channels": [
+   "기업 직접 공급"
+  ],
+  "linkage_factors": [
+   "메모리 가격 흐름",
+   "환율"
+  ],
+  "recent_events": [],
+  "sources": [
+   {
+    "source_id": "rt_overview_v1",
+    "title": "회사 공개 사업 개요를 바탕으로 정리한 요약 (원문 대조 전)",
+    "as_of": "2026-11-16"
+   }
+  ],
+  "unknowns": [
+   "최근 분기 실적과 사업부별 매출 비중",
+   "최근 계약·투자·규제 같은 사업 변화 (확인된 자료 없음)"
+  ],
+  "fictional": false
+ },
+ "005380": {
+  "company_id": "005380",
+  "name": "현대차",
+  "as_of": "2026-11-16",
+  "context_version": "rt-v1",
+  "field_sources": {
+   "industry": [
+    "rt_overview_v1"
+   ],
+   "business_summary": [
+    "rt_overview_v1"
+   ],
+   "value_chain": [
+    "rt_overview_v1"
+   ]
+  },
+  "industry": "완성차",
+  "business_summary": "승용차·SUV·상용차를 만들어 팔고, 하이브리드와 전기차도 만든다. 자동차 금융 계열사가 있다",
+  "value_chain": {
+   "position": "완성차 설계·생산·판매",
+   "upstream": [
+    "부품 회사",
+    "철강·배터리 공급사"
+   ],
+   "direct_customers": [
+    "딜러·판매 법인",
+    "법인 고객"
+   ],
+   "end_users": [
+    "개인 운전자",
+    "기업"
+   ],
+   "revenue_model": "차량 판매, 금융·정비",
+   "cost_drivers": [
+    "부품·원재료 값",
+    "인건비"
+   ],
+   "demand_drivers": [
+    "소비 경기",
+    "금리",
+    "신차 출시"
+   ]
+  },
+  "revenue_mix": {
+   "period": null,
+   "domestic_share": null,
+   "overseas_share": null
+  },
+  "sales_channels": [
+   "국내 판매망",
+   "해외 판매 법인"
+  ],
+  "linkage_factors": [
+   "환율",
+   "금리",
+   "관세·무역 정책"
+  ],
+  "recent_events": [],
+  "sources": [
+   {
+    "source_id": "rt_overview_v1",
+    "title": "회사 공개 사업 개요를 바탕으로 정리한 요약 (원문 대조 전)",
+    "as_of": "2026-11-16"
+   }
+  ],
+  "unknowns": [
+   "최근 분기 실적과 사업부별 매출 비중",
+   "최근 계약·투자·규제 같은 사업 변화 (확인된 자료 없음)"
+  ],
+  "fictional": false
+ },
+ "035420": {
+  "company_id": "035420",
+  "name": "NAVER",
+  "as_of": "2026-11-16",
+  "context_version": "rt-v1",
+  "field_sources": {
+   "industry": [
+    "rt_overview_v1"
+   ],
+   "business_summary": [
+    "rt_overview_v1"
+   ],
+   "value_chain": [
+    "rt_overview_v1"
+   ]
+  },
+  "industry": "인터넷 플랫폼",
+  "business_summary": "검색 포털을 중심으로 광고, 쇼핑(커머스), 간편결제, 웹툰 같은 콘텐츠, 클라우드 사업을 한다",
+  "value_chain": {
+   "position": "검색·커머스·콘텐츠 플랫폼 운영",
+   "upstream": [
+    "데이터센터",
+    "콘텐츠 창작자"
+   ],
+   "direct_customers": [
+    "광고주",
+    "온라인 판매자"
+   ],
+   "end_users": [
+    "이용자"
+   ],
+   "revenue_model": "광고 수익, 판매·결제 수수료, 콘텐츠 판매",
+   "cost_drivers": [
+    "서버·데이터센터 비용",
+    "인건비",
+    "마케팅비"
+   ],
+   "demand_drivers": [
+    "광고 경기",
+    "온라인 쇼핑 거래액",
+    "이용자 수"
+   ]
+  },
+  "revenue_mix": {
+   "period": null,
+   "domestic_share": null,
+   "overseas_share": null
+  },
+  "sales_channels": [
+   "자사 플랫폼"
+  ],
+  "linkage_factors": [
+   "광고 경기",
+   "플랫폼 규제"
+  ],
+  "recent_events": [],
+  "sources": [
+   {
+    "source_id": "rt_overview_v1",
+    "title": "회사 공개 사업 개요를 바탕으로 정리한 요약 (원문 대조 전)",
+    "as_of": "2026-11-16"
+   }
+  ],
+  "unknowns": [
+   "최근 분기 실적과 사업부별 매출 비중",
+   "최근 계약·투자·규제 같은 사업 변화 (확인된 자료 없음)"
+  ],
+  "fictional": false
+ },
+ "035720": {
+  "company_id": "035720",
+  "name": "카카오",
+  "as_of": "2026-11-16",
+  "context_version": "rt-v1",
+  "field_sources": {
+   "industry": [
+    "rt_overview_v1"
+   ],
+   "business_summary": [
+    "rt_overview_v1"
+   ],
+   "value_chain": [
+    "rt_overview_v1"
+   ]
+  },
+  "industry": "인터넷 플랫폼",
+  "business_summary": "메신저 카카오톡을 바탕으로 광고·커머스를 하고, 게임·음악·웹툰 콘텐츠와 모빌리티·결제 같은 계열사 사업을 한다",
+  "value_chain": {
+   "position": "메신저 기반 플랫폼과 콘텐츠 운영",
+   "upstream": [
+    "콘텐츠 창작자",
+    "데이터센터"
+   ],
+   "direct_customers": [
+    "광고주",
+    "입점 판매자"
+   ],
+   "end_users": [
+    "이용자"
+   ],
+   "revenue_model": "광고 수익, 수수료, 콘텐츠 판매",
+   "cost_drivers": [
+    "서버 비용",
+    "인건비",
+    "콘텐츠 제작비"
+   ],
+   "demand_drivers": [
+    "광고 경기",
+    "이용 시간",
+    "콘텐츠 흥행"
+   ]
+  },
+  "revenue_mix": {
+   "period": null,
+   "domestic_share": null,
+   "overseas_share": null
+  },
+  "sales_channels": [
+   "자사 플랫폼"
+  ],
+  "linkage_factors": [
+   "광고 경기",
+   "플랫폼 규제"
+  ],
+  "recent_events": [],
+  "sources": [
+   {
+    "source_id": "rt_overview_v1",
+    "title": "회사 공개 사업 개요를 바탕으로 정리한 요약 (원문 대조 전)",
+    "as_of": "2026-11-16"
+   }
+  ],
+  "unknowns": [
+   "최근 분기 실적과 사업부별 매출 비중",
+   "최근 계약·투자·규제 같은 사업 변화 (확인된 자료 없음)"
+  ],
+  "fictional": false
+ },
+ "068270": {
+  "company_id": "068270",
+  "name": "셀트리온",
+  "as_of": "2026-11-16",
+  "context_version": "rt-v1",
+  "field_sources": {
+   "industry": [
+    "rt_overview_v1"
+   ],
+   "business_summary": [
+    "rt_overview_v1"
+   ],
+   "value_chain": [
+    "rt_overview_v1"
+   ]
+  },
+  "industry": "바이오의약품",
+  "business_summary": "항체 바이오시밀러(오리지널 약의 복제 바이오의약품)를 개발·생산하고 해외에 판다",
+  "value_chain": {
+   "position": "바이오의약품 개발·생산·판매",
+   "upstream": [
+    "세포 배양 원료·장비 공급사"
+   ],
+   "direct_customers": [
+    "병원",
+    "도매상",
+    "해외 판매 법인"
+   ],
+   "end_users": [
+    "환자"
+   ],
+   "revenue_model": "의약품 판매",
+   "cost_drivers": [
+    "생산 설비",
+    "임상 비용"
+   ],
+   "demand_drivers": [
+    "오리지널 약 특허 만료",
+    "각국 허가",
+    "약가 정책"
+   ]
+  },
+  "revenue_mix": {
+   "period": null,
+   "domestic_share": null,
+   "overseas_share": null
+  },
+  "sales_channels": [
+   "해외 판매 법인",
+   "유통 파트너"
+  ],
+  "linkage_factors": [
+   "각국 허가·약가 정책",
+   "환율"
+  ],
+  "recent_events": [],
+  "sources": [
+   {
+    "source_id": "rt_overview_v1",
+    "title": "회사 공개 사업 개요를 바탕으로 정리한 요약 (원문 대조 전)",
+    "as_of": "2026-11-16"
+   }
+  ],
+  "unknowns": [
+   "최근 분기 실적과 사업부별 매출 비중",
+   "최근 계약·투자·규제 같은 사업 변화 (확인된 자료 없음)"
+  ],
+  "fictional": false
+ },
+ "012450": {
+  "company_id": "012450",
+  "name": "한화에어로스페이스",
+  "as_of": "2026-11-16",
+  "context_version": "rt-v1",
+  "field_sources": {
+   "industry": [
+    "rt_overview_v1"
+   ],
+   "business_summary": [
+    "rt_overview_v1"
+   ],
+   "value_chain": [
+    "rt_overview_v1"
+   ]
+  },
+  "industry": "방산·항공우주",
+  "business_summary": "자주포 같은 지상 방산 장비, 항공기 엔진과 부품, 우주 발사체 사업을 한다",
+  "value_chain": {
+   "position": "방산 장비·항공기 엔진 부품 생산",
+   "upstream": [
+    "부품·소재 공급사"
+   ],
+   "direct_customers": [
+    "국내외 국방 당국",
+    "항공기 엔진 회사"
+   ],
+   "end_users": [
+    "각국 군",
+    "항공사"
+   ],
+   "revenue_model": "장비·부품 판매와 정비",
+   "cost_drivers": [
+    "원재료 값",
+    "개발비"
+   ],
+   "demand_drivers": [
+    "각국 국방 예산",
+    "항공 여객 수요"
+   ]
+  },
+  "revenue_mix": {
+   "period": null,
+   "domestic_share": null,
+   "overseas_share": null
+  },
+  "sales_channels": [
+   "정부 조달",
+   "기업 직접 공급"
+  ],
+  "linkage_factors": [
+   "국방 예산",
+   "수출 계약",
+   "환율"
+  ],
+  "recent_events": [],
+  "sources": [
+   {
+    "source_id": "rt_overview_v1",
+    "title": "회사 공개 사업 개요를 바탕으로 정리한 요약 (원문 대조 전)",
+    "as_of": "2026-11-16"
+   }
+  ],
+  "unknowns": [
+   "최근 분기 실적과 사업부별 매출 비중",
+   "최근 계약·투자·규제 같은 사업 변화 (확인된 자료 없음)"
+  ],
+  "fictional": false
+ },
+ "005490": {
+  "company_id": "005490",
+  "name": "POSCO홀딩스",
+  "as_of": "2026-11-16",
+  "context_version": "rt-v1",
+  "field_sources": {
+   "industry": [
+    "rt_overview_v1"
+   ],
+   "business_summary": [
+    "rt_overview_v1"
+   ],
+   "value_chain": [
+    "rt_overview_v1"
+   ]
+  },
+  "industry": "철강·소재 지주",
+  "business_summary": "철강 회사 포스코를 중심으로 2차전지 소재(리튬·니켈 등)와 무역 사업을 거느린 지주회사다",
+  "value_chain": {
+   "position": "철강 생산과 2차전지 소재",
+   "upstream": [
+    "철광석·석탄 공급사",
+    "광산"
+   ],
+   "direct_customers": [
+    "자동차·조선·건설 회사",
+    "배터리 소재 회사"
+   ],
+   "end_users": [
+    "기업"
+   ],
+   "revenue_model": "철강재·소재 판매",
+   "cost_drivers": [
+    "철광석·석탄 값",
+    "에너지 비용"
+   ],
+   "demand_drivers": [
+    "자동차·조선·건설 경기",
+    "전기차 수요"
+   ]
+  },
+  "revenue_mix": {
+   "period": null,
+   "domestic_share": null,
+   "overseas_share": null
+  },
+  "sales_channels": [
+   "기업 직접 공급"
+  ],
+  "linkage_factors": [
+   "철강 가격",
+   "중국 철강 공급",
+   "원료 가격"
+  ],
+  "recent_events": [],
+  "sources": [
+   {
+    "source_id": "rt_overview_v1",
+    "title": "회사 공개 사업 개요를 바탕으로 정리한 요약 (원문 대조 전)",
+    "as_of": "2026-11-16"
+   }
+  ],
+  "unknowns": [
+   "최근 분기 실적과 사업부별 매출 비중",
+   "최근 계약·투자·규제 같은 사업 변화 (확인된 자료 없음)"
+  ],
+  "fictional": false
+ }
+}

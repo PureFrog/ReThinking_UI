@@ -948,18 +948,20 @@ function applyStateUpdate(conv, u, now) {
   if (Array.isArray(u.paused_topics)) st.paused_topics = u.paused_topics.filter((x) => typeof x === "string").slice(0, 10);
 }
 var holdingOf = (w, id) => w.holdings.find((h) => h.company_id === id) ?? null;
+var companyDoc = (w, h) => w.companies?.[h.company_id] ?? { ...h, context_version: null };
 function companyContext(text, w, es) {
   if (es) {
     const h = holdingOf(w, es.company_id);
-    return h ? { ...h, context_version: null } : null;
+    return h ? companyDoc(w, h) : null;
   }
   if (!text) return null;
   for (const h of w.holdings) {
     const name = (h.name ?? "").replace("(\uAC00\uC0C1)", "").trim();
-    if (name && text.includes(name) || text.includes(h.company_id)) return { ...h, context_version: null };
+    if (name && text.includes(name) || text.includes(h.company_id)) return companyDoc(w, h);
   }
   return null;
 }
+var holdingsContext = (w) => w.holdings.map((h) => ({ company_id: h.company_id, name: w.companies?.[h.company_id]?.name ?? h.name, industry: w.companies?.[h.company_id]?.industry ?? h.industry ?? null, status: h.status ?? null, as_of: h.as_of ?? null }));
 function newsContext(conv, mode, spontaneous, company, w) {
   if (mode !== "daily" || !(spontaneous || company)) return [];
   let ids = new Set(w.holdings.map((h) => h.company_id));
@@ -1077,18 +1079,19 @@ async function turn(store, w, model, mode, current, es, o) {
     recent_messages: view.map(strip),
     conversation_state: { last_topic: conv.state.last_topic, open_question: conv.state.open_question, mood: conv.state.mood, paused_topics: conv.state.paused_topics },
     company_context: company,
-    holdings_context: w.holdings,
+    holdings_context: holdingsContext(w),
     news_context: news,
     detection_context: es ? { event_id: es.detection_event_id, company_id: es.company_id, reason_code: es.detection_reason_code, reason: es.detection_reason } : null,
     elicitation_state: stateForPrompt(es),
     conversation_policy: { may_speak: true, spontaneous_event: o.spontaneous, max_questions_per_turn: 1, paused_topics: conv.state.paused_topics, already_mentioned_news_ids: conv.mentioned_news_ids.slice(-20), consecutive_question_turns: streak },
     investor_background: mode === "elicitation" ? investorBackground(uj, es, w) : null,
     dialogue_examples: dialogueExamples(mode, current?.text ?? null, w),
-    server_meta: { user_id: conv.user_id, turn_id: `${conv.session_id}-t${turnSeq + 1}`, turn_seq: turnSeq + 1, profile_revision: uj.revision ?? 0, collection_revision: es?.revision ?? null, now: builtAt, persona_version: w.persona.persona_version, company_context_version: null }
+    server_meta: { user_id: conv.user_id, turn_id: `${conv.session_id}-t${turnSeq + 1}`, turn_seq: turnSeq + 1, profile_revision: uj.revision ?? 0, collection_revision: es?.revision ?? null, now: builtAt, persona_version: w.persona.persona_version, company_context_version: company?.context_version ?? null }
   };
   const messages = buildMessages(ci, w.registry, allowed);
   const errors = [];
   let out = null;
+  const t0 = Date.now();
   for (let attempt = 0; attempt <= LLM1.maxFormatRepairs; attempt++) {
     let raw;
     try {
@@ -1114,6 +1117,8 @@ async function turn(store, w, model, mode, current, es, o) {
     errors.push(...errs);
     messages.push({ role: "assistant", content: raw || "(\uBE48 \uC751\uB2F5)" }, repairMessage(errs));
   }
+  result.llm_ms = Date.now() - t0;
+  result.errors = errors.length;
   if (!out) {
     notes.push(`LLM \uCD9C\uB825 \uC2E4\uD328 \u2192 \uBCF5\uAD6C \uC548\uB0B4\uB9CC, \uBCC0\uACBD \uC5C6\uC74C: ${JSON.stringify(errors).slice(0, 400)}`);
     if (!o.spontaneous) {
@@ -1263,12 +1268,70 @@ async function startNextPendingDetection(storeIn, w, model) {
   if (activeSession(store) || !(c.pending_detection_events ?? []).length) return null;
   const eid = c.pending_detection_events.shift(), ev = store.events.find((e) => e.event_id === eid);
   if (!ev) return null;
-  const now = w.now(), id = nextId(c, "elicitation", "es");
-  store.sessions.push(newSession({ elicitationId: id, userId: c.user_id, convSessionId: c.session_id, event: ev, now: iso(now), expires: plus(now, LLM1.maxPendingDays * 24) }));
+  return openElicitation(store, w, model, ev);
+}
+function openElicitation(store, w, model, ev, supersedes = null) {
+  const c = store.conv, now = w.now(), id = nextId(c, "elicitation", "es");
+  store.sessions.push(newSession({ elicitationId: id, userId: c.user_id, convSessionId: c.session_id, event: ev, now: iso(now), expires: plus(now, LLM1.maxPendingDays * 24), supersedes }));
   c.active_elicitation_id = id;
   (c.seen_detection_event_ids ??= []).includes(ev.event_id) || c.seen_detection_event_ids.push(ev.event_id);
+  c.pending_detection_events = (c.pending_detection_events ?? []).filter((x) => x !== ev.event_id);
   ev.status = "in_progress";
   return turn(store, w, model, "elicitation", null, store.sessions.at(-1), { spontaneous: true, notes: [`\uD0D0\uC9C0 \uC774\uBCA4\uD2B8 ${ev.event_id} \u2192 \uC218\uC9D1 \uC138\uC158 ${id} \uC2DC\uC791`] });
+}
+async function reopenForCorrection(storeIn, w, model, priorRequestId) {
+  const store = clone2(storeIn), job = store.jobs.find((j2) => j2.request_id === priorRequestId);
+  if (!job || job.status !== "delivered") throw new Error("delivered \uC0C1\uD0DC\uC758 \uAE30\uC874 \uC694\uCCAD\uC774 \uC544\uB2D8");
+  const old = store.sessions.find((s) => s.elicitation_id === job.elicitation_id), ev = old && store.events.find((e) => e.event_id === old.detection_event_id);
+  if (!ev) throw new Error("\uAE30\uC874 \uC694\uCCAD\uC758 \uD0D0\uC9C0 \uC774\uBCA4\uD2B8 \uC5C6\uC74C");
+  return openElicitation(store, w, model, ev, priorRequestId);
+}
+function expireStale(storeIn, now) {
+  const store = clone2(storeIn), out = [];
+  for (const es of store.sessions) {
+    if (!["collecting", "paused", "ready"].includes(es.status) || !(Date.parse(es.expires_at) < now)) continue;
+    if (es.request_id) {
+      const job = store.jobs.find((j2) => j2.request_id === es.request_id);
+      if (job && job.status !== "delivered") {
+        job.status = "expired";
+        job.payload = null;
+        job.updated_at = iso(now);
+      }
+    }
+    purgeRaw(es, "expired", now);
+    const ev = store.events.find((e) => e.event_id === es.detection_event_id);
+    if (ev) ev.status = "expired";
+    if (store.conv.active_elicitation_id === es.elicitation_id) store.conv.active_elicitation_id = null;
+    out.push(es.elicitation_id);
+  }
+  const keep = LLM1.jobMetaRetentionDays * 864e5;
+  store.jobs = store.jobs.filter((j2) => {
+    const gone = ["delivered", "expired", "failed_conflict"].includes(j2.status) && Date.parse(j2.updated_at) + keep < now;
+    if (gone) out.push(j2.request_id);
+    return !gone;
+  });
+  return { store, expired: out };
+}
+function purgeRaw(es, status, now) {
+  Object.assign(es, { status, messages: [], unresolved_points: [], asked_questions: [], updated_at: iso(now) });
+  es.evidence = es.evidence.map((e) => ({ evidence_id: e.evidence_id, active: e.active, kind: e.kind }));
+}
+function opsEntry(r, w) {
+  return {
+    at: iso(w.now()),
+    event: "turn",
+    session_id: r.session_id,
+    mode: r.mode,
+    llm: w.modelName ?? null,
+    llm_ms: r.llm_ms ?? null,
+    format_or_network_errors: r.errors ?? 0,
+    profile_applied: r.profile_applied.length,
+    profile_rejected_reasons: r.profile_rejected.map((x) => x.reason ?? null),
+    evidence_applied: r.evidence_applied?.length ?? 0,
+    evidence_rejected_reasons: (r.evidence_rejected ?? []).map((x) => x.reason ?? null),
+    elicitation_status: r.elicitation_status ?? null,
+    delivery_request_id: r.delivery_request_id ?? null
+  };
 }
 function pauseElicitation(storeIn, reason = "no_response") {
   const store = clone2(storeIn), es = activeSession(store);
@@ -1326,8 +1389,7 @@ async function runDeliveryWorker(storeIn, receive, now) {
       job.updated_at = iso(now);
       const es = store.sessions.find((s) => s.elicitation_id === job.elicitation_id);
       if (es) {
-        Object.assign(es, { status: "delivered", messages: [], unresolved_points: [], asked_questions: [], updated_at: iso(now) });
-        es.evidence = es.evidence.map((e) => ({ evidence_id: e.evidence_id, active: e.active, kind: e.kind }));
+        purgeRaw(es, "delivered", now);
         if (store.conv.active_elicitation_id === es.elicitation_id) store.conv.active_elicitation_id = null;
         const ev = store.events.find((e) => e.event_id === es.detection_event_id);
         if (ev) ev.status = "done";
@@ -1773,6 +1835,836 @@ var philosophy_examples_default = {
   ]
 };
 
+// app/content/llm1/companies.json
+var companies_default = {
+  "105560": {
+    company_id: "105560",
+    name: "KB\uAE08\uC735",
+    as_of: "2026-11-16",
+    context_version: "rt-v1",
+    field_sources: {
+      industry: [
+        "rt_overview_v1"
+      ],
+      business_summary: [
+        "rt_overview_v1"
+      ],
+      value_chain: [
+        "rt_overview_v1"
+      ]
+    },
+    industry: "\uAE08\uC735\uC9C0\uC8FC",
+    business_summary: "\uAD6D\uBBFC\uC740\uD589\uC744 \uC911\uC2EC\uC73C\uB85C \uC99D\uAD8C\xB7\uBCF4\uD5D8\xB7\uCE74\uB4DC \uD68C\uC0AC\uB97C \uAC70\uB290\uB9B0 \uAE08\uC735\uC9C0\uC8FC\uD68C\uC0AC\uB2E4",
+    value_chain: {
+      position: "\uC608\uAE08\xB7\uB300\uCD9C\xB7\uD22C\uC790 \uAC19\uC740 \uAE08\uC735 \uC11C\uBE44\uC2A4",
+      upstream: [
+        "\uC608\uAE08\uC790",
+        "\uC790\uAE08 \uC2DC\uC7A5"
+      ],
+      direct_customers: [
+        "\uAC1C\uC778\xB7\uAE30\uC5C5 \uACE0\uAC1D"
+      ],
+      end_users: [
+        "\uAC1C\uC778\xB7\uAE30\uC5C5 \uACE0\uAC1D"
+      ],
+      revenue_model: "\uB300\uCD9C \uC774\uC790\uC640 \uC608\uAE08 \uC774\uC790\uC758 \uCC28\uC774, \uC218\uC218\uB8CC",
+      cost_drivers: [
+        "\uC608\uAE08 \uC774\uC790",
+        "\uB300\uC190 \uBE44\uC6A9",
+        "\uC778\uAC74\uBE44"
+      ],
+      demand_drivers: [
+        "\uB300\uCD9C \uC218\uC694",
+        "\uAE08\uB9AC \uC218\uC900"
+      ]
+    },
+    revenue_mix: {
+      period: null,
+      domestic_share: null,
+      overseas_share: null
+    },
+    sales_channels: [
+      "\uC9C0\uC810",
+      "\uBAA8\uBC14\uC77C \uC571"
+    ],
+    linkage_factors: [
+      "\uAE08\uB9AC",
+      "\uACBD\uAE30\uC640 \uC5F0\uCCB4\uC728",
+      "\uAE08\uC735 \uADDC\uC81C"
+    ],
+    recent_events: [],
+    sources: [
+      {
+        source_id: "rt_overview_v1",
+        title: "\uD68C\uC0AC \uACF5\uAC1C \uC0AC\uC5C5 \uAC1C\uC694\uB97C \uBC14\uD0D5\uC73C\uB85C \uC815\uB9AC\uD55C \uC694\uC57D (\uC6D0\uBB38 \uB300\uC870 \uC804)",
+        as_of: "2026-11-16"
+      }
+    ],
+    unknowns: [
+      "\uCD5C\uADFC \uBD84\uAE30 \uC2E4\uC801\uACFC \uC0AC\uC5C5\uBD80\uBCC4 \uB9E4\uCD9C \uBE44\uC911",
+      "\uCD5C\uADFC \uACC4\uC57D\xB7\uD22C\uC790\xB7\uADDC\uC81C \uAC19\uC740 \uC0AC\uC5C5 \uBCC0\uD654 (\uD655\uC778\uB41C \uC790\uB8CC \uC5C6\uC74C)"
+    ],
+    fictional: false
+  },
+  "196170": {
+    company_id: "196170",
+    name: "\uC54C\uD14C\uC624\uC820",
+    as_of: "2026-11-16",
+    context_version: "rt-v1",
+    field_sources: {
+      industry: [
+        "rt_overview_v1"
+      ],
+      business_summary: [
+        "rt_overview_v1"
+      ],
+      value_chain: [
+        "rt_overview_v1"
+      ]
+    },
+    industry: "\uBC14\uC774\uC624 \uAE30\uC220",
+    business_summary: "\uC815\uB9E5 \uC8FC\uC0AC\uC57D\uC744 \uD53C\uD558 \uC8FC\uC0AC\uB85C \uBC14\uAFB8\uB294 \uD6A8\uC18C \uAE30\uC220\uC744 \uC81C\uC57D\uC0AC\uC5D0 \uBE4C\uB824\uC8FC\uACE0(\uAE30\uC220 \uC218\uCD9C), \uBC14\uC774\uC624\uC2DC\uBC00\uB7EC\uB3C4 \uAC1C\uBC1C\uD55C\uB2E4",
+    value_chain: {
+      position: "\uBC14\uC774\uC624 \uD50C\uB7AB\uD3FC \uAE30\uC220 \uAC1C\uBC1C\uACFC \uAE30\uC220 \uC218\uCD9C",
+      upstream: [
+        "\uC5F0\uAD6C \uC778\uB825",
+        "\uC704\uD0C1 \uC0DD\uC0B0 \uC5C5\uCCB4"
+      ],
+      direct_customers: [
+        "\uAE00\uB85C\uBC8C \uC81C\uC57D\uC0AC"
+      ],
+      end_users: [
+        "\uD658\uC790"
+      ],
+      revenue_model: "\uACC4\uC57D\uAE08\xB7\uB2E8\uACC4\uBCC4 \uAE30\uC220\uB8CC\xB7\uD310\uB9E4 \uB85C\uC5F4\uD2F0",
+      cost_drivers: [
+        "\uC5F0\uAD6C\uAC1C\uBC1C\uBE44",
+        "\uC784\uC0C1 \uBE44\uC6A9"
+      ],
+      demand_drivers: [
+        "\uC81C\uC57D\uC0AC \uACC4\uC57D",
+        "\uD30C\uD2B8\uB108 \uC57D\uC758 \uD5C8\uAC00\xB7\uD310\uB9E4"
+      ]
+    },
+    revenue_mix: {
+      period: null,
+      domestic_share: null,
+      overseas_share: null
+    },
+    sales_channels: [
+      "\uAE30\uC220 \uC218\uCD9C \uACC4\uC57D"
+    ],
+    linkage_factors: [
+      "\uD30C\uD2B8\uB108\uC0AC \uC784\uC0C1\xB7\uD5C8\uAC00 \uACB0\uACFC",
+      "\uD2B9\uD5C8"
+    ],
+    recent_events: [],
+    sources: [
+      {
+        source_id: "rt_overview_v1",
+        title: "\uD68C\uC0AC \uACF5\uAC1C \uC0AC\uC5C5 \uAC1C\uC694\uB97C \uBC14\uD0D5\uC73C\uB85C \uC815\uB9AC\uD55C \uC694\uC57D (\uC6D0\uBB38 \uB300\uC870 \uC804)",
+        as_of: "2026-11-16"
+      }
+    ],
+    unknowns: [
+      "\uCD5C\uADFC \uBD84\uAE30 \uC2E4\uC801\uACFC \uC0AC\uC5C5\uBD80\uBCC4 \uB9E4\uCD9C \uBE44\uC911",
+      "\uCD5C\uADFC \uACC4\uC57D\xB7\uD22C\uC790\xB7\uADDC\uC81C \uAC19\uC740 \uC0AC\uC5C5 \uBCC0\uD654 (\uD655\uC778\uB41C \uC790\uB8CC \uC5C6\uC74C)"
+    ],
+    fictional: false
+  },
+  "247540": {
+    company_id: "247540",
+    name: "\uC5D0\uCF54\uD504\uB85C\uBE44\uC5E0",
+    as_of: "2026-11-16",
+    context_version: "rt-v1",
+    field_sources: {
+      industry: [
+        "rt_overview_v1"
+      ],
+      business_summary: [
+        "rt_overview_v1"
+      ],
+      value_chain: [
+        "rt_overview_v1"
+      ]
+    },
+    industry: "2\uCC28\uC804\uC9C0 \uC18C\uC7AC",
+    business_summary: "\uC804\uAE30\uCC28 \uBC30\uD130\uB9AC\uC758 \uC591\uADF9\uC7AC(\uD558\uC774\uB2C8\uCF08 \uACC4\uC5F4)\uB97C \uB9CC\uB4E0\uB2E4",
+    value_chain: {
+      position: "\uBC30\uD130\uB9AC \uC591\uADF9\uC7AC \uC0DD\uC0B0",
+      upstream: [
+        "\uB9AC\uD2AC\xB7\uB2C8\uCF08\xB7\uCF54\uBC1C\uD2B8 \uACF5\uAE09\uC0AC",
+        "\uC804\uAD6C\uCCB4 \uD68C\uC0AC"
+      ],
+      direct_customers: [
+        "\uBC30\uD130\uB9AC \uC140 \uC81C\uC870\uC0AC"
+      ],
+      end_users: [
+        "\uC804\uAE30\uCC28 \uC6B4\uC804\uC790"
+      ],
+      revenue_model: "\uC591\uADF9\uC7AC \uD310\uB9E4",
+      cost_drivers: [
+        "\uC6D0\uC7AC\uB8CC \uAE08\uC18D \uAC12",
+        "\uACF5\uC7A5 \uD22C\uC790"
+      ],
+      demand_drivers: [
+        "\uC804\uAE30\uCC28 \uD310\uB9E4",
+        "\uBC30\uD130\uB9AC \uD68C\uC0AC \uC8FC\uBB38"
+      ]
+    },
+    revenue_mix: {
+      period: null,
+      domestic_share: null,
+      overseas_share: null
+    },
+    sales_channels: [
+      "\uAE30\uC5C5 \uC9C1\uC811 \uACF5\uAE09"
+    ],
+    linkage_factors: [
+      "\uC804\uAE30\uCC28 \uC218\uC694",
+      "\uAE08\uC18D \uAC00\uACA9"
+    ],
+    recent_events: [],
+    sources: [
+      {
+        source_id: "rt_overview_v1",
+        title: "\uD68C\uC0AC \uACF5\uAC1C \uC0AC\uC5C5 \uAC1C\uC694\uB97C \uBC14\uD0D5\uC73C\uB85C \uC815\uB9AC\uD55C \uC694\uC57D (\uC6D0\uBB38 \uB300\uC870 \uC804)",
+        as_of: "2026-11-16"
+      }
+    ],
+    unknowns: [
+      "\uCD5C\uADFC \uBD84\uAE30 \uC2E4\uC801\uACFC \uC0AC\uC5C5\uBD80\uBCC4 \uB9E4\uCD9C \uBE44\uC911",
+      "\uCD5C\uADFC \uACC4\uC57D\xB7\uD22C\uC790\xB7\uADDC\uC81C \uAC19\uC740 \uC0AC\uC5C5 \uBCC0\uD654 (\uD655\uC778\uB41C \uC790\uB8CC \uC5C6\uC74C)"
+    ],
+    fictional: false
+  },
+  "373220": {
+    company_id: "373220",
+    name: "LG\uC5D0\uB108\uC9C0\uC194\uB8E8\uC158",
+    as_of: "2026-11-16",
+    context_version: "rt-v1",
+    field_sources: {
+      industry: [
+        "rt_overview_v1"
+      ],
+      business_summary: [
+        "rt_overview_v1"
+      ],
+      value_chain: [
+        "rt_overview_v1"
+      ]
+    },
+    industry: "2\uCC28\uC804\uC9C0",
+    business_summary: "\uC804\uAE30\uCC28\xB7\uC5D0\uB108\uC9C0\uC800\uC7A5\uC7A5\uCE58(ESS)\xB7\uC18C\uD615 \uAE30\uAE30\uC5D0 \uC4F0\uB294 \uBC30\uD130\uB9AC\uB97C \uB9CC\uB4E0\uB2E4",
+    value_chain: {
+      position: "\uBC30\uD130\uB9AC \uC140\xB7\uBAA8\uB4C8 \uC0DD\uC0B0",
+      upstream: [
+        "\uC591\uADF9\uC7AC\xB7\uC74C\uADF9\uC7AC \uB4F1 \uC18C\uC7AC \uD68C\uC0AC",
+        "\uAD11\uBB3C \uACF5\uAE09\uC0AC"
+      ],
+      direct_customers: [
+        "\uC644\uC131\uCC28 \uC5C5\uCCB4",
+        "ESS \uC0AC\uC5C5\uC790",
+        "\uC804\uC790\uAE30\uAE30 \uC81C\uC870\uC0AC"
+      ],
+      end_users: [
+        "\uC804\uAE30\uCC28 \uC6B4\uC804\uC790",
+        "\uC804\uB825 \uC0AC\uC5C5\uC790"
+      ],
+      revenue_model: "\uBC30\uD130\uB9AC \uD310\uB9E4",
+      cost_drivers: [
+        "\uB9AC\uD2AC\xB7\uB2C8\uCF08 \uAC19\uC740 \uC6D0\uC7AC\uB8CC \uAC12",
+        "\uACF5\uC7A5 \uD22C\uC790"
+      ],
+      demand_drivers: [
+        "\uC804\uAE30\uCC28 \uD310\uB9E4",
+        "ESS \uC124\uCE58"
+      ]
+    },
+    revenue_mix: {
+      period: null,
+      domestic_share: null,
+      overseas_share: null
+    },
+    sales_channels: [
+      "\uAE30\uC5C5 \uC9C1\uC811 \uACF5\uAE09"
+    ],
+    linkage_factors: [
+      "\uC804\uAE30\uCC28 \uC218\uC694",
+      "\uC6D0\uC7AC\uB8CC \uAC00\uACA9",
+      "\uAC01\uAD6D \uBCF4\uC870\uAE08 \uC815\uCC45"
+    ],
+    recent_events: [],
+    sources: [
+      {
+        source_id: "rt_overview_v1",
+        title: "\uD68C\uC0AC \uACF5\uAC1C \uC0AC\uC5C5 \uAC1C\uC694\uB97C \uBC14\uD0D5\uC73C\uB85C \uC815\uB9AC\uD55C \uC694\uC57D (\uC6D0\uBB38 \uB300\uC870 \uC804)",
+        as_of: "2026-11-16"
+      }
+    ],
+    unknowns: [
+      "\uCD5C\uADFC \uBD84\uAE30 \uC2E4\uC801\uACFC \uC0AC\uC5C5\uBD80\uBCC4 \uB9E4\uCD9C \uBE44\uC911",
+      "\uCD5C\uADFC \uACC4\uC57D\xB7\uD22C\uC790\xB7\uADDC\uC81C \uAC19\uC740 \uC0AC\uC5C5 \uBCC0\uD654 (\uD655\uC778\uB41C \uC790\uB8CC \uC5C6\uC74C)"
+    ],
+    fictional: false
+  },
+  "005930": {
+    company_id: "005930",
+    name: "\uC0BC\uC131\uC804\uC790",
+    as_of: "2026-11-16",
+    context_version: "rt-v1",
+    field_sources: {
+      industry: [
+        "rt_overview_v1"
+      ],
+      business_summary: [
+        "rt_overview_v1"
+      ],
+      value_chain: [
+        "rt_overview_v1"
+      ]
+    },
+    industry: "\uBC18\uB3C4\uCCB4\xB7\uC804\uC790\uC81C\uD488",
+    business_summary: "\uBA54\uBAA8\uB9AC \uBC18\uB3C4\uCCB4\uC640 \uD30C\uC6B4\uB4DC\uB9AC(\uC704\uD0C1 \uC0DD\uC0B0), \uC2A4\uB9C8\uD2B8\uD3F0\xB7TV\xB7\uAC00\uC804\uC744 \uB9CC\uB4E4\uC5B4 \uD310\uB2E4",
+    value_chain: {
+      position: "\uBA54\uBAA8\uB9AC\xB7\uC2DC\uC2A4\uD15C \uBC18\uB3C4\uCCB4 \uC124\uACC4\xB7\uC0DD\uC0B0, \uC644\uC81C\uD488 \uBE0C\uB79C\uB4DC",
+      upstream: [
+        "\uBC18\uB3C4\uCCB4 \uC7A5\uBE44 \uD68C\uC0AC",
+        "\uC18C\uC7AC\xB7\uBD80\uD488 \uACF5\uAE09\uC0AC"
+      ],
+      direct_customers: [
+        "\uC11C\uBC84\xB7PC\xB7\uC2A4\uB9C8\uD2B8\uD3F0 \uC81C\uC870\uC0AC",
+        "\uB370\uC774\uD130\uC13C\uD130 \uC6B4\uC601\uC0AC",
+        "\uD1B5\uC2E0\uC0AC\xB7\uC720\uD1B5\uC0AC"
+      ],
+      end_users: [
+        "\uAE30\uC5C5",
+        "\uAC1C\uC778 \uC18C\uBE44\uC790"
+      ],
+      revenue_model: "\uBC18\uB3C4\uCCB4 \uCE69\uACFC \uC644\uC81C\uD488 \uD310\uB9E4, \uC704\uD0C1 \uC0DD\uC0B0",
+      cost_drivers: [
+        "\uACF5\uC7A5 \uC124\uBE44 \uD22C\uC790",
+        "\uC6D0\uC7AC\uB8CC\xB7\uBD80\uD488 \uAC12"
+      ],
+      demand_drivers: [
+        "\uC11C\uBC84\xB7AI \uD22C\uC790",
+        "\uC2A4\uB9C8\uD2B8\uD3F0\xB7PC \uC218\uC694",
+        "\uBA54\uBAA8\uB9AC \uAC00\uACA9"
+      ]
+    },
+    revenue_mix: {
+      period: null,
+      domestic_share: null,
+      overseas_share: null
+    },
+    sales_channels: [
+      "\uAE30\uC5C5 \uC9C1\uC811 \uACF5\uAE09",
+      "\uD1B5\uC2E0\uC0AC\xB7\uC720\uD1B5\uC0AC"
+    ],
+    linkage_factors: [
+      "\uBA54\uBAA8\uB9AC \uAC00\uACA9 \uD750\uB984",
+      "\uD658\uC728"
+    ],
+    recent_events: [],
+    sources: [
+      {
+        source_id: "rt_overview_v1",
+        title: "\uD68C\uC0AC \uACF5\uAC1C \uC0AC\uC5C5 \uAC1C\uC694\uB97C \uBC14\uD0D5\uC73C\uB85C \uC815\uB9AC\uD55C \uC694\uC57D (\uC6D0\uBB38 \uB300\uC870 \uC804)",
+        as_of: "2026-11-16"
+      }
+    ],
+    unknowns: [
+      "\uCD5C\uADFC \uBD84\uAE30 \uC2E4\uC801\uACFC \uC0AC\uC5C5\uBD80\uBCC4 \uB9E4\uCD9C \uBE44\uC911",
+      "\uCD5C\uADFC \uACC4\uC57D\xB7\uD22C\uC790\xB7\uADDC\uC81C \uAC19\uC740 \uC0AC\uC5C5 \uBCC0\uD654 (\uD655\uC778\uB41C \uC790\uB8CC \uC5C6\uC74C)"
+    ],
+    fictional: false
+  },
+  "000660": {
+    company_id: "000660",
+    name: "SK\uD558\uC774\uB2C9\uC2A4",
+    as_of: "2026-11-16",
+    context_version: "rt-v1",
+    field_sources: {
+      industry: [
+        "rt_overview_v1"
+      ],
+      business_summary: [
+        "rt_overview_v1"
+      ],
+      value_chain: [
+        "rt_overview_v1"
+      ]
+    },
+    industry: "\uBA54\uBAA8\uB9AC \uBC18\uB3C4\uCCB4",
+    business_summary: "D\uB7A8\xB7\uB0B8\uB4DC \uAC19\uC740 \uBA54\uBAA8\uB9AC \uBC18\uB3C4\uCCB4\uB97C \uB9CC\uB4E4\uACE0, AI \uAC00\uC18D\uAE30\uC6A9 \uACE0\uB300\uC5ED\uD3ED \uBA54\uBAA8\uB9AC(HBM)\uB97C \uACF5\uAE09\uD55C\uB2E4",
+    value_chain: {
+      position: "\uBA54\uBAA8\uB9AC \uBC18\uB3C4\uCCB4 \uC124\uACC4\xB7\uC0DD\uC0B0",
+      upstream: [
+        "\uBC18\uB3C4\uCCB4 \uC7A5\uBE44 \uD68C\uC0AC",
+        "\uC18C\uC7AC \uACF5\uAE09\uC0AC"
+      ],
+      direct_customers: [
+        "AI \uAC00\uC18D\uAE30\xB7\uC11C\uBC84 \uC5C5\uCCB4",
+        "PC\xB7\uC2A4\uB9C8\uD2B8\uD3F0 \uC81C\uC870\uC0AC"
+      ],
+      end_users: [
+        "\uB370\uC774\uD130\uC13C\uD130",
+        "\uAC1C\uC778 \uC18C\uBE44\uC790"
+      ],
+      revenue_model: "\uBA54\uBAA8\uB9AC \uCE69 \uD310\uB9E4",
+      cost_drivers: [
+        "\uACF5\uC7A5 \uC124\uBE44 \uD22C\uC790",
+        "\uC6D0\uC7AC\uB8CC \uAC12"
+      ],
+      demand_drivers: [
+        "AI\xB7\uC11C\uBC84 \uD22C\uC790",
+        "PC\xB7\uC2A4\uB9C8\uD2B8\uD3F0 \uC218\uC694",
+        "\uBA54\uBAA8\uB9AC \uAC00\uACA9"
+      ]
+    },
+    revenue_mix: {
+      period: null,
+      domestic_share: null,
+      overseas_share: null
+    },
+    sales_channels: [
+      "\uAE30\uC5C5 \uC9C1\uC811 \uACF5\uAE09"
+    ],
+    linkage_factors: [
+      "\uBA54\uBAA8\uB9AC \uAC00\uACA9 \uD750\uB984",
+      "\uD658\uC728"
+    ],
+    recent_events: [],
+    sources: [
+      {
+        source_id: "rt_overview_v1",
+        title: "\uD68C\uC0AC \uACF5\uAC1C \uC0AC\uC5C5 \uAC1C\uC694\uB97C \uBC14\uD0D5\uC73C\uB85C \uC815\uB9AC\uD55C \uC694\uC57D (\uC6D0\uBB38 \uB300\uC870 \uC804)",
+        as_of: "2026-11-16"
+      }
+    ],
+    unknowns: [
+      "\uCD5C\uADFC \uBD84\uAE30 \uC2E4\uC801\uACFC \uC0AC\uC5C5\uBD80\uBCC4 \uB9E4\uCD9C \uBE44\uC911",
+      "\uCD5C\uADFC \uACC4\uC57D\xB7\uD22C\uC790\xB7\uADDC\uC81C \uAC19\uC740 \uC0AC\uC5C5 \uBCC0\uD654 (\uD655\uC778\uB41C \uC790\uB8CC \uC5C6\uC74C)"
+    ],
+    fictional: false
+  },
+  "005380": {
+    company_id: "005380",
+    name: "\uD604\uB300\uCC28",
+    as_of: "2026-11-16",
+    context_version: "rt-v1",
+    field_sources: {
+      industry: [
+        "rt_overview_v1"
+      ],
+      business_summary: [
+        "rt_overview_v1"
+      ],
+      value_chain: [
+        "rt_overview_v1"
+      ]
+    },
+    industry: "\uC644\uC131\uCC28",
+    business_summary: "\uC2B9\uC6A9\uCC28\xB7SUV\xB7\uC0C1\uC6A9\uCC28\uB97C \uB9CC\uB4E4\uC5B4 \uD314\uACE0, \uD558\uC774\uBE0C\uB9AC\uB4DC\uC640 \uC804\uAE30\uCC28\uB3C4 \uB9CC\uB4E0\uB2E4. \uC790\uB3D9\uCC28 \uAE08\uC735 \uACC4\uC5F4\uC0AC\uAC00 \uC788\uB2E4",
+    value_chain: {
+      position: "\uC644\uC131\uCC28 \uC124\uACC4\xB7\uC0DD\uC0B0\xB7\uD310\uB9E4",
+      upstream: [
+        "\uBD80\uD488 \uD68C\uC0AC",
+        "\uCCA0\uAC15\xB7\uBC30\uD130\uB9AC \uACF5\uAE09\uC0AC"
+      ],
+      direct_customers: [
+        "\uB51C\uB7EC\xB7\uD310\uB9E4 \uBC95\uC778",
+        "\uBC95\uC778 \uACE0\uAC1D"
+      ],
+      end_users: [
+        "\uAC1C\uC778 \uC6B4\uC804\uC790",
+        "\uAE30\uC5C5"
+      ],
+      revenue_model: "\uCC28\uB7C9 \uD310\uB9E4, \uAE08\uC735\xB7\uC815\uBE44",
+      cost_drivers: [
+        "\uBD80\uD488\xB7\uC6D0\uC7AC\uB8CC \uAC12",
+        "\uC778\uAC74\uBE44"
+      ],
+      demand_drivers: [
+        "\uC18C\uBE44 \uACBD\uAE30",
+        "\uAE08\uB9AC",
+        "\uC2E0\uCC28 \uCD9C\uC2DC"
+      ]
+    },
+    revenue_mix: {
+      period: null,
+      domestic_share: null,
+      overseas_share: null
+    },
+    sales_channels: [
+      "\uAD6D\uB0B4 \uD310\uB9E4\uB9DD",
+      "\uD574\uC678 \uD310\uB9E4 \uBC95\uC778"
+    ],
+    linkage_factors: [
+      "\uD658\uC728",
+      "\uAE08\uB9AC",
+      "\uAD00\uC138\xB7\uBB34\uC5ED \uC815\uCC45"
+    ],
+    recent_events: [],
+    sources: [
+      {
+        source_id: "rt_overview_v1",
+        title: "\uD68C\uC0AC \uACF5\uAC1C \uC0AC\uC5C5 \uAC1C\uC694\uB97C \uBC14\uD0D5\uC73C\uB85C \uC815\uB9AC\uD55C \uC694\uC57D (\uC6D0\uBB38 \uB300\uC870 \uC804)",
+        as_of: "2026-11-16"
+      }
+    ],
+    unknowns: [
+      "\uCD5C\uADFC \uBD84\uAE30 \uC2E4\uC801\uACFC \uC0AC\uC5C5\uBD80\uBCC4 \uB9E4\uCD9C \uBE44\uC911",
+      "\uCD5C\uADFC \uACC4\uC57D\xB7\uD22C\uC790\xB7\uADDC\uC81C \uAC19\uC740 \uC0AC\uC5C5 \uBCC0\uD654 (\uD655\uC778\uB41C \uC790\uB8CC \uC5C6\uC74C)"
+    ],
+    fictional: false
+  },
+  "035420": {
+    company_id: "035420",
+    name: "NAVER",
+    as_of: "2026-11-16",
+    context_version: "rt-v1",
+    field_sources: {
+      industry: [
+        "rt_overview_v1"
+      ],
+      business_summary: [
+        "rt_overview_v1"
+      ],
+      value_chain: [
+        "rt_overview_v1"
+      ]
+    },
+    industry: "\uC778\uD130\uB137 \uD50C\uB7AB\uD3FC",
+    business_summary: "\uAC80\uC0C9 \uD3EC\uD138\uC744 \uC911\uC2EC\uC73C\uB85C \uAD11\uACE0, \uC1FC\uD551(\uCEE4\uBA38\uC2A4), \uAC04\uD3B8\uACB0\uC81C, \uC6F9\uD230 \uAC19\uC740 \uCF58\uD150\uCE20, \uD074\uB77C\uC6B0\uB4DC \uC0AC\uC5C5\uC744 \uD55C\uB2E4",
+    value_chain: {
+      position: "\uAC80\uC0C9\xB7\uCEE4\uBA38\uC2A4\xB7\uCF58\uD150\uCE20 \uD50C\uB7AB\uD3FC \uC6B4\uC601",
+      upstream: [
+        "\uB370\uC774\uD130\uC13C\uD130",
+        "\uCF58\uD150\uCE20 \uCC3D\uC791\uC790"
+      ],
+      direct_customers: [
+        "\uAD11\uACE0\uC8FC",
+        "\uC628\uB77C\uC778 \uD310\uB9E4\uC790"
+      ],
+      end_users: [
+        "\uC774\uC6A9\uC790"
+      ],
+      revenue_model: "\uAD11\uACE0 \uC218\uC775, \uD310\uB9E4\xB7\uACB0\uC81C \uC218\uC218\uB8CC, \uCF58\uD150\uCE20 \uD310\uB9E4",
+      cost_drivers: [
+        "\uC11C\uBC84\xB7\uB370\uC774\uD130\uC13C\uD130 \uBE44\uC6A9",
+        "\uC778\uAC74\uBE44",
+        "\uB9C8\uCF00\uD305\uBE44"
+      ],
+      demand_drivers: [
+        "\uAD11\uACE0 \uACBD\uAE30",
+        "\uC628\uB77C\uC778 \uC1FC\uD551 \uAC70\uB798\uC561",
+        "\uC774\uC6A9\uC790 \uC218"
+      ]
+    },
+    revenue_mix: {
+      period: null,
+      domestic_share: null,
+      overseas_share: null
+    },
+    sales_channels: [
+      "\uC790\uC0AC \uD50C\uB7AB\uD3FC"
+    ],
+    linkage_factors: [
+      "\uAD11\uACE0 \uACBD\uAE30",
+      "\uD50C\uB7AB\uD3FC \uADDC\uC81C"
+    ],
+    recent_events: [],
+    sources: [
+      {
+        source_id: "rt_overview_v1",
+        title: "\uD68C\uC0AC \uACF5\uAC1C \uC0AC\uC5C5 \uAC1C\uC694\uB97C \uBC14\uD0D5\uC73C\uB85C \uC815\uB9AC\uD55C \uC694\uC57D (\uC6D0\uBB38 \uB300\uC870 \uC804)",
+        as_of: "2026-11-16"
+      }
+    ],
+    unknowns: [
+      "\uCD5C\uADFC \uBD84\uAE30 \uC2E4\uC801\uACFC \uC0AC\uC5C5\uBD80\uBCC4 \uB9E4\uCD9C \uBE44\uC911",
+      "\uCD5C\uADFC \uACC4\uC57D\xB7\uD22C\uC790\xB7\uADDC\uC81C \uAC19\uC740 \uC0AC\uC5C5 \uBCC0\uD654 (\uD655\uC778\uB41C \uC790\uB8CC \uC5C6\uC74C)"
+    ],
+    fictional: false
+  },
+  "035720": {
+    company_id: "035720",
+    name: "\uCE74\uCE74\uC624",
+    as_of: "2026-11-16",
+    context_version: "rt-v1",
+    field_sources: {
+      industry: [
+        "rt_overview_v1"
+      ],
+      business_summary: [
+        "rt_overview_v1"
+      ],
+      value_chain: [
+        "rt_overview_v1"
+      ]
+    },
+    industry: "\uC778\uD130\uB137 \uD50C\uB7AB\uD3FC",
+    business_summary: "\uBA54\uC2E0\uC800 \uCE74\uCE74\uC624\uD1A1\uC744 \uBC14\uD0D5\uC73C\uB85C \uAD11\uACE0\xB7\uCEE4\uBA38\uC2A4\uB97C \uD558\uACE0, \uAC8C\uC784\xB7\uC74C\uC545\xB7\uC6F9\uD230 \uCF58\uD150\uCE20\uC640 \uBAA8\uBE4C\uB9AC\uD2F0\xB7\uACB0\uC81C \uAC19\uC740 \uACC4\uC5F4\uC0AC \uC0AC\uC5C5\uC744 \uD55C\uB2E4",
+    value_chain: {
+      position: "\uBA54\uC2E0\uC800 \uAE30\uBC18 \uD50C\uB7AB\uD3FC\uACFC \uCF58\uD150\uCE20 \uC6B4\uC601",
+      upstream: [
+        "\uCF58\uD150\uCE20 \uCC3D\uC791\uC790",
+        "\uB370\uC774\uD130\uC13C\uD130"
+      ],
+      direct_customers: [
+        "\uAD11\uACE0\uC8FC",
+        "\uC785\uC810 \uD310\uB9E4\uC790"
+      ],
+      end_users: [
+        "\uC774\uC6A9\uC790"
+      ],
+      revenue_model: "\uAD11\uACE0 \uC218\uC775, \uC218\uC218\uB8CC, \uCF58\uD150\uCE20 \uD310\uB9E4",
+      cost_drivers: [
+        "\uC11C\uBC84 \uBE44\uC6A9",
+        "\uC778\uAC74\uBE44",
+        "\uCF58\uD150\uCE20 \uC81C\uC791\uBE44"
+      ],
+      demand_drivers: [
+        "\uAD11\uACE0 \uACBD\uAE30",
+        "\uC774\uC6A9 \uC2DC\uAC04",
+        "\uCF58\uD150\uCE20 \uD765\uD589"
+      ]
+    },
+    revenue_mix: {
+      period: null,
+      domestic_share: null,
+      overseas_share: null
+    },
+    sales_channels: [
+      "\uC790\uC0AC \uD50C\uB7AB\uD3FC"
+    ],
+    linkage_factors: [
+      "\uAD11\uACE0 \uACBD\uAE30",
+      "\uD50C\uB7AB\uD3FC \uADDC\uC81C"
+    ],
+    recent_events: [],
+    sources: [
+      {
+        source_id: "rt_overview_v1",
+        title: "\uD68C\uC0AC \uACF5\uAC1C \uC0AC\uC5C5 \uAC1C\uC694\uB97C \uBC14\uD0D5\uC73C\uB85C \uC815\uB9AC\uD55C \uC694\uC57D (\uC6D0\uBB38 \uB300\uC870 \uC804)",
+        as_of: "2026-11-16"
+      }
+    ],
+    unknowns: [
+      "\uCD5C\uADFC \uBD84\uAE30 \uC2E4\uC801\uACFC \uC0AC\uC5C5\uBD80\uBCC4 \uB9E4\uCD9C \uBE44\uC911",
+      "\uCD5C\uADFC \uACC4\uC57D\xB7\uD22C\uC790\xB7\uADDC\uC81C \uAC19\uC740 \uC0AC\uC5C5 \uBCC0\uD654 (\uD655\uC778\uB41C \uC790\uB8CC \uC5C6\uC74C)"
+    ],
+    fictional: false
+  },
+  "068270": {
+    company_id: "068270",
+    name: "\uC140\uD2B8\uB9AC\uC628",
+    as_of: "2026-11-16",
+    context_version: "rt-v1",
+    field_sources: {
+      industry: [
+        "rt_overview_v1"
+      ],
+      business_summary: [
+        "rt_overview_v1"
+      ],
+      value_chain: [
+        "rt_overview_v1"
+      ]
+    },
+    industry: "\uBC14\uC774\uC624\uC758\uC57D\uD488",
+    business_summary: "\uD56D\uCCB4 \uBC14\uC774\uC624\uC2DC\uBC00\uB7EC(\uC624\uB9AC\uC9C0\uB110 \uC57D\uC758 \uBCF5\uC81C \uBC14\uC774\uC624\uC758\uC57D\uD488)\uB97C \uAC1C\uBC1C\xB7\uC0DD\uC0B0\uD558\uACE0 \uD574\uC678\uC5D0 \uD310\uB2E4",
+    value_chain: {
+      position: "\uBC14\uC774\uC624\uC758\uC57D\uD488 \uAC1C\uBC1C\xB7\uC0DD\uC0B0\xB7\uD310\uB9E4",
+      upstream: [
+        "\uC138\uD3EC \uBC30\uC591 \uC6D0\uB8CC\xB7\uC7A5\uBE44 \uACF5\uAE09\uC0AC"
+      ],
+      direct_customers: [
+        "\uBCD1\uC6D0",
+        "\uB3C4\uB9E4\uC0C1",
+        "\uD574\uC678 \uD310\uB9E4 \uBC95\uC778"
+      ],
+      end_users: [
+        "\uD658\uC790"
+      ],
+      revenue_model: "\uC758\uC57D\uD488 \uD310\uB9E4",
+      cost_drivers: [
+        "\uC0DD\uC0B0 \uC124\uBE44",
+        "\uC784\uC0C1 \uBE44\uC6A9"
+      ],
+      demand_drivers: [
+        "\uC624\uB9AC\uC9C0\uB110 \uC57D \uD2B9\uD5C8 \uB9CC\uB8CC",
+        "\uAC01\uAD6D \uD5C8\uAC00",
+        "\uC57D\uAC00 \uC815\uCC45"
+      ]
+    },
+    revenue_mix: {
+      period: null,
+      domestic_share: null,
+      overseas_share: null
+    },
+    sales_channels: [
+      "\uD574\uC678 \uD310\uB9E4 \uBC95\uC778",
+      "\uC720\uD1B5 \uD30C\uD2B8\uB108"
+    ],
+    linkage_factors: [
+      "\uAC01\uAD6D \uD5C8\uAC00\xB7\uC57D\uAC00 \uC815\uCC45",
+      "\uD658\uC728"
+    ],
+    recent_events: [],
+    sources: [
+      {
+        source_id: "rt_overview_v1",
+        title: "\uD68C\uC0AC \uACF5\uAC1C \uC0AC\uC5C5 \uAC1C\uC694\uB97C \uBC14\uD0D5\uC73C\uB85C \uC815\uB9AC\uD55C \uC694\uC57D (\uC6D0\uBB38 \uB300\uC870 \uC804)",
+        as_of: "2026-11-16"
+      }
+    ],
+    unknowns: [
+      "\uCD5C\uADFC \uBD84\uAE30 \uC2E4\uC801\uACFC \uC0AC\uC5C5\uBD80\uBCC4 \uB9E4\uCD9C \uBE44\uC911",
+      "\uCD5C\uADFC \uACC4\uC57D\xB7\uD22C\uC790\xB7\uADDC\uC81C \uAC19\uC740 \uC0AC\uC5C5 \uBCC0\uD654 (\uD655\uC778\uB41C \uC790\uB8CC \uC5C6\uC74C)"
+    ],
+    fictional: false
+  },
+  "012450": {
+    company_id: "012450",
+    name: "\uD55C\uD654\uC5D0\uC5B4\uB85C\uC2A4\uD398\uC774\uC2A4",
+    as_of: "2026-11-16",
+    context_version: "rt-v1",
+    field_sources: {
+      industry: [
+        "rt_overview_v1"
+      ],
+      business_summary: [
+        "rt_overview_v1"
+      ],
+      value_chain: [
+        "rt_overview_v1"
+      ]
+    },
+    industry: "\uBC29\uC0B0\xB7\uD56D\uACF5\uC6B0\uC8FC",
+    business_summary: "\uC790\uC8FC\uD3EC \uAC19\uC740 \uC9C0\uC0C1 \uBC29\uC0B0 \uC7A5\uBE44, \uD56D\uACF5\uAE30 \uC5D4\uC9C4\uACFC \uBD80\uD488, \uC6B0\uC8FC \uBC1C\uC0AC\uCCB4 \uC0AC\uC5C5\uC744 \uD55C\uB2E4",
+    value_chain: {
+      position: "\uBC29\uC0B0 \uC7A5\uBE44\xB7\uD56D\uACF5\uAE30 \uC5D4\uC9C4 \uBD80\uD488 \uC0DD\uC0B0",
+      upstream: [
+        "\uBD80\uD488\xB7\uC18C\uC7AC \uACF5\uAE09\uC0AC"
+      ],
+      direct_customers: [
+        "\uAD6D\uB0B4\uC678 \uAD6D\uBC29 \uB2F9\uAD6D",
+        "\uD56D\uACF5\uAE30 \uC5D4\uC9C4 \uD68C\uC0AC"
+      ],
+      end_users: [
+        "\uAC01\uAD6D \uAD70",
+        "\uD56D\uACF5\uC0AC"
+      ],
+      revenue_model: "\uC7A5\uBE44\xB7\uBD80\uD488 \uD310\uB9E4\uC640 \uC815\uBE44",
+      cost_drivers: [
+        "\uC6D0\uC7AC\uB8CC \uAC12",
+        "\uAC1C\uBC1C\uBE44"
+      ],
+      demand_drivers: [
+        "\uAC01\uAD6D \uAD6D\uBC29 \uC608\uC0B0",
+        "\uD56D\uACF5 \uC5EC\uAC1D \uC218\uC694"
+      ]
+    },
+    revenue_mix: {
+      period: null,
+      domestic_share: null,
+      overseas_share: null
+    },
+    sales_channels: [
+      "\uC815\uBD80 \uC870\uB2EC",
+      "\uAE30\uC5C5 \uC9C1\uC811 \uACF5\uAE09"
+    ],
+    linkage_factors: [
+      "\uAD6D\uBC29 \uC608\uC0B0",
+      "\uC218\uCD9C \uACC4\uC57D",
+      "\uD658\uC728"
+    ],
+    recent_events: [],
+    sources: [
+      {
+        source_id: "rt_overview_v1",
+        title: "\uD68C\uC0AC \uACF5\uAC1C \uC0AC\uC5C5 \uAC1C\uC694\uB97C \uBC14\uD0D5\uC73C\uB85C \uC815\uB9AC\uD55C \uC694\uC57D (\uC6D0\uBB38 \uB300\uC870 \uC804)",
+        as_of: "2026-11-16"
+      }
+    ],
+    unknowns: [
+      "\uCD5C\uADFC \uBD84\uAE30 \uC2E4\uC801\uACFC \uC0AC\uC5C5\uBD80\uBCC4 \uB9E4\uCD9C \uBE44\uC911",
+      "\uCD5C\uADFC \uACC4\uC57D\xB7\uD22C\uC790\xB7\uADDC\uC81C \uAC19\uC740 \uC0AC\uC5C5 \uBCC0\uD654 (\uD655\uC778\uB41C \uC790\uB8CC \uC5C6\uC74C)"
+    ],
+    fictional: false
+  },
+  "005490": {
+    company_id: "005490",
+    name: "POSCO\uD640\uB529\uC2A4",
+    as_of: "2026-11-16",
+    context_version: "rt-v1",
+    field_sources: {
+      industry: [
+        "rt_overview_v1"
+      ],
+      business_summary: [
+        "rt_overview_v1"
+      ],
+      value_chain: [
+        "rt_overview_v1"
+      ]
+    },
+    industry: "\uCCA0\uAC15\xB7\uC18C\uC7AC \uC9C0\uC8FC",
+    business_summary: "\uCCA0\uAC15 \uD68C\uC0AC \uD3EC\uC2A4\uCF54\uB97C \uC911\uC2EC\uC73C\uB85C 2\uCC28\uC804\uC9C0 \uC18C\uC7AC(\uB9AC\uD2AC\xB7\uB2C8\uCF08 \uB4F1)\uC640 \uBB34\uC5ED \uC0AC\uC5C5\uC744 \uAC70\uB290\uB9B0 \uC9C0\uC8FC\uD68C\uC0AC\uB2E4",
+    value_chain: {
+      position: "\uCCA0\uAC15 \uC0DD\uC0B0\uACFC 2\uCC28\uC804\uC9C0 \uC18C\uC7AC",
+      upstream: [
+        "\uCCA0\uAD11\uC11D\xB7\uC11D\uD0C4 \uACF5\uAE09\uC0AC",
+        "\uAD11\uC0B0"
+      ],
+      direct_customers: [
+        "\uC790\uB3D9\uCC28\xB7\uC870\uC120\xB7\uAC74\uC124 \uD68C\uC0AC",
+        "\uBC30\uD130\uB9AC \uC18C\uC7AC \uD68C\uC0AC"
+      ],
+      end_users: [
+        "\uAE30\uC5C5"
+      ],
+      revenue_model: "\uCCA0\uAC15\uC7AC\xB7\uC18C\uC7AC \uD310\uB9E4",
+      cost_drivers: [
+        "\uCCA0\uAD11\uC11D\xB7\uC11D\uD0C4 \uAC12",
+        "\uC5D0\uB108\uC9C0 \uBE44\uC6A9"
+      ],
+      demand_drivers: [
+        "\uC790\uB3D9\uCC28\xB7\uC870\uC120\xB7\uAC74\uC124 \uACBD\uAE30",
+        "\uC804\uAE30\uCC28 \uC218\uC694"
+      ]
+    },
+    revenue_mix: {
+      period: null,
+      domestic_share: null,
+      overseas_share: null
+    },
+    sales_channels: [
+      "\uAE30\uC5C5 \uC9C1\uC811 \uACF5\uAE09"
+    ],
+    linkage_factors: [
+      "\uCCA0\uAC15 \uAC00\uACA9",
+      "\uC911\uAD6D \uCCA0\uAC15 \uACF5\uAE09",
+      "\uC6D0\uB8CC \uAC00\uACA9"
+    ],
+    recent_events: [],
+    sources: [
+      {
+        source_id: "rt_overview_v1",
+        title: "\uD68C\uC0AC \uACF5\uAC1C \uC0AC\uC5C5 \uAC1C\uC694\uB97C \uBC14\uD0D5\uC73C\uB85C \uC815\uB9AC\uD55C \uC694\uC57D (\uC6D0\uBB38 \uB300\uC870 \uC804)",
+        as_of: "2026-11-16"
+      }
+    ],
+    unknowns: [
+      "\uCD5C\uADFC \uBD84\uAE30 \uC2E4\uC801\uACFC \uC0AC\uC5C5\uBD80\uBCC4 \uB9E4\uCD9C \uBE44\uC911",
+      "\uCD5C\uADFC \uACC4\uC57D\xB7\uD22C\uC790\xB7\uADDC\uC81C \uAC19\uC740 \uC0AC\uC5C5 \uBCC0\uD654 (\uD655\uC778\uB41C \uC790\uB8CC \uC5C6\uC74C)"
+    ],
+    fictional: false
+  }
+};
+
 // db/functions/bori-talk/index.ts
 var cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "authorization, apikey, content-type, x-client-info", "access-control-allow-methods": "POST, OPTIONS" };
 var json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...cors, "content-type": "application/json" } });
@@ -1809,8 +2701,21 @@ Deno.serve(async (req) => {
   if (!conv || conv.persona_version !== persona_bori_default.persona_version) conv = openSession(me.id, persona_bori_default, now);
   const det = await load("detection");
   let store = { ...newStore(me.id, persona_bori_default, user_profile_template_default, now), conv, profile, ...det ?? {} };
+  const stale = expireStale(store, now);
+  store = stale.store;
   const holdings = (Array.isArray(b.holdings) ? b.holdings : []).filter((h) => h && typeof h.company_id === "string").slice(0, 30).map((h) => ({ company_id: h.company_id.slice(0, 20), name: String(h.name ?? "").slice(0, 40) || null, status: "holding" }));
-  const world = { persona: persona_bori_default, registry: field_registry_default, strategyTemplate: strategy_template_default, userTemplate: user_profile_template_default, examples: philosophy_examples_default.examples, holdings, news: [], now: () => Date.now() };
+  const world = {
+    persona: persona_bori_default,
+    registry: field_registry_default,
+    strategyTemplate: strategy_template_default,
+    userTemplate: user_profile_template_default,
+    examples: philosophy_examples_default.examples,
+    holdings,
+    news: [],
+    now: () => Date.now(),
+    companies: companies_default,
+    modelName: Deno.env.get("OPENAI_MODEL") ?? LLM_DEFAULT
+  };
   const persist = async (s) => {
     await save("conversation", s.conv);
     if (s.profile !== profile) await save("profile", s.profile);
@@ -1825,7 +2730,11 @@ Deno.serve(async (req) => {
     await persist(store);
     return json({ detection: status(store) });
   }
-  if (!["message", "visit", "open", "resume"].includes(b.action ?? "")) return json({ error: "bad-request" }, 400);
+  if (!["message", "visit", "open", "resume", "reopen"].includes(b.action ?? "")) {
+    if (stale.expired.length) await persist(store);
+    return json({ error: "bad-request" }, 400);
+  }
+  if (b.action === "reopen" && !store.jobs.some((j2) => j2.request_id === b.request_id && j2.status === "delivered")) return json({ error: "not-delivered" }, 400);
   if (b.action === "message" && (typeof b.text !== "string" || !b.text.trim())) return json({ error: "bad-request" }, 400);
   if (b.action === "open") {
     const signals = (Array.isArray(b.signals) ? b.signals : []).filter((x) => typeof x === "string").slice(0, 10);
@@ -1859,6 +2768,10 @@ Deno.serve(async (req) => {
     const r = await resumeElicitation(store, world, model);
     store = r.store;
     result = r.result;
+  } else if (b.action === "reopen") {
+    const r = await reopenForCorrection(store, world, model, String(b.request_id));
+    store = r.store;
+    result = r.result;
   } else {
     if (b.action === "visit") store = { ...store, conv: startVisit(store.conv) };
     const r = await runTurn(store, world, model, { text: b.action === "message" ? b.text.slice(0, 2e3) : null, spontaneous: b.action === "visit", clientMessageId: b.client_message_id ?? null });
@@ -1878,5 +2791,6 @@ Deno.serve(async (req) => {
   };
   if (store.jobs.some((j2) => j2.status === "ready" || j2.status === "queued")) store = (await runDeliveryWorker(store, receive, Date.now())).store;
   await persist(store);
+  if (result) await fetch(`${url}/rest/v1/llm1_ops`, { method: "POST", headers: svc, body: JSON.stringify({ player_id: me.id, entry: opsEntry(result, world) }) }).catch(() => null);
   return json({ reply: result?.reply ?? null, learned: result?.profile_applied.length ?? 0, detection: status(store) });
 });

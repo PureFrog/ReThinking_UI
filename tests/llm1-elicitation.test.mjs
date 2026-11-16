@@ -131,3 +131,49 @@ test('two question turns in a row: the third asks for a line without a question'
   await h.say('음',elic('언제 샀어?',{}),elic('언제 샀어?'));
   assert.match(h.calls.at(-1).msgs.at(-1).content,/연속 질문/);
 });
+
+// the remaining pieces of 정균's engine (2026-11-16): expire_stale, reopen_for_correction, the ops log, company files
+const deliver=async h=>{const ok=await E.runDeliveryWorker(h.store,async j=>({request_id:j.request_id,payload_hash:j.payload_hash,status:'persisted'}),h.now());h.store=ok.store};
+
+test('a talk left unanswered for 7 days expires: quotes gone, signal expired, 보리 back to daily; old job records go after 30 days', async () => {
+  const h=harness();h.signal(['005930','000660']);await h.open(elic('왜 샀었어?'));
+  await h.say('메모리 업황이 바닥이라고 봤어',elic('그렇구나.',cur=>({changes:[add(cur.message_id,'메모리 업황이 바닥이라고 봤어')]})));
+  assert.deepEqual(E.expireStale(h.store,h.now()+6*864e5).expired,[]);
+  const r=E.expireStale(h.store,h.now()+8*864e5);h.store=r.store;
+  assert.deepEqual(r.expired,['es001']);
+  const es=h.store.sessions[0];assert.equal(es.status,'expired');assert.equal(es.messages.length,0);assert.ok(es.evidence.every(e=>!('source_refs' in e)));
+  assert.equal(h.store.events[0].status,'expired');assert.equal(h.store.conv.active_elicitation_id,null);
+  // the next signal can open now
+  h.advance(8*86400);const next=await h.open(elic('SK하이닉스는 어떻게 보고 있어?'));assert.match(next.reply.text,/SK하이닉스/);
+  // a ready (not delivered) job expires with its session; delivered job records are dropped after their retention
+  const h2=harness();h2.signal(['005930']);await h2.open(elic('왜 샀었어?'));
+  await h2.say('메모리 업황이 바닥이라고 봤어',elic('알겠어, 잘 들었어.',cur=>({...finish(),changes:[add(cur.message_id,'메모리 업황이 바닥이라고 봤어')]})));
+  const x=E.expireStale(h2.store,h2.now()+8*864e5).store;assert.equal(x.jobs[0].status,'expired');assert.equal(x.jobs[0].payload,null);
+  await deliver(h2);assert.equal(h2.store.jobs[0].status,'delivered');
+  assert.equal(E.expireStale(h2.store,h2.now()+29*864e5).store.jobs.length,1);
+  assert.equal(E.expireStale(h2.store,h2.now()+31*864e5).store.jobs.length,0);
+});
+
+test('a correction after delivery opens a new talk that names the request it replaces', async () => {
+  const h=harness();h.signal(['005930']);await h.open(elic('왜 샀었어?'));
+  await h.say('메모리 업황이 바닥이라고 봤어',elic('알겠어, 잘 들었어.',cur=>({...finish(),changes:[add(cur.message_id,'메모리 업황이 바닥이라고 봤어')]})));
+  await assert.rejects(()=>E.reopenForCorrection(h.store,h.world,async()=>'{}','ar001'),/delivered/);
+  await deliver(h);
+  h.store=(await E.reopenForCorrection(h.store,h.world,async msgs=>elic('아까 얘기 중에 고칠 게 있었어?')(msgs),'ar001')).store;
+  const es=h.store.sessions.at(-1);assert.equal(es.elicitation_id,'es002');assert.equal(es.supersedes_request_id,'ar001');assert.equal(es.status,'collecting');
+  assert.equal(h.store.conv.active_elicitation_id,'es002');
+  await h.say('HBM도 기대했었어',elic('알겠어, 고마워.',cur=>({...finish(),changes:[add(cur.message_id,'HBM도 기대했었어')]})));
+  assert.equal(h.store.jobs.at(-1).payload.supersedes_request_id,'ar001');
+});
+
+test('each turn gives an ops line without any message text; the company file goes into COMPANY_CONTEXT', async () => {
+  const h=harness();h.world.companies=json('companies.json');h.world.modelName='scripted';
+  assert.equal(Object.keys(h.world.companies).length,12);
+  for(const c of Object.values(h.world.companies)){assert.ok(c.industry&&c.business_summary&&c.value_chain.position);assert.equal(c.fictional,false);
+    assert.doesNotMatch(JSON.stringify(c),/팔아|사라|매수|매도|오를|떨어질/)}
+  h.signal(['005930']);const r=await h.open(elic('요즘 삼성전자 어떻게 보고 있어?'));
+  const input=h.calls[0].msgs[1].content;assert.match(input,/"business_summary": "메모리 반도체와 파운드리/);assert.match(input,/"context_version": "rt-v1"/);
+  const line=E.opsEntry(r,h.world);
+  assert.equal(line.mode,'elicitation');assert.equal(line.llm,'scripted');assert.equal(typeof line.llm_ms,'number');assert.equal(line.format_or_network_errors,0);
+  assert.equal(line.elicitation_status,'collecting');assert.doesNotMatch(JSON.stringify(line),/삼성전자 어떻게/);
+});

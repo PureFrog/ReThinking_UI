@@ -37,10 +37,17 @@ export type Job={request_id:string;elicitation_id:string;payload_hash:string;pay
 export type Store={conv:Conv;profile:ProfileDoc;events:DetectionEvent[];sessions:Session[];jobs:Job[]};
 export type Mode='daily'|'elicitation';
 export type TurnResult={session_id:string;mode:Mode;reply:({message_id:string}&Reply)|null;profile_applied:Applied[];profile_rejected:Applied[];notes:string[];
-  evidence_applied?:EvApplied[];evidence_rejected?:EvApplied[];elicitation_status?:string|null;finish_check?:string|null;delivery_request_id?:string|null};
+  evidence_applied?:EvApplied[];evidence_rejected?:EvApplied[];elicitation_status?:string|null;finish_check?:string|null;delivery_request_id?:string|null;
+  // for the ops log (source _log_turn): how long the model took and how many format/network errors there were
+  llm_ms?:number;errors?:number};
 export type Model=(messages:{role:'system'|'user'|'assistant';content:string}[],mode:Mode)=>Promise<string>;
 export type World={persona:Persona;registry:RegistryData;strategyTemplate:Record<string,unknown>;userTemplate:Record<string,unknown>;
-  holdings:Holding[];news:News[];examples:Example[];now:()=>number};
+  holdings:Holding[];news:News[];examples:Example[];now:()=>number;
+  // company files (app/content/llm1/companies.json, source data/seed/companies): COMPANY_CONTEXT for the talk about one stock
+  companies?:Record<string,Company>;
+  // which model answers (ops log)
+  modelName?:string};
+export type Company={company_id:string;name:string;industry:string;context_version:string|null}&Record<string,unknown>;
 
 const iso=(ms:number)=>new Date(ms+9*3600e3).toISOString().replace(/\.\d{3}Z$/,'+09:00');
 const plus=(ms:number,h:number)=>iso(ms+h*3600e3);
@@ -77,10 +84,14 @@ function applyStateUpdate(conv:Conv,u:StateUpdate|null,now:number){
   if(Array.isArray(u.paused_topics))st.paused_topics=u.paused_topics.filter(x=>typeof x==='string').slice(0,10);
 }
 const holdingOf=(w:World,id:string|null)=>w.holdings.find(h=>h.company_id===id)??null;
+// the company file when there is one, else what the holding itself says (code and name)
+const companyDoc=(w:World,h:Holding):Holding&Record<string,unknown>=>w.companies?.[h.company_id]??{...h,context_version:null};
 function companyContext(text:string|null,w:World,es:Session|null){
-  if(es){const h=holdingOf(w,es.company_id);return h?{...h,context_version:null}:null}
-  if(!text)return null;for(const h of w.holdings){const name=(h.name??'').replace('(가상)','').trim();if((name&&text.includes(name))||text.includes(h.company_id))return {...h,context_version:null}}return null;
+  if(es){const h=holdingOf(w,es.company_id);return h?companyDoc(w,h):null}
+  if(!text)return null;for(const h of w.holdings){const name=(h.name??'').replace('(가상)','').trim();if((name&&text.includes(name))||text.includes(h.company_id))return companyDoc(w,h)}return null;
 }
+// HOLDINGS_CONTEXT (source _holdings_context): code, name, industry from the company file, status
+const holdingsContext=(w:World)=>w.holdings.map(h=>({company_id:h.company_id,name:w.companies?.[h.company_id]?.name??h.name,industry:w.companies?.[h.company_id]?.industry??h.industry??null,status:h.status??null,as_of:h.as_of??null}));
 function newsContext(conv:Conv,mode:Mode,spontaneous:boolean,company:Holding|null,w:World):News[]{
   if(mode!=='daily'||!(spontaneous||company))return [];
   let ids=new Set(w.holdings.map(h=>h.company_id));if(company)ids=new Set([...ids].filter(i=>i===company.company_id));
@@ -156,15 +167,16 @@ async function turn(store:Store,w:World,model:Model,mode:Mode,current:Msg|null,e
   const builtAt=iso(now),streak=es?consecutiveQuestionTurns(es):0;
   const ci={mode,character_persona:w.persona.json,user_json:uj,current_message:current?strip(current):null,recent_messages:view.map(strip),
     conversation_state:{last_topic:conv.state.last_topic,open_question:conv.state.open_question,mood:conv.state.mood,paused_topics:conv.state.paused_topics},
-    company_context:company,holdings_context:w.holdings,news_context:news,
+    company_context:company,holdings_context:holdingsContext(w),news_context:news,
     detection_context:es?{event_id:es.detection_event_id,company_id:es.company_id,reason_code:es.detection_reason_code,reason:es.detection_reason}:null,
     elicitation_state:stateForPrompt(es),
     conversation_policy:{may_speak:true,spontaneous_event:o.spontaneous,max_questions_per_turn:1,paused_topics:conv.state.paused_topics,already_mentioned_news_ids:conv.mentioned_news_ids.slice(-20),consecutive_question_turns:streak},
     investor_background:mode==='elicitation'?investorBackground(uj as Record<string,any>,es,w):null,dialogue_examples:dialogueExamples(mode,current?.text??null,w),
-    server_meta:{user_id:conv.user_id,turn_id:`${conv.session_id}-t${turnSeq+1}`,turn_seq:turnSeq+1,profile_revision:(uj.revision as number)??0,collection_revision:es?.revision??null,now:builtAt,persona_version:w.persona.persona_version,company_context_version:null}};
+    server_meta:{user_id:conv.user_id,turn_id:`${conv.session_id}-t${turnSeq+1}`,turn_seq:turnSeq+1,profile_revision:(uj.revision as number)??0,collection_revision:es?.revision??null,now:builtAt,persona_version:w.persona.persona_version,company_context_version:(company?.context_version as string|null|undefined)??null}};
   const messages:Parameters<Model>[0]=buildMessages(ci,w.registry,allowed);
   // (3) 생성 + 형식 검증 (수정 생성 최대 1회). 탐지 대화에서 2턴 연속 질문했으면 이번엔 질문 없이 (수정 기회에만)
   const errors:string[]=[];let out:TurnOut|null=null;
+  const t0=Date.now();
   for(let attempt=0;attempt<=LLM1.maxFormatRepairs;attempt++){
     let raw:string;try{raw=await model(messages,mode)}catch(e){errors.push(`llm_error: ${(e as Error).message}`);break}
     const c=checkTurn(raw||'{}',mode);let errs=c.errors;
@@ -174,6 +186,7 @@ async function turn(store:Store,w:World,model:Model,mode:Mode,current:Msg|null,e
         errs=style}}
     errors.push(...errs);messages.push({role:'assistant',content:raw||'(빈 응답)'},repairMessage(errs));
   }
+  result.llm_ms=Date.now()-t0;result.errors=errors.length;
   if(!out){
     notes.push(`LLM 출력 실패 → 복구 안내만, 변경 없음: ${JSON.stringify(errors).slice(0,400)}`);
     if(!o.spontaneous){const m=newMessage(conv,'character',FALLBACK_REPLY.text,now);pushRecent(conv,m);result.reply={message_id:m.message_id,...FALLBACK_REPLY,mentioned_news_ids:[]};
@@ -255,10 +268,51 @@ export async function startNextPendingDetection(storeIn:Store,w:World,model:Mode
   const store=clone(storeIn),c=store.conv;
   if(activeSession(store)||!(c.pending_detection_events??[]).length)return null;
   const eid=c.pending_detection_events!.shift()!,ev=store.events.find(e=>e.event_id===eid);if(!ev)return null;
-  const now=w.now(),id=nextId(c,'elicitation','es');
-  store.sessions.push(newSession({elicitationId:id,userId:c.user_id,convSessionId:c.session_id,event:ev,now:iso(now),expires:plus(now,LLM1.maxPendingDays*24)}));
-  c.active_elicitation_id=id;(c.seen_detection_event_ids??=[]).includes(ev.event_id)||c.seen_detection_event_ids!.push(ev.event_id);ev.status='in_progress';
+  return openElicitation(store,w,model,ev);
+}
+// a new collecting session for this event (source _open_elicitation); supersedes: the request a correction replaces
+function openElicitation(store:Store,w:World,model:Model,ev:DetectionEvent,supersedes:string|null=null){
+  const c=store.conv,now=w.now(),id=nextId(c,'elicitation','es');
+  store.sessions.push(newSession({elicitationId:id,userId:c.user_id,convSessionId:c.session_id,event:ev,now:iso(now),expires:plus(now,LLM1.maxPendingDays*24),supersedes}));
+  c.active_elicitation_id=id;(c.seen_detection_event_ids??=[]).includes(ev.event_id)||c.seen_detection_event_ids!.push(ev.event_id);
+  c.pending_detection_events=(c.pending_detection_events??[]).filter(x=>x!==ev.event_id);ev.status='in_progress';
   return turn(store,w,model,'elicitation',null,store.sessions.at(-1)!,{spontaneous:true,notes:[`탐지 이벤트 ${ev.event_id} → 수집 세션 ${id} 시작`]});
+}
+// 이미 수신된 뒤 정정이 온 경우: 기존 요청 ID를 참조하는 새 수집 세션 (source reopen_for_correction, design 9.1)
+export async function reopenForCorrection(storeIn:Store,w:World,model:Model,priorRequestId:string):Promise<{store:Store;result:TurnResult}>{
+  const store=clone(storeIn),job=store.jobs.find(j=>j.request_id===priorRequestId);
+  if(!job||job.status!=='delivered')throw new Error('delivered 상태의 기존 요청이 아님');
+  const old=store.sessions.find(s=>s.elicitation_id===job.elicitation_id),ev=old&&store.events.find(e=>e.event_id===old.detection_event_id);
+  if(!ev)throw new Error('기존 요청의 탐지 이벤트 없음');
+  return openElicitation(store,w,model,ev,priorRequestId);
+}
+// 보존기간 만료 (source expire_stale, design 9.1 expired, 10.3-5): a talk left unanswered for maxPendingDays closes
+// (its raw quotes go, an undelivered job expires, the signal is marked expired, 보리 goes back to daily talk); delivery
+// job records past their retention are dropped. Returns the ids it touched.
+export function expireStale(storeIn:Store,now:number):{store:Store;expired:string[]}{
+  const store=clone(storeIn),out:string[]=[];
+  for(const es of store.sessions){
+    if(!['collecting','paused','ready'].includes(es.status)||!(Date.parse(es.expires_at)<now))continue;
+    if(es.request_id){const job=store.jobs.find(j=>j.request_id===es.request_id);if(job&&job.status!=='delivered'){job.status='expired';job.payload=null;job.updated_at=iso(now)}}
+    purgeRaw(es,'expired',now);
+    const ev=store.events.find(e=>e.event_id===es.detection_event_id);if(ev)ev.status='expired';
+    if(store.conv.active_elicitation_id===es.elicitation_id)store.conv.active_elicitation_id=null;
+    out.push(es.elicitation_id)}
+  const keep=LLM1.jobMetaRetentionDays*864e5;
+  store.jobs=store.jobs.filter(j=>{const gone=['delivered','expired','failed_conflict'].includes(j.status)&&Date.parse(j.updated_at)+keep<now;if(gone)out.push(j.request_id);return !gone});
+  return {store,expired:out};
+}
+// 수신자 인수(또는 만료) 후 송신 측 원문 사본 정리 (source _purge_elicitation_raw, design 10.3)
+function purgeRaw(es:Session,status:Session['status'],now:number){
+  Object.assign(es,{status,messages:[],unresolved_points:[],asked_questions:[],updated_at:iso(now)});
+  es.evidence=es.evidence.map(e=>({evidence_id:e.evidence_id,active:e.active,kind:e.kind}) as never);
+}
+// one line of the ops log per turn (source _log_turn): no message text, only what happened
+export function opsEntry(r:TurnResult,w:World){
+  return {at:iso(w.now()),event:'turn',session_id:r.session_id,mode:r.mode,llm:w.modelName??null,llm_ms:r.llm_ms??null,format_or_network_errors:r.errors??0,
+    profile_applied:r.profile_applied.length,profile_rejected_reasons:r.profile_rejected.map(x=>(x as {reason?:string}).reason??null),
+    evidence_applied:r.evidence_applied?.length??0,evidence_rejected_reasons:(r.evidence_rejected??[]).map(x=>(x as {reason?:string}).reason??null),
+    elicitation_status:r.elicitation_status??null,delivery_request_id:r.delivery_request_id??null};
 }
 // 무응답·접속 종료 → paused (자동 분석 없음) / 사용자가 다시 하자고 하면 collecting으로 재개
 export function pauseElicitation(storeIn:Store,reason='no_response'):Store{
@@ -293,8 +347,7 @@ export async function runDeliveryWorker(storeIn:Store,receive:Receiver,now:numbe
       job.status='delivered';job.receipt=receipt;job.payload=null;job.updated_at=iso(now);
       // 인수 확인 후 송신 측 원문 정리, 평상시 복귀, 이벤트 done
       const es=store.sessions.find(s=>s.elicitation_id===job.elicitation_id);
-      if(es){Object.assign(es,{status:'delivered',messages:[],unresolved_points:[],asked_questions:[],updated_at:iso(now)});
-        es.evidence=es.evidence.map(e=>({evidence_id:e.evidence_id,active:e.active,kind:e.kind}) as never);
+      if(es){purgeRaw(es,'delivered',now);
         if(store.conv.active_elicitation_id===es.elicitation_id)store.conv.active_elicitation_id=null;
         const ev=store.events.find(e=>e.event_id===es.detection_event_id);if(ev)ev.status='done'}
       results.push({request_id:job.request_id,status:'delivered'});continue}

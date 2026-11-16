@@ -21,7 +21,7 @@ if(!dry&&!key){console.error('OPENAI_API_KEY가 없어요. PowerShell: $env:OPEN
 const json=n=>JSON.parse(fs.readFileSync(new URL(`../app/content/llm1/${n}`,import.meta.url),'utf8'));
 const persona=json('persona_bori.json'),registry=json('field_registry.json'),userTemplate=json('user_profile_template.json'),strategyTemplate=json('strategy_template.json'),examples=json('philosophy_examples.json').examples;
 const holdings=[{company_id:'005930',name:'삼성전자',industry:'반도체',status:'holding'},{company_id:'000660',name:'SK하이닉스',industry:'반도체',status:'holding'},{company_id:'035720',name:'카카오',industry:'인터넷',status:'holding'}];
-const world={persona,registry,strategyTemplate,userTemplate,examples,holdings,news:[],now:()=>Date.now()};
+const world={persona,registry,strategyTemplate,userTemplate,examples,holdings,news:[],now:()=>Date.now(),companies:json('companies.json'),modelName:model_};
 
 // the model call, as db/functions/bori-talk makes it; counts tokens and time
 const usage={calls:0,input:0,cached:0,output:0,reasoning:0,ms:0};

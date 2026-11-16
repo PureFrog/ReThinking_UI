@@ -20,23 +20,26 @@
 | `elicitation.py` | `app/core/llm1/elicitation.ts` | 옮김 (근거 add/replace/retract, 단순 호응·new_reflection 소급 거부, 종료 검증, 전달 패킷, S4 입력 변환) |
 | `schemas.py` ElicitationTurnOutput | `validate.ts` `checkTurn`, `prompt.ts` `ELICITATION_SCHEMA` | 옮김 |
 | `delivery.py` (작업·워커·수신 측) | `engine.ts` `runDeliveryWorker` + 수신함 `analysis_inbox` 표 (`005_llm1_detection.sql`) | 옮김 (sha256 해시 영수증, 재시도 5초→30초→2분→10분→30분, 인수 확인 뒤 원문 삭제) |
-| Gemini 클라이언트, `chat.py`, `run_demo.py`, `ops_log` | — | 안 옮김 (OpenAI만 쓰기로 함) |
+| `engine.py` `expire_stale` (7일 무응답 만료, 전달 기록 30일 보존) | `engine.ts` `expireStale` — 서버 함수가 매 호출 처음에 돌린다 | 옮김 (2026-11-16) |
+| `engine.py` `reopen_for_correction` (전달 뒤 정정 → 새 수집 세션) | `engine.ts` `reopenForCorrection`, 서버 함수 `reopen {request_id}` | 옮김 (2026-11-16). 패킷에 `supersedes_request_id`가 붙는다 |
+| `engine.py` `_log_turn` + `db.py` `ops_log.jsonl` | `engine.ts` `opsEntry` → Supabase `llm1_ops` 표 (`db/migrations/006_llm1_ops.sql`) | 옮김 (2026-11-16). 대사 원문은 남기지 않는다 |
+| `data/seed/companies/*.json` (가상 DEMO-A~E) | `app/content/llm1/companies.json` — 같은 형식으로 우리 12개 종목(삼성전자 등) | 새로 씀 (2026-11-16). 사업 구조만, 숫자·최근 사건은 비움(`unknowns`). 출처 `rt_overview_v1`은 원문 대조 전 |
+| Gemini 클라이언트, `chat.py`, `run_demo.py` | — | 안 옮김 (OpenAI만 쓰기로 함, 대화 화면은 앱) |
 
 ## 원본과 다른 점
 
 - 대화는 플레이어당 하나(`session_id = s1`). 원본은 세션을 여럿 열 수 있다.
-- 기업 자료(`companies/`)가 우리 앱엔 아직 없어서 `COMPANY_CONTEXT`는 보유 종목의 코드·이름만 넣는다. 뉴스(`NEWS_CONTEXT`)는 비어 있다. 실제 기업·뉴스 수집이 붙으면 채운다.
+- 기업 자료는 우리 12개 종목만 있다(`companies.json`). 그 밖의 종목은 `COMPANY_CONTEXT`에 코드·이름만 넣는다. 사업부 비중·최근 사건은 비어 있다. 뉴스(`NEWS_CONTEXT`)도 비어 있다. 실제 기업·뉴스 수집이 붙으면 채운다.
 - 보유 종목은 앱이 매 호출에 보낸다(정원의 나무: 종목 코드 + 이름). company_views 경로는 이 종목들만 쓸 수 있다.
 - 하루 AI 호출 한도(1인 40번)를 지기 AI·캡처 읽기와 같이 센다(`llm_take`).
-- 운영 로그(`ops_log.jsonl`)는 아직 없다.
 - 손절 신호는 아직 자사 탐지 모델이 아니라 앱의 모의 신호(`content/signals.ts`의 손실 신호)가 보낸다: 보리 창을 열 때 앱이 오늘 손실 신호 종목 코드를 `open`으로 보내고, 서버가 중복을 거른 뒤 가장 오래된 것부터 보리가 먼저 말을 건다. 실제 탐지 모델이 붙으면 서버에서 `receiveStopLossSignal`을 바로 부르면 된다.
 - 분석 모델(S4 툴민 분석)은 아직 없다. 패킷은 `analysis_inbox`에 쌓이고 `analyzed_at`이 비어 있다. 분석 워커가 생기면 이 표를 읽는다(`toS4Input`으로 바꿔 넣기).
 - 전달 워커는 따로 돌지 않고 매 호출 끝에 한 번 돈다(실패하면 다음 호출 때 재시도).
-- 무응답 만료(`expire_stale`, 7일)는 아직 안 돈다. 세션에 `expires_at`만 적어 둔다.
+- 만료는 정해진 시각에 따로 돌지 않고, 그 플레이어의 다음 호출 때 처리된다.
 
 ## 테스트
 
-`tests/llm1-elicitation.test.mjs` 10개: 원본 `test_elicitation.py`·`test_delivery.py` 시나리오(보유 종목만·중복 신호 제거·대기열, 보리가 먼저 말 걸기·한 번에 한 대화, 캐릭터 말·단순 호응은 근거 아님, new_reflection 소급 금지, "그리고 하나 더"면 종료 금지, 종료 응답에 질문 금지·근거 없으면 종료 금지, "그만하자"는 보류·재개, revision 충돌, 재시도 백오프·영수증 확인 뒤 원문 삭제·다음 신호, 해시 불일치·충돌, 연속 질문 3번째 막기).
+`tests/llm1-elicitation.test.mjs` 13개: 원본 `test_elicitation.py`·`test_delivery.py` 시나리오(보유 종목만·중복 신호 제거·대기열, 보리가 먼저 말 걸기·한 번에 한 대화, 캐릭터 말·단순 호응은 근거 아님, new_reflection 소급 금지, "그리고 하나 더"면 종료 금지, 종료 응답에 질문 금지·근거 없으면 종료 금지, "그만하자"는 보류·재개, revision 충돌, 재시도 백오프·영수증 확인 뒤 원문 삭제·다음 신호, 해시 불일치·충돌, 연속 질문 3번째 막기, 7일 만료·전달 기록 30일 삭제, 전달 뒤 정정 재개, 운영 로그에 원문 없음·기업 자료가 COMPANY_CONTEXT로).
 `tests/e2e/proto3d-friend.spec.ts`: 손실 신호가 있으면 보리 창이 손절 신호 대화로 열린다(서버는 `window.__boriOpen`으로 대신).
 
 `tests/llm1.test.mjs` 10개: 원본 `test_daily.py`·`test_contracts.py`의 평상시 시나리오를 대본 모델로 옮겼다(처음 대화·기분 만료, 프롬프트·스키마, 수정 생성·고정 대사, 표정, 캐릭터 말은 근거 아님, 새 근거 없으면 승격 금지·삭제·차단·해제, 경로·자료형·나이·일반화, 전략 ID·미해결, 중복 ID·방문 한도·버퍼 만료, 기억 삭제 API).
