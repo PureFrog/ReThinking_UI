@@ -2,6 +2,7 @@
 // goes up, and the shape each one takes in the world (app/proto3d/Garden3D.tsx draws them by `shape`).
 // The old 2D items (app/core/items.ts) stay with the classic app; these are the new-tone set.
 import type {AnalystId} from './analysts';
+import {spreadXZ,moveWith} from '../core/world';
 export type Shape='lamp'|'bench'|'board'|'vane'|'planter'|'flag'|'crate'|'scope';
 export type GardenItem={id:string;name:string;shape:Shape;desc:string;price?:number;from?:AnalystId;note?:string;rank?:number};
 export const GARDEN_ITEMS:GardenItem[]=[
@@ -28,8 +29,10 @@ export const rankItem=(rank:number)=>GARDEN_ITEMS.find(i=>i.rank===rank);
 export const giftOf=(a:AnalystId)=>GARDEN_ITEMS.find(i=>i.from===a)!;
 // the places an item can stand, around the house and the path (x,z on the garden sphere)
 // room: 'in' = inside the house (app/proto3d/Interior3D.tsx, room coordinates); outdoor slots have none
-export const DECOR_SLOTS:{id:string;x:number;z:number;rot:number;room?:'in'}[]=[
+const DECOR_SLOTS0:{id:string;x:number;z:number;rot:number;room?:'in'}[]=[
   {id:'door-l',x:-3.4,z:-0.6,rot:0.6},{id:'door-r',x:-6.8,z:0.4,rot:-0.4},{id:'fire',x:-2.6,z:0.6,rot:0.3},
   {id:'pond',x:2.8,z:6.6,rot:-0.5},{id:'path',x:0.8,z:-3.6,rot:0.1},{id:'field',x:-3.6,z:3.6,rot:0.8},
   {id:'in-corner',x:3.4,z:1.4,rot:-0.6,room:'in'},{id:'in-window',x:-0.6,z:-2.6,rot:0,room:'in'},{id:'in-rug',x:1.2,z:0.6,rot:0.3,room:'in'},
 ];
+// outdoor slots move out with the house, the campfire or the pond they stand by (core/world.ts); the room's stay
+export const DECOR_SLOTS=DECOR_SLOTS0.map(d=>d.room?d:d.id.startsWith('door')?moveWith(d,-5.5,-3):spreadXZ(d));

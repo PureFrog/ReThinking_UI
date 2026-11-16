@@ -18,13 +18,15 @@ export const ALL_TREE_FILES=[...GROWTHS.flatMap(g=>Array.from({length:TREE_VARIA
 
 // How a condition shows on the canopy: leaf colour and how much of the canopy is left (leaf_<n> clumps, most important first).
 // falling: leaves or petals in the air at once, fallColor: their colour, droop: how far the tree leans (radians, R2)
-export const CANOPY:Record<Condition,{leaf:string;keep:number;blossom:boolean;falling:number;fallColor:string;droop:number}>={
-  bloom:{leaf:'#5db04a',keep:1,blossom:true,falling:5,fallColor:'#ffe08a',droop:0},
-  well:{leaf:'#4d9d45',keep:1,blossom:false,falling:0,fallColor:'#4d9d45',droop:0},
-  dull:{leaf:'#a9b14c',keep:1,blossom:false,falling:2,fallColor:'#c8b44e',droop:0},
-  wilt:{leaf:'#bc9c58',keep:0.6,blossom:false,falling:6,fallColor:'#c9944a',droop:0.06},
-  rot:{leaf:'#7d6b4d',keep:0.4,blossom:false,falling:4,fallColor:'#7a5f3e',droop:0.14},
-  dead:{leaf:'#7d6b4d',keep:0,blossom:false,falling:0,fallColor:'#7d6b4d',droop:0},
+// fruit: share of the apples (fruit_<n>) still on the tree, fallen: apples lying under it (2026-11-16: fruit is the signal)
+export const CANOPY:Record<Condition,{leaf:string;keep:number;blossom:boolean;falling:number;fallColor:string;droop:number;fruit:number;fallen:boolean}>={
+  bloom:{leaf:'#5db04a',keep:1,blossom:true,falling:5,fallColor:'#ffd3df',droop:0,fruit:1,fallen:false},
+  well:{leaf:'#4d9d45',keep:1,blossom:false,falling:0,fallColor:'#4d9d45',droop:0,fruit:1,fallen:false},
+  dull:{leaf:'#a9b14c',keep:1,blossom:false,falling:2,fallColor:'#c8b44e',droop:0,fruit:0.35,fallen:false},
+  wilt:{leaf:'#bc9c58',keep:0.6,blossom:false,falling:6,fallColor:'#c9944a',droop:0.06,fruit:0.12,fallen:true},
+  rot:{leaf:'#7d6b4d',keep:0.4,blossom:false,falling:4,fallColor:'#7a5f3e',droop:0.14,fruit:0,fallen:true},
+  dead:{leaf:'#7d6b4d',keep:0,blossom:false,falling:0,fallColor:'#7d6b4d',droop:0,fruit:0,fallen:false},
 };
 export const BARK='#6c5b53';
+export const FRUIT='#d93a2b',FRUIT_FALLEN='#9a4a2c';
 export const STUMP_CUT='#d2b48a';

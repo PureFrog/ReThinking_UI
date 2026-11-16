@@ -14,7 +14,8 @@ test('base land gives the first 14 plots; opening land adds its own, indices nev
 test('no two spots are too close, and everything stays inside the walkable garden', () => {
   const spots=[...L.ALL_PLOTS,...L.BUILDINGS.map(b=>b.at),...L.CITIES.map(c=>c.at)];
   for(let i=0;i<spots.length;i++)for(let j=i+1;j<spots.length;j++)assert.ok(Math.hypot(spots[i][0]-spots[j][0],spots[i][1]-spots[j][1])>=2.2,`${spots[i]} ${spots[j]}`);
-  for(const [x,z] of spots)assert.ok(Math.hypot(x,z)<21,`${x},${z}`);
+  // the walk reaches 32 since the garden was spread out (core/world.ts)
+  for(const [x,z] of spots)assert.ok(Math.hypot(x,z)<31,`${x},${z}`);
 });
 
 test('spending: enough coins, once; base land cannot be bought; prices rise with size', () => {

@@ -9,6 +9,8 @@
 #   leaf_<n>   canopy clumps, ordered from most to least important; a wilting tree hides the later ones
 #   blossom    small flowers on the canopy; shown only when the tree is in bloom
 #   cut        (stump only) the pale sawn face
+#   fruit_<n>  apples on the canopy (2026-11-16: holding trees are fruit trees); how many show is the signal
+#   fallen     apples lying on the ground; shown only when the tree is wilting or rotting
 # Sizes are final (1 unit = 1 m in the scene), the base sits at the origin, Blender Z-up becomes glTF Y-up.
 import bpy, math, os, random, sys
 from mathutils import Vector
@@ -20,9 +22,9 @@ VARIANTS = 2
 STAGES = {
     'seed':    dict(kind='seedling', h=0.32, r=0.03, leaves=2),
     'sprout':  dict(kind='seedling', h=0.62, r=0.04, leaves=5, top=0.2),
-    'sapling': dict(kind='tree', h=1.35, r=0.07, branches=2, blen=0.55, clump=0.42, extra=1, roots=0, blossoms=6),
-    'young':   dict(kind='tree', h=2.0, r=0.13, branches=3, blen=0.85, clump=0.7, extra=4, roots=3, blossoms=12),
-    'grand':   dict(kind='tree', h=2.55, r=0.24, branches=5, blen=1.35, clump=0.9, extra=4, roots=5, blossoms=22),
+    'sapling': dict(kind='tree', h=1.35, r=0.07, branches=2, blen=0.55, clump=0.42, extra=1, roots=0, blossoms=6, fruits=3, fsize=0.11),
+    'young':   dict(kind='tree', h=2.0, r=0.13, branches=3, blen=0.85, clump=0.7, extra=4, roots=3, blossoms=12, fruits=9, fsize=0.16),
+    'grand':   dict(kind='tree', h=2.55, r=0.24, branches=5, blen=1.35, clump=0.9, extra=4, roots=5, blossoms=22, fruits=16, fsize=0.2),
 }
 
 
@@ -204,6 +206,37 @@ def build_tree(cfg, rnd, mats):
 
     fl = blossoms(clumps, cfg['blossoms'], rnd)
     fl.data.materials.append(mats['blossom'])
+    apples(clumps, cfg['fruits'], cfg['fsize'], rnd, mats)
+
+
+def apples(clumps, n, size, rnd, mats):
+    """Apples hanging on the sides of the canopy (one object each, so the scene can show some of them), and a few
+    lying on the ground (one object), for a tree that is losing them."""
+    for i in range(n):
+        c = clumps[i % len(clumps)]
+        d = Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), rnd.uniform(-0.1, 0.95))).normalized()  # the camera looks down: mostly on top
+        p = Vector(c['at']) + d * c['r'] * 1.0
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=14, ring_count=9, radius=size, location=tuple(p))
+        o = bpy.context.active_object
+        o.name = f'fruit_{i}'
+        o.scale = (1, 1, 0.9)
+        bpy.ops.object.transform_apply(scale=True)
+        shade_smooth(o)
+        o.data.materials.append(mats['fruit'])
+    made = []
+    for k in range(max(2, n // 3)):
+        a, dist = rnd.uniform(0, math.tau), rnd.uniform(0.45, 1.1)
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=12, ring_count=8, radius=size * 0.95, location=(math.cos(a) * dist, math.sin(a) * dist, size * 0.8))
+        made.append(bpy.context.active_object)
+    bpy.ops.object.select_all(action='DESELECT')
+    for o in made:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = made[0]
+    bpy.ops.object.join()
+    f = bpy.context.active_object
+    f.name = 'fallen'
+    shade_smooth(f)
+    f.data.materials.append(mats['fruit'])
 
 
 def build_stump(rnd, mats):
@@ -252,7 +285,7 @@ def main():
             reset()
             rnd = random.Random(f'{name}-{v}')
             mats = dict(trunk=material('trunk', (0.42, 0.33, 0.28)), leaf=material('leaf', (0.3, 0.62, 0.27)),
-                        blossom=material('blossom', (1.0, 0.84, 0.3)))
+                        blossom=material('blossom', (1.0, 0.84, 0.3)), fruit=material('fruit', (0.84, 0.23, 0.17)))
             (build_seedling if cfg['kind'] == 'seedling' else build_tree)(cfg, rnd, mats)
             export(os.path.join(OUT, f'tree_{name}_{v}.glb'))
     reset()

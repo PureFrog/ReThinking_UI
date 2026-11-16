@@ -41,7 +41,7 @@ export const LOOK={
   },
   // walking (Scene3D Player): speeds up and slows down instead of starting and stopping at once, and turns smoothly;
   // keyStep: how far ahead a held arrow / WASD key keeps the walk target
-  walk:{speed:3.2,accel:10,turn:12,brake:0.7,keyStep:0.8},
+  walk:{speed:4,accel:10,turn:12,brake:0.7,keyStep:0.8},
 
   // the grade reveal reaching the tree (Scene3D Burst): sparks for a hit, autumn leaves for a miss
   burst:{hit:'#fff3a8',miss:'#d39a3a'},
@@ -51,7 +51,7 @@ export const LOOK={
     floor:0.28,windows:2.2},
   // the wider map (World3D.tsx, places.ts): water and its banks, bridge wood, path stones, the league square's paving,
   // how many trees in the forest ring
-  map:{water:'#2c86d6',bank:'#c9b98f',plank:'#a77d58',plank2:'#946c4b',rail:'#6c5b53',stone:'#d9c79c',paving:'#e3d8c4',forest:64},
+  map:{water:'#2c86d6',bank:'#c9b98f',plank:'#a77d58',plank2:'#946c4b',rail:'#6c5b53',stone:'#d9c79c',paving:'#e3d8c4',forest:90},
   // inside the house (Interior3D.tsx): surfaces, books by how the judgment came out, the window's sky, the camera
   interior:{floor:'#b48a62',floorLine:'#8a6448',wall:'#efe6d2',wall2:'#e6dac2',trim:'#8a6448',wood:'#a77d58',woodDark:'#6f5040',cork:'#c9a26e',rug:'#7b8f5e',
     sky:'#cfe9f2',outside:'#3b3128',under:'#4a3c30',bookHit:'#4b6638',bookMiss:'#5c5447',bookWait:'#d8ccae',camDist:10.5,camPitch:0.92},
@@ -82,7 +82,7 @@ export const LOOK={
   holdingTreeScale:1.5,
 
   ground:{base:'#7db650',light:'#9fca60',dark:'#5b9645',warm:'#bccf62',patchScale:0.22},
-  tufts:{count:120,light:'#a6cc62',mid:'#8bbd54',dark:'#64a046'},
+  tufts:{count:220,light:'#a6cc62',mid:'#8bbd54',dark:'#64a046'},
 
   // R2 market weather (app/core/weather.ts). Each kind overrides the sky, fog, light and post values above and adds
   // its own clouds, rain and wind. wind: tree sway in radians · rain: falling streaks · clouds: puffs overhead

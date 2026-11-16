@@ -28,9 +28,10 @@ import {DECOR_SLOTS,type Shape} from '../content/garden-items';
 import type {AnalystId} from '../content/analysts';
 import {LOOK} from './look';
 import {soft} from './materials';
-import {MODELS,ALL_TREE_FILES,CANOPY,BARK,STUMP_CUT} from './models';
+import {MODELS,ALL_TREE_FILES,CANOPY,BARK,STUMP_CUT,FRUIT,FRUIT_FALLEN} from './models';
 import {OnGround,surfaceY,tiltAt,rng,UP} from './ground';
 import {PLOTS,PATHS,PLACES,place,inStream,route,WORLD,solids,pushOut,type Solid} from './places';
+import {spread,spreadXZ} from '../core/world';
 import {SIGN_PLACES,SIGN_BUILDINGS,SIGN_CITY} from './ui/Signs';
 import {Stream,Bridge,Paths,Forest,Library,Plaza} from './World3D';
 import {Interior,type Book,type Note} from './Interior3D';
@@ -45,7 +46,7 @@ const SPEED=LOOK.walk.speed;// player walking speed, units per second (look.ts w
 const PLAYER_START=new THREE.Vector3(0,0,2.5);
 export {surfaceY};
 
-type Hooks={frames:number;ready:boolean;player:{x:number;z:number};trees:Record<number,{x:number;y:number}>;softMeshes:number;meshes:number;treeModels:number;weather?:Weather;points:Record<string,{x:number;y:number}>;camera?:{fov:number;dist:number;turn:number;pitch:number;blur:number;lead:number};burst?:{holdingId:number;hit:boolean};births?:{active:boolean;stage:string;long:boolean;n:number;ms:number};cutaway?:{open:boolean;holdingId:number|null;roots:Roots|null};inside?:boolean;stage?:boolean;capsules?:{holdingId:number;due:boolean}[];capsuleFx?:{kind:string;holdingId:number}|null};
+type Hooks={frames:number;ready:boolean;player:{x:number;z:number};trees:Record<number,{x:number;y:number}>;softMeshes:number;meshes:number;treeModels:number;fruit?:number;weather?:Weather;points:Record<string,{x:number;y:number}>;camera?:{fov:number;dist:number;turn:number;pitch:number;blur:number;lead:number};burst?:{holdingId:number;hit:boolean};births?:{active:boolean;stage:string;long:boolean;n:number;ms:number};cutaway?:{open:boolean;holdingId:number|null;roots:Roots|null};inside?:boolean;stage?:boolean;capsules?:{holdingId:number;due:boolean}[];capsuleFx?:{kind:string;holdingId:number}|null};
 declare global{interface Window{__proto3d?:Hooks}}
 // the overlay may write its own entries (births, lapse) first: fill in whatever the scene needs that is missing
 const testHooks=()=>{const h=(window.__proto3d??={} as Hooks);h.frames??=0;h.ready??=false;h.player??={x:0,z:0};h.trees??={};h.softMeshes??=0;h.meshes??=0;h.treeModels??=0;h.points??={};return h};
@@ -53,21 +54,23 @@ const testHooks=()=>{const h=(window.__proto3d??={} as Hooks);h.frames??=0;h.rea
 
 // the garden's own trees, kept off every plot, building lot and landmark place (core/land.ts), open or not
 const DECO_TREES=([['c',-3,-8.5,1.1],['c',-3.6,-11.2,1],['c',5.5,-8.8,1.2],['c',9.2,-6.2,1],['c',-6.2,-14.5,1.2],['c',5.8,-17,1.1],['c',-4,-18.2,1],['c',-10.6,-3,0.9],
-  ['r',5,-10.4,1.1],['r',-7.6,-6.4,1],['r',17.4,-5.2,0.9],['r',16.6,8.2,1.1],['r',-14,-10,1.2],['r',7,-13.5,1],['r',-11,4,0.8]] as ['c'|'r',number,number,number][])
+  ['r',5,-10.4,1.1],['r',-7.6,-6.4,1],['r',17.4,-5.2,0.9],['r',16.6,8.2,1.1],['r',-14,-10,1.2],['r',7,-13.5,1],['r',-11,4,0.8]] as ['c'|'r',number,number,number][]).map(([k,x,z,sc])=>[k,...spread(x,z),sc] as ['c'|'r',number,number,number])
   .filter(([,x,z])=>!ALL_PLOTS.some(p=>Math.hypot(p[0]-x,p[1]-z)<2.4)&&!BUILDINGS.some(b=>Math.hypot(b.at[0]-x,b.at[1]-z)<2.8)&&!CITIES.some(c=>Math.hypot(c.at[0]-x,c.at[1]-z)<4));
-const POND:[number,number,number][]=[[0.2,7.6,1.8],[2,8.1,1.4],[-1.6,8.3,1.3],[0.9,9.3,1.3],[-0.5,6.5,1]];
+const POND:[number,number,number][]=([[0.2,7.6,1.8],[2,8.1,1.4],[-1.6,8.3,1.3],[0.9,9.3,1.3],[-0.5,6.5,1]] as [number,number,number][]).map(([x,z,r])=>[...spread(x,z),r]);
 const inPond=(x:number,z:number,pad=0)=>POND.some(([px,pz,r])=>Math.hypot(x-px,z-pz)<r+pad);
 const HOUSE=place('home');
+const FIRE=spread(-1.6,-1.2);
+const ROCKS=([[-6.4,3.2,1.1,0.4],[-5,4.4,0.7,0],[-7.2,4.6,0.55,0],[8.4,6,0.9,0],[3.4,5.2,0.5,0]] as number[][]).map(([x,z,sc,rot])=>[...spread(x,z),sc,rot]);
 const FARM=PLOTS;
 // landmarks (R4–R6, Garden3D.tsx; World3D.tsx) and where grass tufts and flowers keep away from
-const SPOTS={observatory:place('observatory'),signpost:{x:-1.9,z:3.5,rot:0.35},cart:place('cart')};
+const SPOTS={observatory:place('observatory'),signpost:spreadXZ({x:-1.9,z:3.5,rot:0.35}),cart:place('cart')};
 const LIB=place('library'),PLAZA=place('plaza');
 const KEEP_CLEAR:[number,number,number][]=[[SPOTS.observatory.x,SPOTS.observatory.z,2.2],[SPOTS.cart.x,SPOTS.cart.z,1.3],[SPOTS.signpost.x,SPOTS.signpost.z,0.6],[LIB.x,LIB.z,3.6],[PLAZA.x,PLAZA.z,3.8],...DECOR_SLOTS.filter(d=>!d.room).map(d=>[d.x,d.z,0.8] as [number,number,number]),
   // the building lots and the landmarks' places stay clear of forest and flowers, built or not (core/land.ts)
   ...BUILDINGS.map(b=>[b.at[0],b.at[1],2.2] as [number,number,number]),...CITIES.map(c=>[c.at[0],c.at[1],3.4] as [number,number,number])];
 const clearOf=(x:number,z:number)=>KEEP_CLEAR.some(([cx,cz,r])=>Math.hypot(x-cx,z-cz)<r)||inStream(x,z,0.6)||PATHS.some(l=>l.some(([px,pz])=>Math.hypot(x-px,z-pz)<0.5));
 // analysts idle around the campfire when nothing is flagged
-const IDLE:Record<AnalystId,{x:number;z:number}>={tori:{x:-3.1,z:-0.2},moa:{x:-0.2,z:-2.3},luon:{x:-1.0,z:-2.9}};
+const IDLE:Record<AnalystId,{x:number;z:number}>={tori:spreadXZ({x:-3.1,z:-0.2}),moa:spreadXZ({x:-0.2,z:-2.3}),luon:spreadXZ({x:-1.0,z:-2.9})};
 
 // Soft colour patches on the ground (vertex colours): smooth wavy noise picks between dark, base, light and a warm yellow-green.
 const patchNoise=(x:number,z:number,k:number)=>
@@ -154,7 +157,7 @@ function House({onEnter,night}:{onEnter:()=>void;night:number}){
 function Campfire(){
   const flame=useRef<THREE.Mesh>(null);
   useFrame(({clock})=>{const f=flame.current;if(!f)return;const t=clock.elapsedTime;f.scale.set(1+Math.sin(t*9)*0.08,1+Math.sin(t*13)*0.15,1+Math.cos(t*7)*0.08)});
-  return <OnGround x={-1.6} z={-1.2}>
+  return <OnGround x={FIRE[0]} z={FIRE[1]}>
     {[0,1.2,2.4].map(a=><mesh key={a} rotation={[Math.PI/2,0,a]} position-y={0.1} castShadow><cylinderGeometry args={[0.08,0.1,1.1,8]}/><primitive object={soft('#8a6448')} attach="material"/></mesh>)}
     <mesh ref={flame} position-y={0.45}><coneGeometry args={[0.28,0.75,12]}/><meshStandardMaterial color="#ffb02e" emissive="#ff7a1a" emissiveIntensity={1.1} toneMapped={false}/></mesh>
     <pointLight position-y={0.8} color="#ffae5a" intensity={6} distance={5} decay={2}/>
@@ -179,22 +182,27 @@ function Cypress({x,z,s=1}:{x:number;z:number;s?:number}){
 
 // A holding as a tree: the model comes from Blender (tools/blender/holding_tree.py, listed in models.ts), the growth
 // stage picks the file, the condition picks leaf colour, how much canopy is left and whether it blooms.
-const blossomMat=new THREE.MeshStandardMaterial({color:'#ffe08a',emissive:'#ffb400',emissiveIntensity:1.6,toneMapped:false});
+// apple blossom (the tree in bloom): white with a pink glow
+const blossomMat=new THREE.MeshStandardMaterial({color:'#fff3f5',emissive:'#ff9fbd',emissiveIntensity:0.9,toneMapped:false});
 function TreeModel({url,condition,onTop}:{url:string;condition:Condition;onTop:(y:number)=>void}){
   const {scene}=useGLTF(url);
   const model=useMemo(()=>{
-    const c=CANOPY[condition],root=scene.clone(true),leaves:THREE.Object3D[]=[];
+    const c=CANOPY[condition],root=scene.clone(true),leaves:THREE.Object3D[]=[],fruit:THREE.Object3D[]=[];
     root.traverse(o=>{const m=o as THREE.Mesh;if(!m.isMesh)return;m.castShadow=true;m.receiveShadow=true;
       if(o.name.startsWith('leaf_')){m.material=soft(c.leaf);leaves.push(o)}
       else if(o.name.startsWith('blossom')){m.material=blossomMat;o.visible=c.blossom}
+      else if(o.name.startsWith('fruit_')){m.material=soft(FRUIT);fruit.push(o)}
+      else if(o.name.startsWith('fallen')){m.material=soft(FRUIT_FALLEN);o.visible=c.fallen}
       else if(o.name.startsWith('cut'))m.material=soft(STUMP_CUT)
       else m.material=soft(BARK)});
+    // the apples: a healthy tree keeps them all, a yellowing one a few, a wilting one has dropped them (fallen)
+    fruit.sort((a,b)=>Number(a.name.slice(6))-Number(b.name.slice(6))).forEach((o,i)=>{o.visible=i<Math.round(fruit.length*c.fruit)});
     // a wilting tree has lost its outer clumps first (the file lists the most important ones first)
     leaves.sort((a,b)=>Number(a.name.slice(5))-Number(b.name.slice(5)))
       .forEach((o,i)=>{o.visible=i<Math.max(1,Math.ceil(leaves.length*c.keep))});
     return root},[scene,condition]);
   useLayoutEffect(()=>{const box=new THREE.Box3().setFromObject(scene);onTop(box.max.y*LOOK.holdingTreeScale);
-    testHooks().treeModels++},[model,scene,onTop]);
+    const h=testHooks();h.treeModels++;let f=0;model.traverse(o=>{if(o.name.startsWith('fruit_')&&o.visible)f++});h.fruit=(h.fruit??0)+f},[model,scene,onTop]);
   return <primitive object={model}/>;
 }
 // R2 condition details: a yellowing or wilting tree drops leaves, a blooming one lets petals go. How many are in the air
@@ -259,7 +267,7 @@ function Flowers(){
   const ref=useRef<THREE.InstancedMesh>(null);
   const items=useMemo(()=>{const r=rng(21),out:{x:number;z:number;c:string}[]=[],colors=['#ff8fc6','#ffd23f','#5aa8ff','#ffffff','#ff6fa1','#ffe066'];
     // flowers grow in little clusters, like the reference
-    for(let k=0;k<84;k++){const a=r()*Math.PI*2,d=2+Math.sqrt(r())*(WORLD.walk-1),cx=Math.cos(a)*d,cz=Math.sin(a)*d,c=colors[Math.floor(r()*colors.length)];
+    for(let k=0;k<150;k++){const a=r()*Math.PI*2,d=2+Math.sqrt(r())*(WORLD.walk-1),cx=Math.cos(a)*d,cz=Math.sin(a)*d,c=colors[Math.floor(r()*colors.length)];
       for(let j=0;j<9;j++){const x=cx+(r()-0.5)*1.4,z=cz+(r()-0.5)*1.4;if(inPond(x,z,0.3)||clearOf(x,z)||Math.hypot(x-HOUSE.x,z-HOUSE.z)<2.6||FARM.some(([fx,fz])=>Math.hypot(x-fx,z-fz)<1.3))continue;out.push({x,z,c})}}
     return out},[]);
   useLayoutEffect(()=>{const m=ref.current;if(!m)return;const o=new THREE.Object3D(),c=new THREE.Color();
@@ -578,7 +586,7 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
     <Flowers/>
     <House night={world.light.night} onEnter={()=>world.onLandmark('house')}/>
     <Campfire/>
-    <Rock x={-6.4} z={3.2} s={1.1} rot={0.4}/><Rock x={-5} z={4.4} s={0.7}/><Rock x={-7.2} z={4.6} s={0.55}/><Rock x={8.4} z={6} s={0.9}/><Rock x={3.4} z={5.2} s={0.5}/>
+    {ROCKS.map(([x,z,sc,rot],i)=><Rock key={i} x={x} z={z} s={sc} rot={rot}/>)}
     {trees.map((t,i)=>{const b=world.birth,k=b?b.ids.indexOf(t.h.id):-1;return <HoldingTree key={t.h.id} id={t.h.id} x={t.x} z={t.z} growth={t.st.growth} condition={t.st.condition} picked={picked===t.h.id} onPick={id=>onPick(id)} onTop={onTops[i]} wind={wl.wind}
       born={b&&k>=0?bornOf(b,k):null} onDeep={world.onDeep} cut={!!cut&&cut.t===t}/>})}
     {world.capsules.map(c=>{const t=trees.find(x=>x.h.id===c.holdingId),fx=world.capsuleFx;if(!t||(fx&&fx.kind==='dig'&&fx.holdingId===c.holdingId))return null;const p=capSpot(t);

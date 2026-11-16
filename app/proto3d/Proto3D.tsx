@@ -34,6 +34,7 @@ import {tiltOffset} from '../core/tilt';
 import {tilt as tiltNow} from './screen';
 import {configure,unlock,cue,DEFAULT_SOUND,ambience} from '../core/sound';
 import {streamZ} from './places';
+import {spread,spreadXZ} from '../core/world';
 import {treeState,defaultRules} from '../core/model';
 import {weatherOf,isWeather,WEATHER_LABEL,WEATHER_NOTE,type Weather} from '../core/weather';
 import {judgedToday,trackOf,lookbackPick} from '../core/judgment';
@@ -136,9 +137,10 @@ const CART_FLAGS=['#c4452f','#36557e','#1e6b4a','#b9801a','#6a5aa8'];
 // this week's league group on the square's flagpoles (the first is mine)
 const LEAGUE_FLAGS=['#b8372b','#36557e','#4b6638','#b9801a','#6a5aa8','#c4652e','#2c5c92','#7a5238','#5c5447','#9c6c12','#4d4a8a','#1e6b4a'];
 // the analysts come out of the house door when the garden is first born (W1)
-const DOOR={x:-4.2,z:-1.0};
+const DOOR=spreadXZ({x:-4.2,z:-1.0});
 // where 보리 waits for a talk: near the middle, between the campfire and the cart, clear of the analysts' spots
-const FRIEND_SPOT={x:-1.6,z:1.8};
+const FRIEND_SPOT=spreadXZ({x:-1.6,z:1.8});
+const FIRE_AT=spread(-1.6,-1.2);
 type Birth={ids:number[];t0:number;plan:BirthPlan;after?:()=>void};
 
 export default function Proto3D(){
@@ -303,7 +305,7 @@ export default function Proto3D(){
   // the garden's ambience (core/sound.ts): by where I stand and the time of day; quiet indoors, on the stage, in sheets
   useEffect(()=>{const t=setInterval(()=>{const p=(window as unknown as {__proto3d?:{player?:{x:number;z:number}}}).__proto3d?.player;
     if(!p||inside||me||!ready){ambience({stream:0,fire:0,birds:0,crickets:0});return}
-    const near=(d:number,r:number)=>Math.max(0,1-d/r),fire=Math.hypot(p.x+1.6,p.z+1.2),creek=Math.abs(p.z-streamZ(p.x));
+    const near=(d:number,r:number)=>Math.max(0,1-d/r),fire=Math.hypot(p.x-FIRE_AT[0],p.z-FIRE_AT[1]),creek=Math.abs(p.z-streamZ(p.x));
     ambience({stream:near(creek,9),fire:near(fire,5),birds:light.day*(weather==='storm'?0.1:0.8),crickets:light.night*0.9})},1000);
     return()=>clearInterval(t)},[inside,me,ready,light.day,light.night,weather]);
   // a first-time pointer (core/tips.ts), only in a quiet moment out in the garden

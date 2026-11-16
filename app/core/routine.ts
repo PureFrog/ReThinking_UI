@@ -7,19 +7,22 @@
 //   4. at night they are home (inside the house; Interior3D shows them resting)
 // When two are at the same spot they talk (content/routine-lines.ts). The time is the real clock, so the garden
 // changes through the day. Pure: the scene walks them, Analyst3D animates the act.
+import {spreadXZ} from './world';
 export type Who='tori'|'moa'|'luon';
 export type Act='read'|'scope'|'board'|'arms'|'look'|'note'|'stand';
 export type Part='morning'|'day'|'evening'|'night';
 export type Spot={id:string;x:number;z:number;act:Act;face:number/* radians, which way they look while doing it */};
 export const ROUTINE={swapMinutes:4/* how often they move between their spots */,meetEvery:3/* one swap in this many brings two to the same spot */};
 // each analyst's own places (x,z in garden coordinates, app/proto3d/places.ts): what they do there says who they are
-export const SPOTS:Record<Who,Spot[]>={
+const SPOTS0:Record<Who,Spot[]>={
   tori:[{id:'library',x:2.6,z:-13.4,act:'read',face:Math.PI},{id:'desk-log',x:-2.2,z:-2.4,act:'read',face:0.6},{id:'farm-edge',x:1.4,z:-0.6,act:'note',face:-1.2}],
   moa:[{id:'scope',x:-7.2,z:3.2,act:'scope',face:2.4},{id:'orchard',x:9,z:0.6,act:'look',face:-1.6},{id:'pond',x:2.8,z:6.4,act:'look',face:0.4}],
   luon:[{id:'board',x:-2,z:18.2,act:'board',face:Math.PI},{id:'fire',x:-1,z:-2.9,act:'arms',face:0.3},{id:'bridge',x:-0.6,z:11.2,act:'arms',face:-0.6}],
 };
+// written in the compact layout, moved out with the place each belongs to (core/world.ts)
+export const SPOTS:Record<Who,Spot[]>={tori:SPOTS0.tori.map(spreadXZ),moa:SPOTS0.moa.map(spreadXZ),luon:SPOTS0.luon.map(spreadXZ)};
 // the shared spot two of them meet at for a talk (the campfire)
-export const MEET:Spot={id:'meet',x:-0.6,z:-0.2,act:'stand',face:0};
+export const MEET:Spot=spreadXZ({id:'meet',x:-0.6,z:-0.2,act:'stand',face:0});
 // which spots each part of the day favours (indices into SPOTS[who]); night is home
 const PLAN:Record<Exclude<Part,'night'>,Record<Who,number[]>>={
   morning:{tori:[0,0,2],moa:[1,2,1],luon:[1,2]},

@@ -2,20 +2,22 @@
 // x runs east, z south (toward the usual camera). The middle is the first garden (house, campfire, farm, pond);
 // around it: the orchard east (more plots), the case library north up the forest path, the stream south with its
 // bridge, and the league square beyond it. A ring of forest closes the edge.
-export const WORLD={R:56/* sphere radius: big enough that walking to the edge is not a steep slope */,walk:22/* how far from the middle the player may walk */};
+// 2026-11-16 "맵이 조금 더 넓게": the layout is written compact and spread out by core/world.ts (SPREAD), the walk 22 → 32
+export const WORLD={R:80/* sphere radius: big enough that walking to the edge is not a steep slope */,walk:32/* how far from the middle the player may walk */};
 // holding plots: rows of beds in the farm and the orchard, then the land opened with coins (app/core/land.ts; every
 // index is fixed, core/portfolio.ts freePlots fills the open ones in order)
 import {ALL_PLOTS,BUILDINGS,CITIES,type Built} from '../core/land';
+import {SPREAD,spread} from '../core/world';
 export const PLOTS:[number,number][]=ALL_PLOTS;
 // the stream: its middle line, how wide the water is, and the one bridge across it
-export const streamZ=(x:number)=>13.6+1.1*Math.sin(x*0.22);
-export const STREAM={half:1.0,bank:0.5,from:-30,to:30};
-export const BRIDGE={x:-2,half:1.9/* along the stream's crossing, either side of the middle */};
+export const streamZ=(x:number)=>SPREAD*(13.6+1.1*Math.sin(x/SPREAD*0.22));
+export const STREAM={half:1.0,bank:0.5,from:-42,to:42};
+export const BRIDGE={x:-2*SPREAD,half:1.9/* along the stream's crossing, either side of the middle */};
 export const inStream=(x:number,z:number,pad=0)=>Math.abs(z-streamZ(x))<STREAM.half+pad&&Math.abs(x-BRIDGE.x)>0.9;
 export const southOfStream=(x:number,z:number)=>z>streamZ(x);
 // named places: where they stand (x,z,rot) and where the player stops to use them (walk)
 export type PlaceId='home'|'farm'|'orchard'|'library'|'plaza'|'observatory'|'cart'|'pond';
-export const PLACES:{id:PlaceId;label:string;x:number;z:number;rot:number;walk:{x:number;z:number}}[]=[
+const PLACES0:{id:PlaceId;label:string;x:number;z:number;rot:number;walk:{x:number;z:number}}[]=[
   {id:'home',label:'집',x:-5.5,z:-3,rot:0.5,walk:{x:-4.3,z:-0.8}},
   {id:'farm',label:'밭',x:4.6,z:1,rot:0,walk:{x:3.2,z:3}},
   {id:'orchard',label:'과수원',x:12.2,z:1.4,rot:0,walk:{x:8.8,z:1.2}},
@@ -25,6 +27,8 @@ export const PLACES:{id:PlaceId;label:string;x:number;z:number;rot:number;walk:{
   {id:'cart',label:'수레',x:-3.6,z:5.3,rot:0.5,walk:{x:-2.6,z:6}},
   {id:'pond',label:'연못',x:0.5,z:8,rot:0,walk:{x:2.6,z:6}},
 ];
+// each place moves out with its walk point (the spot in front of it keeps its distance)
+export const PLACES=PLACES0.map(p=>{const dx=(SPREAD-1)*p.x,dz=(SPREAD-1)*p.z;return {...p,x:p.x+dx,z:p.z+dz,walk:{x:p.walk.x+dx,z:p.walk.z+dz}}});
 export const place=(id:PlaceId)=>PLACES.find(p=>p.id===id)!;
 // solid footprints the player walks around, not through (2026-11-16 "캐릭터가 건물을 통과"): circles on the ground.
 // Each place's walk point stays outside its circle. Bought buildings and landmarks join when they stand.
@@ -44,12 +48,14 @@ export function pushOut(p:{x:number;z:number},list:Solid[],pad=0.35){let moved=f
   return moved;
 }
 // the dirt paths between them (polylines), drawn as stepping stones
-export const PATHS:[number,number][][]=[
+const PATHS0:[number,number][][]=[
   [[0,1.5],[0.4,-3.5],[0.6,-7.5],[1.2,-10.5],[1,-13.6]],
   [[-0.6,3.6],[-1.6,6],[-2.6,9],[-2,11.2],[-2,16],[-2,17.4]],
   [[1.2,2.6],[3.6,4.3],[8.8,4.1],[8.8,1.2]],
   [[-1.4,1.4],[-4.4,1.6],[-7,1.8]],
 ];
+// the ends meet the places' walk points (moved with them), the stones between spread evenly
+export const PATHS:[number,number][][]=PATHS0.map(l=>l.map(([x,z],i)=>i===0||i===l.length-1?spread(x,z):[x*SPREAD,z*SPREAD] as [number,number]));
 // Where the player walks when tapping (x,z): clamped to the edge, never into the water; across the stream only by
 // the bridge (the walk goes to its near end, over, then on). Returns the stops in order, or null if it cannot go.
 export function route(from:{x:number;z:number},to:{x:number;z:number},inPond:(x:number,z:number)=>boolean):{x:number;z:number}[]|null{
