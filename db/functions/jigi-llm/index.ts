@@ -5,6 +5,7 @@
 // Build one pasteable file: node tools/build-functions.mjs jigi-llm  →  db/functions/jigi-llm/bundle.js
 // Secrets (Supabase → Edge Functions → Secrets): OPENAI_API_KEY, optional OPENAI_MODEL. Never in the repo.
 // deno-lint-ignore-file no-explicit-any
+import {chatBody,LLM_DEFAULT} from '../../../app/core/llmModel';
 import {extractPrompt,parseExtract,assistPrompt,parseAssist,explainPrompt,checkExplain,LLM_LIMIT} from '../../../app/core/jigi/llm';
 declare const Deno:any;
 const cors={'access-control-allow-origin':'*','access-control-allow-headers':'authorization, apikey, content-type, x-client-info','access-control-allow-methods':'POST, OPTIONS'};
@@ -26,7 +27,7 @@ Deno.serve(async(req:Request)=>{
     body:JSON.stringify({p:me.id,d:day,cap:LLM_LIMIT.perDay})});
   if(!take.ok||!(await take.json()))return json({fallback:true,limit:true});
   const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{authorization:`Bearer ${openai}`,'content-type':'application/json'},
-    body:JSON.stringify({model:Deno.env.get('OPENAI_MODEL')??'gpt-4.1-mini',messages,max_tokens:b.mode==='extract'?700:260,temperature:b.mode==='extract'?0:0.4})});
+    body:JSON.stringify(chatBody(Deno.env.get('OPENAI_MODEL')??LLM_DEFAULT,messages,{out:b.mode==='extract'?700:260,temperature:b.mode==='extract'?0:0.4}))});
   if(!r.ok)return json({fallback:true,error:'llm'});
   const text:string=(await r.json())?.choices?.[0]?.message?.content??'';
   if(b.mode==='extract'){const d=parseExtract(text,b.journal);return json(d?{drafts:d}:{fallback:true})}

@@ -4,6 +4,7 @@
 // Build one pasteable file: node tools/build-functions.mjs portfolio-read  →  db/functions/portfolio-read/bundle.js
 // Secrets (Supabase → Edge Functions → Secrets): OPENAI_API_KEY, optional OPENAI_VISION_MODEL. Never in the repo.
 // deno-lint-ignore-file no-explicit-any
+import {chatBody,VISION_DEFAULT} from '../../../app/core/llmModel';
 import {capturePrompt,parseCapture,CAPTURE} from '../../../app/core/capture';
 import {LLM_LIMIT} from '../../../app/core/jigi/llm';
 declare const Deno:any;
@@ -23,8 +24,8 @@ Deno.serve(async(req:Request)=>{
   const take=await fetch(`${url}/rest/v1/rpc/llm_take`,{method:'POST',headers:{apikey:key,authorization:`Bearer ${key}`,'content-type':'application/json'},body:JSON.stringify({p:me.id,d:day,cap:LLM_LIMIT.perDay})});
   if(!take.ok||!(await take.json()))return json({error:'limit'},429);
   const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{authorization:`Bearer ${openai}`,'content-type':'application/json'},
-    body:JSON.stringify({model:Deno.env.get('OPENAI_VISION_MODEL')??'gpt-4.1-mini',temperature:0,max_tokens:1500,
-      messages:[{role:'system',content:capturePrompt()},{role:'user',content:[{type:'text',text:'이 캡처의 보유 종목을 읽어 줘.'},{type:'image_url',image_url:{url:image,detail:'high'}}]}]})});
+    body:JSON.stringify(chatBody(Deno.env.get('OPENAI_VISION_MODEL')??VISION_DEFAULT,
+      [{role:'system',content:capturePrompt()},{role:'user',content:[{type:'text',text:'이 캡처의 보유 종목을 읽어 줘.'},{type:'image_url',image_url:{url:image,detail:'high'}}]}],{out:1500,temperature:0}))});
   if(!r.ok)return json({error:'llm'},502);
   const holdings=parseCapture((await r.json())?.choices?.[0]?.message?.content??'');
   return holdings?json({holdings}):json({error:'unreadable'},422);

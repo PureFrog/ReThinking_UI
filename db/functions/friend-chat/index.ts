@@ -2,9 +2,10 @@
 // player gets FRIEND_TALK.perDay answers a day (friend_talk_take in db/migrations/002_saves_and_delete.sql); the prompt
 // and the safety filter are the app's own, so tests cover them. Nothing is stored but the day's count.
 // Build one pasteable file: node tools/build-functions.mjs  →  db/functions/friend-chat/bundle.js
-// Secrets (Supabase → Edge Functions → Secrets, never in the repo): OPENAI_API_KEY, optional OPENAI_MODEL.
+// Secrets (Supabase → Edge Functions → Secrets, never in the repo): OPENAI_API_KEY, optional OPENAI_MODEL (default gpt-6-luna, core/llmModel.ts).
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are given to every function by Supabase.
 // deno-lint-ignore-file no-explicit-any
+import {chatBody,LLM_DEFAULT} from '../../../app/core/llmModel';
 import {friendPrompt,friendSafe,FRIEND_TALK,type FriendCtx,type TalkLine} from '../../../app/core/friend';
 declare const Deno:any;
 const cors={'access-control-allow-origin':'*','access-control-allow-headers':'authorization, apikey, content-type, x-client-info','access-control-allow-methods':'POST, OPTIONS'};
@@ -27,7 +28,7 @@ Deno.serve(async(req:Request)=>{
   if(!take.ok)return json({error:'count'},500);
   if(!(await take.json()))return json({text:'오늘은 수다 많이 떨었다! 내일 또 얘기하자.',limit:true});
   const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{authorization:`Bearer ${openai}`,'content-type':'application/json'},
-    body:JSON.stringify({model:Deno.env.get('OPENAI_MODEL')??'gpt-4.1-mini',messages:friendPrompt(ctx,(history??[]).filter(l=>l&&typeof l.text==='string'),message),max_tokens:160,temperature:0.8})});
+    body:JSON.stringify(chatBody(Deno.env.get('OPENAI_MODEL')??LLM_DEFAULT,friendPrompt(ctx,(history??[]).filter(l=>l&&typeof l.text==='string'),message),{out:160,temperature:0.8,effort:'minimal'}))});
   if(!r.ok)return json({error:'llm'},502);
   const out=await r.json();
   return json({text:friendSafe(out?.choices?.[0]?.message?.content??'')});

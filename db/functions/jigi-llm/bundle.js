@@ -1,5 +1,12 @@
 // built from db/functions/jigi-llm/index.ts by tools/build-functions.mjs. Do not edit; rebuild.
 
+// app/core/llmModel.ts
+var LLM_DEFAULT = "gpt-6-luna";
+var isReasoning = (model) => /^(gpt-[5-9]|o\d)/.test(model);
+function chatBody(model, messages, o) {
+  return isReasoning(model) ? { model, messages, max_completion_tokens: o.out * 4 + 400, reasoning_effort: o.effort ?? "low" } : { model, messages, max_tokens: o.out, ...o.temperature != null ? { temperature: o.temperature } : {} };
+}
+
 // app/core/jigi/stocks.ts
 var EPOCH = Date.UTC(2014, 0, 1);
 var END = Date.UTC(2029, 0, 1);
@@ -121,7 +128,7 @@ Deno.serve(async (req) => {
   const r = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: { authorization: `Bearer ${openai}`, "content-type": "application/json" },
-    body: JSON.stringify({ model: Deno.env.get("OPENAI_MODEL") ?? "gpt-4.1-mini", messages, max_tokens: b.mode === "extract" ? 700 : 260, temperature: b.mode === "extract" ? 0 : 0.4 })
+    body: JSON.stringify(chatBody(Deno.env.get("OPENAI_MODEL") ?? LLM_DEFAULT, messages, { out: b.mode === "extract" ? 700 : 260, temperature: b.mode === "extract" ? 0 : 0.4 }))
   });
   if (!r.ok) return json({ fallback: true, error: "llm" });
   const text = (await r.json())?.choices?.[0]?.message?.content ?? "";

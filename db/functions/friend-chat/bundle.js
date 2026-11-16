@@ -1,5 +1,12 @@
 // built from db/functions/friend-chat/index.ts by tools/build-functions.mjs. Do not edit; rebuild.
 
+// app/core/llmModel.ts
+var LLM_DEFAULT = "gpt-6-luna";
+var isReasoning = (model) => /^(gpt-[5-9]|o\d)/.test(model);
+function chatBody(model, messages, o) {
+  return isReasoning(model) ? { model, messages, max_completion_tokens: o.out * 4 + 400, reasoning_effort: o.effort ?? "low" } : { model, messages, max_tokens: o.out, ...o.temperature != null ? { temperature: o.temperature } : {} };
+}
+
 // app/core/friend.ts
 var FRIEND_TALK = {
   maxIn: 200,
@@ -56,7 +63,7 @@ Deno.serve(async (req) => {
   const r = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: { authorization: `Bearer ${openai}`, "content-type": "application/json" },
-    body: JSON.stringify({ model: Deno.env.get("OPENAI_MODEL") ?? "gpt-4.1-mini", messages: friendPrompt(ctx, (history ?? []).filter((l) => l && typeof l.text === "string"), message), max_tokens: 160, temperature: 0.8 })
+    body: JSON.stringify(chatBody(Deno.env.get("OPENAI_MODEL") ?? LLM_DEFAULT, friendPrompt(ctx, (history ?? []).filter((l) => l && typeof l.text === "string"), message), { out: 160, temperature: 0.8, effort: "minimal" }))
   });
   if (!r.ok) return json({ error: "llm" }, 502);
   const out = await r.json();

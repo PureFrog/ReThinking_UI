@@ -1,5 +1,12 @@
 // built from db/functions/portfolio-read/index.ts by tools/build-functions.mjs. Do not edit; rebuild.
 
+// app/core/llmModel.ts
+var VISION_DEFAULT = "gpt-4.1-mini";
+var isReasoning = (model) => /^(gpt-[5-9]|o\d)/.test(model);
+function chatBody(model, messages, o) {
+  return isReasoning(model) ? { model, messages, max_completion_tokens: o.out * 4 + 400, reasoning_effort: o.effort ?? "low" } : { model, messages, max_tokens: o.out, ...o.temperature != null ? { temperature: o.temperature } : {} };
+}
+
 // app/core/capture.ts
 var CAPTURE = { maxSide: 1600, maxBytes: 25e5, maxRows: 30 };
 function capturePrompt() {
@@ -70,12 +77,11 @@ Deno.serve(async (req) => {
   const r = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: { authorization: `Bearer ${openai}`, "content-type": "application/json" },
-    body: JSON.stringify({
-      model: Deno.env.get("OPENAI_VISION_MODEL") ?? "gpt-4.1-mini",
-      temperature: 0,
-      max_tokens: 1500,
-      messages: [{ role: "system", content: capturePrompt() }, { role: "user", content: [{ type: "text", text: "\uC774 \uCEA1\uCC98\uC758 \uBCF4\uC720 \uC885\uBAA9\uC744 \uC77D\uC5B4 \uC918." }, { type: "image_url", image_url: { url: image, detail: "high" } }] }]
-    })
+    body: JSON.stringify(chatBody(
+      Deno.env.get("OPENAI_VISION_MODEL") ?? VISION_DEFAULT,
+      [{ role: "system", content: capturePrompt() }, { role: "user", content: [{ type: "text", text: "\uC774 \uCEA1\uCC98\uC758 \uBCF4\uC720 \uC885\uBAA9\uC744 \uC77D\uC5B4 \uC918." }, { type: "image_url", image_url: { url: image, detail: "high" } }] }],
+      { out: 1500, temperature: 0 }
+    ))
   });
   if (!r.ok) return json({ error: "llm" }, 502);
   const holdings = parseCapture((await r.json())?.choices?.[0]?.message?.content ?? "");
