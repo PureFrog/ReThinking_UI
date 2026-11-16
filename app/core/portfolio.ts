@@ -24,7 +24,7 @@ export function applyDrafts(holdings:Holding[],rows:Draft[],gone:number[],free:n
   const days=HELD.find(x=>x.id===r.held)!.days;
   const h:Holding={id:now+i,name:r.name,kind:kind(r.name),price:r.price,quantity:r.quantity,date:back(days),rate:r.rate,plot,lossDays:0};planted.push(h);next=[...next,h]}
  return {holdings:next,planted,updated,left,gone:holdings.filter(h=>gone.includes(h.id))}}
-// The garden's empty plots, in order (plots: how many the 3D garden has)
-export const freePlots=(holdings:Holding[],plots:number)=>[...Array(plots).keys()].filter(i=>!holdings.some(h=>h.plot===i));
+// The garden's empty plots, in order (plots: how many the 3D garden has, or the open plot indices, core/land.ts openPlots)
+export const freePlots=(holdings:Holding[],plots:number|number[])=>(typeof plots==='number'?[...Array(plots).keys()]:plots).filter(i=>!holdings.some(h=>h.plot===i));
 // a blank line for typing a company in by hand
 export const blankDraft=():Draft=>({name:'',rate:0,quantity:1,price:0,keep:true,held:'month',existing:null});

@@ -83,6 +83,8 @@ test("writing: a tree's quick chip starts a draft, blanks jump to their page, sa
   await expect(write(page)).toContainText("다시 볼 날");
   await page.screenshot({ path: info.outputPath("jigi-write.png") });
   await write(page).getByRole("button", { name: "일지 저장" }).click();
+  // the first save of my own journal pays coins (core/ledger.ts EARN.journal)
+  await expect(page.locator(".rt-toast")).toContainText("코인 +3");
   await expect(book(page)).toBeVisible({ timeout: 5_000 });
   await expect(book(page).getByRole("button", { name: new RegExp("^" + name + " 일지") })).toBeVisible();
   expect(await page.evaluate(() => (JSON.parse(localStorage.getItem("rethink-garden-v1") ?? "{}").journals ?? []).filter((j: { status: string; demo?: boolean }) => j.status === "saved" && !j.demo).length)).toBe(1);

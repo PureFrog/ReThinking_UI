@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>부지·건물·랜드마크 목업</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&family=Jua&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* Mockup (2026-11-16): land, buildings and world-stock-market-city landmarks bought with coins earned by work.
+   Three directions on the real garden capture, our glass panels (glass.css look), words 넓히기·짓기·열기. */
+:root{--ink:#22281f;--sub:#4c5447;--mute:#5e665a;--line:#22281f14;--line2:#22281f2b;--green:#3f9e3a;--seal:#2f8a3a;--coin:#c98a16;--up:#c8382c;--down:#2357c2}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#1b1d1a;font-family:'Gowun Dodum',sans-serif;color:var(--ink)}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+.mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}
+.serif{font-family:'Gowun Batang',serif;font-weight:700}
+.page{display:flex;gap:34px;justify-content:center;flex-wrap:wrap;padding:30px 16px 40px}
+.col{display:grid;gap:12px;justify-items:center}
+.col h1{color:#e9e5da;font-family:'Gowun Batang',serif;font-size:18px}
+.col p.why{color:#a9a395;font-size:12.5px;line-height:1.55;width:390px}
+.dev{position:relative;width:390px;height:844px;border-radius:28px;overflow:hidden;box-shadow:0 0 0 9px #0b0a09,0 30px 80px #000a;flex:none;background:#7a9a5a}
+.bg{position:absolute;inset:0;background:url(home/bg-portrait.png) center/cover}
+.dim{position:absolute;inset:0;background:#10200d33}
+/* common glass */
+.glass{background:#ffffffd6;border:1px solid #ffffffc2;backdrop-filter:blur(16px) saturate(1.25);box-shadow:inset 0 1px 0 #ffffffcc,0 18px 40px -20px #10200d80}
+.top{position:absolute;left:12px;right:12px;top:12px;display:flex;justify-content:space-between;align-items:center;z-index:3}
+.pill{display:flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:14px;font-size:12.5px}
+.coin{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe9a8,#e0a72a 60%,#a8740f);color:#7a5208;font:700 10px 'IBM Plex Mono',monospace;box-shadow:0 1px 0 #7a520855}
+.dock{position:absolute;left:0;right:0;bottom:0;height:74px;border-radius:20px 20px 0 0;display:grid;grid-template-columns:repeat(4,1fr);align-items:center;text-align:center;font-size:12px;color:var(--sub);z-index:3}
+.dock b{display:block;font-size:18px;line-height:1}
+.dock .on{color:var(--ink);box-shadow:inset 0 2px 0 var(--green)}
+.sheet{position:absolute;left:8px;right:8px;bottom:80px;border-radius:22px;padding:14px 14px 16px;z-index:4;max-height:640px;overflow:hidden}
+.kicker{font-size:11.5px;color:var(--mute)}
+.title{font-family:'Gowun Batang',serif;font-weight:700;font-size:21px;margin:2px 0 10px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:#22281f0d;padding:3px;border-radius:12px;margin-bottom:10px}
+.seg button{height:34px;border-radius:9px;font-family:'Jua';font-size:14px;color:var(--sub)}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 2px 6px #10200d22}
+.earn{display:flex;gap:6px;flex-wrap:wrap;font-size:11.5px;color:var(--sub);margin:0 0 10px}
+.earn span{background:#ffffffb3;border:1px solid var(--line);border-radius:999px;padding:3px 8px}
+.list{display:grid;gap:8px}
+.item{display:grid;grid-template-columns:62px 1fr auto;gap:10px;align-items:center;background:#ffffffc4;border:1px solid var(--line);border-radius:14px;padding:9px}
+.item .art{width:62px;height:54px;border-radius:10px;background:linear-gradient(180deg,#dff0f6,#c8e6c2);display:grid;place-items:center}
+.item strong{font-size:14.5px}.item small{display:block;color:var(--mute);font-size:11.5px;margin-top:1px;line-height:1.35}
+.buy{display:grid;justify-items:center;gap:2px;min-width:70px;padding:7px 8px;border-radius:12px;background:linear-gradient(180deg,#5fbf52,#3f9e3a);color:#fff;font-family:'Jua';font-size:14px;box-shadow:inset 0 -3px 0 #2d7a2c,0 4px 10px -4px #2d7a2c}
+.buy em{font-style:normal;font-size:11px;opacity:.9;display:flex;align-items:center;gap:3px}
+.buy.off{background:#e7e9e4;color:#8b9187;box-shadow:inset 0 -3px 0 #cfd3cb}
+.done{font-family:'Jua';font-size:13px;color:var(--seal)}
+.note{font-size:11px;color:var(--mute);margin-top:10px}
+/* B: on the garden */
+.lot{position:absolute;border:2px dashed #ffffffd9;border-radius:50%;background:#ffffff26;display:grid;place-items:center;z-index:2}
+.tag{position:absolute;transform:translate(-50%,-100%);padding:5px 9px;border-radius:12px;font-size:12px;display:flex;align-items:center;gap:5px;white-space:nowrap;z-index:3}
+.tag b{font-family:'Jua';font-weight:400}
+.pop{position:absolute;left:14px;right:14px;bottom:86px;border-radius:20px;padding:14px;z-index:4}
+.pop .row{display:flex;gap:8px;margin-top:10px}
+.pop .row .buy{flex:1}
+.ghost{flex:1;border-radius:12px;background:#fff;border:1px solid var(--line2);font-family:'Jua';font-size:14px}
+.sil{position:absolute;opacity:.92;filter:drop-shadow(0 8px 10px #10200d55);z-index:2}
+/* C: city book */
+.map{position:relative;height:150px;border-radius:14px;background:linear-gradient(180deg,#e8f3f7,#d7ebe0);overflow:hidden;margin-bottom:10px}
+.map svg{position:absolute;inset:0}
+.dot{position:absolute;transform:translate(-50%,-50%);width:12px;height:12px;border-radius:50%;background:#fff;border:3px solid var(--mute)}
+.dot.got{border-color:var(--green);background:#c8f0bf}
+.dot.next{border-color:var(--coin);animation:pulse 1.6s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 7px #c98a1633}}
+.dot i{position:absolute;left:50%;top:15px;transform:translateX(-50%);font:600 10px 'IBM Plex Mono';color:var(--sub);font-style:normal;white-space:nowrap}
+.cities{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.city{border-radius:14px;padding:9px;background:#ffffffc4;border:1px solid var(--line);display:grid;gap:4px}
+.city .art{height:74px;border-radius:10px;display:grid;place-items:end center;background:linear-gradient(180deg,#e3f0f8,#cfe6d4)}
+.city.lock .art{filter:grayscale(1) brightness(1.15);opacity:.6}
+.city strong{font-size:14px}.city small{font-size:11px;color:var(--mute);line-height:1.35}
+.city .idx{font:600 11px 'IBM Plex Mono';color:var(--seal)}
+.city .buy{min-width:0;margin-top:2px}
+.label{position:absolute;left:12px;top:56px;z-index:5;font-family:'Jua';font-size:13px;color:#fff;background:#22281fcc;border-radius:8px;padding:4px 8px}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- A: one shop sheet, three tabs -->
+<div class="col">
+  <h1>A · 상점에 탭 셋</h1>
+  <p class="why">지금 상점(수레) 시트에 부지·건물·랜드마크 탭을 더해요. 한곳에서 다 보이고 가장 단순해요. 대신 정원과 떨어져 있어서 "내 땅이 넓어진다"는 느낌은 약해요.</p>
+  <div class="dev">
+    <div class="bg"></div><div class="dim"></div>
+    <div class="top"><div class="pill glass"><span>오늘 시장</span><b class="serif">맑음</b></div><div class="pill glass"><span class="coin">C</span><b class="mono">48</b></div></div>
+    <div class="sheet glass">
+      <div class="kicker">상점 · 코인으로 들이기</div>
+      <div class="title">정원 넓히기</div>
+      <div class="seg"><button class="on">부지</button><button>건물</button><button>랜드마크</button></div>
+      <div class="earn"><span>일지 저장 +3</span><span>가설 확정 +2</span><span>복기 +3</span><span>오늘 +8</span></div>
+      <div class="list">
+        <div class="item"><div class="art"><svg width="46" height="34" viewBox="0 0 46 34"><ellipse cx="23" cy="24" rx="20" ry="8" fill="#9bc66f"/><ellipse cx="23" cy="22" rx="20" ry="8" fill="#b6db84" stroke="#fff" stroke-dasharray="3 3"/><text x="23" y="25" text-anchor="middle" font-size="11" fill="#2d7a2c" font-family="Jua">+2</text></svg></div>
+          <div><strong>밭 넓히기</strong><small>나무 자리 2칸 · 지금 14칸 → 16칸</small></div><button class="buy">넓히기<em><span class="coin">C</span>20</em></button></div>
+        <div class="item"><div class="art"><svg width="46" height="34" viewBox="0 0 46 34"><ellipse cx="23" cy="24" rx="20" ry="8" fill="#8fbf64"/><circle cx="14" cy="18" r="6" fill="#4f9a3f"/><circle cx="30" cy="16" r="7" fill="#5aa848"/></svg></div>
+          <div><strong>언덕 과수원</strong><small>나무 자리 3칸 · 연못 건너편</small></div><button class="buy">넓히기<em><span class="coin">C</span>35</em></button></div>
+        <div class="item"><div class="art"><svg width="46" height="34" viewBox="0 0 46 34"><ellipse cx="23" cy="24" rx="20" ry="8" fill="#a7c9d6"/><path d="M8 24 Q23 10 38 24" fill="none" stroke="#7a5238" stroke-width="3"/></svg></div>
+          <div><strong>강 건너 들판</strong><small>나무 자리 4칸 · 다리가 놓여요</small></div><button class="buy off">넓히기<em><span class="coin">C</span>60</em></button></div>
+      </div>
+      <p class="note">코인은 한 일로만 쌓여요. 수익률·적중률과는 상관없어요.</p>
+    </div>
+    <div class="dock glass"><div><b>🌱</b>정원</div><div><b>📖</b>일지</div><div><b>🔭</b>챌린지</div><div class="on"><b>···</b>더보기</div></div>
+  </div>
+</div>
+
+<!-- B: right on the garden -->
+<div class="col">
+  <h1>B · 정원에서 바로</h1>
+  <p class="why">지도 버튼에서 "넓히기"를 켜면 정원 위에 빈 터와 짓는 자리가 점선으로 떠요. 누르면 바로 들여요. 땅이 넓어지는 게 눈에 보여서 "오!"는 가장 커요. 대신 처음엔 어디를 누르는지 안내가 필요해요.</p>
+  <div class="dev">
+    <div class="bg"></div><div class="dim"></div>
+    <div class="label">넓히기 보기</div>
+    <div class="top"><div class="pill glass"><span>오늘 시장</span><b class="serif">맑음</b></div><div class="pill glass"><span class="coin">C</span><b class="mono">48</b></div></div>
+    <div class="lot" style="left:40px;top:210px;width:110px;height:56px"></div>
+    <div class="tag glass" style="left:95px;top:206px"><span class="coin">C</span><b>20</b> 밭 +2칸</div>
+    <div class="lot" style="left:238px;top:300px;width:120px;height:60px"></div>
+    <div class="tag glass" style="left:298px;top:296px"><span class="coin">C</span><b>35</b> 과수원</div>
+    <div class="lot" style="left:150px;top:430px;width:96px;height:52px;border-color:#ffe2a0"></div>
+    <div class="tag glass" style="left:198px;top:426px">건물 터 · 서고</div>
+    <!-- a landmark already standing -->
+    <svg class="sil" style="left:270px;top:150px" width="70" height="90" viewBox="0 0 70 90"><path d="M35 4 L39 40 L50 86 H42 L35 56 L28 86 H20 L31 40 Z" fill="#6b5a46"/><path d="M24 62 H46 M27 46 H43" stroke="#6b5a46" stroke-width="3"/><path d="M28 86 Q35 70 42 86" fill="#ffffff55"/></svg>
+    <div class="tag glass" style="left:305px;top:146px">파리 · 열림</div>
+    <div class="pop glass">
+      <div class="kicker">빈 터 · 연못 건너편</div>
+      <div class="serif" style="font-size:19px;margin-top:2px">언덕 과수원 들이기</div>
+      <p style="font-size:13px;color:var(--sub);margin-top:6px">나무 자리 3칸이 생겨요. 새 종목을 넣으면 여기 자라요.</p>
+      <div class="row"><button class="ghost">닫기</button><button class="buy">넓히기<em><span class="coin">C</span>35</em></button></div>
+    </div>
+    <div class="dock glass"><div class="on"><b>🌱</b>정원</div><div><b>📖</b>일지</div><div><b>🔭</b>챌린지</div><div><b>···</b>더보기</div></div>
+  </div>
+</div>
+
+<!-- C: city book for landmarks -->
+<div class="col">
+  <h1>C · 세계 증시 도시 수첩</h1>
+  <p class="why">랜드마크는 따로 "도시 수첩"에 모아요. 열면 그 나라 대표 지수 한 줄이 붙고 정원 가장자리에 세워져요. 수집 목표가 분명해요. 나중에 모의투자 판의 입구로 이어 쓸 수 있어요. (부지·건물은 A나 B와 같이 써요.)</p>
+  <div class="dev">
+    <div class="bg"></div><div class="dim"></div>
+    <div class="top"><div class="pill glass"><span>오늘 시장</span><b class="serif">맑음</b></div><div class="pill glass"><span class="coin">C</span><b class="mono">48</b></div></div>
+    <div class="sheet glass">
+      <div class="kicker">랜드마크 · 2 / 5 도시</div>
+      <div class="title">세계 증시 도시</div>
+      <div class="map"><svg viewBox="0 0 362 150" preserveAspectRatio="none"><path d="M10 60 Q60 30 110 52 T200 40 T300 58 T355 50 L355 150 L10 150Z" fill="#cfe3c8"/><path d="M30 92 Q120 70 190 96 T350 90" stroke="#b7d4ad" stroke-width="10" fill="none" opacity=".6"/></svg>
+        <span class="dot got" style="left:76%;top:46%"><i>서울</i></span><span class="dot next" style="left:84%;top:52%"><i>도쿄</i></span>
+        <span class="dot got" style="left:46%;top:38%"><i>파리</i></span><span class="dot" style="left:42%;top:30%"><i>런던</i></span><span class="dot" style="left:14%;top:44%"><i>뉴욕</i></span></div>
+      <div class="cities">
+        <div class="city"><div class="art"><svg width="96" height="62" viewBox="0 0 96 62"><path d="M8 30 Q48 8 88 30 L82 34 Q48 18 14 34Z" fill="#3d5a4a"/><rect x="20" y="34" width="56" height="16" fill="#a8432f"/><path d="M14 50 H82 V56 H14Z" fill="#d9cfb8"/><path d="M28 34 V50 M40 34 V50 M56 34 V50 M68 34 V50" stroke="#7a2d1f" stroke-width="2"/></svg></div>
+          <strong>서울 · 경복궁</strong><span class="idx">KOSPI</span><small>한국 대표 지수. 우리 정원의 첫 도시.</small><span class="done">열림</span></div>
+        <div class="city"><div class="art"><svg width="96" height="62" viewBox="0 0 96 62"><path d="M30 18 H66 V24 H30Z" fill="#2b2b2b"/><path d="M26 14 H70 L66 18 H30Z" fill="#3b3b3b"/><rect x="34" y="24" width="28" height="30" fill="#b8372b"/><ellipse cx="48" cy="38" rx="8" ry="11" fill="#d94a33" stroke="#1f1f1f"/><path d="M22 54 H74 V58 H22Z" fill="#d9cfb8"/></svg></div>
+          <strong>도쿄 · 가미나리몬</strong><span class="idx">닛케이225</span><small>일본 대표 지수.</small><button class="buy">열기<em><span class="coin">C</span>60</em></button></div>
+        <div class="city lock"><div class="art"><svg width="96" height="62" viewBox="0 0 96 62"><rect x="40" y="10" width="16" height="44" fill="#8b7a5e"/><path d="M38 10 L48 0 L58 10Z" fill="#5b4f3c"/><circle cx="48" cy="20" r="5" fill="#f5efe0" stroke="#5b4f3c"/><path d="M28 54 H68 V58 H28Z" fill="#d9cfb8"/></svg></div>
+          <strong>런던 · 시계탑</strong><span class="idx">FTSE100</span><small>영국 대표 지수.</small><button class="buy off">열기<em><span class="coin">C</span>90</em></button></div>
+        <div class="city lock"><div class="art"><svg width="96" height="62" viewBox="0 0 96 62"><path d="M48 4 L50 14 L46 14Z" fill="#6f8f88"/><path d="M42 16 H54 L52 40 L56 54 H40 L44 40Z" fill="#7fa79e"/><path d="M54 18 L62 8" stroke="#7fa79e" stroke-width="3"/><path d="M36 54 H60 V58 H36Z" fill="#d9cfb8"/></svg></div>
+          <strong>뉴욕 · 자유의 여신상</strong><span class="idx">S&amp;P500</span><small>미국 대표 지수.</small><button class="buy off">열기<em><span class="coin">C</span>150</em></button></div>
+      </div>
+      <p class="note">파리(에펠탑·CAC40)는 이미 열려서 정원 오른쪽에 서 있어요. 열 때마다 그 시장 한 줄 소개가 생겨요. 투자 권유가 아니에요.</p>
+    </div>
+    <div class="dock glass"><div><b>🌱</b>정원</div><div><b>📖</b>일지</div><div><b>🔭</b>챌린지</div><div class="on"><b>···</b>더보기</div></div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

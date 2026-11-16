@@ -13,6 +13,7 @@ import {codeOf} from '../core/jigi/stocks';
 import {lookbackJournal} from '../core/jigi/lookback';
 import {workCount,weekWork,type StudyTask} from '../core/jigi/points';
 import type {Task} from '../core/jigi/analysis';
+import {spend,BUILT0,LANDS,BUILDINGS,CITIES,type Built,type Want} from '../core/land';
 // process points (core/jigi/points.ts) for the titles and the league
 export const workOf=(s:GardenSave)=>workCount(s.journals??[],s.jigi?.tasks??[]);
 export const weekWorkOf=(s:GardenSave,day:string)=>weekWork(s.journals??[],s.jigi?.tasks??[],day);
@@ -51,6 +52,8 @@ export type GardenSave={v:1;holdings:Holding[];onboarded:boolean;lookedBack:bool
   expeditions:RunRecord[];
   // 지기 투자일지 (core/jigi, docs/jigi.md): missing in older saves means none yet
   journals?:Journal[];
+  // 부지·건물·랜드마크 (core/land.ts): land opened, buildings built, cities opened with coins
+  built?:Built;
   // 지기 J3: study tasks taken from the analysis (on the next journal's checklist), my principles, types I said don't fit
   jigi?:{tasks:StudyTask[];principles:{text:string;at:number}[];typeNo:Record<string,boolean>}};
 export const SAVE_KEY='rethink-garden-v1';
@@ -203,13 +206,28 @@ export function useGarden(){
     journalEdit(id:string,fn:(j:Journal)=>Journal){setS(p=>({...p,journals:(p.journals??[]).map(j=>j.id===id?fn(j):j)}))},
     journalSave(id:string){let out:ReturnType<typeof saveJournal>|null=null;
       setS(p=>{const j=(p.journals??[]).find(x=>x.id===id);if(!j)return p;const r=saveJournal(j,c.now);out=r;if(!r.ok)return p;
-        return {...p,journals:(p.journals??[]).map(x=>x.id===id?r.journal:x)}});return out as ReturnType<typeof saveJournal>|null},
+        // coins for the first save of my own journal (not the demo, not practice)
+        const pay=r.version===1&&!j.demo&&!j.practice?EARN.journal:0;
+        return {...p,currency:p.currency+pay,journals:(p.journals??[]).map(x=>x.id===id?r.journal:x)}});
+      const o=out as ReturnType<typeof saveJournal>|null;if(o?.ok&&o.version===1)say(`일지를 저장했어요 · 코인 +${EARN.journal}`);return o},
     // J2: a journal's hypotheses (drafts edited in place), confirming one (base close, end date), the review, a verdict opened
     journalHypos(id:string,hypos:Hypo[]){setS(p=>({...p,journals:(p.journals??[]).map(j=>j.id===id?{...j,hypos}:j)}))},
     journalConfirm(id:string,hypoId:string){let say='';let buried=false;
-      setS(p=>({...p,journals:(p.journals??[]).map(j=>{if(j.id!==id)return j;return {...j,hypos:j.hypos.map(h=>{if(h.id!==hypoId)return h;const r=confirmHypo(j,h,c.today,c.now);say=r.say;buried=r.h.status==='confirmed'&&!!r.h.auto;return r.h})}})}));
+      setS(p=>{let pay=0;const journals=(p.journals??[]).map(j=>{if(j.id!==id)return j;const before=j.hypos.filter(h=>h.status==='confirmed'&&h.auto).length;
+        const next={...j,hypos:j.hypos.map(h=>{if(h.id!==hypoId)return h;const r=confirmHypo(j,h,c.today,c.now);say=r.say;buried=r.h.status==='confirmed'&&!!r.h.auto;return r.h})};
+        if(buried&&before<3&&!j.demo&&!j.practice)pay=EARN.confirm;return next});
+        if(pay)say+=` · 코인 +${pay}`;return {...p,currency:p.currency+pay,journals}});
       return {say,buried}},
-    journalReflect(id:string,r:Reflection){setS(p=>({...p,journals:(p.journals??[]).map(j=>j.id===id?{...j,reflection:r}:j)}))},
+    // the review: coins once, when it first gets an answer
+    journalReflect(id:string,r:Reflection){let paid=false;setS(p=>{const j=(p.journals??[]).find(x=>x.id===id);if(!j)return p;
+      const pay=!j.reflection?.plan&&!!r.plan&&!j.demo?EARN.review:0;paid=pay>0;
+      return {...p,currency:p.currency+pay,journals:(p.journals??[]).map(x=>x.id===id?{...x,reflection:r}:x)}});if(paid)say(`복기를 남겼어요 · 코인 +${EARN.review}`)},
+    // 부지 넓히기·건물 짓기·도시 열기 with coins (core/land.ts spend); says what happened
+    build(w:Want){let res:ReturnType<typeof spend>|null=null;setS(p=>{const r=spend(p.built??BUILT0,p.currency,w);res=r;return r.ok?{...p,built:r.built,currency:r.coins}:p});
+      const r=res as ReturnType<typeof spend>|null;if(!r)return false;
+      const name=w.kind==='land'?LANDS.find(l=>l.id===w.id)?.name:w.kind==='building'?BUILDINGS.find(b=>b.id===w.id)?.name:CITIES.find(x=>x.id===w.id)?.landmark;
+      if(r.ok)say(w.kind==='land'?`${name} · 새 나무 자리 ${LANDS.find(l=>l.id===w.id)!.plots.length}칸이 생겼어요`:w.kind==='building'?`${name} · 다 지었어요`:`${name} · 정원 가장자리에 세웠어요`);
+      else say(r.why==='coins'?`코인이 ${r.need} 모자라요. 일지를 쓰고 복기하면 모여요`:r.why==='have'?'이미 있어요':'지금은 할 수 없어요');return r.ok},
     journalOpened(id:string,hypoId:string){setS(p=>({...p,journals:(p.journals??[]).map(j=>j.id===id?{...j,hypos:j.hypos.map(h=>h.id===hypoId?{...h,opened:c.now}:h)}:j)}))},
     journalArchive(id:string,on:boolean){setS(p=>({...p,journals:(p.journals??[]).map(j=>j.id===id?{...j,archivedAt:on?c.now:null}:j)}))},
     journalTrash(id:string,on:boolean){setS(p=>({...p,journals:(p.journals??[]).map(j=>j.id===id?{...j,deletedAt:on?c.now:null}:j)}))},

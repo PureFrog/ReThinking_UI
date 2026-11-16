@@ -6,11 +6,13 @@ import {Sheet} from './Sheet';
 const SCALE=7.2,W=WORLD.walk+3;// map units per world unit, and how far out the page reaches
 const X=(x:number)=>(x+W)*SCALE,Y=(z:number)=>(z+W)*SCALE;
 // onSky: the way up to the other gardens (ui/SkyView.tsx)
-export function MapSheet({me,onGo,onSky,onClose}:{me:{x:number;z:number};onGo:(id:PlaceId)=>void;onSky?:()=>void;onClose:()=>void}){
+// onBuild: 넓히기 mode (ui/Build.tsx): closed land and building lots show on the garden with their prices
+export function MapSheet({me,onGo,onSky,onBuild,onClose}:{me:{x:number;z:number};onGo:(id:PlaceId)=>void;onSky?:()=>void;onBuild?:()=>void;onClose:()=>void}){
   const size=W*2*SCALE;
   const water=Array.from({length:61},(_,i)=>STREAM.from+i).map(x=>`${X(x)},${Y(streamZ(x))}`).join(' ');
   return <Sheet kicker="정원 지도" title="어디로 갈까요?" label="정원 지도" onClose={onClose}
-    foot={onSky&&<button type="button" className="rt-btn primary wide" onClick={onSky}>다른 유저 보기</button>}>
+    foot={(onSky||onBuild)&&<div className="rt-map-foot">{onBuild&&<button type="button" className="rt-btn primary" onClick={onBuild}>정원 넓히기</button>}
+      {onSky&&<button type="button" className="rt-btn" onClick={onSky}>다른 유저 보기</button>}</div>}>
     <svg className="rt-map" viewBox={`0 0 ${size} ${size}`} role="img" aria-label="정원 지도">
       <circle cx={X(0)} cy={Y(0)} r={WORLD.walk*SCALE} className="rt-map-land"/>
       <polyline points={water} className="rt-map-water"/>

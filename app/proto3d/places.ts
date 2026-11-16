@@ -3,9 +3,10 @@
 // around it: the orchard east (more plots), the case library north up the forest path, the stream south with its
 // bridge, and the league square beyond it. A ring of forest closes the edge.
 export const WORLD={R:56/* sphere radius: big enough that walking to the edge is not a steep slope */,walk:22/* how far from the middle the player may walk */};
-// holding plots: the first seven round the farm, seven more in the orchard (app/core/portfolio.ts freePlots fills in order)
-export const PLOTS:[number,number][]=[[2.6,-1.8],[5,-0.4],[3.4,1.5],[5.8,2.3],[7.4,-2.4],[1.6,4.4],[7.6,4.4],
-  [10.2,-1.4],[12.2,1.2],[10,3.4],[12.8,-3.8],[13.8,4.4],[10.6,6.6],[15.2,0.4]];
+// holding plots: rows of beds in the farm and the orchard, then the land opened with coins (app/core/land.ts; every
+// index is fixed, core/portfolio.ts freePlots fills the open ones in order)
+import {ALL_PLOTS} from '../core/land';
+export const PLOTS:[number,number][]=ALL_PLOTS;
 // the stream: its middle line, how wide the water is, and the one bridge across it
 export const streamZ=(x:number)=>13.6+1.1*Math.sin(x*0.22);
 export const STREAM={half:1.0,bank:0.5,from:-30,to:30};
@@ -29,7 +30,7 @@ export const place=(id:PlaceId)=>PLACES.find(p=>p.id===id)!;
 export const PATHS:[number,number][][]=[
   [[0,1.5],[0.4,-3.5],[0.6,-7.5],[1.2,-10.5],[1,-13.6]],
   [[-0.6,3.6],[-1.6,6],[-2.6,9],[-2,11.2],[-2,16],[-2,17.4]],
-  [[1.2,2.6],[4.4,3.4],[8.4,1.4],[11,1]],
+  [[1.2,2.6],[3.6,4.3],[8.8,4.1],[8.8,1.2]],
   [[-1.4,1.4],[-4.4,1.6],[-7,1.8]],
 ];
 // Where the player walks when tapping (x,z): clamped to the edge, never into the water; across the stream only by

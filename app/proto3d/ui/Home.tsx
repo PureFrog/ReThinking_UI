@@ -42,11 +42,12 @@ export function JournalSheet({due,signals,judgedToday,holdings,judgments,graded,
 }
 
 // 더보기: everything that is not the daily loop, in four groups, with my numbers on top
-export type MoreId='case'|'rewind'|'me'|'drawer'|'league'|'sky'|'holdings'|'settings';
+export type MoreId='case'|'rewind'|'me'|'drawer'|'league'|'sky'|'holdings'|'settings'|'build'|'cities';
 export function MoreSheet({currency,streak,week,dots,onPick,onClose}:{currency:number;streak:number;week:number;dots:Partial<Record<MoreId,boolean>>;onPick:(id:MoreId)=>void;onClose:()=>void}){
   const groups:[string,[MoreId,string,string][]][]=[
     ['매일',[['case','오늘의 케이스','과거 사례 맞히기'],['rewind','되감기','과거 사례로 판단 연습']]],
     ['나',[['me','내 프로필','등급 · 업적 · 월간 리포트'],['drawer','꾸미기','정원 꾸미기 · 상점']]],
+    ['정원',[['build','정원 넓히기','부지 · 건물'],['cities','도시 수첩','세계 증시 랜드마크']]],
     ['함께',[['league','리그','이번 주 순위'],['sky','다른 유저','다른 유저의 정원']]],
     ['설정',[['holdings','내 종목','캡처 · 직접 입력'],['settings','설정','소리 · 기울이기 · 튜토리얼']]]];
   return <Sheet kicker="더보기" title="더보기" label="더보기" onClose={onClose}>

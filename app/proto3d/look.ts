@@ -35,6 +35,8 @@ export const LOOK={
     damping:0.07,rotateSpeed:0.8,zoomSpeed:0.9,
     // keyboard: Q/E turn (radians a second), +/- zoom (share of the distance a second)
     keyTurn:1.7,keyZoom:0.9,
+    // a landmark just opened: a lower, closer side view (pitch from straight down, share of the usual distance)
+    landmarkPitch:1.0,landmarkDist:0.85,
   },
   // walking (Scene3D Player): speeds up and slows down instead of starting and stopping at once, and turns smoothly;
   // keyStep: how far ahead a held arrow / WASD key keeps the walk target

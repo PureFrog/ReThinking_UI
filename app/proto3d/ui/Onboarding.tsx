@@ -7,7 +7,7 @@ import {useRef,useState} from 'react';
 import {Lens,Plus,Strike} from './Icons';
 import {drafts,applyDrafts,freePlots,blankDraft,HELD,type Draft,type HeldId} from '../../core/portfolio';
 import {portfolioReader,kindOf,type ReadHolding} from '../../content/portfolio';
-import {GARDEN_PLOTS} from '../../content/demo-garden';
+import {openPlots} from '../../core/land';
 import {UI,line} from '../../content/analysts';
 import {Sheet} from './Sheet';
 import type {useGarden} from '../state';
@@ -31,11 +31,13 @@ export function Onboarding({g,onClose,onPlanted,onDemo,reader}:{g:G;onClose:()=>
   // rows dropped from an edit list take their tree out; so do missing trees the player ticked
   const removed=[...gone,...(rows??[]).filter(r=>r.existing!==null&&!r.keep).map(r=>r.existing!)];
   const staying=holdings.filter(h=>!removed.includes(h.id)).length,newOnes=kept.filter(r=>r.existing===null).length;
-  const over=staying+newOnes>GARDEN_PLOTS;
+  // the open plots (core/land.ts): 14 at first, more with each piece of land opened
+  const open=openPlots(g.s.built?.land??[]),cap=open.length;
+  const over=staying+newOnes>cap;
   const plant=()=>{
     const clean=kept.map(r=>({...r,name:r.name.trim()}));
     const base=holdings.filter(h=>!removed.includes(h.id));
-    const out=applyDrafts(holdings,clean,removed,freePlots(base,GARDEN_PLOTS),kindOf);
+    const out=applyDrafts(holdings,clean,removed,freePlots(base,open),kindOf);
     g.ops.setHoldings(out.holdings);
     g.say(first?line(UI.planted,{n:out.holdings.length}):line(UI.replanted,{n:out.holdings.length}));
     if(onPlanted)onPlanted(out.planted.map(h=>h.id),first);else onClose();
@@ -83,6 +85,6 @@ export function Onboarding({g,onClose,onPlanted,onDemo,reader}:{g:G;onClose:()=>
       {missing.map(m=><label key={m.id} className="rt-row" style={{cursor:'pointer'}}>
         <input type="checkbox" checked={gone.includes(m.id)} onChange={e=>setGone(gs=>e.target.checked?[...gs,m.id]:gs.filter(x=>x!==m.id))}/>
         <div><strong>{m.name}</strong><small>정리했으면 체크. 정원에서 뺄게.</small></div></label>)}</>}
-    {over&&<p className="rt-hint" style={{marginTop:12,color:'var(--rt-warn)'}}>정원 자리는 {GARDEN_PLOTS}개야. {staying+newOnes-GARDEN_PLOTS}개 빼 줘.</p>}
+    {over&&<p className="rt-hint" style={{marginTop:12,color:'var(--rt-warn)'}}>정원 자리는 {cap}개예요. {staying+newOnes-cap}개를 빼거나, 지도에서 부지를 넓혀 주세요.</p>}
   </Sheet>;
 }

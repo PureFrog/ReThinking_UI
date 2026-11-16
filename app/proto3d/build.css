@@ -1,0 +1,43 @@
+/* 부지·건물·랜드마크 (ui/Build.tsx): glass like the rest, a gold coin, green "넓히기/짓기/열기" buttons */
+.proto3d .bd-coin{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe9a8,#e0a72a 60%,#a8740f);color:#7a5208;font:700 9.5px 'IBM Plex Mono',monospace;box-shadow:0 1px 0 #7a520855;flex:none}
+.proto3d .bd-coins{display:inline-flex;align-items:center;gap:5px;font-weight:700}
+.proto3d .bd-bar{position:absolute;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 84px);z-index:6;background:#ffffffd6;border:1px solid #ffffffc2;border-radius:16px;padding:9px 12px;
+  -webkit-backdrop-filter:blur(16px) saturate(1.25);backdrop-filter:blur(16px) saturate(1.25);box-shadow:inset 0 1px 0 #ffffffcc,0 14px 34px -16px #10200d66}
+.proto3d .bd-bar-top{display:flex;align-items:center;gap:8px}
+.proto3d .bd-bar-top b{font-family:'Jua',sans-serif;font-weight:400;font-size:16px;margin-right:auto}
+.proto3d .bd-chip{border:1px solid var(--rt-line2);background:#fff;border-radius:999px;padding:5px 11px;font:inherit;font-size:12.5px;cursor:pointer;color:var(--rt-ink)}
+.proto3d .bd-chip.strong{background:var(--rt-ink);color:#fff;border-color:var(--rt-ink)}
+.proto3d .bd-earn{margin:5px 0 0;font-size:11.5px;color:var(--rt-sub)}
+.proto3d .bd-tag{position:absolute;left:0;top:0;z-index:5;display:flex;align-items:center;gap:5px;white-space:nowrap;padding:5px 10px;border-radius:12px;font:inherit;font-size:12.5px;color:var(--rt-ink);cursor:pointer;
+  background:#ffffffe0;border:1px solid #ffffffc2;box-shadow:0 10px 24px -12px #10200d80;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.proto3d .bd-tag b{font-family:'Jua',sans-serif;font-weight:400;font-size:14px}
+.proto3d .bd-tag.short{opacity:.82}
+.proto3d .bd-pop{position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 84px);z-index:7;background:#ffffffe0;border:1px solid #ffffffc2;border-radius:20px;padding:14px;
+  -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);box-shadow:inset 0 1px 0 #ffffffcc,0 24px 60px -24px #10200d80}
+@media(min-width:701px){.proto3d .bd-pop{left:auto;width:380px}}
+.proto3d .bd-pop h3{font-family:'Gowun Batang',serif;font-size:19px;margin:2px 0 4px}
+.proto3d .bd-pop p{margin:0;font-size:13.5px;color:var(--rt-sub)}
+.proto3d .bd-short{color:#9a6200!important;margin-top:6px!important}
+.proto3d .bd-pop-acts{display:grid;grid-template-columns:1fr 1.4fr;gap:8px;margin-top:12px}
+.proto3d .bd-go{display:grid;justify-items:center;gap:1px;padding:7px 10px;border:0;border-radius:12px;background:linear-gradient(180deg,#5fbf52,#3f9e3a);color:#fff;font-family:'Jua',sans-serif;font-size:15px;cursor:pointer;
+  box-shadow:inset 0 -3px 0 #2d7a2c,0 4px 10px -4px #2d7a2c}
+.proto3d .bd-go em{font-style:normal;font-size:11.5px;display:flex;align-items:center;gap:4px}
+.proto3d .bd-go:disabled{background:#e7e9e4;color:#8b9187;box-shadow:inset 0 -3px 0 #cfd3cb;cursor:not-allowed}
+.proto3d .bd-head{display:flex;align-items:center;gap:10px;margin:-2px 0 10px}
+.proto3d .bd-map{position:relative;height:120px;border-radius:14px;background:linear-gradient(180deg,#e8f3f7,#d7ebe0);overflow:hidden;margin-bottom:10px}
+.proto3d .bd-map svg{position:absolute;inset:0;width:100%;height:100%}
+.proto3d .bd-dot{position:absolute;transform:translate(-50%,-50%);width:12px;height:12px;border-radius:50%;background:#fff;border:3px solid #5e665a}
+.proto3d .bd-dot.got{border-color:#3f9e3a;background:#c8f0bf}
+.proto3d .bd-dot.next{border-color:#c98a16}
+@media(prefers-reduced-motion:no-preference){.proto3d .bd-dot.next{animation:bd-pulse 1.6s infinite}}
+@keyframes bd-pulse{50%{box-shadow:0 0 0 7px #c98a1633}}
+.proto3d .bd-dot i{position:absolute;left:50%;top:14px;transform:translateX(-50%);font:600 10.5px 'IBM Plex Sans KR',sans-serif;font-style:normal;color:var(--rt-sub);white-space:nowrap}
+.proto3d .bd-cities{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.proto3d .bd-city{display:grid;gap:3px;align-content:start;background:#ffffffc4;border:1px solid var(--rt-line);border-radius:14px;padding:10px}
+.proto3d .bd-city.lock{background:#ffffff8c}
+.proto3d .bd-city strong{font-size:14px}
+.proto3d .bd-city small{font-size:11.5px;color:var(--rt-mute);line-height:1.4}
+.proto3d .bd-idx{font-size:11.5px;color:#2f8a3a;font-weight:600}
+.proto3d .bd-done{font-family:'Jua',sans-serif;font-size:13px;color:#2f8a3a;margin-top:4px}
+.proto3d .bd-city .bd-go{margin-top:6px}
+.proto3d .rt-map-foot{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}

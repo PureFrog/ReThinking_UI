@@ -8,6 +8,7 @@ import './me.css';
 import './welcome.css';
 import './glass.css';
 import './jigi.css';
+import './build.css';
 export default function Proto3DPage(){
   const [mounted,setMounted]=useState(false);
   useEffect(()=>setMounted(true),[]);
