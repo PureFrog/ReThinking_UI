@@ -6,7 +6,7 @@
 import {useRef,useState} from 'react';
 import {Lens,Plus,Strike} from './Icons';
 import {drafts,applyDrafts,freePlots,blankDraft,HELD,type Draft,type HeldId} from '../../core/portfolio';
-import {portfolioReader,kindOf} from '../../content/portfolio';
+import {portfolioReader,kindOf,type ReadHolding} from '../../content/portfolio';
 import {GARDEN_PLOTS} from '../../content/demo-garden';
 import {UI,line} from '../../content/analysts';
 import {Sheet} from './Sheet';
@@ -14,16 +14,18 @@ import type {useGarden} from '../state';
 type G=ReturnType<typeof useGarden>;
 
 // onPlanted: the new trees (W1, they are born in the garden); onDemo: the demo garden was picked instead
-export function Onboarding({g,onClose,onPlanted,onDemo}:{g:G;onClose:()=>void;onPlanted?:(ids:number[],first:boolean)=>void;onDemo?:()=>void}){
+// reader: the server's real reading when signed in (a list, or what went wrong); without it the example reader
+export function Onboarding({g,onClose,onPlanted,onDemo,reader}:{g:G;onClose:()=>void;onPlanted?:(ids:number[],first:boolean)=>void;onDemo?:()=>void;reader?:((f:File)=>Promise<ReadHolding[]|string>)|null}){
   const first=!g.s.onboarded,holdings=g.s.holdings;
   // the confirm list; editing starts from the trees already planted
   const [rows,setRows]=useState<Draft[]|null>(()=>first?null:drafts(holdings.map(h=>({name:h.name,rate:h.rate})),holdings).rows);
   const [gone,setGone]=useState<number[]>([]);
   const [missing,setMissing]=useState<typeof holdings>([]);
-  const [reading,setReading]=useState(false);
+  const [reading,setReading]=useState(false),[readErr,setReadErr]=useState<string|null>(null);
   const file=useRef<HTMLInputElement>(null);
 
-  const read=async(f:File)=>{setReading(true);try{const r=drafts(await portfolioReader.read(f),holdings);setRows(r.rows);setMissing(r.missing);setGone([])}finally{setReading(false)}};
+  const read=async(f:File)=>{setReading(true);setReadErr(null);try{const got=reader?await reader(f):await portfolioReader.read(f);
+    if(typeof got==='string'){setReadErr(got);return}const r=drafts(got,holdings);setRows(r.rows);setMissing(r.missing);setGone([])}finally{setReading(false)}};
   const edit=(i:number,patch:Partial<Draft>)=>setRows(rs=>rs!.map((r,j)=>j===i?{...r,...patch}:r));
   const kept=(rows??[]).filter(r=>r.keep&&r.name.trim());
   // rows dropped from an edit list take their tree out; so do missing trees the player ticked
@@ -49,11 +51,12 @@ export function Onboarding({g,onClose,onPlanted,onDemo}:{g:G;onClose:()=>void;on
     <p className="rt-hint" style={{marginTop:14}}>종목 하나가 나무 하나예요. 분석가 셋이 손실 신호를 찾아 알려줘요.</p>
     <div className="rt-pick">
       <button type="button" className="rt-pick-card" disabled={reading} onClick={()=>file.current?.click()}>
-        <Lens size={20}/><strong>{reading?'읽는 중':'캡처 올리기'}</strong><small>증권 앱 보유 종목 화면. 이 기기 밖으로 보내지 않아요.</small></button>
+        <Lens size={20}/><strong>{reading?'읽는 중':'캡처 올리기'}</strong><small>{reader?'증권 앱 보유 종목 화면. 여러 종목도 한 번에 읽어요.':'증권 앱 보유 종목 화면. 이 기기 밖으로 보내지 않아요.'}</small></button>
       <button type="button" className="rt-pick-card" onClick={()=>setRows([blankDraft()])}>
         <Plus size={20}/><strong>직접 입력</strong><small>종목명과 수익률만 있으면 돼요.</small></button>
     </div>
-    <p className="rt-hint" style={{marginTop:14}}>캡처 인식은 아직 모의 버전이에요. 올리면 예시 4종목이 나와요.</p>
+    {readErr&&<p className="rt-err" role="alert">{readErr}</p>}
+    <p className="rt-hint" style={{marginTop:14}}>{reader?'올린 캡처는 종목을 읽으려고 OpenAI(미국)로 한 번 보내고 저장하지 않아요. 계좌번호·총액은 읽지 않아요.':'로그인하면 캡처를 실제로 읽어요. 지금은 올리면 예시 4종목이 나와요.'}</p>
   </Sheet>;
 
   return <Sheet kicker={first?'시작 · 확인':'내 종목'} title={`${kept.length}종목`} label="종목 확인" onClose={onClose}

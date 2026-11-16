@@ -19,7 +19,7 @@ import {JigiStats} from './ui/JigiStats';
 import {nextStep} from '../core/next';
 import {Welcome} from './ui/Welcome';
 import {authRepo} from './server';
-import {missingConsents,friendTalk,jigiAI} from './supabase';
+import {missingConsents,friendTalk,jigiAI,readCapture} from './supabase';
 import {saveRepo,openedAt,markLocal} from './sync';
 import {syncPlan,SYNC} from '../core/sync';
 import type {GardenSave} from './state';
@@ -37,7 +37,7 @@ import {weekPoints} from '../core/league';
 import {shownCount} from '../core/streak';
 import {isoDay} from '../core/items';
 import {marketProvider} from '../content/market';
-import {signalProvider} from '../content/signals';
+import {signalProvider,lookbackNote} from '../content/signals';
 import {CASES} from '../content/cases';
 import {CONDITION_LABEL,GROWTH_LABEL} from '../content/demo-garden';
 import {ANALYSTS,UI,CURRENCY,line,type AnalystId} from '../content/analysts';
@@ -257,7 +257,8 @@ export default function Proto3D(){
   const caseDone=!!answeredToday(s.cases,clock.today);
   const track=trackOf(s.judgments,s.graded);
   // the first visit's look-back: a loss signal if there is one (ui/Loop.tsx LookBack)
-  const lookSig=s.lookedBack?null:lookbackPick(signals),lookHolding=lookSig?holdings.find(x=>x.id===lookSig.holdingId):undefined;
+  // nothing flagged (stocks typed in that are up): moa's plain chart note on the tree that moved most (content/signals.ts)
+  const lookSig=s.lookedBack?null:lookbackPick(signals)??lookbackNote(holdings),lookHolding=lookSig?holdings.find(x=>x.id===lookSig.holdingId):undefined;
 
   // today's three (core/today.ts): ticked off as they happen; all three close the day once
   const tasks=todayTasks({signals:signals.length,judgedToday:s.judgments.filter(j=>j.day===clock.today).length+(s.journals??[]).filter(j=>j.status==='saved'&&!j.demo&&!j.practice&&j.savedAt!=null&&isoDay(new Date(j.savedAt))===clock.today).length,caseDone,due:g.due.length,
@@ -495,7 +496,7 @@ export default function Proto3D(){
       {sheet?.kind==='rewind'&&<RewindView g={g} onClose={close}/>}
       {sheet?.kind==='today'&&<TodaySheet g={g} tasks={tasks} onGo={goTask} onClose={close}/>}
       {sheet?.kind==='case'&&<CaseView g={g} c={caseDone?CASES.find(c=>c.id===answeredToday(s.cases,clock.today)!.caseId)??todayCase:todayCase} onClose={close}/>}
-      {sheet?.kind==='onboard'&&!welcome&&<Onboarding g={g} onClose={close}
+      {sheet?.kind==='onboard'&&!welcome&&<Onboarding g={g} onClose={close} reader={syncOn?readCapture:null}
         onPlanted={(ids,first)=>{setSheet(null);startBirth(ids,first&&s.seen.birth===0,first?()=>setSheet({kind:'lookback'}):undefined)}}
         onDemo={()=>{setSheet(null);startBirth(DEMO_HOLDINGS.map(x=>x.id),s.seen.birth===0)}}/>}
       {birth&&<BirthCards birth={birth} holdings={holdings} onSkip={skipBirth}/>}

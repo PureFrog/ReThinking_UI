@@ -46,6 +46,11 @@
     - `node tools/build-functions.mjs jigi-llm` → Edge Functions에 `jigi-llm` 이름으로 `db/functions/jigi-llm/bundle.js`를 붙여 넣고 Deploy. 시크릿은 friend-chat과 같은 `OPENAI_API_KEY`를 써.
     - 앱에서 로그인한 상태면: 가설 뽑기(호출 A), 작성 도움 질문(B), 분석 설명 문장(C)이 OpenAI로 나와. 함수가 없거나 답이 규칙을 어기면 지금처럼 규칙 기반 문장으로 돌아가.
 
+13. **캡처 사진 읽기(OpenAI 비전)**: `node tools/build-functions.mjs portfolio-read` → Edge Functions에 `portfolio-read`로 `db/functions/portfolio-read/bundle.js` 붙여 넣고 Deploy. 시크릿은 같은 `OPENAI_API_KEY`(모델 바꾸려면 `OPENAI_VISION_MODEL`, 기본 gpt-4.1-mini).
+    - 로그인한 사람만 실제로 읽어(지기 AI와 합쳐 하루 40번). 손님은 예시 4종목이 나오고 화면에 그렇게 써 있어.
+    - 사진은 앱에서 1600px로 줄여 한 번 보내고 저장하지 않아. 계좌번호·총액은 읽지 않게 했어(`app/core/capture.ts`).
+    - 국외 이전 동의 문구에 "올린 캡처"를 넣었어. 이미 동의한 사람은 예전 문구에 동의한 거라, 정식 출시 전에 다시 받을지 정해야 해.
+
 들어가는 것: 가입하면 `players` 표에 닉네임과 동의 내역이 생겨(트리거). 카카오·구글로 처음 들어온 사람은 동의 화면을 한 번 거쳐.
 
 정원 동기화(`app/proto3d/sync.ts`, 규칙은 `app/core/sync.ts`): 로그인하면 서버의 정원과 이 기기의 정원을 비교해서 **더 최근 것**을 써. 빈 정원은 심어 둔 정원을 절대 덮지 않아. 그 뒤로는 바뀔 때마다 2.5초 뒤 서버에 올려. 손님·`?demo`는 동기화 안 해. 두 폰에서 동시에 하면 나중 것이 남아(합치기 없음).

@@ -90,3 +90,19 @@ export const jigiAI:JigiAI={
   async assist(j,block,title){const r=await callJigi({mode:'assist',journal:slim(j),block,title});return Array.isArray(r?.questions)?r!.questions as string[]:null},
   async explain(topic,facts){const r=await callJigi({mode:'explain',topic,facts});return typeof r?.text==='string'?r.text:null},
 };
+
+// reading a brokerage screenshot (db/functions/portfolio-read): shrunk in the browser first, sent once, not stored
+import {CAPTURE,type ReadHolding} from '../core/capture';
+async function shrink(file:Blob):Promise<string>{
+  const img=await createImageBitmap(file),k=Math.min(1,CAPTURE.maxSide/Math.max(img.width,img.height));
+  const c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);c.getContext('2d')!.drawImage(img,0,0,c.width,c.height);
+  for(const q of [.85,.7,.55]){const u=c.toDataURL('image/jpeg',q);if(u.length<CAPTURE.maxBytes*1.3)return u}
+  return c.toDataURL('image/jpeg',.45);
+}
+export async function readCapture(file:Blob):Promise<ReadHolding[]|string>{
+  try{const image=await shrink(file);const {data,error}=await supabase().functions.invoke('portfolio-read',{body:{image}});
+    if(!error&&Array.isArray(data?.holdings))return data.holdings.length?data.holdings as ReadHolding[]:'종목을 찾지 못했어요. 보유 종목 목록이 보이는 화면으로 다시 올려 주세요';
+    const status=(error as {context?:{status?:number}}|null)?.context?.status;
+    return status===429?'오늘은 사진 읽기를 많이 했어요. 내일 다시 하거나 직접 입력해 주세요':status===422?'사진에서 종목을 읽지 못했어요. 더 선명한 캡처로 다시 올려 주세요':'지금 사진을 읽지 못했어요. 잠시 뒤에 다시 하거나 직접 입력해 주세요'}
+  catch{return '지금 사진을 읽지 못했어요. 잠시 뒤에 다시 하거나 직접 입력해 주세요'}
+}

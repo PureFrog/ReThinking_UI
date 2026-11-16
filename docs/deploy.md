@@ -8,6 +8,14 @@
 
 옛 chatgpt.site(OpenAI Sites, Cloudflare 워커) 배포는 쓰지 않는다. 워커 빌드(`pnpm build`)는 지우지 않고 그대로 두고, Netlify는 그 옆에 `STATIC_EXPORT=1`로 따로 빌드한다.
 
+## 지금 배포 (2026-11-16)
+
+- 주소: **https://rethinking7.netlify.app** (프로젝트 이름 rethinking7, 공개)
+- 방식: 내 PC에서 정적 빌드 → CLI로 올림. 저장소 자동 배포는 아직(저장소가 PureFrog 계정 것이라 주인이 Netlify 앱을 허락해야 함).
+- 다시 올리기: `STATIC_EXPORT=1 corepack pnpm build` 뒤 `npx netlify-cli deploy --prod --no-build --dir dist/client --site 6b8bcce3-aa19-48fb-af08-944b6c87e174`
+  (이름으로 지정하면 못 찾을 때가 있어서 사이트 ID로. `--no-build`: netlify.toml의 빌드를 다시 돌리지 않음)
+- 오른쪽 아래 "Powered by Netlify" 배지가 메뉴를 가림 → Netlify 설정에서 끄기
+
 ## 이미 해 둔 것
 
 - `next.config.ts`: `STATIC_EXPORT=1`이면 `output: 'export'`. 없으면 예전과 같다.
@@ -25,7 +33,7 @@
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY` (publishable 키. `sb_secret_`·service_role 키는 절대 아님)
    - 넣고 나서 다시 빌드해야 들어간다(빌드할 때 코드에 박힌다).
 4. **Supabase 주소 허용**: Authentication → URL Configuration
-   - Site URL: Netlify 주소(예: `https://rethinking.netlify.app`)
+   - Site URL: `https://rethinking7.netlify.app` (설정함, 2026-11-16)
    - Redirect URLs에 `https://<그 주소>/**` 추가. localhost 두 개는 개발용으로 남긴다.
    - 카카오·구글 개발자 콘솔은 리디렉트가 Supabase 주소라 안 바꿔도 된다.
 5. **배포 주소에서 확인**: 첫 화면 → 이메일 가입·로그인 → 카카오·구글 → 정원 → 일지 쓰기 → 다른 기기에서 같은 계정으로 들어가 정원이 따라오는지.

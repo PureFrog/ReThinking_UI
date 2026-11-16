@@ -1,8 +1,9 @@
 // The player's holdings come from a capture of their brokerage screen (onboarding, ux-spec 8장; the user's choice).
-// Reading the picture belongs to the backend later (OCR or an LLM, 13.7-9): this reader is the one boundary to swap.
-// Today it never looks at the picture and returns mock holdings (CLAUDE.md: no real financial data, no LLM API);
-// the picture itself stays in the browser.
-export type ReadHolding={name:string;rate:number;quantity?:number;price?:number};
+// Signed in, the picture is read for real by the server (proto3d/supabase.ts readCapture → OpenAI vision, rules in
+// core/capture.ts). Without an account this mock stands in: it never looks at the picture, the picture stays in the
+// browser, and the screen says the result is an example.
+import type {ReadHolding} from '../core/capture';
+export type {ReadHolding};
 export type PortfolioReader={read(file:Blob):Promise<ReadHolding[]>};
 
 // What the mock capture "shows": the four companies the demo garden used to start with.

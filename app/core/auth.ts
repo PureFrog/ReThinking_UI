@@ -5,7 +5,7 @@ export const CONSENTS:{id:ConsentId;label:string;sub?:string;required:boolean}[]
   {id:'age14',label:'만 14세 이상이에요',required:true},
   {id:'terms',label:'이용약관',required:true},
   {id:'privacy',label:'개인정보 수집·이용',sub:'이메일, 닉네임, 내가 넣은 종목과 판단 기록',required:true},
-  {id:'overseas',label:'개인정보 국외 이전',sub:'AI 대화·분석을 위해 판단 문장을 OpenAI(미국)로 보내요',required:true},
+  {id:'overseas',label:'개인정보 국외 이전',sub:'AI 대화·분석과 캡처 읽기를 위해 판단 문장과 올린 캡처를 OpenAI(미국)로 보내요',required:true},
   {id:'marketing',label:'이벤트·소식 알림',required:false},
 ];
 export type SignUp={email:string;password:string;nickname:string;consents:ConsentId[]};
