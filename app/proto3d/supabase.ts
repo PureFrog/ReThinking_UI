@@ -106,3 +106,13 @@ export async function readCapture(file:Blob):Promise<ReadHolding[]|string>{
     return status===429?'오늘은 사진 읽기를 많이 했어요. 내일 다시 하거나 직접 입력해 주세요':status===422?'사진에서 종목을 읽지 못했어요. 더 선명한 캡처로 다시 올려 주세요':'지금 사진을 읽지 못했어요. 잠시 뒤에 다시 하거나 직접 입력해 주세요'}
   catch{return '지금 사진을 읽지 못했어요. 잠시 뒤에 다시 하거나 직접 입력해 주세요'}
 }
+
+// 보리 through 정균's 1번 LLM (db/functions/bori-talk): the server keeps the conversation and what 보리 learns; the app
+// sends the message and the garden's holdings (code + name, the only companies 보리 may write about)
+export type BoriHolding={company_id:string;name:string};
+let boriSeq=0;
+export async function boriTalk(holdings:BoriHolding[],message:string):Promise<string>{
+  const fallback='지금은 대답을 못 하겠어. 이따 다시 말 걸어 줘.';
+  try{const {data,error}=await supabase().functions.invoke('bori-talk',{body:{action:'message',text:message,holdings,client_message_id:`c${Date.now().toString(36)}${++boriSeq}`}});
+    return !error&&typeof data?.reply?.text==='string'?data.reply.text:fallback}catch{return fallback}
+}

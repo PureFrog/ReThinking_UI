@@ -51,6 +51,11 @@
     - 사진은 앱에서 1600px로 줄여 한 번 보내고 저장하지 않아. 계좌번호·총액은 읽지 않게 했어(`app/core/capture.ts`).
     - 국외 이전 동의 문구에 "올린 캡처"를 넣었어. 이미 동의한 사람은 예전 문구에 동의한 거라, 정식 출시 전에 다시 받을지 정해야 해.
 
+14. **보리 대화 (정균 1번 LLM, `docs/llm1.md`)**: SQL Editor에서 `db/migrations/004_llm1.sql` Run → `node tools/build-functions.mjs bori-talk` → Edge Functions에 `bori-talk` 이름으로 `db/functions/bori-talk/bundle.js`를 붙여 넣고 Deploy. 시크릿은 같은 `OPENAI_API_KEY`.
+    - 로그인한 상태에서 보리를 눌러 말을 걸면 이 함수가 대답하고, 내가 한 말에서 투자 성향·종목 생각을 배워 프로필에 남겨(보리의 말은 근거가 안 됨).
+    - 예전 `friend-chat` 함수는 더 이상 앱이 부르지 않아. 지워도 돼.
+    - 모델: 모든 텍스트 함수의 기본은 GPT-6 Luna(`app/core/llmModel.ts`). 바꾸려면 시크릿 `OPENAI_MODEL`.
+
 들어가는 것: 가입하면 `players` 표에 닉네임과 동의 내역이 생겨(트리거). 카카오·구글로 처음 들어온 사람은 동의 화면을 한 번 거쳐.
 
 정원 동기화(`app/proto3d/sync.ts`, 규칙은 `app/core/sync.ts`): 로그인하면 서버의 정원과 이 기기의 정원을 비교해서 **더 최근 것**을 써. 빈 정원은 심어 둔 정원을 절대 덮지 않아. 그 뒤로는 바뀔 때마다 2.5초 뒤 서버에 올려. 손님·`?demo`는 동기화 안 해. 두 폰에서 동시에 하면 나중 것이 남아(합치기 없음).

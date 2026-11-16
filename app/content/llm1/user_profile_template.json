@@ -1,0 +1,65 @@
+{
+  "user_id": null,
+  "schema_version": "5.0",
+  "revision": 0,
+  "updated_at": null,
+  "profile": {
+    "age": null,
+    "life_context": null
+  },
+  "conversation_preferences": {
+    "tone": null,
+    "explanation_style": null,
+    "detail_level": null,
+    "question_pace": null
+  },
+  "personality_tendencies": {
+    "decision_style": null,
+    "uncertainty_response": null
+  },
+  "financial_knowledge": {
+    "concepts": {}
+  },
+  "preferences": {
+    "volatility": null,
+    "return_form": null,
+    "monitoring": null,
+    "holding_horizon": null
+  },
+  "investment_philosophy": {
+    "market_view": {
+      "efficiency": null,
+      "pricing_gaps": null,
+      "expectation_formation": null
+    },
+    "edge": {
+      "expected_sources": null,
+      "counterparty_view": null,
+      "constraints": null,
+      "research_process": null,
+      "falsification": null
+    },
+    "analysis_purpose": null,
+    "belief_revision": null,
+    "recurring_reasons": null,
+    "risk_management": {
+      "risk_definition": null,
+      "portfolio_loss_budget": null,
+      "concentration_limits": null,
+      "liquidity_needs": null,
+      "leverage_policy": null
+    },
+    "performance_review": {
+      "benchmark": null,
+      "evaluation_horizon": null,
+      "method": null,
+      "evidence_status": null
+    },
+    "strategies": {}
+  },
+  "company_views": {},
+  "interests": null,
+  "memory_policy": {
+    "blocked_profile_paths": []
+  }
+}

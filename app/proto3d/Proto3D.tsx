@@ -16,10 +16,15 @@ import {hypoCapsules,hypoCapsuleLabel,type HypoCapsule} from '../core/jigi/capsu
 import {capsuleLabel,type Capsule} from '../core/capsule';
 import {JigiVerdict} from './ui/JigiVerdict';
 import {JigiStats} from './ui/JigiStats';
+import {BuildBar,BuildTags,BuildConfirm,CityBook} from './ui/Build';
+import {BUILT0,CITIES,LANDS,BUILDINGS,type Want} from '../core/land';
+// where a landmark stands (core/land.ts), so opening one walks over toward it
+const CITY_SPOT=(id:string)=>CITIES.find(c=>c.id===id)?.at;
 import {nextStep} from '../core/next';
 import {Welcome} from './ui/Welcome';
 import {authRepo} from './server';
-import {missingConsents,friendTalk,jigiAI,readCapture} from './supabase';
+import {missingConsents,boriTalk,jigiAI,readCapture} from './supabase';
+import {codeOf} from '../core/jigi/stocks';
 import {saveRepo,openedAt,markLocal} from './sync';
 import {syncPlan,SYNC} from '../core/sync';
 import type {GardenSave} from './state';
@@ -120,12 +125,12 @@ function useWeather(){
     setW({weather:isWeather(q)?q:weatherOf(m),index:m.index})},[]);
   return w;
 }
-type SheetState={kind:'journal';openId?:string}|{kind:'more'}|{kind:'onboard'}|{kind:'letter';month:string}|{kind:'settings'}|{kind:'map'}|{kind:'library'}|{kind:'grades';start:string}|{kind:'deep';holdingId:number;back:SheetState}|{kind:'lookback'}|{kind:'brief';start:{signalId?:string;holdingId?:number}|null}|{kind:'grades'|'case'|'rewind'|'today'|'records'|'drawer'|'cart'|'league'|'game'}|{kind:'analyst';id:AnalystId}|{kind:'friend'}|{kind:'write';id:string}|{kind:'verdict';journalId:string;hypoId:string}|null;
+type SheetState={kind:'journal';openId?:string}|{kind:'more'}|{kind:'onboard'}|{kind:'letter';month:string}|{kind:'settings'}|{kind:'map'}|{kind:'library'}|{kind:'grades';start:string}|{kind:'deep';holdingId:number;back:SheetState}|{kind:'lookback'}|{kind:'brief';start:{signalId?:string;holdingId?:number}|null}|{kind:'grades'|'case'|'rewind'|'today'|'records'|'drawer'|'cart'|'league'|'game'}|{kind:'analyst';id:AnalystId}|{kind:'friend'}|{kind:'write';id:string}|{kind:'verdict';journalId:string;hypoId:string}|{kind:'cities'}|null;
 // where each pointer points (core/tips.ts)
 const TIP_AT:Record<TipId,{target?:string;point?:string}>={map:{target:'.proto3d-map'},me:{target:'.rt-me-chip'},house:{point:'house'},lapse:{target:'.rt-dock [data-tab="journal"]'}};
 // which tab a sheet belongs to: the journal's sheets light 일지, the rest of the daily loop's extras light 더보기
 const tabOf=(sh:SheetState)=>!sh?'garden':['journal','write','verdict','brief','grades','records','lookback','deep'].includes(sh.kind)?'journal':sh.kind==='game'?'game':
-  ['more','case','rewind','drawer','cart','league','settings','onboard'].includes(sh.kind)?'more':'garden';
+  ['more','case','rewind','drawer','cart','league','settings','onboard','cities'].includes(sh.kind)?'more':'garden';
 const CART_FLAGS=['#c4452f','#36557e','#1e6b4a','#b9801a','#6a5aa8'];
 // this week's league group on the square's flagpoles (the first is mine)
 const LEAGUE_FLAGS=['#b8372b','#36557e','#4b6638','#b9801a','#6a5aa8','#c4652e','#2c5c92','#7a5238','#5c5447','#9c6c12','#4d4a8a','#1e6b4a'];
@@ -145,6 +150,8 @@ export default function Proto3D(){
   // log in go through authRepo (server.ts), "가입 없이 둘러보기" remembers itself on this device. e2e pages skip it unless
   // the address has ?landing (tests/e2e/fixtures.ts)
   const [account,setAccount]=useState<Account|null>(()=>typeof window==='undefined'?null:authRepo.current());
+  // 부지·건물·랜드마크 (core/land.ts, ui/Build.tsx): 넓히기 mode shows the closed lots on the garden; a tap asks first
+  const [buildMode,setBuildMode]=useState(false),[want,setWant]=useState<Want|null>(null);
   const [guest,setGuest]=useState(()=>{try{return localStorage.getItem('rethink-guest')==='1'}catch{return false}});
   useEffect(()=>authRepo.onChange(a=>setAccount(a)),[]);
   const owing=account&&missingConsents(account).length?account:null;
@@ -300,8 +307,8 @@ export default function Proto3D(){
   // e2e pages start with it off (tests/e2e/fixtures.ts) unless the address has ?tutorial
   const [tutAgain,setTutAgain]=useState(false);
   const tutAllowed=typeof window==='undefined'||!(window as {__noTutorial?:boolean}).__noTutorial;
-  const tutOn=ready&&!quiet&&!inside&&!sheet&&picked===null&&!capFx&&!jump&&(tutAgain||(tutAllowed&&!s.tips.includes('tutorial')));
-  const tip=!tutOn&&ready&&!quiet&&!inside&&!sheet&&picked===null&&!g.due.length&&!letterWaiting&&!capFx&&!jump?nextTip(s.tips,{judgments:s.judgments.length,oldestDays:oldest}):null;
+  const tutOn=ready&&!quiet&&!inside&&!sheet&&!buildMode&&picked===null&&!capFx&&!jump&&(tutAgain||(tutAllowed&&!s.tips.includes('tutorial')));
+  const tip=!tutOn&&ready&&!quiet&&!inside&&!sheet&&picked===null&&!g.due.length&&!letterWaiting&&!capFx&&!jump&&!buildMode?nextTip(s.tips,{judgments:s.judgments.length,oldestDays:oldest}):null;
   // the one next step on the home screen (core/next.ts)
   const firstOpen=open[0],firstHolding=firstOpen?holdings.find(x=>x.id===firstOpen.holdingId):undefined;
   const next=nextStep({due:g.due.length,signal:firstOpen&&firstHolding?{id:firstOpen.id,name:firstHolding.name,analyst:firstOpen.analyst,headline:firstOpen.headline}:null,
@@ -346,6 +353,11 @@ export default function Proto3D(){
     return pickOld?[{holdingId:hh.id,due:old.due,label:capsuleLabel(old),old,hypo:null}]:hy?[{holdingId:hh.id,due:hy.due,label:hypoCapsuleLabel(hy),old:null,hypo:hy}]:[]});
   const confirmHypo=(id:string,hid:string)=>{const r=g.ops.journalConfirm(id,hid),j=journals.find(x=>x.id===id),hy=j?.hypos.find(x=>x.id===hid);
     if(r.buried&&j?.holdingId!=null){const name=j.stock?.name??'';bury(j.holdingId,()=>g.say(`${name} 가설을 나무 아래 묻었어요. ${hy?.endDate??''} 종가로 판정해요`))}return r.say};
+  // 부지·건물·랜드마크 (core/land.ts, ui/Build.tsx): 넓히기 mode shows the closed lots on the garden; a tap asks first
+  const built=s.built??BUILT0;
+  // after opening a city or building something, the camera looks at it for a moment (Scene3D world.view)
+  const [view,setView]=useState<{x:number;z:number;y?:number;az?:number}|null>(null);
+  useEffect(()=>{if(!view)return;const t=setTimeout(()=>setView(null),TIMING.buildLook);return()=>clearTimeout(t)},[view]);
   const world:World={
     // the three come in with the first trees
     analysts:!ready||lapse||(calm&&(bStage==='trees'||bStage==='orbit'))?[]:ANALYSTS.map(a=>{
@@ -373,6 +385,8 @@ export default function Proto3D(){
       onDesk:()=>setSheet({kind:'today'}),onShelf:()=>setSheet({kind:'records'}),
       onBoard:()=>{if(g.due.length)setSheet({kind:'grades'});else g.say(capsules.length?line(UI.boardWait,{n:capsules.length}):UI.boardEmpty)},onDoor:()=>swapRoom(false)},
     friend:friendHere?{at:FRIEND_SPOT,onPick:talkFriend}:null,
+    view,
+    build:ready?{built,mode:buildMode&&!quiet&&!inside,onLot:key=>{const [k,id]=key.split(':');if(k==='city'){setPicked(null);setSheet({kind:'cities'});return}setWant({kind:k as 'land'|'building',id})}}:null,
     onLandmark:k=>{if(k==='house'){enterHouse();return}setPicked(null);setSheet({kind:k==='observatory'?'game':k==='signpost'?'records':k==='library'?'library':k==='plaza'?'league':'cart'})},
   };
 
@@ -387,7 +401,8 @@ export default function Proto3D(){
   const close=()=>setSheet(null);
   const dock:['garden'|'journal'|'game'|'more',string,typeof Ledger,number][]=[
     ['garden','정원',Sprout,0],['journal','일지',Ledger,g.due.length+open.length+toReview],['game','챌린지',Scope,0],['more','더보기',More,caseDone?0:1]];
-  const pickMore=(id:MoreId)=>{if(id==='me'){setSheet(null);setMe(true)}else if(id==='sky'){setSheet(null);setSkyOpen({focus:null})}
+  const pickMore=(id:MoreId)=>{if(id==='build'){setSheet(null);setPicked(null);setBuildMode(true);return}if(id==='cities'){setSheet({kind:'cities'});return}
+    if(id==='me'){setSheet(null);setMe(true)}else if(id==='sky'){setSheet(null);setSkyOpen({focus:null})}
     else setSheet(id==='holdings'?{kind:'onboard'}:{kind:id})};
   const decideCooldown=()=>{if(!cd||!h)return;const waited=g.ops.finishCooldown(cd.id);if(waited)g.say(UI.cooldownBloom);setEarly(false);setPicked(null);setSheet({kind:'brief',start:{holdingId:h.id}})};
 
@@ -416,11 +431,11 @@ export default function Proto3D(){
         {ready&&!quiet&&<button type="button" className="rt-me-chip" aria-label={`내 프로필 · ${s.name||'이름 없음'} · ${rank.name}`} onClick={()=>{setPicked(null);setSheet(null);setMe(true)}}>
           <span className="rt-me-chip-face" aria-hidden/>{newStampDot&&<i className="rt-me-dot" aria-label="새 도장"/>}</button>}
       </div>
-      {ready&&!h&&!quiet&&!inside&&!sheet&&!capFx&&<CapsuleTags items={markers} names={Object.fromEntries(holdings.map(x=>[x.id,x.name]))} onPick={onCapsule}/>}
+      {ready&&!h&&!quiet&&!inside&&!sheet&&!capFx&&!buildMode&&<CapsuleTags items={markers} names={Object.fromEntries(holdings.map(x=>[x.id,x.name]))} onPick={onCapsule}/>}
       {jump&&<div className="rt-jump" role="status">{UI.jump}</div>}
-      {!h&&!quiet&&!inside&&<Bubbles items={bubbleNow} onPick={id=>id===FRIEND.id?talkFriend():world.onAnalyst(id as AnalystId)}/>}
+      {!h&&!quiet&&!inside&&!buildMode&&<Bubbles items={bubbleNow} onPick={id=>id===FRIEND.id?talkFriend():world.onAnalyst(id as AnalystId)}/>}
       {!ready&&!sheet&&<button type="button" className="rt-banner" onClick={()=>setSheet({kind:'onboard'})}><span>정원이 비어 있어</span><b>내 종목 넣기</b></button>}
-      {ready&&!sheet&&!quiet&&!inside&&!capFx&&!jump&&h===undefined&&<NextCard step={next} tasks={{done:tasksDone,total:tasks.length}} onToday={()=>setSheet({kind:'today'})}
+      {ready&&!sheet&&!quiet&&!inside&&!capFx&&!jump&&!buildMode&&h===undefined&&<NextCard step={next} tasks={{done:tasksDone,total:tasks.length}} onToday={()=>setSheet({kind:'today'})}
         onGo={()=>{setPicked(null);setSheet(next.kind==='grades'?{kind:'grades'}:next.kind==='signal'?{kind:'brief',start:{signalId:next.id}}:next.kind==='letter'?{kind:'letter',month:lastLetter.month}:{kind:'case'})}}/>}
       {tutOn&&<Tutorial trees={holdings.map(x=>x.id)}onDone={then=>{g.ops.tipDone('tutorial');setTutAgain(false);if(then)setSheet({kind:'journal'})}}/>}
       {inside&&!sheet&&<RoomTags items={[{k:'room-desk',text:`책상 · 오늘 ${tasksDone}/${tasks.length}`,onClick:()=>setSheet({kind:'today'})},
@@ -448,6 +463,11 @@ export default function Proto3D(){
         onArchive={g.ops.journalArchive} onTrash={g.ops.journalTrash} onPurge={g.ops.journalPurge} onOld={()=>setSheet({kind:'records'})}/>}
       {sheet?.kind==='verdict'&&(()=>{const j=journals.find(x=>x.id===sheet.journalId),hy=j?.hypos.find(x=>x.id===sheet.hypoId);if(!j||!hy)return null;
         return <JigiVerdict j={j} h={hy} today={clock.today} onClose={()=>{g.ops.journalOpened(j.id,hy.id);close()}} onReview={()=>{g.ops.journalOpened(j.id,hy.id);setSheet({kind:'journal',openId:j.id})}}/>})()}
+      {sheet?.kind==='cities'&&<CityBook built={built} coins={s.currency} onClose={close} onOpen={id=>{if(g.ops.build({kind:'city',id})){setSheet(null);setBuildMode(false);
+        const c=CITY_SPOT(id);if(c)setView({x:c[0],z:c[1],y:3.2,az:Math.atan2(-c[0],-c[1])})}}}/>}
+      {buildMode&&ready&&!quiet&&!inside&&!sheet&&<><BuildBar coins={s.currency} onCities={()=>setSheet({kind:'cities'})} onDone={()=>{setBuildMode(false);setWant(null)}}/>
+        {!want&&<BuildTags built={built} coins={s.currency} onPick={setWant}/>}
+        {want&&<BuildConfirm want={want} coins={s.currency} onNo={()=>setWant(null)} onYes={()=>{const w=want;if(g.ops.build(w)){const at=w.kind==='land'?LANDS.find(l=>l.id===w.id)?.at:BUILDINGS.find(b=>b.id===w.id)?.at;if(at)setView({x:at[0],z:at[1],y:1.2})}setWant(null)}}/>}</>}
       {sheet?.kind==='write'&&(()=>{const j=journals.find(x=>x.id===sheet.id);if(!j)return null;
         const marks=liveJournals(journals).filter(x=>x.stock&&x.stock.code===j.stock?.code&&x.anchor).map(x=>({id:x.id,date:x.anchor!.date,price:x.anchor!.close}));
         return <JigiWrite key={j.id} ai={syncOn?jigiAI:null} j={j} today={clock.today} marks={marks} tasks={(s.jigi?.tasks??[]).filter(t=>!t.done)} edit={fn=>g.ops.journalEdit(j.id,fn)} onClose={()=>setSheet({kind:'journal'})}
@@ -505,7 +525,8 @@ export default function Proto3D(){
       {lapse&&<TimelapseBar i={lapse.i} n={frames.length} day={lapseDay} back={lapseBack} playing={lapse.playing}
         onSeek={i=>setLapse({i,playing:false})} onPlay={()=>setLapse(l=>l&&{i:l.playing||l.i<frames.length-1?l.i:0,playing:!l.playing})} onClose={()=>setLapse(null)}/>}
       {sheet?.kind==='league'&&<League g={g} onClose={close}/>}
-      {sheet?.kind==='map'&&<MapSheet me={(window as unknown as {__proto3d?:{player?:{x:number;z:number}}}).__proto3d?.player??{x:0,z:0}} onGo={goPlace} onSky={()=>{setSheet(null);setPicked(null);setSkyOpen({focus:null})}} onClose={close}/>}
+      {sheet?.kind==='map'&&<MapSheet me={(window as unknown as {__proto3d?:{player?:{x:number;z:number}}}).__proto3d?.player??{x:0,z:0}} onGo={goPlace} onSky={()=>{setSheet(null);setPicked(null);setSkyOpen({focus:null})}}
+        onBuild={()=>{setSheet(null);setPicked(null);setBuildMode(true)}} onClose={close}/>}
       {sheet?.kind==='library'&&<LibrarySheet caseDone={caseDone} rewindLeft={paidLeft(s.rewinds,clock.today)} onCase={()=>setSheet({kind:'case'})} onRewind={()=>setSheet({kind:'rewind'})} onClose={close}/>}
       {sheet?.kind==='game'&&<GameDoor runs={s.expeditions??[]} week={weekStart(clock.today)} onEnter={()=>enterGame(null)} onClose={close}/>}
       {expedition&&<Expedition packId={expedition.pack} today={clock.today} history={s.expeditions??[]} handle={s.name} onFinish={g.ops.finishExpedition} onClose={()=>leaveGame()}
@@ -513,7 +534,7 @@ export default function Proto3D(){
         onSimilar={id=>{leaveGame();setSheet({kind:'brief',start:{holdingId:id}})}} onMarket={setGameMarket}/>}
       {sheet?.kind==='cart'&&<CartView g={g} onClose={close}/>}
       {sheet?.kind==='friend'&&<FriendSheet opener={opener.text} topic={opener.topic} seed={clock.today} onClose={close}
-        talk={syncOn?(history,m)=>friendTalk(friendCtx,history,m):null}
+        talk={syncOn?(_history,m)=>boriTalk(holdings.map(x=>({company_id:codeOf(x),name:x.name})),m):null}
         onGo={to=>setSheet(to==='grades'?{kind:'grades'}:to==='case'?{kind:'case'}:{kind:'journal'})}/>}
       {sheet?.kind==='drawer'&&<Drawer g={g} onClose={close} onCart={()=>setSheet({kind:'cart'})}/>}
       {sheet?.kind==='analyst'&&<AnalystCard g={g} id={sheet.id} signal={open.find(x=>x.analyst===sheet.id)??null} onClose={close}
