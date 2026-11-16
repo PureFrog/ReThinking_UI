@@ -41,3 +41,16 @@
 .proto3d .bd-done{font-family:'Jua',sans-serif;font-size:13px;color:#2f8a3a;margin-top:4px}
 .proto3d .bd-city .bd-go{margin-top:6px}
 .proto3d .rt-map-foot{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+
+/* coins at the top, next to me (Proto3D .rt-top-right) */
+.proto3d .rt-top-right{display:flex;align-items:center;gap:8px}
+.proto3d .rt-coins{pointer-events:auto;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 13px 0 9px;border-radius:999px;border:0;
+  font:700 15px/1 'IBM Plex Mono',monospace;color:#3d2a06;cursor:pointer;
+  background:#fffaf0f2 !important;box-shadow:0 0 0 2px #ffffffd9,0 8px 20px -8px #10200d66 !important}
+.proto3d .rt-coins .bd-coin{width:20px;height:20px;font-size:11px}
+
+/* name signs over the buildings (ui/Signs.tsx): a small wooden board, never in the way of a tap */
+.proto3d .rt-signs{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:hidden}
+.proto3d .rt-sign{position:absolute;left:0;top:0;white-space:nowrap;padding:3px 9px 4px;border-radius:6px;background:#6b4a2bdd;color:#fff8ea;
+  font:400 12.5px/1.2 'Jua',sans-serif;letter-spacing:.02em;box-shadow:0 2px 0 #3f2a16,0 6px 14px -6px #0006;border:1px solid #8a6440}
+.proto3d .rt-sign::after{content:'';position:absolute;left:50%;bottom:-7px;width:3px;height:6px;margin-left:-1.5px;background:#4a321b;border-radius:0 0 2px 2px}

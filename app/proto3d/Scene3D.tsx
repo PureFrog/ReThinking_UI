@@ -30,7 +30,8 @@ import {LOOK} from './look';
 import {soft} from './materials';
 import {MODELS,ALL_TREE_FILES,CANOPY,BARK,STUMP_CUT} from './models';
 import {OnGround,surfaceY,tiltAt,rng,UP} from './ground';
-import {PLOTS,PATHS,place,inStream,route,WORLD} from './places';
+import {PLOTS,PATHS,PLACES,place,inStream,route,WORLD,solids,pushOut,type Solid} from './places';
+import {SIGN_PLACES,SIGN_BUILDINGS,SIGN_CITY} from './ui/Signs';
 import {Stream,Bridge,Paths,Forest,Library,Plaza} from './World3D';
 import {Interior,type Book,type Note} from './Interior3D';
 import {Explorer} from './Explorer3D';
@@ -310,13 +311,15 @@ function Keys({pos,target,stops,onMove,enabled}:{pos:React.MutableRefObject<THRE
 }
 
 // the player: my observer as I dressed it (Explorer3D.tsx, core/wardrobe.ts), walking where I tap
-function Player({target,stops,pos,hidden,look}:{target:React.MutableRefObject<THREE.Vector3>;stops:React.MutableRefObject<{x:number;z:number}[]>;pos:React.MutableRefObject<THREE.Vector3>;hidden?:boolean;look:Look}){
+function Player({target,stops,pos,hidden,look,walls}:{target:React.MutableRefObject<THREE.Vector3>;stops:React.MutableRefObject<{x:number;z:number}[]>;pos:React.MutableRefObject<THREE.Vector3>;hidden?:boolean;look:Look;walls:Solid[]}){
   const g=useRef<THREE.Group>(null),body=useRef<THREE.Group>(null),moving=useRef(false),speed=useRef(0);
   useFrame((_,dt)=>{const p=pos.current,tg=target.current,gr=g.current,b=body.current;if(!gr||!b)return;const t=Math.min(dt,0.25)/* by time: a slow phone walks as fast */;
     const dx=tg.x-p.x,dz=tg.z-p.z,d=Math.hypot(dx,dz);moving.current=d>0.05;
     // speeds up from a stand, slows down over the last stretch, turns toward where it goes instead of snapping
     const want=moving.current?SPEED*Math.min(1,d/LOOK.walk.brake+0.25):0;speed.current+=(want-speed.current)*Math.min(1,LOOK.walk.accel*t);
     if(moving.current){const step=Math.min(d,speed.current*t);p.x+=dx/d*step;p.z+=dz/d*step;
+      // buildings are solid: slide along their edge; a target inside one ends at its edge
+      if(pushOut(p,walls)){const q={x:tg.x,z:tg.z};if(pushOut(q,walls))tg.set(q.x,0,q.z)}
       const yaw=Math.atan2(dx,dz),diff=Math.atan2(Math.sin(yaw-b.rotation.y),Math.cos(yaw-b.rotation.y));b.rotation.y+=diff*Math.min(1,LOOK.walk.turn*t)}
     else if(stops.current.length){const n=stops.current.shift()!;tg.set(n.x,0,n.z)}
     gr.position.set(p.x,surfaceY(p.x,p.z),p.z);gr.quaternion.copy(tiltAt(p.x,p.z))});
@@ -545,6 +548,13 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
   useEffect(()=>{testHooks().inside=world.inside;testHooks().stage=world.stage},[world.inside,world.stage]);
   // 넓히기 mode: where each closed lot's tag sits (ui/BuildMode.tsx), and the landmarks' (always, for their name tags)
   const bm=world.build?.mode,bl=world.build?.built;
+  const walls=useMemo(()=>solids(bl),[bl]);
+  // name signs above the buildings (ui/Signs.tsx)
+  useEffect(()=>{for(const k of [...points.keys()])if(k.startsWith('sign-'))points.delete(k);
+    const put=(k:string,x:number,z:number,y:number)=>points.set('sign-'+k,new THREE.Vector3(x,surfaceY(x,z)+y,z));
+    for(const p of PLACES)if(p.id in SIGN_PLACES)put(p.id,p.x,p.z,SIGN_PLACES[p.id]);
+    for(const b of BUILDINGS)if(bl?.buildings.includes(b.id))put(b.id,b.at[0],b.at[1],SIGN_BUILDINGS[b.id]??4);
+    for(const c of CITIES)if(bl?.cities.includes(c.id))put('city-'+c.id,c.at[0],c.at[1],SIGN_CITY)},[bl,points]);
   useEffect(()=>{for(const k of [...points.keys()])if(k.startsWith('lot-')||k.startsWith('city-'))points.delete(k);if(!bl)return;
     const put=(k:string,x:number,z:number,y:number)=>points.set(k,new THREE.Vector3(x,surfaceY(x,z)+y,z));
     for(const c of CITIES)put('city-'+c.id,c.at[0],c.at[1],bl.cities.includes(c.id)?6.4:1.2);
@@ -599,7 +609,7 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
     </Suspense>
     {/* out of the way while the camera looks into the open ground */}
     <Keys pos={pos} target={target} stops={stops} onMove={()=>onPick(null)} enabled={!world.inside&&!world.stage&&!world.sky&&!cut&&!world.capsuleFx}/>
-    <Player look={world.look} target={target} stops={stops} pos={pos} hidden={(!!cut&&!cut.c.closing)||!!world.capsuleFx}/>
+    <Player walls={walls} look={world.look} target={target} stops={stops} pos={pos} hidden={(!!cut&&!cut.c.closing)||!!world.capsuleFx}/>
     {!world.sky&&<FollowCam pos={pos} recenter={recenter} focus={focusPos} orbit={orbit} near={!!world.capsuleFx} aim={world.view?.az??null} low={cut&&!cut.c.closing?cut.yaw:null}/>}
     </>}
     <Hooks pos={pos} treePos={treePos} points={points}/>

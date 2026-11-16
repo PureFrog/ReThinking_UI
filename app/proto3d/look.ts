@@ -3,9 +3,10 @@
 export const LOOK={
   // sky gradient behind the transparent canvas, and the fog the far ground fades into
   sky:{top:'#78cff2',mid:'#bde8f6',bottom:'#eef8e2'},
-  fog:{color:'#cfeef0',near:22,far:54},
+  // 2026-11-16 "뿌옇다": the fog starts past the garden (the phone camera sits ~27 away) and only fades the far edge
+  fog:{color:'#cfeef0',near:42,far:95},
   // a warm haze in the top-left corner, like sun through the trees (DOM overlay, screen blend)
-  sunGlow:{color:'#fff4c8',opacity:0.5,size:'70vmax'},
+  sunGlow:{color:'#fff4c8',opacity:0.5,size:'55vmax'},
 
   sun:{color:'#fff1d4',intensity:2.5,position:[-9,17,6] as [number,number,number]},
   hemi:{sky:'#d6efff',ground:'#7aa84c',intensity:1.0},
@@ -26,9 +27,9 @@ export const LOOK={
   // ahead of the player, so on a tall screen the player stands low and the garden fills the space above · maxDist: how far a pinch can pull out
   camera:{
     frames:[
-      {aspect:0.46,fov:52,dist:27,turn:1.05,pitch:0.4,blur:0.09,lead:3.5},// phone upright (390×844)
-      {aspect:1.33,fov:46,dist:23.5,turn:0,pitch:0.54,blur:0.17,lead:0},// desktop (1400×1050)
-      {aspect:2.16,fov:42,dist:19,turn:0,pitch:0.6,blur:0.15,lead:0},// phone on its side (844×390)
+      {aspect:0.46,fov:52,dist:27,turn:1.05,pitch:0.4,blur:0.04,lead:3.5},// phone upright (390×844)
+      {aspect:1.33,fov:46,dist:23.5,turn:0,pitch:0.54,blur:0.08,lead:0},// desktop (1400×1050)
+      {aspect:2.16,fov:42,dist:19,turn:0,pitch:0.6,blur:0.07,lead:0},// phone on its side (844×390)
     ],
     minDist:9,maxDist:40,
     // drag and wheel feel (OrbitControls): lower damping glides longer after letting go
@@ -86,21 +87,21 @@ export const LOOK={
   // R2 market weather (app/core/weather.ts). Each kind overrides the sky, fog, light and post values above and adds
   // its own clouds, rain and wind. wind: tree sway in radians · rain: falling streaks · clouds: puffs overhead
   weather:{
-    clear:{sky:{top:'#7cc9e6',mid:'#c3e4ec',bottom:'#f2eedc'},fog:'#d7e8e2',sun:{color:'#fff1d4',intensity:2.5},hemi:1.0,glow:0.45,saturation:-0.1,
+    clear:{sky:{top:'#7cc9e6',mid:'#c3e4ec',bottom:'#f2eedc'},fog:'#d7e8e2',sun:{color:'#fff1d4',intensity:2.5},hemi:1.0,glow:0.18,saturation:0.06,
       clouds:{count:4,color:'#ffffff'},rain:0,wind:0.02,flash:false,motes:'#fff6c4'},
-    cloudy:{sky:{top:'#9fb6c6',mid:'#c9d6dc',bottom:'#e4e8df'},fog:'#d2dad9',sun:{color:'#eef2f6',intensity:1.1},hemi:1.15,glow:0.08,saturation:-0.18,
+    cloudy:{sky:{top:'#9fb6c6',mid:'#c9d6dc',bottom:'#e4e8df'},fog:'#d2dad9',sun:{color:'#eef2f6',intensity:1.1},hemi:1.15,glow:0.04,saturation:-0.08,
       clouds:{count:11,color:'#e9edf0'},rain:0,wind:0.035,flash:false,motes:''},
     storm:{sky:{top:'#4d5d72',mid:'#7b8a99',bottom:'#a9b2b0'},fog:'#8f9ca3',sun:{color:'#c9d6ea',intensity:0.55},hemi:0.85,glow:0,saturation:-0.3,
       clouds:{count:14,color:'#7d8794'},rain:900,wind:0.09,flash:true,motes:''},
-    heat:{sky:{top:'#f2c48a',mid:'#fbe2b4',bottom:'#fff3d9'},fog:'#f7e3c0',sun:{color:'#fff0c8',intensity:3.4},hemi:1.15,glow:0.85,saturation:-0.02,
+    heat:{sky:{top:'#f2c48a',mid:'#fbe2b4',bottom:'#fff3d9'},fog:'#f7e3c0',sun:{color:'#fff0c8',intensity:3.4},hemi:1.15,glow:0.4,saturation:0.04,
       clouds:{count:0,color:'#ffffff'},rain:0,wind:0.008,flash:false,motes:'#ffd9a0'},
   },
 
   post:{
-    bloom:{threshold:0.82,smoothing:0.25,intensity:0.75,radius:0.8},
+    bloom:{threshold:0.9,smoothing:0.2,intensity:0.35,radius:0.6},
     tiltShift:{taper:0.55},// blur strength is per screen shape (camera.frames)
     vignette:{offset:0.3,darkness:0.38},
     // D2 (direction A, field notebook): a faint paper grain over the world so it sits in the same book as the UI
-    grain:{opacity:0.05},
+    grain:{opacity:0},// paper look dropped app-wide (2026-11-14); kept as a knob
   },
 };

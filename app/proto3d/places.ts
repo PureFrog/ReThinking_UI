@@ -5,7 +5,7 @@
 export const WORLD={R:56/* sphere radius: big enough that walking to the edge is not a steep slope */,walk:22/* how far from the middle the player may walk */};
 // holding plots: rows of beds in the farm and the orchard, then the land opened with coins (app/core/land.ts; every
 // index is fixed, core/portfolio.ts freePlots fills the open ones in order)
-import {ALL_PLOTS} from '../core/land';
+import {ALL_PLOTS,BUILDINGS,CITIES,type Built} from '../core/land';
 export const PLOTS:[number,number][]=ALL_PLOTS;
 // the stream: its middle line, how wide the water is, and the one bridge across it
 export const streamZ=(x:number)=>13.6+1.1*Math.sin(x*0.22);
@@ -26,6 +26,23 @@ export const PLACES:{id:PlaceId;label:string;x:number;z:number;rot:number;walk:{
   {id:'pond',label:'연못',x:0.5,z:8,rot:0,walk:{x:2.6,z:6}},
 ];
 export const place=(id:PlaceId)=>PLACES.find(p=>p.id===id)!;
+// solid footprints the player walks around, not through (2026-11-16 "캐릭터가 건물을 통과"): circles on the ground.
+// Each place's walk point stays outside its circle. Bought buildings and landmarks join when they stand.
+const SOLID_R:Partial<Record<PlaceId,number>>={home:2.1,library:2.4,observatory:1.5,cart:0.8};
+const BUILDING_R:Record<string,number>={greenhouse:1.7,silo:1.3,windmill:1.4};
+export type Solid={x:number;z:number;r:number};
+export function solids(built:Built|null|undefined):Solid[]{
+  const out:Solid[]=PLACES.flatMap(p=>SOLID_R[p.id]?[{x:p.x,z:p.z,r:SOLID_R[p.id]!}]:[]);
+  for(const b of BUILDINGS)if(built?.buildings.includes(b.id))out.push({x:b.at[0],z:b.at[1],r:BUILDING_R[b.id]??1.4});
+  for(const c of CITIES)if(built?.cities.includes(c.id))out.push({x:c.at[0],z:c.at[1],r:1.9});
+  return out;
+}
+// moves a point out to the edge of any solid it is inside (pad: the player's own width); true if it moved
+export function pushOut(p:{x:number;z:number},list:Solid[],pad=0.35){let moved=false;
+  for(const s of list){const dx=p.x-s.x,dz=p.z-s.z,d=Math.hypot(dx,dz),r=s.r+pad;if(d>=r)continue;
+    const k=d<1e-4?0:r/d;p.x=d<1e-4?s.x+r:s.x+dx*k;p.z=d<1e-4?s.z:s.z+dz*k;moved=true}
+  return moved;
+}
 // the dirt paths between them (polylines), drawn as stepping stones
 export const PATHS:[number,number][][]=[
   [[0,1.5],[0.4,-3.5],[0.6,-7.5],[1.2,-10.5],[1,-13.6]],

@@ -16,7 +16,8 @@ import {hypoCapsules,hypoCapsuleLabel,type HypoCapsule} from '../core/jigi/capsu
 import {capsuleLabel,type Capsule} from '../core/capsule';
 import {JigiVerdict} from './ui/JigiVerdict';
 import {JigiStats} from './ui/JigiStats';
-import {BuildBar,BuildTags,BuildConfirm,CityBook} from './ui/Build';
+import {Coin,BuildBar,BuildTags,BuildConfirm,CityBook} from './ui/Build';
+import {Signs} from './ui/Signs';
 import {BUILT0,CITIES,LANDS,BUILDINGS,type Want} from '../core/land';
 // where a landmark stands (core/land.ts), so opening one walks over toward it
 const CITY_SPOT=(id:string)=>CITIES.find(c=>c.id===id)?.at;
@@ -427,17 +428,21 @@ export default function Proto3D(){
 
       <div className="proto3d-top">
         <div className="rt-top-left">
-        {w&&(!expedition||wide)&&!skyOpen&&!welcome&&<div className="rt-weather" aria-label="오늘 시장 날씨">
+        {w&&(!expedition||wide)&&!skyOpen&&!welcome&&!me&&<div className="rt-weather" aria-label="오늘 시장 날씨">
           <span className="rt-weather-k">{lapseMarket||(expedition&&gameMarket!==null)?'그날 시장':'오늘 시장'}</span>
           <strong>{WEATHER_LABEL[weather]}</strong>
           <span className="rt-num">{(()=>{const v=expedition&&gameMarket!==null?gameMarket:lapseMarket?.index??w.index;return (v>0?'+':'')+v.toFixed(2)})()}%</span>
           <small>{WEATHER_NOTE[weather]}</small>
         </div>}
         </div>
-        {/* the top holds the weather and me; my numbers, sound and tilt live in 더보기 and 설정 */}
-        {ready&&!quiet&&<button type="button" className="rt-me-chip" aria-label={`내 프로필 · ${s.name||'이름 없음'} · ${rank.name}`} onClick={()=>{setPicked(null);setSheet(null);setMe(true)}}>
-          <span className="rt-me-chip-face" aria-hidden/>{newStampDot&&<i className="rt-me-dot" aria-label="새 도장"/>}</button>}
+        {/* the top holds the weather, my coins and me; my numbers, sound and tilt live in 더보기 and 설정 */}
+        {ready&&!quiet&&<div className="rt-top-right">
+          {/* coins always in sight (2026-11-16 feedback); a tap opens 넓히기, where they are spent */}
+          {!buildMode&&!me&&<button type="button" className="rt-coins rt-num" aria-label={`코인 ${s.currency} · 넓히기`} onClick={()=>{setPicked(null);setSheet(null);setBuildMode(true)}}><Coin/>{s.currency}</button>}
+          <button type="button" className="rt-me-chip" aria-label={`내 프로필 · ${s.name||'이름 없음'} · ${rank.name}`} onClick={()=>{setPicked(null);setSheet(null);setMe(true)}}>
+          <span className="rt-me-chip-face" aria-hidden/>{newStampDot&&<i className="rt-me-dot" aria-label="새 도장"/>}</button></div>}
       </div>
+      {ready&&!h&&!quiet&&!inside&&!sheet&&!capFx&&!me&&<Signs built={built}/>}
       {ready&&!h&&!quiet&&!inside&&!sheet&&!capFx&&!buildMode&&<CapsuleTags items={markers} names={Object.fromEntries(holdings.map(x=>[x.id,x.name]))} onPick={onCapsule}/>}
       {jump&&<div className="rt-jump" role="status">{UI.jump}</div>}
       {!h&&!quiet&&!inside&&!buildMode&&<Bubbles items={bubbleNow} onPick={id=>id===FRIEND.id?talkFriend():world.onAnalyst(id as AnalystId)}/>}

@@ -11,7 +11,7 @@
   --glass-edge:#ffffffc2;
 }
 /* the floating surfaces: glass, no double rules */
-.proto3d :is(.rt-sheet,.proto3d-card,.rt-next,.rt-dock,.rt-weather,.rt-me-chip,.rt-tip,.rt-tut-card,.rt-birth-card,.rt-bubble,.rt-cap-tag,.rt-room-tag,
+.proto3d :is(.rt-sheet,.proto3d-card,.rt-next,.rt-dock,.rt-weather,.rt-me-chip,.rt-coins,.rt-tip,.rt-tut-card,.rt-birth-card,.rt-bubble,.rt-cap-tag,.rt-room-tag,
   .proto3d-locate,.rt-lapse,.rt-me-plate,.rt-me-panel,.rt-me-top .rt-btn,.sky-plate,.sky-tag,.sky-sheet,.sky-pill,.rt-wel-card){
   -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);outline:none;border-color:var(--glass-edge)}
 .proto3d :is(.rt-weather,.proto3d-card,.rt-birth-card,.rt-next,.rt-tut-card,.rt-me-plate,.sky-plate,.sky-tag,.gx-panel){outline:none!important}
