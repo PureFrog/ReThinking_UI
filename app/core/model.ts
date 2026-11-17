@@ -1,5 +1,6 @@
 // code: the KRX code when known (지기 journal charts and grading, app/core/jigi/stocks.ts)
-export type Holding={id:number;name:string;code?:string;kind:number;price:number;quantity:number;date:string;rate:number;plot:number;lossDays:number};
+// real: on real prices (core/real.ts): price is the real close on `date`, rate and lossDays follow the latest close (asOf)
+export type Holding={id:number;name:string;code?:string;kind:number;price:number;quantity:number;date:string;rate:number;plot:number;lossDays:number;real?:boolean;asOf?:string};
 // vitalityDays: no journal for this long switches a tree's vitality off (ux-spec 2장, app/core/vitality.ts)
 export type Rules={oldDays:number;damageDays:number;vitalityDays?:number};
 // flip: turned the other way (11.9, the picture mirrored) · on: a lamp switched on
@@ -8,7 +9,9 @@ export type Decoration={id:number;name:string;color:number;x:number;y:number;fli
 export type GiftBox={id:string;sender:string;anonymous:boolean;item:string;x:number;y:number;day?:string};
 export const demoDate='2026-10-27';
 export const defaultRules:Rules={oldDays:180,damageDays:60,vitalityDays:30};
-export function heldDays(date:string){return Math.max(0,Math.floor((Date.parse(demoDate)-Date.parse(date))/86400000))}
+// held days count to the demo's fixed day, or to today for a holding on real prices
+export const realToday=()=>new Date(Date.now()+9*3600e3).toISOString().slice(0,10);
+export function heldDays(date:string,asOf=demoDate){return Math.max(0,Math.floor((Date.parse(asOf)-Date.parse(date))/86400000))}
 // Growth follows holding time; condition follows the mock return (and how long a deep loss lasted).
 // The thresholds stay the old ones: +10% inclusive glows, below -10% wilts, -20% or worse for damageDays is dead.
 export const GROWTH=['seed','sprout','sapling','young','grand'] as const;
@@ -21,7 +24,7 @@ export function growthOf(days:number,r:Rules):Growth{return days>=r.oldDays?'gra
 export function conditionOf(h:Holding,r:Rules):Condition{
  if(h.rate>=10)return 'bloom';if(h.rate>=0)return 'well';if(h.rate>=-10)return 'dull';
  if(h.rate<=-20&&h.lossDays>=r.damageDays)return 'dead';if(h.rate<=-20&&h.lossDays>=r.damageDays/2)return 'rot';return 'wilt'}
-export function treeState(h:Holding,r:Rules){const days=heldDays(h.date),growth=growthOf(days,r),condition=conditionOf(h,r);const old=days>=r.oldDays&&h.rate>0;const broken=condition==='dead';return {old,broken,shrunken:!broken&&h.rate< -10,glowing:condition==='bloom',days,growth,condition}}
+export function treeState(h:Holding,r:Rules){const days=heldDays(h.date,h.real?realToday():demoDate),growth=growthOf(days,r),condition=conditionOf(h,r);const old=days>=r.oldDays&&h.rate>0;const broken=condition==='dead';return {old,broken,shrunken:!broken&&h.rate< -10,glowing:condition==='bloom',days,growth,condition}}
 export const initial:Holding[]=[
 {id:1,name:'SK하이닉스',kind:0,price:52000,quantity:12,date:'2026-08-01',rate:12.4,plot:0,lossDays:0},
 {id:2,name:'NAVER',kind:2,price:34000,quantity:8,date:'2025-06-01',rate:7.2,plot:2,lossDays:0},

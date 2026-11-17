@@ -81,6 +81,8 @@ test("a returning visitor who is not signed in starts on the landing again", asy
   await expect(welcome(page)).toHaveCount(0);
   // a new visit (new tab): the garden is still on this device, but the landing asks first
   const next = await context.newPage();
+  // a new tab misses the fixture's scripts: keep it on device-only accounts (on the real server looking around is closed, 007)
+  await next.addInitScript(() => { (window as unknown as { __localAuth?: boolean }).__localAuth = true });
   await next.setViewportSize({ width: 390, height: 844 });
   await next.goto("/proto3d?landing&weather=clear");
   await expect(welcome(next).getByRole("button", { name: "로그인", exact: true }).first()).toBeVisible({ timeout: 30_000 });

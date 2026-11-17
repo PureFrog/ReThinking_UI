@@ -68,6 +68,13 @@ export const supabaseAuth:AuthRepo={
     return error||!data.user?{ok:false,error:say(error?.message??'')}:{ok:true,account:toAccount(data.user)}},
   async logOut(){await supabase().auth.signOut()},
 };
+// 입장코드 (db/migrations/007): has this player entered one? null = could not ask (no table yet, offline): not gated here,
+// the server still refuses its functions and data to anyone without one
+export async function hasInvite():Promise<boolean|null>{
+  try{const {data,error}=await supabase().rpc('has_invite');return error?null:!!data}catch{return null}}
+export async function redeemInvite(code:string):Promise<'ok'|'already'|'bad'|'signin'|'error'>{
+  try{const {data,error}=await supabase().rpc('redeem_invite',{p_code:code});if(error)return 'error';
+    return data==='ok'||data==='already'||data==='bad'||data==='signin'?data:'error'}catch{return 'error'}}
 // the required consents an account still owes (a Kakao or Google sign-in never saw the sign-up form)
 export const missingConsents=(a:Account)=>CONSENTS.filter(c=>c.required&&!a.consents.includes(c.id)).map(c=>c.id);
 export type {AuthResult};

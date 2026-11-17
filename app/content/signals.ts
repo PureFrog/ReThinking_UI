@@ -7,6 +7,8 @@
 import type {AnalystId,ModelId} from './analysts';
 import type {Choice} from '../core/judgment';
 import type {Holding} from '../core/model';
+import {bars} from '../core/jigi/stocks';
+import {readBars,priceFlag,fmtPct} from '../core/real';
 export type Fact={k:string;v:string};
 export type Signal={id:string;holdingId:number;analyst:AnalystId;model:ModelId;loss:boolean;headline:string;evidence:Fact[];say:string;
   counter:Record<Choice,string>;deep?:{title:string;items:{k:string;ok:boolean}[]}};
@@ -58,9 +60,23 @@ export function madeSignal(h:Holding):Omit<Signal,'id'>|null{
     counter:{hold:'빚으로 올린 ROE는 금리에 약해. 그것도 봤어?',review:'설비 투자 빚이면 내년 매출로 돌아올 수도 있잖아.',watch:'좋아. 다음 분기 순이익률, 그게 진짜 답이야.'}};
   return null;
 }
+// a tree on real prices (core/real.ts): only moa, only what the real bars show (as of the latest close)
+export function realSignal(h:Holding):Omit<Signal,'id'>|null{
+  if(!h.code)return null;const r=readBars(h,bars(h.code));if(!r)return null;const flag=priceFlag(r);
+  if(flag==='crash')return {holdingId:h.id,analyst:'moa',model:'crash',loss:true,headline:`하루 ${fmtPct(r.dayMove)}, 거래량 ${r.volX}배`,
+    evidence:[{k:'당일 등락',v:fmtPct(r.dayMove)},{k:'거래량',v:`20일 평균의 ${r.volX}배`},{k:'산 가격 대비',v:fmtPct(r.rate)},{k:'기준일',v:r.asOf}],
+    say:'어, 거래량이 확 튀었어. 이유부터 찾자.',
+    counter:{hold:'거래량 터진 급락이야. 이유도 모르고 버텨?',review:'원인도 모르고 정하면 나중에 복기는 어떻게 해?',watch:'공시 나올 때까지? 안 나오면 언제까지 볼 건데?'}};
+  if(flag==='gradual')return {holdingId:h.id,analyst:'moa',model:'gradual',loss:true,headline:`20일선 아래 ${r.below20}거래일째`,
+    evidence:[{k:'20일선 아래',v:`${r.below20}거래일`},{k:'산 뒤 고점 대비',v:fmtPct(r.fromHigh)},{k:'산 가격 대비',v:fmtPct(r.rate)},{k:'기준일',v:r.asOf}],
+    say:'급하진 않은데, 20일선 밑에서 계속 머물러.',
+    counter:{hold:'조용히 빠지는 건 길게 가던데. 버틸 이유 있어?',review:'조용한 하락은 바닥도 조용히 와. 너무 이르지 않아?',watch:'보는 건 좋아. 전저점 깨지면 그땐 뭐 할 거야?'}};
+  return null;
+}
 export function mockSignals(holdings:Holding[],day:string):Signal[]{
-  return holdings.flatMap(h=>{const hand=ALL.find(s=>s.name===h.name);let s:Omit<Signal,'id'>|null=null;
-    if(hand){const {name:_n,...rest}=hand;s={...rest,holdingId:h.id}}else s=madeSignal(h);
+  return holdings.flatMap(h=>{const hand=h.real?null:ALL.find(s=>s.name===h.name);let s:Omit<Signal,'id'>|null=null;
+    if(h.real)s=realSignal(h);
+    else if(hand){const {name:_n,...rest}=hand;s={...rest,holdingId:h.id}}else s=madeSignal(h);
     return s?[{...s,id:`${s.model}:${h.id}:${day}`}]:[]});
 }
 export type SignalProvider={today(holdings:Holding[],day:string):Signal[]};

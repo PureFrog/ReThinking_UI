@@ -28,3 +28,20 @@ export function applyDrafts(holdings:Holding[],rows:Draft[],gone:number[],free:n
 export const freePlots=(holdings:Holding[],plots:number|number[])=>(typeof plots==='number'?[...Array(plots).keys()]:plots).filter(i=>!holdings.some(h=>h.plot===i));
 // a blank line for typing a company in by hand
 export const blankDraft=():Draft=>({name:'',rate:0,quantity:1,price:0,keep:true,held:'month',existing:null});
+
+// A holding on real prices (core/real.ts, private test): the stock by its KRX code, the buying day and quantity; price
+// is that day's real close (or what the player typed when the stock's bars are not uploaded yet). The return is filled
+// in from the latest close when the bars are there.
+export type RealDraft={code:string;name:string;date:string;quantity:number;price:number};
+export const realDraftOk=(r:RealDraft,today:string)=>/^\d{6}$/.test(r.code)&&!!r.name&&/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&r.date<=today&&r.quantity>0&&r.price>0;
+export function plantReal(holdings:Holding[],rows:RealDraft[],free:number[],kind:(name:string)=>number,now=Date.now()){
+ let next=[...holdings];const planted:Holding[]=[],left:RealDraft[]=[];const plots=[...free];
+ for(const [i,r] of rows.entries()){
+  // the same stock again replaces the earlier line (one tree per stock)
+  const ex=next.find(h=>h.code===r.code||h.name===r.name);
+  if(ex){next=next.map(h=>h===ex?{...h,code:r.code,name:r.name,date:r.date,quantity:r.quantity,price:r.price,rate:0,lossDays:0,real:true,asOf:undefined}:h);continue}
+  const plot=plots.shift();if(plot===undefined){left.push(r);continue}
+  const h:Holding={id:now+i,name:r.name,code:r.code,kind:kind(r.name),price:r.price,quantity:r.quantity,date:r.date,rate:0,plot,lossDays:0,real:true};
+  planted.push(h);next=[...next,h]}
+ return {holdings:next,planted,left};
+}

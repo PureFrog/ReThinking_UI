@@ -15,7 +15,8 @@ type G=ReturnType<typeof useGarden>;
 
 // onPlanted: the new trees (W1, they are born in the garden); onDemo: the demo garden was picked instead
 // reader: the server's real reading when signed in (a list, or what went wrong); without it the example reader
-export function Onboarding({g,onClose,onPlanted,onDemo,reader}:{g:G;onClose:()=>void;onPlanted?:(ids:number[],first:boolean)=>void;onDemo?:()=>void;reader?:((f:File)=>Promise<ReadHolding[]|string>)|null}){
+// onReal: 실제 시세로 넣기 (ui/RealEntry.tsx), when real prices are there (private test)
+export function Onboarding({g,onClose,onPlanted,onDemo,reader,onReal}:{g:G;onClose:()=>void;onPlanted?:(ids:number[],first:boolean)=>void;onDemo?:()=>void;reader?:((f:File)=>Promise<ReadHolding[]|string>)|null;onReal?:(()=>void)|null}){
   const first=!g.s.onboarded,holdings=g.s.holdings;
   // the confirm list; editing starts from the trees already planted
   const [rows,setRows]=useState<Draft[]|null>(()=>first?null:drafts(holdings.map(h=>({name:h.name,rate:h.rate})),holdings).rows);
@@ -56,6 +57,8 @@ export function Onboarding({g,onClose,onPlanted,onDemo,reader}:{g:G;onClose:()=>
         <Lens size={20}/><strong>{reading?'읽는 중':'캡처 올리기'}</strong><small>{reader?'증권 앱 보유 종목 화면. 여러 종목도 한 번에 읽어요.':'증권 앱 보유 종목 화면. 이 기기 밖으로 보내지 않아요.'}</small></button>
       <button type="button" className="rt-pick-card" onClick={()=>setRows([blankDraft()])}>
         <Plus size={20}/><strong>직접 입력</strong><small>종목명과 수익률만 있으면 돼요.</small></button>
+      {onReal&&<button type="button" className="rt-pick-card" onClick={onReal}>
+        <Plus size={20}/><strong>실제 시세로</strong><small>종목·산 날짜·수량만. 가격은 실제 종가로 채워요.</small></button>}
     </div>
     {readErr&&<p className="rt-err" role="alert">{readErr}</p>}
     <p className="rt-hint" style={{marginTop:14}}>{reader?'올린 캡처는 종목을 읽으려고 OpenAI(미국)로 한 번 보내고 저장하지 않아요. 계좌번호·총액은 읽지 않아요.':'로그인하면 캡처를 실제로 읽어요. 지금은 올리면 예시 4종목이 나와요.'}</p>
@@ -79,6 +82,7 @@ export function Onboarding({g,onClose,onPlanted,onDemo,reader}:{g:G;onClose:()=>
     </li>)}</ul>
     <div style={{display:'flex',gap:8,marginTop:10}}>
       <button type="button" className="rt-btn" onClick={()=>setRows(rs=>[...rs!,blankDraft()])}><Plus size={16}/>종목 추가</button>
+      {onReal&&<button type="button" className="rt-btn" onClick={onReal}><Plus size={16}/>실제 시세로 추가</button>}
       <button type="button" className="rt-btn" disabled={reading} onClick={()=>file.current?.click()}><Lens size={16}/>{reading?'읽는 중':'캡처 다시'}</button>
     </div>
     {missing.length>0&&<><div className="rt-section" style={{marginTop:18}}>캡처에 없는 나무</div>

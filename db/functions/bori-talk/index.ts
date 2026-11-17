@@ -41,6 +41,9 @@ Deno.serve(async(req:Request)=>{
   const url=Deno.env.get('SUPABASE_URL'),key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),openai=Deno.env.get('OPENAI_API_KEY');
   const me=await (await fetch(`${url}/auth/v1/user`,{headers:{apikey:key,authorization:req.headers.get('authorization')??''}})).json().catch(()=>null);
   if(!me?.id)return json({error:'sign-in'},401);
+  // private test (db/migrations/007): only players who entered an invite code
+  const inv=await fetch(`${url}/rest/v1/invite_uses?player_id=eq.${me.id}&select=player_id`,{headers:{apikey:key,authorization:`Bearer ${key}`}}).catch(()=>null);
+  if(!inv?.ok||!(await inv.json()).length)return json({error:'invite'},403);
   const b=await req.json().catch(()=>({})) as {action?:string;text?:string;client_message_id?:string;path?:string;holdings?:Holding[];signals?:string[];request_id?:string};
   const svc={apikey:key,authorization:`Bearer ${key}`,'content-type':'application/json'};
   const load=async(coll:string)=>{const r=await fetch(`${url}/rest/v1/llm1_docs?player_id=eq.${me.id}&coll=eq.${coll}&select=doc`,{headers:svc});const a=r.ok?await r.json():[];return a[0]?.doc??null};

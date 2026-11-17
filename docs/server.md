@@ -57,6 +57,11 @@
     - 로그인한 상태에서 보리를 눌러 말을 걸면 이 함수가 대답하고, 내가 한 말에서 투자 성향·종목 생각을 배워 프로필에 남겨(보리의 말은 근거가 안 됨).
     - 예전 `friend-chat` 함수는 더 이상 앱이 부르지 않아. 지워도 돼.
     - 모델: 모든 텍스트 함수의 기본은 GPT-6 Luna(`app/core/llmModel.ts`). 바꾸려면 시크릿 `OPENAI_MODEL`.
+15. **입장코드 · 실제 시세 (비공개 테스트, 2026-11-17)**: SQL Editor에서 `db/migrations/007_invite_prices.sql` Run (006 다음).
+    - 코드 만들기: Table Editor → `invite_codes` → Insert. `code`는 대문자(예: 팀만 아는 단어), `max_uses`는 몇 명까지. 코드는 저장소에 적지 않는다.
+    - 로그인한 사람은 코드를 한 번 넣어야 정원이 열린다. "가입 없이 둘러보기"는 실서버에서 닫힌다. 서버 함수 4개(`bori-talk`, `jigi-llm`, `portfolio-read`, `friend-chat`)도 코드 없으면 거절(403)하니 `node tools/build-functions.mjs`로 다시 빌드해서 붙여 넣는다.
+    - 시세 올리기: investment-evidence-system의 매일 실행(`live.py`)이 KRX 하루치를 받은 뒤 `python tools/prices/push_prices.py --env <키가 든 .env 경로>`. `.env`에는 `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` 두 줄(서비스 키는 이 파일에만, 코드·문서에 안 남김). 처음 실행은 2024-01-01부터 시가총액 상위 300 + 일지 12종목 + 정원 종목 일봉(약 20만 줄)을 올리고, 그 뒤로는 새 날짜만 올린다. `--dry`는 세기만 한다.
+    - 앱: 내 종목 → "실제 시세로"에서 종목·산 날짜·수량을 넣으면 산 가격은 그날 실제 종가, 수익률은 최근 종가(`app/core/real.ts`). 실제 시세 나무에는 차트에서 읽은 숫자만으로 모아 신호가 뜬다(토리 재무 신호는 재무 자료가 붙을 때까지 없음).
 
 들어가는 것: 가입하면 `players` 표에 닉네임과 동의 내역이 생겨(트리거). 카카오·구글로 처음 들어온 사람은 동의 화면을 한 번 거쳐.
 

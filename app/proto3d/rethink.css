@@ -590,3 +590,9 @@ button.rt-row:hover{filter:none;background:#16211b05}
 @media(prefers-reduced-motion:reduce){.rt-tut-spot,.rt-tut-card{transition:none}.rt-tut-spot::after,.rt-next{animation:none}}
 /* sideways phone: the tabs start under the two-line weather chip */
 @media(orientation:landscape) and (max-height:520px){.proto3d .rt-dock{top:calc(88px + env(safe-area-inset-top,0px))}}
+/* 실제 시세로 넣기 (ui/RealEntry.tsx): the stock search under its field */
+.rt-suggest{flex-basis:100%;list-style:none;margin:2px 0 0;padding:4px;background:#fffdf7;border:1px solid var(--rt-line);border-radius:12px;box-shadow:0 12px 28px -12px #10200d55;max-height:240px;overflow:auto}
+.rt-suggest button{display:flex;flex-direction:column;align-items:flex-start;width:100%;padding:8px 10px;border-radius:8px;text-align:left}
+.rt-suggest button:hover,.rt-suggest button:focus-visible{background:#22281f0d}
+.rt-suggest small{color:var(--rt-mute);font-size:11.5px}
+.rt-suggest-none{flex-basis:100%;margin:2px 0 0}

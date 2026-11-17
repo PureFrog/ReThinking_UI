@@ -18,6 +18,9 @@ Deno.serve(async(req:Request)=>{
   if(!openai)return json({fallback:true,error:'no-llm'});
   const me=await (await fetch(`${url}/auth/v1/user`,{headers:{apikey:key,authorization:req.headers.get('authorization')??''}})).json().catch(()=>null);
   if(!me?.id)return json({error:'sign-in'},401);
+  // private test (db/migrations/007): only players who entered an invite code
+  const inv=await fetch(`${url}/rest/v1/invite_uses?player_id=eq.${me.id}&select=player_id`,{headers:{apikey:key,authorization:`Bearer ${key}`}}).catch(()=>null);
+  if(!inv?.ok||!(await inv.json()).length)return json({error:'invite'},403);
   const b=await req.json().catch(()=>({})) as {mode?:string;journal?:any;block?:string;title?:string;topic?:string;facts?:unknown};
   const messages=b.mode==='extract'&&b.journal?extractPrompt(b.journal):b.mode==='assist'&&b.journal&&b.block?assistPrompt(b.journal,b.block,b.title??b.block)
     :b.mode==='explain'&&b.topic?explainPrompt(b.topic,b.facts):null;

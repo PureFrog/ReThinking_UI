@@ -2,7 +2,7 @@
 // The daily chart on a journal (지기 docs/jigi.md 5): mock bars as candles (red up, blue down, Korean custom), with a
 // mark where each journal of this stock was written; this page's mark is the main one. Plain SVG, no chart package.
 import {useMemo,useState} from 'react';
-import {RANGES,window_,type Range} from '../../core/jigi/stocks';
+import {RANGES,window_,isReal,type Range} from '../../core/jigi/stocks';
 
 export type ChartMark={date:string;price:number;main?:boolean};
 export function JigiChart({code,name,today,marks,range:start='6개월'}:{code:string;name:string;today:string;marks:ChartMark[];range?:Range}){
@@ -22,7 +22,7 @@ export function JigiChart({code,name,today,marks,range:start='6개월'}:{code:st
     return <>{grid}{candles}{pins}
       <text x={L} y={H-4} className="jg-ax">{bars[0].d}</text><text x={L+pw} y={H-4} textAnchor="end" className="jg-ax">{bars[n-1].d}</text></>})();
   return <div className="jg-chart">
-    <div className="jg-chart-head"><b>{name} 일봉</b><span className="jg-mock">모의 시세</span>
+    <div className="jg-chart-head"><b>{name} 일봉</b><span className="jg-mock">{isReal(code)?'실제 시세 · 종가':'모의 시세'}</span>
       <div className="jg-ranges" role="group" aria-label="차트 기간">{(Object.keys(RANGES) as Range[]).map(r=><button key={r} type="button" aria-pressed={r===range} onClick={()=>setRange(r)}>{r}</button>)}</div></div>
     {body?<svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${name} 일봉 차트와 기록 위치`}>{body}</svg>:<p className="rt-hint">가격을 못 불러왔어요. 글은 계속 쓸 수 있어요.</p>}
   </div>;

@@ -19,6 +19,9 @@ Deno.serve(async(req:Request)=>{
   // who is talking: the player's JWT
   const me=await (await fetch(`${url}/auth/v1/user`,{headers:{apikey:key,authorization:req.headers.get('authorization')??''}})).json().catch(()=>null);
   if(!me?.id)return json({error:'sign-in'},401);
+  // private test (db/migrations/007): only players who entered an invite code
+  const inv=await fetch(`${url}/rest/v1/invite_uses?player_id=eq.${me.id}&select=player_id`,{headers:{apikey:key,authorization:`Bearer ${key}`}}).catch(()=>null);
+  if(!inv?.ok||!(await inv.json()).length)return json({error:'invite'},403);
   const {ctx,history,message}=await req.json().catch(()=>({})) as {ctx?:FriendCtx;history?:TalkLine[];message?:string};
   if(!ctx||typeof message!=='string'||!message.trim())return json({error:'bad-request'},400);
   // today's count (Korea time)

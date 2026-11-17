@@ -22,12 +22,19 @@ export const stockOf=(code:string)=>STOCKS.find(s=>s.code===code)??STOCKS_EXTRA.
 export const stockByName=(name:string)=>STOCKS.find(s=>s.name===name)??null;
 export function searchStocks(q:string){const t=q.trim().toLowerCase();if(!t)return [];return STOCKS.filter(s=>s.name.toLowerCase().includes(t)||s.code.includes(t))}
 
-export type Bar={d:string;o:number;h:number;l:number;c:number};
+// v: volume (real bars only)
+export type Bar={d:string;o:number;h:number;l:number;c:number;v?:number};
 const DAY=864e5,EPOCH=Date.UTC(2014,0,1),REF='2026-11-13',END=Date.UTC(2029,0,1);
 function rng(seed:number){let a=seed;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 const cache=new Map<string,Bar[]>();
 // every weekday from 2014 to 2028 (no holidays in the mock), prices on the KRX tick
+// real daily bars (private test, Supabase price_daily, loaded by app/proto3d/prices.ts): they replace the mock ones
+const REAL=new Map<string,Bar[]>();
+export const isReal=(code:string)=>REAL.has(code);
+export function setReal(code:string,name:string,bs:Bar[]){if(!bs.length)return;REAL.set(code,bs);cache.delete(code);
+  if(!stockOf(code))STOCKS_EXTRA.push({code,name,mkt:'KOSPI',anchor:bs[bs.length-1].c,vol:.03})}
 export function bars(code:string):Bar[]{
+  const real=REAL.get(code);if(real)return real;
   const hit=cache.get(code);if(hit)return hit;
   const st=stockOf(code);if(!st)return [];
   const r=rng((/^\d+$/.test(code)?parseInt(code,10):parseInt(code.slice(1),10)+31)*7+13);let p=100,ref:Bar|null=null;const raw:Bar[]=[];

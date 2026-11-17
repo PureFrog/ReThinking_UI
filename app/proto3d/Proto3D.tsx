@@ -24,8 +24,11 @@ const CITY_SPOT=(id:string)=>CITIES.find(c=>c.id===id)?.at;
 import {nextStep} from '../core/next';
 import {Welcome} from './ui/Welcome';
 import {authRepo} from './server';
-import {missingConsents,boriTalk,boriOpen,jigiAI,readCapture} from './supabase';
-import {codeOf} from '../core/jigi/stocks';
+import {missingConsents,boriTalk,boriOpen,jigiAI,readCapture,hasInvite} from './supabase';
+import {searchNames,loadRealBars,fixturePrices,type PriceFixture} from './prices';
+import {RealEntry,type RealPrices} from './ui/RealEntry';
+import {refreshed} from '../core/real';
+import {codeOf,bars,isReal} from '../core/jigi/stocks';
 import {saveRepo,openedAt,markLocal} from './sync';
 import {syncPlan,SYNC} from '../core/sync';
 import type {GardenSave} from './state';
@@ -127,7 +130,7 @@ function useWeather(){
     setW({weather:isWeather(q)?q:weatherOf(m),index:m.index})},[]);
   return w;
 }
-type SheetState={kind:'journal';openId?:string}|{kind:'more'}|{kind:'onboard'}|{kind:'letter';month:string}|{kind:'settings'}|{kind:'map'}|{kind:'library'}|{kind:'grades';start:string}|{kind:'deep';holdingId:number;back:SheetState}|{kind:'lookback'}|{kind:'brief';start:{signalId?:string;holdingId?:number}|null}|{kind:'grades'|'case'|'rewind'|'today'|'records'|'drawer'|'cart'|'league'|'game'}|{kind:'analyst';id:AnalystId}|{kind:'friend'}|{kind:'write';id:string}|{kind:'verdict';journalId:string;hypoId:string}|{kind:'cities'}|null;
+type SheetState={kind:'journal';openId?:string}|{kind:'more'}|{kind:'onboard'}|{kind:'real'}|{kind:'letter';month:string}|{kind:'settings'}|{kind:'map'}|{kind:'library'}|{kind:'grades';start:string}|{kind:'deep';holdingId:number;back:SheetState}|{kind:'lookback'}|{kind:'brief';start:{signalId?:string;holdingId?:number}|null}|{kind:'grades'|'case'|'rewind'|'today'|'records'|'drawer'|'cart'|'league'|'game'}|{kind:'analyst';id:AnalystId}|{kind:'friend'}|{kind:'write';id:string}|{kind:'verdict';journalId:string;hypoId:string}|{kind:'cities'}|null;
 // where each pointer points (core/tips.ts)
 const TIP_AT:Record<TipId,{target?:string;point?:string}>={map:{target:'.proto3d-map'},me:{target:'.rt-me-chip'},house:{point:'house'},lapse:{target:'.rt-dock [data-tab="journal"]'}};
 // which tab a sheet belongs to: the journal's sheets light 일지, the rest of the daily loop's extras light 더보기
@@ -155,13 +158,18 @@ export default function Proto3D(){
   const [account,setAccount]=useState<Account|null>(()=>typeof window==='undefined'?null:authRepo.current());
   // 부지·건물·랜드마크 (core/land.ts, ui/Build.tsx): 넓히기 mode shows the closed lots on the garden; a tap asks first
   const [buildMode,setBuildMode]=useState(false),[want,setWant]=useState<Want|null>(null);
-  const [guest,setGuest]=useState(()=>{try{return sessionStorage.getItem('rethink-guest')==='1'}catch{return false}});
+  // looking around without an account: only with the device-only accounts (the private test closes it on the real server)
+  const [guest,setGuest]=useState(()=>{try{return authRepo.local&&sessionStorage.getItem('rethink-guest')==='1'}catch{return false}});
   const [authKnown,setAuthKnown]=useState(()=>typeof window==='undefined'||authRepo.local||!authRepo.maybeSignedIn());
   useEffect(()=>authRepo.onChange(a=>{setAccount(a);setAuthKnown(true)}),[]);
   const owing=account&&missingConsents(account).length?account:null;
+  // 입장코드 (private test, db/migrations/007): a server account must have entered one; null = not known yet / not asked
+  const [invited,setInvited]=useState<boolean|null>(null);
+  useEffect(()=>{if(!account||authRepo.local||owing){setInvited(null);return}let on=true;void hasInvite().then(v=>{if(on)setInvited(v)});return()=>{on=false}},[account?.email,!!owing]);// eslint-disable-line react-hooks/exhaustive-deps
+  const needInvite=!!account&&!authRepo.local&&!owing&&invited===false;
   // signed in with Supabase: the garden is kept on the server too (proto3d/sync.ts). First the two copies are compared
   // (core/sync.ts), then every change goes up after a quiet moment. Not for guests, device-only accounts or ?demo.
-  const syncOn=!!account&&!authRepo.local&&!!saveRepo&&!owing&&typeof window!=='undefined'&&!new URLSearchParams(location.search).has('demo');
+  const syncOn=!!account&&!authRepo.local&&!!saveRepo&&!owing&&invited!==false&&typeof window!=='undefined'&&!new URLSearchParams(location.search).has('demo');
   const [synced,setSynced]=useState(false);
   useEffect(()=>{if(!syncOn||!saveRepo){setSynced(false);return}let on=true;
     saveRepo.pull().then(remote=>{if(!on||remote==='error')return;
@@ -170,7 +178,7 @@ export default function Proto3D(){
       setSynced(true)});
     return()=>{on=false}},[syncOn,account?.email]);// eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{if(!synced||!saveRepo)return;const repo=saveRepo;const t=setTimeout(()=>{void repo.push(g.s).then(at=>{if(at){markLocal(at);void repo.pushJigi(g.s.journals??[])}})},SYNC.pushAfter);return()=>clearTimeout(t)},[synced,g.s]);
-  const welcome=!!owing||(!account&&!guest&&authKnown&&!(typeof window!=='undefined'&&(window as {__noLanding?:boolean}).__noLanding));
+  const welcome=!!owing||needInvite||(!account&&!guest&&authKnown&&!(typeof window!=='undefined'&&(window as {__noLanding?:boolean}).__noLanding));
   const [early,setEarly]=useState(false);
   // a grade being revealed makes its tree react in the garden (Scene3D Burst)
   const [burst,setBurst]=useState<World['burst']>(null),[focus,setFocus]=useState<number|null>(null);
@@ -256,11 +264,22 @@ export default function Proto3D(){
   const lapseMarket=lapse&&lapseBack>0?marketProvider.today(lapseDay):null;
   const weather=expedition&&gameMarket!==null?weatherOf({index:gameMarket,swing:Math.abs(gameMarket)*1.6}):lapseMarket?weatherOf(lapseMarket):w?.weather??'clear',wl=LOOK.weather[weather];
   const holdings=g.s.holdings,ready=g.s.onboarded;
+  // real prices (private test, prices.ts): for a signed-in player with an invite code, or an e2e page with a fixture
+  const fixture=typeof window!=='undefined'?(window as unknown as {__priceFixture?:PriceFixture}).__priceFixture:undefined;
+  const realPrices=useMemo<RealPrices|null>(()=>fixture?fixturePrices(fixture):syncOn?{search:searchNames,load:loadRealBars}:null,[fixture,syncOn]);
+  const [pricesAt,setPricesAt]=useState(0);
+  const realKey=holdings.filter(h=>h.real&&h.code).map(h=>h.code).join(',');
+  // load the bars of the trees on real prices, then bring their return up to the latest close
+  useEffect(()=>{if(!realPrices||!realKey)return;let on=true;
+    void realPrices.load(g.s.holdings.filter(h=>h.real&&h.code).map(h=>({code:h.code!,name:h.name}))).then(()=>{if(!on)return;
+      const cur=g.s.holdings,next=cur.map(h=>h.real&&h.code&&isReal(h.code)?refreshed(h,bars(h.code)):h);
+      if(next.some((h,i)=>h!==cur[i]))g.ops.setHoldings(next);setPricesAt(Date.now())});
+    return()=>{on=false}},[realPrices,realKey]);// eslint-disable-line react-hooks/exhaustive-deps
   // what the garden draws: the holdings now, or as they stood in the timelapse week (absent before they were bought)
   // the first screens stand on the world itself: an example garden grows behind them (shown only, never saved)
   const shown=useMemo(()=>welcome?DEMO_HOLDINGS:lapse?holdings.flatMap(x=>{const p=holdingAt(x,lapseBack);return p?[p]:[]}):holdings,[holdings,lapse?.i,welcome]);// eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{const hk=((window as {__proto3d?:{lapse?:unknown}}).__proto3d??={} as {lapse?:unknown});hk.lapse=lapse?{day:lapseDay,back:lapseBack,trees:shown.length,weather}:null},[lapse,shown]);// eslint-disable-line react-hooks/exhaustive-deps
-  const signals=useMemo(()=>signalProvider.today(holdings,clock.today),[holdings,clock.today]);
+  const signals=useMemo(()=>signalProvider.today(holdings,clock.today),[holdings,clock.today,pricesAt]);// eslint-disable-line react-hooks/exhaustive-deps
   // a signal is answered by a journal saved today on its stock (or, before 지기, a judgment)
   const wroteToday=(holdingId:number)=>judgedToday(s.judgments,holdingId,clock.today)||(s.journals??[]).some(j=>j.holdingId===holdingId&&j.status==='saved'&&!j.demo&&!j.practice&&j.savedAt!=null&&isoDay(new Date(j.savedAt))===clock.today);
   const open=signals.filter(x=>!wroteToday(x.holdingId));
@@ -530,7 +549,9 @@ export default function Proto3D(){
       {sheet?.kind==='rewind'&&<RewindView g={g} onClose={close}/>}
       {sheet?.kind==='today'&&<TodaySheet g={g} tasks={tasks} onGo={goTask} onClose={close}/>}
       {sheet?.kind==='case'&&<CaseView g={g} c={caseDone?CASES.find(c=>c.id===answeredToday(s.cases,clock.today)!.caseId)??todayCase:todayCase} onClose={close}/>}
-      {sheet?.kind==='onboard'&&!welcome&&<Onboarding g={g} onClose={close} reader={syncOn?readCapture:null}
+      {sheet?.kind==='real'&&!welcome&&realPrices&&<RealEntry g={g} prices={realPrices} onClose={close}
+        onPlanted={(ids,first)=>{setSheet(null);setPricesAt(Date.now());startBirth(ids,first&&s.seen.birth===0,first?()=>setSheet({kind:'lookback'}):undefined)}}/>}
+      {sheet?.kind==='onboard'&&!welcome&&<Onboarding g={g} onClose={close} reader={syncOn?readCapture:null} onReal={realPrices?()=>setSheet({kind:'real'}):null}
         onPlanted={(ids,first)=>{setSheet(null);startBirth(ids,first&&s.seen.birth===0,first?()=>setSheet({kind:'lookback'}):undefined)}}
         onDemo={()=>{setSheet(null);startBirth(DEMO_HOLDINGS.map(x=>x.id),s.seen.birth===0)}}/>}
       {birth&&<BirthCards birth={birth} holdings={holdings} onSkip={skipBirth}/>}
@@ -554,8 +575,8 @@ export default function Proto3D(){
       {sheet?.kind==='analyst'&&<AnalystCard g={g} id={sheet.id} signal={open.find(x=>x.analyst===sheet.id)??null} onClose={close}
         onBrief={()=>{const sig=open.find(x=>x.analyst===sheet.id);if(sig)setSheet({kind:'brief',start:{signalId:sig.id}})}}/>}
       {g.toast&&<div key={g.toast.id} className="rt-toast" role="status">{g.toast.text}</div>}
-      {welcome&&<Welcome owing={owing} onAccount={(a,isNew)=>{setAccount(a);if(isNew||!s.name)g.ops.setName(a.nickname)}}
-        onGuest={()=>{try{sessionStorage.setItem('rethink-guest','1')}catch{/* this page only */}setGuest(true)}}/>}
+      {welcome&&<Welcome owing={owing} invite={needInvite} onInvited={()=>setInvited(true)} onAccount={(a,isNew)=>{setAccount(a);if(isNew||!s.name)g.ops.setName(a.nickname)}}
+        onGuest={authRepo.local?()=>{try{sessionStorage.setItem('rethink-guest','1')}catch{/* this page only */}setGuest(true)}:null}/>}
     </div>
   );
 }

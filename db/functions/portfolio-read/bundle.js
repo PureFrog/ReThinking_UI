@@ -69,6 +69,8 @@ Deno.serve(async (req) => {
   if (!openai) return json({ error: "no-llm" }, 503);
   const me = await (await fetch(`${url}/auth/v1/user`, { headers: { apikey: key, authorization: req.headers.get("authorization") ?? "" } })).json().catch(() => null);
   if (!me?.id) return json({ error: "sign-in" }, 401);
+  const inv = await fetch(`${url}/rest/v1/invite_uses?player_id=eq.${me.id}&select=player_id`, { headers: { apikey: key, authorization: `Bearer ${key}` } }).catch(() => null);
+  if (!inv?.ok || !(await inv.json()).length) return json({ error: "invite" }, 403);
   const { image } = await req.json().catch(() => ({}));
   if (typeof image !== "string" || !/^data:image\/(jpeg|png|webp);base64,/.test(image) || image.length > CAPTURE.maxBytes * 1.4) return json({ error: "bad-image" }, 400);
   const day = new Date(Date.now() + 9 * 36e5).toISOString().slice(0, 10);

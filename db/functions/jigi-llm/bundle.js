@@ -115,6 +115,8 @@ Deno.serve(async (req) => {
   if (!openai) return json({ fallback: true, error: "no-llm" });
   const me = await (await fetch(`${url}/auth/v1/user`, { headers: { apikey: key, authorization: req.headers.get("authorization") ?? "" } })).json().catch(() => null);
   if (!me?.id) return json({ error: "sign-in" }, 401);
+  const inv = await fetch(`${url}/rest/v1/invite_uses?player_id=eq.${me.id}&select=player_id`, { headers: { apikey: key, authorization: `Bearer ${key}` } }).catch(() => null);
+  if (!inv?.ok || !(await inv.json()).length) return json({ error: "invite" }, 403);
   const b = await req.json().catch(() => ({}));
   const messages = b.mode === "extract" && b.journal ? extractPrompt(b.journal) : b.mode === "assist" && b.journal && b.block ? assistPrompt(b.journal, b.block, b.title ?? b.block) : b.mode === "explain" && b.topic ? explainPrompt(b.topic, b.facts) : null;
   if (!messages) return json({ error: "bad-request" }, 400);

@@ -5,14 +5,17 @@
 import {useEffect,useState} from 'react';
 import {Logo} from './Logo';
 import {authRepo} from '../server';
-import {authNotice} from '../supabase';
+import {authNotice,redeemInvite} from '../supabase';
 import {CONSENTS,NICK_MAX,checkSignUp,type Account,type ConsentId} from '../../core/auth';
 
 type View='land'|'login'|'signup';
 // owing: an account signed in with Kakao or Google that has not agreed to the terms yet — it only sees that step
-export function Welcome({onAccount,onGuest,owing,shot='/brand/shot-home.webp'}:{onAccount:(a:Account,isNew:boolean)=>void;onGuest:()=>void;owing?:Account|null;shot?:string}){
+// invite: signed in but no invite code yet (private test, db/migrations/007) — it only sees the code step
+// onGuest: null when looking around without an account is closed (the private test on the real server)
+export function Welcome({onAccount,onGuest,owing,invite,onInvited,shot='/brand/shot-home.webp'}:{onAccount:(a:Account,isNew:boolean)=>void;onGuest:(()=>void)|null;owing?:Account|null;invite?:boolean;onInvited?:()=>void;shot?:string}){
   const [view,setView]=useState<View>(()=>{try{const v=new URLSearchParams(location.search).get('welcome');return v==='login'||v==='signup'?v:'land'}catch{return 'land'}});
   if(owing)return <div className="rt-wel" data-testid="welcome" data-view="signup"><ConsentStep account={owing} onDone={a=>onAccount(a,true)}/></div>;
+  if(invite)return <div className="rt-wel" data-testid="welcome" data-view="invite"><InviteStep onDone={()=>onInvited?.()}/></div>;
   return <div className="rt-wel" data-testid="welcome" data-view={view}>
     {view==='land'&&<Landing shot={shot} onSignup={()=>setView('signup')} onLogin={()=>setView('login')} onGuest={onGuest}/>}
     {view==='login'&&<LogIn onBack={()=>setView('land')} onSignup={()=>setView('signup')} onDone={a=>onAccount(a,false)}/>}
@@ -21,7 +24,7 @@ export function Welcome({onAccount,onGuest,owing,shot='/brand/shot-home.webp'}:{
 }
 
 // a title screen over the live garden: the logo, one line under it, two buttons and a link, the notice at the foot
-function Landing({onSignup,onLogin,onGuest}:{shot:string;onSignup:()=>void;onLogin:()=>void;onGuest:()=>void}){
+function Landing({onSignup,onLogin,onGuest}:{shot:string;onSignup:()=>void;onLogin:()=>void;onGuest:(()=>void)|null}){
   return <section className="rt-wel-title" aria-label="시작">
     <button type="button" className="rt-wel-pill rt-wel-top" onClick={onLogin}>로그인</button>
     <div className="rt-wel-mark"><Logo animate height="var(--logo-h)"/><p className="rt-wel-tag">내 종목으로 키우는 투자 판단 정원</p></div>
@@ -29,7 +32,7 @@ function Landing({onSignup,onLogin,onGuest}:{shot:string;onSignup:()=>void;onLog
     <div className="rt-wel-panel">
       <button type="button" className="rt-gbtn green" onClick={onSignup}>시작하기</button>
       <button type="button" className="rt-gbtn light" onClick={onLogin}>로그인</button>
-      <button type="button" className="rt-wel-guest" onClick={onGuest}>가입 없이 둘러보기</button>
+      {onGuest&&<button type="button" className="rt-wel-guest" onClick={onGuest}>가입 없이 둘러보기</button>}
     </div>
     <p className="rt-wel-legal">본 서비스는 투자 권유를 목적으로 하지 않으며, 제공되는 정보는 과거 및 모의 데이터에 기반한 참고 자료입니다. 투자 판단과 그 결과에 대한 책임은 이용자 본인에게 있습니다.</p>
   </section>;
@@ -101,6 +104,25 @@ function SignUpForm({onBack,onLogin,onDone}:{onBack:()=>void;onLogin:()=>void;on
 }
 
 // after a first Kakao or Google sign-in: the nickname (from the provider, editable) and the same consents as sign-up
+// 입장코드 (private test): one code, once; the server counts its uses (redeem_invite)
+function InviteStep({onDone}:{onDone:()=>void}){
+  const [code,setCode]=useState(''),[err,setErr]=useState<string|null>(null),[busy,setBusy]=useState(false);
+  const submit=async()=>{if(!code.trim())return;setBusy(true);setErr(null);const r=await redeemInvite(code);setBusy(false);
+    if(r==='ok'||r==='already')onDone();
+    else setErr(r==='bad'?'맞지 않거나 다 쓴 코드예요. 받은 코드를 다시 확인해 주세요':r==='signin'?'로그인이 풀렸어요. 다시 로그인해 주세요':'지금 확인하지 못했어요. 잠시 뒤에 다시 시도해 주세요')};
+  return <section className="rt-wel-auth" aria-label="입장코드">
+    <Logo height={64}/>
+    <form className="rt-wel-card" onSubmit={e=>{e.preventDefault();void submit()}}>
+      <h2>입장코드</h2>
+      <p className="rt-wel-sub">지금은 초대받은 분만 쓸 수 있어요. 받은 코드를 넣어 주세요.</p>
+      <label className="rt-wel-field">코드<input aria-label="입장코드" autoCapitalize="characters" autoComplete="off" value={code} maxLength={32} onChange={e=>setCode(e.target.value.toUpperCase())}/></label>
+      {err&&<p className="rt-wel-err" role="alert">{err}</p>}
+      <button type="submit" className="rt-gbtn green" disabled={busy||!code.trim()}>들어가기</button>
+      <div className="rt-wel-links"><button type="button" onClick={()=>void authRepo.logOut()}>다른 계정으로 로그인</button></div>
+    </form>
+  </section>;
+}
+
 function ConsentStep({account,onDone}:{account:Account;onDone:(a:Account)=>void}){
   const [nick,setNick]=useState(account.nickname.slice(0,NICK_MAX)),[agree,setAgree]=useState<ConsentId[]>(account.consents);
   const [tried,setTried]=useState(false),[err,setErr]=useState<string|null>(null),[busy,setBusy]=useState(false);
