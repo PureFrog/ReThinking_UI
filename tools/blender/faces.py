@@ -19,7 +19,7 @@ def bbox(objs):
             lo = Vector(map(min, lo, w)); hi = Vector(map(max, hi, w))
     return lo, hi
 
-for name in ('tori', 'moa', 'luon'):
+for name in ('tori', 'moa', 'luon', 'bori'):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=os.path.join(SRC, name + '.glb'))
     bpy.context.view_layer.update()
