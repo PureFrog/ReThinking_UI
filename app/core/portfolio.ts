@@ -45,3 +45,17 @@ export function plantReal(holdings:Holding[],rows:RealDraft[],free:number[],kind
   planted.push(h);next=[...next,h]}
  return {holdings:next,planted,left};
 }
+
+// A captured or typed line on real prices (private test): its name found among the KRX names (exact, ignoring spaces
+// and case; or the only hit), then a buying day from roughly how long it has been held and the average price the
+// capture shows (or, without one, that day's close).
+const norm=(s:string)=>s.replace(/\s+/g,'').toLowerCase();
+export function matchName<T extends {code:string;name:string}>(name:string,hits:T[]):T|null{
+ const n=norm(name);if(!n)return null;
+ return hits.find(h=>norm(h.name)===n)??(hits.length===1&&norm(hits[0].name).includes(n)?hits[0]:null);
+}
+export function draftToReal(d:Draft,stock:{code:string;name:string},today:string,closeOn:(day:string)=>number|null):RealDraft|null{
+ const date=back(HELD.find(x=>x.id===d.held)!.days,today);
+ const price=d.price>0?d.price:closeOn(date)??0;
+ return price>0?{code:stock.code,name:stock.name,date,quantity:Math.max(1,d.quantity||1),price}:null;
+}

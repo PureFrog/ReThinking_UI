@@ -551,7 +551,7 @@ export default function Proto3D(){
       {sheet?.kind==='case'&&<CaseView g={g} c={caseDone?CASES.find(c=>c.id===answeredToday(s.cases,clock.today)!.caseId)??todayCase:todayCase} onClose={close}/>}
       {sheet?.kind==='real'&&!welcome&&realPrices&&<RealEntry g={g} prices={realPrices} onClose={close}
         onPlanted={(ids,first)=>{setSheet(null);setPricesAt(Date.now());startBirth(ids,first&&s.seen.birth===0,first?()=>setSheet({kind:'lookback'}):undefined)}}/>}
-      {sheet?.kind==='onboard'&&!welcome&&<Onboarding g={g} onClose={close} reader={syncOn?readCapture:null} onReal={realPrices?()=>setSheet({kind:'real'}):null}
+      {sheet?.kind==='onboard'&&!welcome&&<Onboarding g={g} onClose={close} reader={syncOn?readCapture:null} real={realPrices} onReal={realPrices?()=>setSheet({kind:'real'}):null}
         onPlanted={(ids,first)=>{setSheet(null);startBirth(ids,first&&s.seen.birth===0,first?()=>setSheet({kind:'lookback'}):undefined)}}
         onDemo={()=>{setSheet(null);startBirth(DEMO_HOLDINGS.map(x=>x.id),s.seen.birth===0)}}/>}
       {birth&&<BirthCards birth={birth} holdings={holdings} onSkip={skipBirth}/>}

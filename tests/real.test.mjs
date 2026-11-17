@@ -62,3 +62,16 @@ test('planting on real prices: one tree per stock, real flag, held days to today
   assert.equal(P.realDraftOk({...rows[0],price:0},'2026-11-17'),false);
   assert.equal(M.heldDays('2026-11-07','2026-11-17'),10);
 });
+
+test('a captured or typed name finds its KRX code; the buying day comes from the held period, the price from the capture or that close', () => {
+  const hits=[{code:'005930',name:'삼성전자'},{code:'005935',name:'삼성전자우'}];
+  assert.equal(P.matchName('삼성 전자',hits).code,'005930');
+  assert.equal(P.matchName('삼성',hits),null);// two hits, no exact one
+  assert.equal(P.matchName('하이닉스',[{code:'000660',name:'SK하이닉스'}]).code,'000660');// the only hit
+  assert.equal(P.matchName('한빛전자',[]),null);
+  const d={name:'삼성전자',rate:-3,quantity:4,price:71000,keep:true,held:'month',existing:null};
+  const r=P.draftToReal(d,hits[0],'2026-11-17',()=>65000);
+  assert.deepEqual(r,{code:'005930',name:'삼성전자',date:'2026-10-18',quantity:4,price:71000});
+  assert.equal(P.draftToReal({...d,price:0},hits[0],'2026-11-17',()=>65000).price,65000);
+  assert.equal(P.draftToReal({...d,price:0},hits[0],'2026-11-17',()=>null),null);
+});

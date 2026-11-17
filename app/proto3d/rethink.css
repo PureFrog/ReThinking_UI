@@ -596,3 +596,5 @@ button.rt-row:hover{filter:none;background:#16211b05}
 .rt-suggest button:hover,.rt-suggest button:focus-visible{background:#22281f0d}
 .rt-suggest small{color:var(--rt-mute);font-size:11.5px}
 .rt-suggest-none{flex-basis:100%;margin:2px 0 0}
+.rt-real-tag{font-size:11.5px;color:var(--rt-mute)}
+.rt-real-tag[data-real="yes"]{color:#2f8a3a}

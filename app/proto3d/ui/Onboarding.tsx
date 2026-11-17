@@ -3,9 +3,13 @@
 // capture of the brokerage screen, or typing them in, or the demo garden. Later (from the track record): the same list
 // to recapture or edit. The rules are app/core/portfolio.ts; reading the picture is app/content/portfolio.ts (mock now).
 // Nothing here buys or sells: removing a tree only takes it out of the garden.
-import {useRef,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {Lens,Plus,Strike} from './Icons';
-import {drafts,applyDrafts,freePlots,blankDraft,HELD,type Draft,type HeldId} from '../../core/portfolio';
+import {drafts,applyDrafts,freePlots,blankDraft,HELD,matchName,draftToReal,plantReal,type Draft,type HeldId,type RealDraft} from '../../core/portfolio';
+import {buyClose,refreshed} from '../../core/real';
+import {bars,isReal} from '../../core/jigi/stocks';
+import {realToday} from '../../core/model';
+import type {RealPrices} from './RealEntry';
 import {portfolioReader,kindOf,type ReadHolding} from '../../content/portfolio';
 import {openPlots} from '../../core/land';
 import {UI,line} from '../../content/analysts';
@@ -16,7 +20,8 @@ type G=ReturnType<typeof useGarden>;
 // onPlanted: the new trees (W1, they are born in the garden); onDemo: the demo garden was picked instead
 // reader: the server's real reading when signed in (a list, or what went wrong); without it the example reader
 // onReal: 실제 시세로 넣기 (ui/RealEntry.tsx), when real prices are there (private test)
-export function Onboarding({g,onClose,onPlanted,onDemo,reader,onReal}:{g:G;onClose:()=>void;onPlanted?:(ids:number[],first:boolean)=>void;onDemo?:()=>void;reader?:((f:File)=>Promise<ReadHolding[]|string>)|null;onReal?:(()=>void)|null}){
+// real: the KRX names and bars: a captured or typed line whose name is found goes in on real prices (core/real.ts)
+export function Onboarding({g,onClose,onPlanted,onDemo,reader,onReal,real}:{g:G;onClose:()=>void;onPlanted?:(ids:number[],first:boolean)=>void;onDemo?:()=>void;reader?:((f:File)=>Promise<ReadHolding[]|string>)|null;onReal?:(()=>void)|null;real?:RealPrices|null}){
   const first=!g.s.onboarded,holdings=g.s.holdings;
   // the confirm list; editing starts from the trees already planted
   const [rows,setRows]=useState<Draft[]|null>(()=>first?null:drafts(holdings.map(h=>({name:h.name,rate:h.rate})),holdings).rows);
@@ -35,10 +40,26 @@ export function Onboarding({g,onClose,onPlanted,onDemo,reader,onReal}:{g:G;onClo
   // the open plots (core/land.ts): 14 at first, more with each piece of land opened
   const open=openPlots(g.s.built?.land??[]),cap=open.length;
   const over=staying+newOnes>cap;
-  const plant=()=>{
+  // each new line's stock among the KRX names (undefined: not looked up yet, null: not found → a mock tree)
+  const [found,setFound]=useState<Record<string,{code:string;name:string}|null>>({});
+  const names=(rows??[]).filter(r=>r.keep&&r.existing===null).map(r=>r.name.trim()).filter(Boolean);
+  useEffect(()=>{if(!real)return;const todo=names.filter(n=>!(n in found));if(!todo.length)return;let on=true;
+    const t=setTimeout(()=>{void Promise.all(todo.map(async n=>[n,matchName(n,await real.search(n))] as const)).then(r=>{if(on)setFound(f=>({...f,...Object.fromEntries(r)}))})},300);
+    return()=>{on=false;clearTimeout(t)}},[real,names.join('|')]);// eslint-disable-line react-hooks/exhaustive-deps
+  const [planting,setPlanting]=useState(false);
+  const plant=async()=>{
     const clean=kept.map(r=>({...r,name:r.name.trim()}));
     const base=holdings.filter(h=>!removed.includes(h.id));
-    const out=applyDrafts(holdings,clean,removed,freePlots(base,open),kindOf);
+    // lines found among the KRX names go in on real prices; the rest stay as typed (mock)
+    const today=realToday(),onReal=real?clean.filter(r=>r.existing===null&&found[r.name]):[];
+    let reals:RealDraft[]=[];
+    if(onReal.length){setPlanting(true);await real!.load(onReal.map(r=>found[r.name]!));setPlanting(false);
+      reals=onReal.flatMap(r=>{const s=found[r.name]!,d=draftToReal(r,s,today,day=>isReal(s.code)?buyClose(bars(s.code),day)?.c??null:null);return d?[d]:[]})}
+    const realNames=new Set(onReal.filter(r=>reals.some(x=>x.code===found[r.name]!.code)).map(r=>r.name));
+    const mock=applyDrafts(holdings,clean.filter(r=>!realNames.has(r.name)),removed,freePlots(base,open),kindOf);
+    const both=plantReal(mock.holdings,reals,freePlots(mock.holdings,open),kindOf);
+    const next=both.holdings.map(h=>h.real&&h.code&&isReal(h.code)?refreshed(h,bars(h.code)):h);
+    const out={holdings:next,planted:[...mock.planted,...both.planted]};
     g.ops.setHoldings(out.holdings);
     g.say(first?line(UI.planted,{n:out.holdings.length}):line(UI.replanted,{n:out.holdings.length}));
     if(onPlanted)onPlanted(out.planted.map(h=>h.id),first);else onClose();
@@ -65,7 +86,7 @@ export function Onboarding({g,onClose,onPlanted,onDemo,reader,onReal}:{g:G;onClo
   </Sheet>;
 
   return <Sheet kicker={first?'시작 · 확인':'내 종목'} title={`${kept.length}종목`} label="종목 확인" onClose={onClose}
-    foot={<button type="button" className="rt-btn primary wide" disabled={(kept.length===0&&staying===0)||over} onClick={plant}>{first?`정원에 넣기 · ${kept.length}종목`:'반영'}</button>}>
+    foot={<button type="button" className="rt-btn primary wide" disabled={(kept.length===0&&staying===0)||over||planting} onClick={()=>void plant()}>{planting?'시세 불러오는 중':first?`정원에 넣기 · ${kept.length}종목`:'반영'}</button>}>
     {picker}
     <p className="rt-hint">종목명과 수익률을 확인해 주세요. 보유 기간이 길수록 나무가 커요.</p>
     <ul className="rt-drafts">{rows.map((r,i)=>!r.keep&&r.existing===null?null:<li key={i} className={r.keep?'':'off'}>
@@ -79,6 +100,8 @@ export function Onboarding({g,onClose,onPlanted,onDemo,reader,onReal}:{g:G;onClo
         {r.existing===null&&<select className="rt-input" value={r.held} aria-label={`${r.name||i+1+'번'} 보유 기간`} onChange={e=>edit(i,{held:e.target.value as HeldId})}>
           {HELD.map(h=><option key={h.id} value={h.id}>{h.label}</option>)}</select>}
       </div>}
+      {real&&r.keep&&r.existing===null&&r.name.trim()&&(()=>{const f=found[r.name.trim()];
+        return <small className="rt-real-tag" data-real={f?'yes':f===null?'no':'wait'}>{f===undefined?'실제 시세 찾는 중':f?`실제 시세 · ${f.name} ${f.code}${r.price>0?' · 평균단가로':' · 그때 종가로'}`:'실제 시세에 없는 이름이에요 · 모의 시세로 들어가요'}</small>})()}
     </li>)}</ul>
     <div style={{display:'flex',gap:8,marginTop:10}}>
       <button type="button" className="rt-btn" onClick={()=>setRows(rs=>[...rs!,blankDraft()])}><Plus size={16}/>종목 추가</button>

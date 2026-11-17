@@ -47,3 +47,28 @@ test("a new player puts a stock in on real prices: buying close from that day, r
   expect(h.lossDays).toBeGreaterThan(0);
   expect(errors).toEqual([]);
 });
+
+// capture or typed lines (ui/Onboarding.tsx): a name found among the KRX names goes in on real prices (buying day from
+// the held period, price from the capture's average or that day's close); a name not found stays a mock tree
+test("typed lines: a KRX name goes in on real prices, an unknown one stays mock", async ({ page }) => {
+  const fx = fixture();
+  await page.addInitScript(f => { (window as unknown as { __priceFixture?: unknown }).__priceFixture = f }, fx);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/proto3d?fresh&weather=clear");
+  await page.getByRole("dialog", { name: "내 종목 넣기" }).getByRole("button", { name: /직접 입력/ }).click({ timeout: 30_000 });
+  const list = page.getByRole("dialog", { name: "종목 확인" });
+  await list.getByLabel("1번 종목 이름").fill("삼성전자");
+  await list.getByLabel("삼성전자 보유 기간").selectOption("month");
+  await list.getByRole("button", { name: "종목 추가" }).click();
+  await list.getByLabel("2번 종목 이름").fill("한빛전자");
+  await list.getByLabel("한빛전자 수익률").fill("-31");
+  await expect(list.locator('.rt-real-tag[data-real="yes"]')).toContainText("005930");
+  await expect(list.locator('.rt-real-tag[data-real="no"]')).toContainText("모의");
+  await list.getByRole("button", { name: "정원에 넣기 · 2종목" }).click();
+  await expect.poll(async () => (await save(page)).holdings?.length ?? 0, { timeout: 10_000 }).toBe(2);
+  const hs = (await save(page)).holdings as { name: string; real?: boolean; code?: string; price: number; asOf?: string }[];
+  const sam = hs.find(h => h.name === "삼성전자")!, han = hs.find(h => h.name === "한빛전자")!;
+  expect(sam).toMatchObject({ real: true, code: "005930", asOf: fx.bars["005930"].at(-1)!.d });
+  expect(sam.price).toBeGreaterThan(0);
+  expect(han.real).toBeFalsy();
+});
