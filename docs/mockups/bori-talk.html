@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>보리 대화창 시안</title>
+<!-- 2026-11-17 feedback: when 보리 comes over, the talk takes the bottom of the screen like a game dialogue (name tag, lines
+     typed out, ▼ to go on, reply choices), and the camera comes close on the two of them. Our look: a glass panel. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#22281f;--sub:#4c5447;--mute:#5e665a;--seal:#2f8a3a;--coin:#c98a16;--glass:#ffffffdb}
+*{box-sizing:border-box;margin:0}
+html,body{background:#1b1d1a;font-family:'Gowun Dodum',sans-serif;color:var(--ink)}
+.wrap{display:flex;gap:28px;justify-content:center;flex-wrap:wrap;padding:28px 16px 40px}
+.col{display:flex;flex-direction:column;gap:10px;align-items:center}
+.cap{color:#e8ece2;font-size:14px;text-align:center;max-width:390px;line-height:1.5}
+.cap b{font-family:'Jua';font-weight:400;font-size:16px;display:block;color:#fff}
+.phone{position:relative;width:390px;height:844px;border-radius:34px;overflow:hidden;background:#7da35f url(bori-talk/bg.png) center/cover;box-shadow:0 20px 50px #0008}
+/* everything else steps back while 보리 talks: only a small way out stays */
+.leave{position:absolute;top:18px;right:16px;font-size:12.5px;padding:7px 12px;border-radius:999px;background:#ffffffb8;border:1px solid #ffffffd0;color:var(--sub)}
+.box{position:absolute;left:14px;right:14px;bottom:26px;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid #ffffffe0;border-radius:22px;padding:30px 20px 22px;box-shadow:0 18px 40px -16px #10200d90;min-height:150px}
+.name{position:absolute;top:-15px;left:18px;font-family:'Jua';font-size:16px;color:#fff;background:var(--seal);padding:4px 14px 3px;border-radius:999px;box-shadow:0 4px 10px -4px #10200d80}
+.line{font-size:18px;line-height:1.6;letter-spacing:-.01em;min-height:58px}
+.line em{font-style:normal;color:var(--seal);font-weight:700}
+.caret{display:inline-block;width:2px;height:20px;background:var(--ink);vertical-align:-3px;margin-left:2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.more{position:absolute;right:20px;bottom:12px;width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:10px solid var(--coin);animation:bob 1s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(4px)}}
+.choices{position:absolute;right:14px;bottom:200px;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.choice{font-size:15.5px;padding:11px 18px;border-radius:16px;background:var(--glass);backdrop-filter:blur(12px);border:1px solid #ffffffe0;box-shadow:0 10px 24px -12px #10200d80;min-width:150px;text-align:left}
+.choice.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.choice.on::before{content:'▸ ';color:#9ee08f}
+.me{position:absolute;right:14px;bottom:292px;max-width:270px;font-size:14.5px;line-height:1.5;padding:9px 13px;border-radius:16px 16px 4px 16px;background:#2f8a3ae8;color:#fff;box-shadow:0 10px 24px -12px #10200d80}
+.type{display:flex;gap:8px;margin-top:14px}
+.type input{flex:1;font:inherit;font-size:15px;padding:11px 14px;border-radius:14px;border:1px solid #22281f22;background:#fffdf7;color:var(--ink)}
+.type button{font:inherit;font-size:15px;padding:0 16px;border-radius:14px;border:0;background:var(--ink);color:#fff}
+.small{display:flex;justify-content:space-between;margin-top:10px;font-size:12px;color:var(--mute)}
+.note{max-width:1250px;margin:0 auto 40px;color:#cfd6c8;font-size:14px;line-height:1.7;padding:0 16px}
+.note b{color:#fff}
+@media(max-width:430px){.phone{width:100%;height:auto;aspect-ratio:390/844}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="col">
+    <div class="phone">
+      <span class="leave">나중에 얘기할게</span>
+      <div class="box">
+        <span class="name">보리</span>
+        <p class="line">어, 여기 있었구나! 잠깐 얘기할래?</p>
+        <i class="more"></i>
+      </div>
+    </div>
+    <p class="cap"><b>1. 보리가 와서 말을 건다</b>카메라가 둘을 가까이 잡고, 탭·메뉴는 잠깐 물러난다. 글자는 한 자씩 찍히고, 탭하면 끝까지. ▼면 다음 줄.</p>
+  </div>
+  <div class="col">
+    <div class="phone">
+      <div class="choices">
+        <span class="choice on">얘기해 줄게</span>
+        <span class="choice">나중에</span>
+      </div>
+      <div class="box">
+        <span class="name">보리</span>
+        <p class="line"><em>파크시스템스</em> 말이야. 처음에 그거 왜 골랐었는지 궁금했어.</p>
+      </div>
+    </div>
+    <p class="cap"><b>2. 대답 고르기</b>말이 끝나면 오른쪽에 대답 2개. "나중에"면 보리가 "그래, 생각나면 불러" 하고 자리로 돌아간다(그날은 다시 안 옴).</p>
+  </div>
+  <div class="col">
+    <div class="phone">
+      <p class="me">반도체 장비 쪽 주문이 늘 거라고 봐서 샀어</p>
+      <div class="box">
+        <span class="name">보리</span>
+        <p class="line">주문이 늘 거라고 봤구나. 그건 어디서 보고 그렇게 생각했어?<span class="caret"></span></p>
+        <div class="type"><input value="" placeholder="보리한테 말하기"><button type="button">보내기</button></div>
+        <div class="small"><span>보리는 매매를 권하지 않아요</span><span>대화 끝내기</span></div>
+      </div>
+    </div>
+    <p class="cap"><b>3. 그 자리에서 이어서 대화</b>"얘기해 줄게"를 누르면 같은 창에 입력칸이 열린다. 내 말은 위에 말풍선 한 줄, 보리 답은 창 안에(LLM). 대화가 끝나면 분석 쪽으로 넘어간다.</p>
+  </div>
+</div>
+<div class="note">
+  <b>정할 것</b>: 보리를 직접 눌러서 거는 대화(지금은 아래에서 올라오는 시트)도 이 대화창으로 통일할지. 통일하면 대화는 한 가지 모양만 남는다(추천).<br>
+  모양은 우리 톤: 반투명 유리 패널, 초록 이름표, 노란 ▼. 레퍼런스의 크림색 말풍선 모양은 따라 하지 않는다. 숫자·종목은 실제 정원에서 가져온다(예시는 파크시스템스).
+</div>
+</body>
+</html>

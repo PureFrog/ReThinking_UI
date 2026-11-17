@@ -6,6 +6,7 @@
 // Never returns or amounts: what is shown off here is how well I judged.
 import {still} from '../still';
 import {useEffect,useState} from 'react';
+import {masterOn} from '../../core/master';
 import {WEAR,PALETTES,SLOTS,isOpen,howTo,fitLook,type Slot,type Look,type WearCtx} from '../../core/wardrobe';
 import {STAMPS,stampById} from '../../core/stamps';
 import {habitOf,byConfidence,choiceShare} from '../../core/profile';
@@ -26,7 +27,7 @@ function Count({to,suffix=''}:{to:number|null;suffix?:string}){
 }
 export function wearCtx(g:G):WearCtx{
   const rank=rankOf(xpOf({graded:g.s.graded.length,cases:g.s.cases.length,rewinds:g.s.rewinds.length,work:workOf(g.s)})).index;
-  return {rank,stamps:g.s.stamps.map(s=>s.id),trust:{tori:g.s.trust.tori.stage,moa:g.s.trust.moa.stage,luon:g.s.trust.luon.stage},bought:g.s.wardrobe};
+  return {rank,stamps:g.s.stamps.map(s=>s.id),trust:{tori:g.s.trust.tori.stage,moa:g.s.trust.moa.stage,luon:g.s.trust.luon.stage},bought:g.s.wardrobe,all:masterOn()};
 }
 export function MyPage({g,onClose,onRecords,onSettings,onLetter}:{g:G;onClose:()=>void;onRecords:()=>void;onSettings?:()=>void;onLetter?:()=>void}){
   const [tab,setTab]=useState<'wear'|'record'|'stamps'>('wear'),[slot,setSlot]=useState<Slot|'color'>('coat'),[naming,setNaming]=useState(false),[name,setName]=useState(g.s.name);

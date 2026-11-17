@@ -15,10 +15,11 @@ test("보리 comes over, talks about today, and a reply opens the grades", async
   await expect.poll(() => page.evaluate(() => !!(window as unknown as { __proto3d?: { points?: Record<string, unknown> } }).__proto3d?.points?.["friend-bori"]), { timeout: 30_000 }).toBe(true);
   // its bubble comes first: the demo garden has grades waiting, so that is what it brings up
   const bubble = page.locator('.rt-bubble[data-analyst="bori"]');
-  await expect(bubble).toBeVisible({ timeout: 20_000 });
-  await expect(bubble).toContainText("채점");
+  // (the bubbles take turns, one at a time: wait for 보리's turn)
+  const graded = page.locator('.rt-bubble[data-analyst="bori"]', { hasText: "채점" });
+  await expect(graded).toBeVisible({ timeout: 30_000 });
   await page.screenshot({ path: info.outputPath("friend-bubble.png") });
-  await bubble.click();
+  await graded.click();
   const talk = page.getByRole("dialog", { name: "보리와 대화" });
   await expect(talk).toBeVisible();
   await expect(talk).not.toContainText(/팔아|사 둬|살까|매도|매수|오를 거|내릴 거/);
@@ -44,11 +45,10 @@ test("with a loss signal, 보리 opens the stop-loss talk instead of small talk"
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/proto3d?demo&weather=clear");
   await expect(page.getByRole("navigation", { name: "메뉴" })).toBeVisible({ timeout: 30_000 });
-  const bubble = page.locator('.rt-bubble[data-analyst="bori"]');
-  await expect(bubble).toBeVisible({ timeout: 20_000 });
-  await bubble.click();
+  // 보리 comes over and the dialogue opens by itself (feedback 11-17)
   const talk = page.getByRole("dialog", { name: "보리와 대화" });
-  await expect(talk).toContainText("손절 신호가 하나 떴더라");
+  await expect(talk).toContainText("손절 신호가 하나 떴더라", { timeout: 30_000 });
+  await expect(talk.getByRole("button", { name: "얘기해 줄게" })).toBeVisible({ timeout: 10_000 });
   await expect(talk.getByRole("button", { name: "응, 보여줘" })).toHaveCount(0);
   const codes = await page.evaluate(() => (window as unknown as { __boriCodes?: string[] }).__boriCodes ?? []);
   expect(codes.length).toBeGreaterThan(0);

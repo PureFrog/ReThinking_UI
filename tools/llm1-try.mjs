@@ -70,8 +70,7 @@ async function stoploss(){
     line('나',text);const r=await E.runTurn(store,world,model,{text});store=r.store;line('보리',r.result.reply?.text??'(대답 없음)',[r.result.reply?.emotion,note(r.result)].filter(Boolean).join(' · '))}
   const job=store.jobs[0];
   if(!job){flags.push('손절 대화가 끝나지 않음 (전달 패킷 없음)');out.push('\n전달 패킷 없음 — 대화가 끝나지 않았어.');return}
-  out.push('\n분석 단계로 넘길 패킷:\n```json\n'+JSON.stringify({finish_reason:job.payload.finish_reason,investor_natural_language:job.payload.investor_natural_language,
-    segments:job.payload.segments.map(s=>({quote:s.quote,kind:s.kind,origin:s.origin,is_prior_reason:s.is_prior_reason})),unresolved_points:job.payload.unresolved_points},null,1)+'\n```');
+  out.push('\n분석 단계로 넘길 패킷:\n```json\n'+JSON.stringify({schema_version:job.payload.schema_version,finish_reason:job.payload.finish_reason,conversation:job.payload.conversation},null,1)+'\n```');
   const d=await E.runDeliveryWorker(store,async j=>({request_id:j.request_id,payload_hash:j.payload_hash,status:'persisted'}),Date.now());
   out.push(`\n전달: ${d.results.map(x=>x.status).join(', ')} · 남은 원문 ${d.store.sessions[0].messages.length}개`);
 }

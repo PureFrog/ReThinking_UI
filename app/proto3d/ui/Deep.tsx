@@ -15,6 +15,6 @@ export function DeepSheet({holding,health,onClose}:{holding:Holding;health:Healt
     <ul className="rt-roots" aria-label="재무 지표">{rows.map(r=><li key={r.id} data-tone={r.tone}>
       <div><strong>{r.word}</strong><small title={r.shows}>{r.model}</small></div>
       <b className="rt-num">{r.value}</b></li>)}</ul>
-    <p className="rt-hint" style={{marginTop:8}}>뿌리는 재무제표를 보여줘요 · 모의 데이터</p>
+    <p className="rt-hint" style={{marginTop:8}}>재무제표 숫자 · 모의 데이터</p>
   </Sheet>;
 }

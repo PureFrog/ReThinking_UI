@@ -10,7 +10,7 @@ export function Bubbles({items,onPick}:{items:{id:string;text:string;alert:boole
       // keep the whole bubble on screen (the tail may then point a little off its analyst)
       el.style.left=Math.max(half+12,Math.min(max,p.x))+'px';el.style.top=Math.max(el.offsetHeight+80,p.y)+'px'}
     raf=requestAnimationFrame(tick)};tick();return()=>cancelAnimationFrame(raf)},[]);
-  return <>{items.map(b=><button key={b.id} type="button" className="rt-bubble" data-analyst={b.id} style={{visibility:'hidden'}}
+  return <>{items.map(b=><button key={b.id} type="button" className="rt-bubble" data-analyst={b.id} data-long={b.text.length>28||undefined} style={{visibility:'hidden'}}
     ref={el=>{if(el)refs.current.set(b.id,el);else refs.current.delete(b.id)}} onClick={()=>onPick(b.id)}>
     {b.alert&&<span className="rt-dot"/>}{b.text}</button>)}</>;
 }

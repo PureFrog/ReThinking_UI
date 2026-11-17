@@ -17,6 +17,8 @@ export const test = base.extend({
     await page.addInitScript(() => { (window as unknown as { __noTutorial?: boolean }).__noTutorial = !new URLSearchParams(location.search).has("tutorial") });
     // the first screens (app/proto3d/ui/Welcome.tsx) cover a brand-new player; tests start past them unless the address has ?landing
     await page.addInitScript(() => { (window as unknown as { __noLanding?: boolean }).__noLanding = !new URLSearchParams(location.search).has("landing") });
+    // the first entry's introductions (app/proto3d/ui/Intro.tsx): tests start past them unless the address has ?intro
+    await page.addInitScript(() => { (window as unknown as { __noIntro?: boolean }).__noIntro = !new URLSearchParams(location.search).has("intro") });
     // accounts stay on the device in e2e, even when .env.local points at the Supabase project (app/proto3d/server.ts)
     await page.addInitScript(() => { (window as unknown as { __localAuth?: boolean }).__localAuth = true });
     await use(page);

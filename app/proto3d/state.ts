@@ -24,7 +24,8 @@ import {startCooldown,finishCooldown,type Cooldown} from '../core/cooldown';
 import {answerStreak,checkStreak,blankStreak,type Streak} from '../core/streak';
 import {gain,blankRelation,type Relation} from '../core/relationships';
 import type {CaseAnswer} from '../core/cases';
-import {EARN,TRUST} from '../core/ledger';
+import {buyPlant,removePlant,type Plant} from '../core/plants';
+import {EARN,TRUST,MASTER} from '../core/ledger';
 import {playRewind,type RewindRound} from '../core/rewind';
 import type {RewindCase} from '../content/rewind';
 import {isoDay} from '../core/items';
@@ -54,6 +55,8 @@ export type GardenSave={v:1;holdings:Holding[];onboarded:boolean;lookedBack:bool
   journals?:Journal[];
   // 부지·건물·랜드마크 (core/land.ts): land opened, buildings built, cities opened with coins
   built?:Built;
+  // decor flowers and trees from the 꽃집 (core/plants.ts)
+  plants?:Plant[];
   // 지기 J3: study tasks taken from the analysis (on the next journal's checklist), my principles, types I said don't fit
   jigi?:{tasks:StudyTask[];principles:{text:string;at:number}[];typeNo:Record<string,boolean>}};
 export const SAVE_KEY='rethink-garden-v1';
@@ -167,6 +170,8 @@ export function useGarden(){
       return {...p,rankSeen:index,owned}});if(got.length)say(line(UI.rankUp,{rank:name,item:got.join(', ')}))},
     setSound(on:boolean){setS(p=>({...p,sound:on}))},
     setName(name:string){setS(p=>({...p,name}))},
+    // master account (db/migrations/008_master.sql): coins never run short while testing
+    masterCoins(){setS(p=>p.currency>=MASTER.coins?p:{...p,currency:MASTER.coins})},
     setSettings(settings:Settings){setS(p=>({...p,settings}))},
     // start over: the save goes and the page opens on the onboarding
     // the server's copy won on sign-in (core/sync.ts): it replaces this device's garden as it is
@@ -223,6 +228,11 @@ export function useGarden(){
       const pay=!j.reflection?.plan&&!!r.plan&&!j.demo?EARN.review:0;paid=pay>0;
       return {...p,currency:p.currency+pay,journals:(p.journals??[]).map(x=>x.id===id?{...x,reflection:r}:x)}});if(paid)say(`복기를 남겼어요 · 코인 +${EARN.review}`)},
     // 부지 넓히기·건물 짓기·도시 열기 with coins (core/land.ts spend); says what happened
+    // the 꽃집: buy one and plant it here (the scene has already said the spot is open grass)
+    plant(item:{id:string;price:number},x:number,z:number):'ok'|'coins'|'close'{let res:ReturnType<typeof buyPlant>|null=null;
+      setS(p=>{const r=buyPlant({currency:p.currency,plants:p.plants??[]},item,x,z,Date.now());res=r;return r.ok?{...p,currency:r.currency,plants:r.plants}:p});
+      const r=res as ReturnType<typeof buyPlant>|null;return !r?'coins':r.ok?'ok':r.why},
+    unplant(id:string){setS(p=>({...p,plants:removePlant(p.plants??[],id)}))},
     build(w:Want){let res:ReturnType<typeof spend>|null=null;setS(p=>{const r=spend(p.built??BUILT0,p.currency,w);res=r;return r.ok?{...p,built:r.built,currency:r.coins}:p});
       const r=res as ReturnType<typeof spend>|null;if(!r)return false;
       const name=w.kind==='land'?LANDS.find(l=>l.id===w.id)?.name:w.kind==='building'?BUILDINGS.find(b=>b.id===w.id)?.name:CITIES.find(x=>x.id===w.id)?.landmark;

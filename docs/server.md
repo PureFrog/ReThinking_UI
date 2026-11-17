@@ -62,6 +62,8 @@
     - 로그인한 사람은 코드를 한 번 넣어야 정원이 열린다. "가입 없이 둘러보기"는 실서버에서 닫힌다. 서버 함수 4개(`bori-talk`, `jigi-llm`, `portfolio-read`, `friend-chat`)도 코드 없으면 거절(403)하니 `node tools/build-functions.mjs`로 다시 빌드해서 붙여 넣는다.
     - 시세 올리기: investment-evidence-system의 매일 실행(`live.py`)이 KRX 하루치를 받은 뒤 `python tools/prices/push_prices.py --env <키가 든 .env 경로>`. `.env`에는 `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` 두 줄(서비스 키는 이 파일에만, 코드·문서에 안 남김). 처음 실행은 2024-01-01부터 시가총액 상위 300 + 일지 12종목 + 정원 종목 일봉(약 20만 줄)을 올리고, 그 뒤로는 새 날짜만 올린다. `--dry`는 세기만 한다.
     - 앱: 내 종목 → "실제 시세로"에서 종목·산 날짜·수량을 넣으면 산 가격은 그날 실제 종가, 수익률은 최근 종가(`app/core/real.ts`). 실제 시세 나무에는 차트에서 읽은 숫자만으로 모아 신호가 뜬다(토리 재무 신호는 재무 자료가 붙을 때까지 없음).
+16. **마스터 계정 (2026-11-17)**: SQL Editor에서 `db/migrations/008_master.sql` Run (007 다음). 그 계정으로 한 번 로그인한 뒤, SQL Editor에서 `insert into masters (player_id, note) select id, 'owner' from auth.users where email = '<그 계정 이메일>';`을 한 번 Run. 이메일은 저장소에 적지 않는다.
+    - 마스터는 입장코드 없이 들어가고(코드 없는 `invite_uses` 행이 생김), AI 하루 한도(`llm_take`, `friend_talk_take`)를 안 받고, 앱이 코인을 9999까지 채우고 쓸 때마다 다시 채운다(`app/core/ledger.ts` MASTER). 옷장 전부·분석가 신뢰 단계도 다 열린다(`app/core/master.ts`). 서버 함수는 다시 붙일 필요 없다.
 
 들어가는 것: 가입하면 `players` 표에 닉네임과 동의 내역이 생겨(트리거). 카카오·구글로 처음 들어온 사람은 동의 화면을 한 번 거쳐.
 

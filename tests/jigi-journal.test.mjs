@@ -24,7 +24,7 @@ test('a journal saves only with its nine required things; saving again is a new 
   const j=J.newJournal('j1',now,today,{holdingId:6,code:'005930'});
   assert.equal(j.stock.name,'삼성전자');assert.equal(j.anchor.date,'2026-11-13');
   let r=J.saveJournal(j,now);assert.equal(r.ok,false);
-  assert.deepEqual(r.missing.map(m=>m.key),['phys','ment','understand','action','hypo','reason','recheck','horizon']);
+  assert.deepEqual(r.missing.map(m=>m.key),['understand','action','hypo','reason','recheck','horizon']);
   Object.assign(j.f,{phys:'상',ment:'중',understand:'일부 이해',action:'보유',hypo:'메모리 가격이 오른다.',reason:'재고가 줄었다.',recheckUnknown:true,horizon:'3개월'});
   r=J.saveJournal(j,now);assert.equal(r.ok,true);assert.equal(r.version,1);assert.equal(r.journal.status,'saved');
   const r2=J.saveJournal(r.journal,now+1000);assert.equal(r2.version,2);assert.equal(r2.journal.versions[1].label,'수정');

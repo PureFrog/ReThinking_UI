@@ -812,38 +812,30 @@ function validateFinish(s, el, current, minUserTurns, hadRejections) {
   } else if (el.finish_reason !== "no_basis") return [false, `\uC54C \uC218 \uC5C6\uB294 finish_reason: ${el.finish_reason}`];
   return [true, "ok"];
 }
-function buildPacket(s, requestId) {
-  const msgs = new Map(s.messages.map((m) => [m.message_id, m]));
-  const items = [];
-  for (const e of s.evidence) {
-    if (!e.active) continue;
-    for (const r of e.source_refs) {
-      const m = msgs.get(r.message_id);
-      if (!m) continue;
-      items.push({ seq: m.seq ?? 0, pos: m.text.indexOf(r.quote), e, r, m });
+var isQuestion = (m, asked) => asked.has(m.message_id) || m.text.includes("?") || m.text.includes("\uFF1F");
+function buildConversation(s) {
+  const asked = new Set(s.asked_questions.flatMap((q) => q.message_id ? [q.message_id] : []));
+  const out = [];
+  let pending = null;
+  for (const m of [...s.messages].sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0))) {
+    if (m.role === "character") pending = isQuestion(m, asked) ? m.text : null;
+    else if (m.role === "user") {
+      out.push({ question: pending, answer: m.text });
+      pending = null;
     }
   }
-  items.sort((a, b) => a.seq - b.seq || a.pos - b.pos);
-  const segments = [], seen = [], ctx = [];
-  for (const { pos, e, r, m } of items) {
-    const start = pos, end = pos + r.quote.length;
-    if (seen.some(([mid, a, b]) => mid === r.message_id && a <= start && end <= b)) continue;
-    seen.push([r.message_id, start, end]);
-    segments.push({ message_id: r.message_id, quote: r.quote, kind: e.kind, origin: e.origin, is_prior_reason: e.is_prior_reason, context_message_ids: e.context_message_ids, created_at: m.created_at ?? null });
-    for (const c of e.context_message_ids) if (!ctx.includes(c)) ctx.push(c);
-  }
+  return out;
+}
+function buildPacket(s, requestId) {
   return {
-    schema_version: "1.0",
+    schema_version: "2.0",
     request_id: requestId,
     detection_event_id: s.detection_event_id,
     company_id: s.company_id,
     collection_revision: s.revision,
     finish_reason: s.finish_reason,
-    investor_natural_language: segments.map((x) => x.quote).join(" "),
-    segments,
-    context_messages: ctx.filter((c) => msgs.has(c)).map((c) => ({ message_id: c, speaker: msgs.get(c).role, text: msgs.get(c).text })),
-    unresolved_points: [...s.unresolved_points],
-    supersedes_request_id: s.supersedes_request_id ?? null
+    supersedes_request_id: s.supersedes_request_id ?? null,
+    conversation: buildConversation(s)
   };
 }
 function consecutiveQuestionTurns(s) {

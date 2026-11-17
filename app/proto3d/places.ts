@@ -24,7 +24,7 @@ const PLACES0:{id:PlaceId;label:string;x:number;z:number;rot:number;walk:{x:numb
   {id:'library',label:'사례 서고',x:1,z:-16.5,rot:0,walk:{x:1,z:-13.6}},
   {id:'plaza',label:'리그 광장',x:-2,z:19.6,rot:0,walk:{x:-2,z:17.4}},
   {id:'observatory',label:'관측소',x:-9,z:1.2,rot:1.25,walk:{x:-7,z:1.8}},
-  {id:'cart',label:'수레',x:-3.6,z:5.3,rot:0.5,walk:{x:-2.6,z:6}},
+  {id:'cart',label:'꽃집',x:-3.6,z:5.3,rot:0.5,walk:{x:-2.6,z:6}},
   {id:'pond',label:'연못',x:0.5,z:8,rot:0,walk:{x:2.6,z:6}},
 ];
 // each place moves out with its walk point (the spot in front of it keeps its distance)

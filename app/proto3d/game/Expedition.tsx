@@ -39,6 +39,8 @@ export function useGamePacks(){
 export function Expedition({packId,today,history,garden=[],handle='',onFinish,onClose,onSimilar,onMarket}:{packId:string|null;today:string;history:RunRecord[];handle?:string;garden?:GardenSignal[];onFinish:(r:RunRecord)=>void;onClose:()=>void;onSimilar?:(holdingId:number)=>void;onMarket?:(index:number|null)=>void}){
   const idx=useGamePacks();
   const id=packId??(idx?weeklyPack(idx.packs.map(p=>p.id),today):null);
+  // feedback 11-17: a plain 게임 끝내기 during the flow (a confirm first: the run is dropped, not scored)
+  const [quit,setQuit]=useState(false);
   const [pack,setPack]=useState<GamePack|null>(null),[err,setErr]=useState(false);
   useEffect(()=>{if(!id)return;let on=true;fetch(`/game/packs/${id}.json`).then(r=>r.json()).then(p=>{if(on)setPack(p as GamePack)}).catch(()=>on&&setErr(true));return()=>{on=false}},[id]);
   const runs=history.filter(r=>r.pack===id).length;
@@ -59,7 +61,7 @@ export function Expedition({packId,today,history,garden=[],handle='',onFinish,on
   const part:Part|null=!coached||!play?null:play.phase==='brief'?'brief':play.phase==='flow'?'flow':play.phase==='moment'?'moment':revealReady?'reveal':null;
   const coachUp=!!part&&!!coached&&!coached.includes(part);
   // the clock: a trading day per tick while the flow runs (paused behind the swap card)
-  useEffect(()=>{if(!pack||!play||play.phase!=='flow'||swap||coachUp)return;const t=setTimeout(()=>setPlay(p=>p&&step(pack,p)),TIMING.gameDay/speed);return()=>clearTimeout(t)},[pack,play,speed,swap,coachUp]);
+  useEffect(()=>{if(!pack||!play||play.phase!=='flow'||swap||coachUp||quit)return;const t=setTimeout(()=>setPlay(p=>p&&step(pack,p)),TIMING.gameDay/speed);return()=>clearTimeout(t)},[pack,play,speed,swap,coachUp,quit]);
   // the reveal is saved once
   const saved=useRef(false);
   useEffect(()=>{if(!pack||play?.phase!=='reveal'||saved.current)return;saved.current=true;const s=scoreRun(pack,play.decisions);
@@ -81,7 +83,8 @@ export function Expedition({packId,today,history,garden=[],handle='',onFinish,on
     {play.phase==='brief'&&<Brief pack={pack} weekly={!packId} runs={runs} close={close} onStart={()=>setPlay(begin(play))}/>}
     {play.phase==='flow'&&<>
       <div className="gx-top"><div><div className="gx-kick">주간 챌린지{!packId?' · 이번 주 공통 판':''}</div><div className="gx-title">{pack.titleHidden}</div></div>
-        <div style={{display:'flex',gap:6}}><span className="gx-pill" data-pins aria-label={`핀 ${play.pins.length}/${MAX_PINS}`}>{PIN}<span className="gx-mono">{play.pins.length}/{MAX_PINS}</span></span><span className="gx-pill"><span className="gx-chip"/><span className="gx-mono">{left}</span></span>{close}</div></div>
+        <div style={{display:'flex',gap:6}}><span className="gx-pill" data-pins aria-label={`핀 ${play.pins.length}/${MAX_PINS}`}>{PIN}<span className="gx-mono">{play.pins.length}/{MAX_PINS}</span></span><span className="gx-pill"><span className="gx-chip"/><span className="gx-mono">{left}</span></span>
+          <button type="button" className="gx-end" onClick={()=>setQuit(true)}>게임 끝내기</button></div></div>
       <div><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:11,color:'var(--rt-mute)'}}>
         <span>방 <b className="gx-mono">{roomOf(pack,play.tick)+1}</b> / {ROOMS} · <b className="gx-mono" data-testid="gx-day">D+{play.tick}</b></span>
         <span className="gx-speed"><button type="button" aria-pressed={fast} onClick={()=>setFast(f=>!f)}>▸▸ 빠르게</button><button type="button" onClick={()=>setPlay(skipToMoment(pack,play))}>다음 순간까지</button></span></div>
@@ -93,6 +96,10 @@ export function Expedition({packId,today,history,garden=[],handle='',onFinish,on
         <div className="gx-split"><Book pack={pack} play={play} code={cur} onTrade={(side,qty)=>setPlay(p=>p&&trade(pack,p,cur,side,qty))}/><Feed pack={pack} play={play} held={held} onPin={(u,el)=>{if(!play.pins.includes(u)&&play.pins.length<MAX_PINS){fx('game-pin');flyPin(el,document.querySelector('[data-pins]'))}setPlay(p=>p&&togglePin(p,u))}}/></div>
       </div>
       {swap&&<SwapCard pack={pack} out={swap.out} inn={swap.in}/>}
+      {quit&&<div className="gx-quit" role="dialog" aria-label="게임 끝내기"><div className="gx-quit-card">
+        <strong>여기서 끝낼까?</strong><p>지금 끝내면 이번 판은 채점하지 않고 기록도 남기지 않아요.</p>
+        <div className="gx-quit-row"><button type="button" className="gx-btn" onClick={()=>setQuit(false)}>계속하기</button>
+          <button type="button" className="gx-btn gx-btn-ink" onClick={onClose}>끝내기</button></div></div></div>}
     </>}
     {play.phase==='moment'&&play.moment&&<MomentView key={`${play.moment.tick}-${play.moment.code}`} pack={pack} m={play.moment} left={left} pinned={play.pins} hold={coachUp} onDecide={onDecide}/>}
     {play.phase==='reveal'&&<RevealView pack={pack} play={play} today={today} history={history} ghost={ghost} garden={garden} onSimilar={onSimilar} onDone={onClose} onAgain={()=>{saved.current=false;setRound(r=>r+1);setPlay(startPlay(pack,seedOf(pack.id,runs)))}}/>}

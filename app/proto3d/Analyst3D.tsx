@@ -9,17 +9,20 @@ import * as THREE from 'three';
 import {soft} from './materials';
 import {MODELS} from './models';
 import {route} from './places';
+import {LOOK} from './look';
 import type {AnalystId} from '../content/analysts';
 
 export type AnalystSpot={x:number;z:number};
 // act: what they do where their day has them (core/routine.ts) · faceTo: which way they look while doing it
 // id: an analyst, or 'bori' the guinea pig friend (core/friend.ts), who walks and blinks the same way
-type Props={id:AnalystId|'bori';to:AnalystSpot;from?:AnalystSpot|null;act?:string;faceTo?:number;face:React.MutableRefObject<THREE.Vector3>;surface:(x:number,z:number)=>number;tilt:(x:number,z:number)=>THREE.Quaternion;
+// mood: the face to wear (보리 only so far: x_<emotion>_ pieces in its model, tools/blender/analysts.py bori_faces) and
+// the gesture that goes with it
+type Props={mood?:string;id:AnalystId|'bori';to:AnalystSpot;from?:AnalystSpot|null;act?:string;faceTo?:number;face:React.MutableRefObject<THREE.Vector3>;surface:(x:number,z:number)=>number;tilt:(x:number,z:number)=>THREE.Quaternion;
   bubble:{text:string;alert:boolean}|null;onPick:()=>void;report:(id:string,v:THREE.Vector3)=>void};
 const SPEED=2.2;
 const eyeMat=new THREE.MeshStandardMaterial({color:'#1d1f24',roughness:0.3});
 
-export function Analyst({id,to,from,act,faceTo,face,surface,tilt,bubble,onPick,report}:Props){
+export function Analyst({id,to,from,act,faceTo,face,surface,tilt,bubble,onPick,report,mood}:Props){
   const {scene}=useGLTF(MODELS.analyst(id));
   const model=useMemo(()=>{const root=scene.clone(true);
     root.traverse(o=>{const m=o as THREE.Mesh;if(!m.isMesh)return;m.castShadow=true;m.receiveShadow=true;
@@ -29,6 +32,15 @@ export function Analyst({id,to,from,act,faceTo,face,surface,tilt,bubble,onPick,r
   const parts=useMemo(()=>{const get=(n:string)=>model.getObjectByName(n)??null;
     return {body:get('body'),head:get('head'),armL:get('arm_l'),armR:get('arm_r'),eyes:[get('eye_l'),get('eye_r')].filter(Boolean) as THREE.Object3D[],
       rest:{armL:get('arm_l')?.rotation.clone(),armR:get('arm_r')?.rotation.clone(),eyeY:get('eye_l')?.scale.y??1}}},[model]);
+  // the face pieces by emotion, and which emotions bring their own eyes (the round ones hide meanwhile)
+  const faces=useMemo(()=>{const by=new Map<string,THREE.Object3D[]>(),eyes=new Set<string>();
+    model.traverse(o=>{const m=/^x_([a-z]+)_(.*)$/.exec(o.name);if(!m)return;const e=m[1];if(!by.has(e))by.set(e,[]);by.get(e)!.push(o);if(m[2].startsWith('eye'))eyes.add(e)});
+    return {by,eyes}},[model]);
+  const cur=faces.by.size?(faces.by.has(mood??'')?mood!:'neutral'):'';
+  useEffect(()=>{if(!faces.by.size)return;for(const [e,list] of faces.by)for(const o of list)o.visible=e===cur;
+    for(const o of parts.eyes)o.visible=!faces.eyes.has(cur);
+    // e2e: the face 보리 shows now
+    const w=window as {__proto3d?:{boriFace?:string}};(w.__proto3d??={}).boriFace=cur},[cur,faces,parts]);
   const g=useRef<THREE.Group>(null),turn=useRef<THREE.Group>(null);
   const pos=useRef(new THREE.Vector3((from??to).x,0,(from??to).z)),heading=useRef(0),blink=useRef(2+Math.random()*3);
   const v=useMemo(()=>new THREE.Vector3(),[]);
@@ -41,19 +53,31 @@ export function Analyst({id,to,from,act,faceTo,face,surface,tilt,bubble,onPick,r
     const dx=gl.x-p.x,dz=gl.z-p.z,dist=Math.hypot(dx,dz),moving=dist>0.05;
     if(moving){const step=Math.min(dist,SPEED*d);p.x+=dx/dist*step;p.z+=dz/dist*step;heading.current=Math.atan2(dx,dz)}
     else{// standing: face the way their act points, or the player
-      heading.current=THREE.MathUtils.lerp(heading.current,faceTo!==undefined&&act&&act!=='stand'?faceTo:Math.atan2(face.current.x-p.x,face.current.z-p.z),0.04)}
+      // the short way round, by time (it used to creep 4% a frame, the long way at times: on a slow phone 보리 kept its
+      // back to the player for seconds after coming over)
+      const want=faceTo!==undefined&&act&&act!=='stand'?faceTo:Math.atan2(face.current.x-p.x,face.current.z-p.z);
+      const diff=Math.atan2(Math.sin(want-heading.current),Math.cos(want-heading.current));
+      heading.current+=diff*(1-Math.exp(-d*LOOK.analystTurn))}
     gr.position.set(p.x,surface(p.x,p.z),p.z);gr.quaternion.copy(tilt(p.x,p.z));
     tr.rotation.y=THREE.MathUtils.lerp(tr.rotation.y,heading.current,moving?0.2:1);
     const {body,head,armL,armR,eyes,rest}=parts;
-    if(body){body.position.y=0.42+(moving?Math.abs(Math.sin(t*9))*0.08:Math.sin(t*2+id.length)*0.012);body.rotation.z=moving?Math.sin(t*9)*0.06:0}
+    // the gesture that goes with the face (보리 talking): a tilt when curious, a hop when happy, a slow sway when tired
+    const hop=!moving&&cur==='happy'?Math.abs(Math.sin(t*6))*0.05:0,sway=!moving&&cur==='tired'?Math.sin(t*0.8)*0.06:0;
+    if(body){body.position.y=0.42+hop+(moving?Math.abs(Math.sin(t*9))*0.08:Math.sin(t*2+id.length)*0.012);body.rotation.z=moving?Math.sin(t*9)*0.06:sway}
     // what they do at their spot (core/routine.ts Act), only while standing there
     const doing=moving?'':act??'';
     const headDown=doing==='read'||doing==='note'?0.32:doing==='scope'?-0.25:0;
-    if(head){head.rotation.x=headDown+(bubble?.alert?Math.sin(t*3)*0.06-0.05:Math.sin(t*0.7)*0.04);head.rotation.y=moving?0:doing==='look'?Math.sin(t*0.45+id.length)*0.6:Math.sin(t*0.4+id.length)*0.25}
+    const moodDown=cur==='concerned'?0.18:cur==='tired'?0.14:cur==='thinking'?-0.12:0;
+    const moodTilt=moving?0:cur==='curious'?0.24:cur==='thinking'?-0.14:cur==='playful'?Math.sin(t*3)*0.12:cur==='concerned'?0.08:0;
+    // talking (a face is on): it looks at the player instead of round about
+    const talking=!!cur&&cur!=='';
+    if(head){head.rotation.x=headDown+moodDown+(bubble?.alert?Math.sin(t*3)*0.06-0.05:Math.sin(t*0.7)*0.04);
+      head.rotation.y=moving?0:talking&&mood?Math.sin(t*0.5)*0.08:doing==='look'?Math.sin(t*0.45+id.length)*0.6:Math.sin(t*0.4+id.length)*0.25;
+      head.rotation.z+=(moodTilt-head.rotation.z)*(1-Math.exp(-d*8))}
     const swing=moving?Math.sin(t*9)*0.6:Math.sin(t*1.6)*0.05;
     const l=doing==='read'?-0.7:doing==='scope'?-1.7:doing==='arms'?-0.55:0,r=doing==='read'?-0.7:doing==='board'?-1.25+Math.sin(t*1.3)*0.15:doing==='note'?-0.8+Math.sin(t*6)*0.08:doing==='arms'?-0.55:0;
     if(armL&&rest.armL){armL.rotation.x=rest.armL.x+swing+l;armL.rotation.z=(rest.armL.z??0)+(doing==='arms'?0.6:0)}
-    if(armR&&rest.armR){armR.rotation.x=rest.armR.x-swing+r+(bubble?.alert&&!moving&&id==='tori'?-0.5:0);armR.rotation.z=(rest.armR.z??0)+(doing==='arms'?-0.6:0)}
+    if(armR&&rest.armR){armR.rotation.x=rest.armR.x-swing+r+(bubble?.alert&&!moving&&id==='tori'?-0.5:0)+(!moving&&cur==='thinking'?-1.9:!moving&&cur==='happy'?-0.6+Math.sin(t*6)*0.2:0);armR.rotation.z=(rest.armR.z??0)+(doing==='arms'?-0.6:0)}
     // blink every few seconds
     blink.current-=d;const shut=blink.current<0.12;if(blink.current<0)blink.current=2.5+Math.random()*3;
     for(const e of eyes)e.scale.y=rest.eyeY*(shut?0.15:1);

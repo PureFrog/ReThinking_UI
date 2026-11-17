@@ -21,14 +21,14 @@ export const Pill=({s,n}:{s:Verdict['s'];n?:number})=><span className={`jg-pill 
 type View={k:'shelf'}|{k:'stock';code:string}|{k:'list';which:'draft'|'review'|'arch'|'trash'}|{k:'one';id:string;back:View};
 // signals: today's analyst notes (a row opens the note, whose button starts a journal); oldDue: grades of the old judgments still to open
 export type BookSignal={id:string;name:string;who:string;whoName:string;line:string;loss:boolean;written:boolean};
-export function JigiBook({journals,today,now,oldCount,signals=[],oldDue=0,onSignal,onOldGrades,openId,renderStats,ai,onHypos,onConfirm,onReflect,onWrite,onNew,onArchive,onTrash,onPurge,onOld,onClose}:{journals:Journal[];today:string;now:number;oldCount:number;signals?:BookSignal[];oldDue?:number;onSignal?:(id:string)=>void;onOldGrades?:()=>void;
+export function JigiBook({startTab='book',journals,today,now,oldCount,signals=[],oldDue=0,onSignal,onOldGrades,openId,renderStats,ai,onHypos,onConfirm,onReflect,onWrite,onNew,onArchive,onTrash,onPurge,onOld,onClose}:{startTab?:'book'|'stats';journals:Journal[];today:string;now:number;oldCount:number;signals?:BookSignal[];oldDue?:number;onSignal?:(id:string)=>void;onOldGrades?:()=>void;
   // the 분석 half (ui/JigiStats.tsx), given a way to open a journal or a stock's time bar from it
   renderStats?:(open:(id:string)=>void,stock:(code:string)=>void)=>React.ReactNode;
   // the server's LLM (signed in): hypothesis drafts from my words; without it the rule-based split
   ai?:JigiAI|null;
   openId?:string|null;onHypos?:(id:string,h:Hypo[])=>void;onConfirm?:(id:string,hypoId:string)=>string;onReflect?:(id:string,r:Reflection)=>void;
   onWrite:(id:string)=>void;onNew:(code?:string)=>void;onArchive:(id:string,on:boolean)=>void;onTrash:(id:string,on:boolean)=>void;onPurge:(id:string)=>void;onOld:()=>void;onClose:()=>void}){
-  const [tab,setTab]=useState<'book'|'stats'>('book'),[view,setView]=useState<View>(openId?{k:'one',id:openId,back:{k:'shelf'}}:{k:'shelf'}),[sel,setSel]=useState<string|null>(null),[purge,setPurge]=useState<string|null>(null);
+  const [tab,setTab]=useState<'book'|'stats'>(startTab),[view,setView]=useState<View>(openId?{k:'one',id:openId,back:{k:'shelf'}}:{k:'shelf'}),[sel,setSel]=useState<string|null>(null),[purge,setPurge]=useState<string|null>(null);
   const L=live(journals),drafts=L.filter(j=>j.status==='draft'),saved=L.filter(j=>j.status==='saved'&&!j.archivedAt),arch=L.filter(j=>j.archivedAt),trash=journals.filter(j=>j.deletedAt),rev=saved.filter(j=>needsReview(j,today));
   const card=(j:Journal,back:View)=>{const c=verdictCounts(j,today);
     return <button key={j.id} type="button" className="jg-card" onClick={()=>j.status==='draft'?onWrite(j.id):setView({k:'one',id:j.id,back})}>

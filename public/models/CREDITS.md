@@ -6,3 +6,7 @@ Where each model, font and picture comes from (CLAUDE.md: 출처는 public/model
 
 - Logo and app icon: rendered in Blender by `tools/blender/logo.py`, exported by `tools/blender/brand_export.py`. Original work for this project.
 - Font: **Luckiest Guy** by Astigmatic (Brian J. Bonislawsky), Apache License 2.0 — `tools/blender/fonts/LuckiestGuy-Regular.ttf`, license in `tools/blender/fonts/LICENSE-LuckiestGuy.txt`. Source: github.com/google/fonts (apache/luckiestguy).
+
+## Decor flowers and trees (public/models/decor)
+
+- 사과·귤·레몬·벚나무·목련 trees, 수국·해바라기·튤립 beds, and their shop pictures: made in Blender by `tools/blender/kind_trees.py` (on the holding-tree builder, `tools/blender/holding_tree.py`). Original work for this project. Sold in the 꽃집 (`app/content/flower-shop.ts`).

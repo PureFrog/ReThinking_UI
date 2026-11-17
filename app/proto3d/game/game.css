@@ -214,3 +214,10 @@
 .gx-coach-foot>button:first-child{font-size:12px;color:var(--rt-mute);text-decoration:underline;text-underline-offset:3px}
 .gx-coach-foot .gx-btn{margin-left:auto;min-height:38px;padding:0 18px;font-size:14px}
 .gx .gx-focus{position:relative;z-index:31;box-shadow:0 0 0 3px var(--rt-paper),0 0 0 5px var(--rt-ink)!important;pointer-events:none}
+/* 게임 끝내기 (feedback 11-17): a plain text button in the flow's top bar, and its confirm */
+.gx-end{font:inherit;font-size:12px;font-weight:700;padding:6px 10px;border-radius:999px;border:1px solid #22281f30;background:#ffffffcc;color:#22281f;cursor:pointer;white-space:nowrap}
+.gx-quit{position:absolute;inset:0;z-index:40;display:grid;place-items:center;background:#10200d55;padding:16px}
+.gx-quit-card{width:min(340px,100%);background:#fffdf7;border-radius:18px;padding:20px;box-shadow:0 20px 40px -18px #000a}
+.gx-quit-card strong{font-size:17px}.gx-quit-card p{font-size:13.5px;line-height:1.55;color:#4c5447;margin:8px 0 16px}
+.gx-quit-row{display:flex;gap:8px;justify-content:flex-end}
+.gx-btn-ink{background:#22281f;color:#fff;border-color:#22281f}

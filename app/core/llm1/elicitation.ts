@@ -89,33 +89,24 @@ export function validateFinish(s:Session,el:ElicitationBlock,current:string|null
   else if(el.finish_reason!=='no_basis')return [false,`알 수 없는 finish_reason: ${el.finish_reason}`];
   return [true,'ok'];
 }
-// 설계 9.3 전달 패킷: 본문 = 활성 근거 원문을 발언 순서대로. 캐릭터 대사·회사 자료·프로필 추정 제외
-export type Packet={schema_version:'1.0';request_id:string;detection_event_id:string;company_id:string|null;collection_revision:number;finish_reason:string|null;
-  investor_natural_language:string;segments:{message_id:string;quote:string;kind:string;origin:string;is_prior_reason:boolean|null;context_message_ids:string[];created_at:string|null}[];
-  context_messages:{message_id:string;speaker:string;text:string}[];unresolved_points:string[];supersedes_request_id:string|null};
-export function buildPacket(s:Session,requestId:string):Packet{
-  const msgs=new Map(s.messages.map(m=>[m.message_id,m]));
-  const items:{seq:number;pos:number;e:Evidence;r:SourceRef;m:Msg}[]=[];
-  for(const e of s.evidence){if(!e.active)continue;for(const r of e.source_refs){const m=msgs.get(r.message_id);if(!m)continue;items.push({seq:m.seq??0,pos:m.text.indexOf(r.quote),e,r,m})}}
-  items.sort((a,b)=>a.seq-b.seq||a.pos-b.pos);
-  const segments:Packet['segments']=[],seen:[string,number,number][]=[],ctx:string[]=[];
-  for(const {pos,e,r,m} of items){const start=pos,end=pos+r.quote.length;
-    // 같은 메시지에서 이미 포함된 구간은 본문에 중복 넣지 않음
-    if(seen.some(([mid,a,b])=>mid===r.message_id&&a<=start&&end<=b))continue;
-    seen.push([r.message_id,start,end]);
-    segments.push({message_id:r.message_id,quote:r.quote,kind:e.kind,origin:e.origin,is_prior_reason:e.is_prior_reason,context_message_ids:e.context_message_ids,created_at:m.created_at??null});
-    for(const c of e.context_message_ids)if(!ctx.includes(c))ctx.push(c)}
-  return {schema_version:'1.0',request_id:requestId,detection_event_id:s.detection_event_id,company_id:s.company_id,collection_revision:s.revision,finish_reason:s.finish_reason,
-    investor_natural_language:segments.map(x=>x.quote).join(' '),segments,
-    context_messages:ctx.filter(c=>msgs.has(c)).map(c=>({message_id:c,speaker:msgs.get(c)!.role,text:msgs.get(c)!.text})),
-    unresolved_points:[...s.unresolved_points],supersedes_request_id:s.supersedes_request_id??null};
+// 전달 패킷 v2.0 (정균 changed_files, 2026-11-17): 본문 = conversation(질문·답 쌍). 나머지는 전달·멱등 처리 메타데이터.
+// answer = 수집 세션의 사용자 발언 원문(메시지 하나 = 항목 하나). question = 그 발언 바로 앞 캐릭터 대사가 질문이었으면
+// (asked_questions에 있거나 '?'로 물었으면) 그 대사, 반응만 했거나 사용자가 연달아 말했으면 null.
+// 정정·철회 발언도 말한 순서대로 들어간다. 근거(evidence)는 서버 안에서 종료 검증에만 쓴다.
+export type QA={question:string|null;answer:string};
+export type Packet={schema_version:'2.0';request_id:string;detection_event_id:string;company_id:string|null;collection_revision:number;finish_reason:string|null;
+  supersedes_request_id:string|null;conversation:QA[]};
+const isQuestion=(m:Msg,asked:Set<string>)=>asked.has(m.message_id)||m.text.includes('?')||m.text.includes('？');
+export function buildConversation(s:Session):QA[]{
+  const asked=new Set(s.asked_questions.flatMap(q=>q.message_id?[q.message_id]:[]));const out:QA[]=[];let pending:string|null=null;
+  for(const m of [...s.messages].sort((a,b)=>(a.seq??0)-(b.seq??0))){
+    if(m.role==='character')pending=isQuestion(m,asked)?m.text:null;
+    else if(m.role==='user'){out.push({question:pending,answer:m.text});pending=null}}
+  return out;
 }
-// 기존 S4(툴민 분석) 입력으로 바꾸기 (설계 9.3, 형식은 원본처럼 가정): investor_message + previous_turn, span 역매핑
-export function toS4Input(p:Packet){
-  const text=p.investor_natural_language,spans:{segment_index:number;message_id:string;start:number;end:number}[]=[];let cursor=0;
-  p.segments.forEach((seg,i)=>{const start=text.indexOf(seg.quote,cursor),end=start+seg.quote.length;spans.push({segment_index:i,message_id:seg.message_id,start,end});cursor=end});
-  const prev=[...p.context_messages].reverse().find(c=>c.speaker==='character')?.text??null;
-  return {request_id:p.request_id,investor_message:text,previous_turn:prev,spans,prior_reason_only_segments:p.segments.flatMap((s,i)=>s.is_prior_reason!==false?[i]:[])};
+export function buildPacket(s:Session,requestId:string):Packet{
+  return {schema_version:'2.0',request_id:requestId,detection_event_id:s.detection_event_id,company_id:s.company_id,collection_revision:s.revision,
+    finish_reason:s.finish_reason,supersedes_request_id:s.supersedes_request_id??null,conversation:buildConversation(s)};
 }
 // 탐지 세션 원문 + 최근 버퍼 (버퍼에서 밀려난 초기 근거도 유지, 3.7)
 export function consecutiveQuestionTurns(s:Session){let n=0;for(const m of [...s.messages].reverse()){if(m.role!=='character')continue;if(m.text.includes('?'))n++;else break}return n}

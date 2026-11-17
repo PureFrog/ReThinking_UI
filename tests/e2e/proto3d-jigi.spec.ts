@@ -8,6 +8,8 @@ test.beforeEach(({}, info) => test.skip(info.project.name !== "mobile", "a phone
 const dock = (page: Page) => page.getByRole("navigation", { name: "메뉴" });
 const book = (page: Page) => page.getByRole("dialog", { name: "투자일지" });
 const write = (page: Page) => page.getByRole("dialog", { name: "일지 쓰기" });
+// the page now open (feedback 11-17: three pages, a filled one goes on by itself)
+const onPage = (page: Page, name: RegExp) => expect(write(page).getByRole("navigation", { name: "일지 쪽" }).getByRole("button", { name })).toHaveAttribute("aria-current", "step", { timeout: 5_000 });
 const pick = async (page: Page, slot: RegExp, group: string, value: string) => {
   await write(page).getByRole("button", { name: slot }).click();
   await write(page).getByRole("group", { name: group }).getByRole("button", { name: value, exact: true }).click();
@@ -63,14 +65,12 @@ test("writing: a tree's quick chip starts a draft, blanks jump to their page, sa
   await write(page).getByRole("navigation", { name: "일지 쪽" }).getByRole("button", { name: /기한과 확신/ }).click();
   await expect(write(page)).toContainText("손절·청산 계획");
   await write(page).getByRole("button", { name: "일지 저장" }).click();
-  await expect(write(page).getByRole("navigation", { name: "일지 쪽" }).getByRole("button", { name: /오늘의 나/ })).toHaveAttribute("aria-current", "step");
+  await onPage(page, /종목과 차트/);
   await expect(write(page).locator(".jg-slot.miss")).toHaveCount(1);
-  await pick(page, /몸 고르기/, "몸", "상");
-  await pick(page, /마음 고르기/, "마음", "중");
-  await write(page).getByRole("button", { name: "다음" }).click();
   await expect(write(page).getByRole("img", { name: new RegExp(name + " 일봉 차트") })).toBeVisible();
+  // the last blank of the page: it goes on to 가설 by itself
   await pick(page, /이해 정도 고르기/, "이해 정도", "일부 이해");
-  await write(page).getByRole("button", { name: "다음" }).click();
+  await onPage(page, /가설/);
   await write(page).getByRole("textbox").nth(0).fill("수요가 회복되고 주가가 석 달 안에 오를 것 같다.");
   await write(page).getByRole("textbox").nth(1).fill("재고가 줄었다는 공시를 봤다.");
   await write(page).getByRole("button", { name: "아직 모르겠음" }).click();
@@ -84,8 +84,11 @@ test("writing: a tree's quick chip starts a draft, blanks jump to their page, sa
   await page.screenshot({ path: info.outputPath("jigi-write.png") });
   await write(page).getByRole("button", { name: "일지 저장" }).click();
   // the first save of my own journal pays coins (core/ledger.ts EARN.journal)
-  await expect(page.locator(".rt-toast")).toContainText("코인 +3");
+  await expect(page.locator(".rt-toast")).toContainText("코인 +10");
+  // saving opens the analysis; the book is one tab over
   await expect(book(page)).toBeVisible({ timeout: 5_000 });
+  await expect(book(page).getByRole("tab", { name: "분석" })).toHaveAttribute("aria-selected", "true");
+  await book(page).getByRole("tab", { name: "일기장" }).click();
   await expect(book(page).getByRole("button", { name: new RegExp("^" + name + " 일지") })).toBeVisible();
   expect(await page.evaluate(() => (JSON.parse(localStorage.getItem("rethink-garden-v1") ?? "{}").journals ?? []).filter((j: { status: string; demo?: boolean }) => j.status === "saved" && !j.demo).length)).toBe(1);
   // it is saved in the garden: a reload keeps it
@@ -106,19 +109,17 @@ test("hypotheses: pull, confirm, buried as a capsule, dug up with the verdict, t
   await dock(page).getByRole("button", { name: /^일지/ }).click({ timeout: 30_000 });
   await book(page).getByRole("button", { name: /^카카오 일지/ }).click();
   await book(page).getByRole("button", { name: "이 종목 일지 쓰기" }).click();
-  await pick(page, /몸 고르기/, "몸", "중");
-  await pick(page, /마음 고르기/, "마음", "중");
-  await write(page).getByRole("button", { name: "다음" }).click();
   await pick(page, /한 일 고르기/, "한 일", "관찰");
   await pick(page, /이해 정도 고르기/, "이해 정도", "일부 이해");
-  await write(page).getByRole("button", { name: "다음" }).click();
+  await onPage(page, /가설/);
   await write(page).getByRole("textbox").nth(0).fill("광고 경기가 회복된다. 카카오 주가가 석 달 안에 오를 것이다.");
   await write(page).getByRole("textbox").nth(1).fill("광고 단가가 두 달째 올랐다.");
   await write(page).getByRole("button", { name: "아직 모르겠음" }).click();
-  await write(page).getByRole("button", { name: "다음" }).click();
+  await onPage(page, /기한과 확신/);
   await write(page).getByRole("group", { name: "기간" }).getByRole("button", { name: "3개월" }).click();
   await write(page).getByRole("button", { name: "일지 저장" }).click();
-  // open it: the newest journal of 카카오
+  // saving opens the analysis; open the book tab, then the newest journal of 카카오
+  await book(page).getByRole("tab", { name: "일기장" }).click();
   await book(page).getByRole("button", { name: /^카카오 일지 2편/ }).click();
   await book(page).locator(".jg-card").first().click();
   await book(page).getByRole("button", { name: "가설 뽑기" }).click();

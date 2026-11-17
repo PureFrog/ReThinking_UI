@@ -17,7 +17,7 @@
 | `db.py` (JSON 파일 DB) | Supabase `llm1_docs` 표 (`db/migrations/004_llm1.sql`) | 대화·프로필 문서를 플레이어별 한 줄씩 |
 | `llm.py` OpenAI 클라이언트 | `db/functions/bori-talk` (fetch + `response_format: json_schema` strict) | 모델 GPT-6 Luna, `app/core/llmModel.ts` |
 | `engine.py` 탐지 모드 (receive_stop_loss_signal, start_next_pending_detection, _apply_elicitation, pause/resume, investor_background, 연속 질문 검사) | `engine.ts` `receiveStopLossSignal` `startNextPendingDetection` `runTurn`(모드 자동) `pauseElicitation` `resumeElicitation` | 옮김 (2단계, 2026-11-16) |
-| `elicitation.py` | `app/core/llm1/elicitation.ts` | 옮김 (근거 add/replace/retract, 단순 호응·new_reflection 소급 거부, 종료 검증, 전달 패킷, S4 입력 변환) |
+| `elicitation.py` | `app/core/llm1/elicitation.ts` | 옮김 (근거 add/replace/retract, 단순 호응·new_reflection 소급 거부, 종료 검증, 전달 패킷 v2.0 `conversation: [{question, answer}]`, 2026-11-17 정균 changed_files 반영으로 S4 입력 변환 없앰) |
 | `schemas.py` ElicitationTurnOutput | `validate.ts` `checkTurn`, `prompt.ts` `ELICITATION_SCHEMA` | 옮김 |
 | `delivery.py` (작업·워커·수신 측) | `engine.ts` `runDeliveryWorker` + 수신함 `analysis_inbox` 표 (`005_llm1_detection.sql`) | 옮김 (sha256 해시 영수증, 재시도 5초→30초→2분→10분→30분, 인수 확인 뒤 원문 삭제) |
 | `engine.py` `expire_stale` (7일 무응답 만료, 전달 기록 30일 보존) | `engine.ts` `expireStale` — 서버 함수가 매 호출 처음에 돌린다 | 옮김 (2026-11-16) |
@@ -33,7 +33,7 @@
 - 보유 종목은 앱이 매 호출에 보낸다(정원의 나무: 종목 코드 + 이름). company_views 경로는 이 종목들만 쓸 수 있다.
 - 하루 AI 호출 한도(1인 40번)를 지기 AI·캡처 읽기와 같이 센다(`llm_take`).
 - 손절 신호는 아직 자사 탐지 모델이 아니라 앱의 모의 신호(`content/signals.ts`의 손실 신호)가 보낸다: 보리 창을 열 때 앱이 오늘 손실 신호 종목 코드를 `open`으로 보내고, 서버가 중복을 거른 뒤 가장 오래된 것부터 보리가 먼저 말을 건다. 실제 탐지 모델이 붙으면 서버에서 `receiveStopLossSignal`을 바로 부르면 된다.
-- 분석 모델(S4 툴민 분석)은 아직 없다. 패킷은 `analysis_inbox`에 쌓이고 `analyzed_at`이 비어 있다. 분석 워커가 생기면 이 표를 읽는다(`toS4Input`으로 바꿔 넣기).
+- 분석 모델(S4 툴민 분석)은 아직 없다. 패킷은 `analysis_inbox`에 쌓이고 `analyzed_at`이 비어 있다. 분석 워커가 생기면 이 표를 읽는다. 패킷 본문은 `conversation`(질문·답 쌍): `answer`는 사용자 발언 원문 한 개씩, `question`은 바로 앞 보리 대사가 질문이었으면 그 대사, 아니면 null. 정정·철회 발언도 말한 순서대로 들어간다.
 - 전달 워커는 따로 돌지 않고 매 호출 끝에 한 번 돈다(실패하면 다음 호출 때 재시도).
 - 만료는 정해진 시각에 따로 돌지 않고, 그 플레이어의 다음 호출 때 처리된다.
 
@@ -48,3 +48,11 @@
 ## 켜는 법
 
 `docs/server.md` 14번.
+
+## 앱에서 보리가 먼저 오기 (2026-11-17)
+
+- 손실 신호가 있는 날, 정원이 자리 잡고 2.5초 뒤(`TIMING.boriCome`) 보리가 플레이어 옆(`LOOK.boriCome`)으로 걸어온다.
+- 그때 서버에 `open`을 한 번 부르고, 받은 첫 말을 보리 말풍선에 띄운다. 이때는 이 말풍선 하나만 보인다.
+- 첫 말은 그날 하루 기기에 저장한다(`rethink-bori-open`). 대화창은 같은 말로 시작한다. 서버는 같은 대화를 두 번 열지 않는다.
+- 하루 한 번만 온다. 말을 걸면 그날은 입구 자리로 돌아간다. 다시 재촉하지 않는다.
+

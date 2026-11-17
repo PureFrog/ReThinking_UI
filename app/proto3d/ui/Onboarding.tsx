@@ -3,7 +3,7 @@
 // capture of the brokerage screen, or typing them in, or the demo garden. Later (from the track record): the same list
 // to recapture or edit. The rules are app/core/portfolio.ts; reading the picture is app/content/portfolio.ts (mock now).
 // Nothing here buys or sells: removing a tree only takes it out of the garden.
-import {useEffect,useRef,useState} from 'react';
+import {useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {Lens,Plus,Strike} from './Icons';
 import {drafts,applyDrafts,freePlots,blankDraft,HELD,matchName,draftToReal,plantReal,type Draft,type HeldId,type RealDraft} from '../../core/portfolio';
 import {buyClose,refreshed} from '../../core/real';
@@ -21,7 +21,7 @@ type G=ReturnType<typeof useGarden>;
 // reader: the server's real reading when signed in (a list, or what went wrong); without it the example reader
 // onReal: 실제 시세로 넣기 (ui/RealEntry.tsx), when real prices are there (private test)
 // real: the KRX names and bars: a captured or typed line whose name is found goes in on real prices (core/real.ts)
-export function Onboarding({g,onClose,onPlanted,onDemo,reader,onReal,real}:{g:G;onClose:()=>void;onPlanted?:(ids:number[],first:boolean)=>void;onDemo?:()=>void;reader?:((f:File)=>Promise<ReadHolding[]|string>)|null;onReal?:(()=>void)|null;real?:RealPrices|null}){
+export function Onboarding({g,onClose,onPlanted,onDemo,reader,onReal,real,pick=false}:{pick?:boolean;g:G;onClose:()=>void;onPlanted?:(ids:number[],first:boolean)=>void;onDemo?:()=>void;reader?:((f:File)=>Promise<ReadHolding[]|string>)|null;onReal?:(()=>void)|null;real?:RealPrices|null}){
   const first=!g.s.onboarded,holdings=g.s.holdings;
   // the confirm list; editing starts from the trees already planted
   const [rows,setRows]=useState<Draft[]|null>(()=>first?null:drafts(holdings.map(h=>({name:h.name,rate:h.rate})),holdings).rows);
@@ -65,6 +65,8 @@ export function Onboarding({g,onClose,onPlanted,onDemo,reader,onReal,real}:{g:G;
     if(onPlanted)onPlanted(out.planted.map(h=>h.id),first);else onClose();
   };
 
+  // came from the intro's "캡처 올리기": the picture picker opens straight away (still inside the tap's activation)
+  useLayoutEffect(()=>{if(pick&&first)file.current?.click()},[]);// eslint-disable-line react-hooks/exhaustive-deps
   const picker=<input ref={file} type="file" accept="image/*" hidden aria-label="캡처 파일" onChange={e=>{const f=e.target.files?.[0];if(f)void read(f);e.target.value=''}}/>;
 
   if(!rows)return <Sheet kicker="시작" title="내 종목부터" label="내 종목 넣기" onClose={onClose}

@@ -13,6 +13,9 @@ export const MODELS={
   // tools/blender/explorer.py: the player's observer (sockets hat, back, hand) and each thing it can wear
   explorer:'/models/explorer/explorer.glb',
   wear:(id:string)=>`/models/explorer/${id}.glb`,
+  // tools/blender/kind_trees.py: the 꽃집's decor flowers and trees (content/flower-shop.ts), and their shop pictures
+  decor:(id:string)=>`/models/decor/${id}.glb`,
+  decorPic:(id:string)=>`/models/decor/${id}.png`,
 };
 export const ALL_TREE_FILES=[...GROWTHS.flatMap(g=>Array.from({length:TREE_VARIANTS},(_,v)=>MODELS.tree(g,v))),MODELS.stump];
 

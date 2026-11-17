@@ -76,9 +76,9 @@ export const LINES={
   // W2 the root cut-away (core/roots.ts rootsSay): tori reads what is under the tree, with the number.
   // {name} company · {f} F-score · {o} Ohlson % · {d} debt ratio %. What it means stays the player's call.
   roots:{
-    good:['{name}, 체력 9점 중 {f}점. 뿌리가 굵게 뻗었지.','{name} 밑은 튼튼해. 체력 {f}점이야.'],
-    mid:['{name}, 체력 9점 중 {f}점. 굵은 것도 가는 것도 있어.','{name} 뿌리는 반반이야. 체력 {f}점.'],
-    weak:['{name}, 체력 9점 중 {f}점이야. 뿌리가 가늘고 몇 가닥 없지.','위는 멀쩡해 보여도, {name} 체력은 {f}점이야.'],
+    good:['{name}, 체력 9점 중 {f}점. 탄탄하지.','{name} 밑은 튼튼해. 체력 {f}점이야.'],
+    mid:['{name}, 체력 9점 중 {f}점. 좋은 것도 약한 것도 있어.','{name}는 반반이야. 체력 {f}점.'],
+    weak:['{name}, 체력 9점 중 {f}점이야. 약한 데가 여럿이야.','위는 멀쩡해 보여도, {name} 체력은 {f}점이야.'],
     spots:['검은 데는 부도 위험이야. {o}%.','반점은 올슨 숫자야. 부도 확률 {o}%.'],
     stone:['저 돌은 빚이야. 부채비율 {d}%.','돌덩이가 부채비율 {d}% 무게야.'],
   } as Record<'good'|'mid'|'weak'|'spots'|'stone',Lines>,

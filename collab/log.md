@@ -189,3 +189,31 @@
 - 2026-11-16 [llm1] 정균 1번 LLM(LLM_N1, 파이썬)을 TS로 옮김(사용자 결정: 별도 서버 없이 Supabase 함수). 1단계 평상시 대화: app/core/llm1(registry·validate·profile·prompt·engine), 프롬프트·레지스트리·예시는 글자 그대로 app/content/llm1, 페르소나는 보리(모아 페르소나의 성격·말투 규칙 유지, 이름·종족·생활만 변경). db/functions/bori-talk(strict JSON schema, GPT-6 Luna, 하루 한도 공유), db/migrations/004_llm1.sql(llm1_docs). 앱 보리 자유 대화를 bori-talk로. 기본 모델을 GPT-6 Luna로(app/core/llmModel.ts, 추론 모델 파라미터). tests: llm1 10개(원본 평상시 시나리오), llm-model 1개. 2단계(손절 신호 → 근거 수집 → 전달)는 아직. docs/llm1.md.
 - 2026-11-17 [R-5] 비공개 테스트·실제 시세: 로그인 + 입장코드(007_invite_prices.sql, 함수 4개 403 'invite'), KRX 일봉 price_daily·stock_names(tools/prices/push_prices.py, 평일 22:00 예약 작업 \rethinking\push-prices), "실제 시세로 추가"(ui/RealEntry), 캡처·직접 입력 종목도 KRX 이름으로 찾아 실제 시세로 심기(core/portfolio matchName·draftToReal). 실제 나무는 모아의 급락·서서히 신호만(core/real.ts). 커밋 6274706은 Netlify 크레딧 문제로 아직 배포 안 됨.
 - 2026-11-17 [docs] 퀘스트 일지 설계(docs/quest-journal.md, 목업 docs/mockups/quest-journal.html): 캐릭터 넷 동사 하나씩(보리 듣는다·토리 확인한다·모아 알려준다·루온 반박한다), 종목 퀘스트 6단계(O/X → 한 일 → 한 달 뒤 → 왜 → 틀리면 → 확실해), 최소 저장 가설+이유, 오늘의 퀘스트 3개(출석·퀴즈·나무 한 그루), 퀘스트로 기능 열기. 4가지 결정 완료(8장). **구현은 팀원이 이어서 함: 9장 Q1(core/quest.ts 로직 + 단위 테스트)부터.** 기존 today.ts·next.ts·streak.ts·quiz-books.ts를 바꿔 쓰는 설계. 보리 얼굴 public/models/analysts/faces/bori.png(tools/blender/faces.py).
+- 2026-11-17 [fix] 피드백 11-17:
+  - 정균 changed_files 반영: 전달 패킷 v2.0 `conversation: [{question, answer}]`, S4 변환 없앰(core/llm1/elicitation.ts buildConversation).
+  - 손실 신호가 있는 날 보리가 플레이어 옆으로 걸어와 LLM 첫 말을 말풍선으로 한다. 하루 한 번이고, 첫 말은 그날 저장해 대화창도 같은 말로 시작한다.
+  - 코인 보상을 약 3배로 올렸다(EARN).
+  - 일지 쓰기를 닫은 뒤 카메라가 나무에 고정돼 지도 이동 때 캐릭터만 가던 것을 고쳤다(focus 해제, goPlace에서 시점 초기화).
+  - 뿌리 단면을 없앴다. 재무 체력은 숫자 시트만 남는다.
+  - 마스터 계정을 추가했다(db/migrations/008_master.sql: 입장코드 없음, AI 한도 없음, 코인 9999). 누가 마스터인지는 저장소에 적지 않는다.
+  - 1인칭 보기를 추가했다. 지도 버튼 위에서 켜고 끄고, LOOK.camera.fp. 다른 장면(나무·건물·캡슐)이 카메라를 쓰면 그쪽이 우선한다.
+  - 긴 말풍선은 줄바꿈한다.
+  - 테스트: e2e proto3d-feedback-1117 3개, llm1-elicitation 14개, rethink.spec 뿌리 테스트를 숫자 시트로 바꿈.
+  - 마스터 계정 다 풀기: 코인을 쓸 때마다 9999로 다시 채우고, 옷장 전부와 신뢰 단계를 연다(core/master.ts, 저장 안 하는 이번 방문 플래그). 퀘스트 기능 열기도 마스터는 처음부터 다 열리게 설계 문서에 적었다. tests/master.test.mjs 2개.
+- 2026-11-17 [fix] 피드백 11-17 (2차):
+  - 보리 대화를 게임식 대화창 하나로 통일했다(ui/Friend.tsx, 시안 docs/mockups/bori-talk.html). 화면 아래 유리 패널에 이름표를 달고, 글자가 시간 기준으로 찍히고, ▼와 오른쪽 대답, 그 자리 입력칸이 있다.
+    - 보리가 다가오면 대화창이 저절로 열린다. 멀리서 누르면 플레이어가 걸어간다. 대화 카메라는 LOOK.camera.talk이고, 대화 중에는 HUD가 물러난다.
+    - 서 있는 캐릭터는 시간 기준으로 가까운 쪽으로 돈다(LOOK.analystTurn).
+  - 첫 진입 소개를 넣었다(ui/Intro.tsx, content/intro.ts). 보리·토리·모아·루온이 한 줄씩 소개하고, 마지막에 "캡처 올리기"를 누르면 바로 사진 고르기가 열린다. e2e는 ?intro일 때만 나오고, fixtures가 __noIntro를 켠다.
+  - 일지를 바꿨다(core/jigi/flow.ts):
+    - 몸·마음·기분을 빼고 3쪽으로 줄였다.
+    - 칩을 고르거나 글칸에서 나왔을 때 그 쪽 필수 칸이 다 차면 다음 쪽으로 자동으로 넘어간다(TIMING.jigiNext). 이전 버튼은 그대로다.
+    - 쪽마다 위에 종목 흐름 한 줄을 보여 준다.
+    - 저장하면 분석 탭이 바로 열린다.
+  - 챌린지 진행 중 상단에 "게임 끝내기"를 넣었다. 확인을 한 번 받고, 기록 없이 나간다.
+  - 수레를 "꽃집"으로 바꿨다(ui/FlowerShop.tsx, content/flower-shop.ts, core/plants.ts, public/models/decor).
+    - 탭은 나무·꽃·소품·내 정원이다.
+    - 산 꽃·나무는 빈 풀밭을 눌러 심는다. 연못·개울·종목 자리·건물·길·정원 밖·너무 가까운 곳은 막는다(Scene3D plantBlock).
+    - 더보기에도 꽃집을 넣었다.
+  - 테스트: e2e proto3d-feedback-1117b 4개, 단위 plants-flow 2개, jigi-journal 필수 칸 수정.
+- 2026-11-17 [asset] 보리 표정 7개(B안): tools/blender/analysts.py bori_faces()가 x_<표정>_ 부품(입·눈썹·감은 눈·볼터치)을 만든다. 시안은 docs/mockups/bori-faces.html(tools/blender/bori_faces.py). 서버가 대사마다 보내는 emotion이 supabase.ts → 대화창(data-face) → Analyst3D mood로 가서 그 부품만 보이고 몸짓이 붙는다(궁금 갸웃, 기쁨 통통, 생각 팔 턱, 피곤 흔들). 작은 수다는 주제별 표정(core/friend.ts FRIEND_FACE). 토리·모아·루온은 아직 없음. tests: friend.test 표정 1개, e2e 1117 표정 확인.

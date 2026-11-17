@@ -71,12 +71,12 @@ export const addMonths=(day:string,m:number)=>{const d=new Date(day+'T00:00:00Z'
 export const checkDateOf=(horizon:Horizon|'',from:string)=>horizon&&horizon!=='아직 모르겠음'?addMonths(from,HORIZONS[horizon]):'';
 
 // the nine required things, in the order the pages ask for them, with the page each is on (1~4)
-export type Req={key:string;label:string;page:1|2|3|4;ok:boolean};
+// three pages since feedback 11-17: 몸·마음·기분 left the journal (the fields stay in the data for old journals)
+export type Req={key:string;label:string;page:1|2|3;ok:boolean};
 export function required(j:Journal):Req[]{const f=j.f;return [
-  {key:'phys',label:'몸',page:1,ok:!!f.phys},{key:'ment',label:'마음',page:1,ok:!!f.ment},
-  {key:'stock',label:'종목',page:2,ok:!!j.stock},{key:'understand',label:'이해 정도',page:2,ok:!!f.understand},{key:'action',label:'한 일',page:2,ok:!!f.action},
-  {key:'hypo',label:'가설',page:3,ok:!!f.hypo.trim()},{key:'reason',label:'이유',page:3,ok:!!f.reason.trim()},{key:'recheck',label:'다시 볼 조건',page:3,ok:!!f.recheck.trim()||f.recheckUnknown},
-  {key:'horizon',label:'기간',page:4,ok:!!f.horizon}]}
+  {key:'stock',label:'종목',page:1,ok:!!j.stock},{key:'understand',label:'이해 정도',page:1,ok:!!f.understand},{key:'action',label:'한 일',page:1,ok:!!f.action},
+  {key:'hypo',label:'가설',page:2,ok:!!f.hypo.trim()},{key:'reason',label:'이유',page:2,ok:!!f.reason.trim()},{key:'recheck',label:'다시 볼 조건',page:2,ok:!!f.recheck.trim()||f.recheckUnknown},
+  {key:'horizon',label:'기간',page:3,ok:!!f.horizon}]}
 export const missing=(j:Journal)=>required(j).filter(r=>!r.ok);
 
 // save: a draft becomes v1; a saved journal edited again becomes the next version

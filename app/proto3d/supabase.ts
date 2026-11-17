@@ -72,6 +72,9 @@ export const supabaseAuth:AuthRepo={
 // the server still refuses its functions and data to anyone without one
 export async function hasInvite():Promise<boolean|null>{
   try{const {data,error}=await supabase().rpc('has_invite');return error?null:!!data}catch{return null}}
+// the master account (db/migrations/008_master.sql, the owner adds the row in SQL): no invite, no daily AI cap, coins
+export async function isMaster():Promise<boolean>{
+  try{const {data,error}=await supabase().rpc('is_master');return !error&&!!data}catch{return false}}
 export async function redeemInvite(code:string):Promise<'ok'|'already'|'bad'|'signin'|'error'>{
   try{const {data,error}=await supabase().rpc('redeem_invite',{p_code:code});if(error)return 'error';
     return data==='ok'||data==='already'||data==='bad'||data==='signin'?data:'error'}catch{return 'error'}}
@@ -119,15 +122,17 @@ export async function readCapture(file:Blob):Promise<ReadHolding[]|string>{
 // sends the message and the garden's holdings (code + name, the only companies 보리 may write about)
 export type BoriHolding={company_id:string;name:string};
 let boriSeq=0;
-export async function boriTalk(holdings:BoriHolding[],message:string):Promise<string>{
-  const fallback='지금은 대답을 못 하겠어. 이따 다시 말 걸어 줘.';
+// each line comes with the face 보리 says it with (persona_bori.json allowed_emotions, tools/blender/bori_faces.py)
+export type BoriLine={text:string;emotion:string};
+export async function boriTalk(holdings:BoriHolding[],message:string):Promise<BoriLine>{
+  const fallback={text:'지금은 대답을 못 하겠어. 이따 다시 말 걸어 줘.',emotion:'tired'};
   try{const {data,error}=await supabase().functions.invoke('bori-talk',{body:{action:'message',text:message,holdings,client_message_id:`c${Date.now().toString(36)}${++boriSeq}`}});
-    return !error&&typeof data?.reply?.text==='string'?data.reply.text:fallback}catch{return fallback}
+    return !error&&typeof data?.reply?.text==='string'?{text:data.reply.text,emotion:typeof data.reply.emotion==='string'?data.reply.emotion:'neutral'}:fallback}catch{return fallback}
 }
 // stop-loss signals on holdings (company codes): 보리 opens the talk about the oldest one and listens for why the player
 // holds it; the quotes go to the analysis model on the server. null = nothing new to open (no call, or one under way)
-export async function boriOpen(holdings:BoriHolding[],signals:string[]):Promise<string|null>{
+export async function boriOpen(holdings:BoriHolding[],signals:string[]):Promise<BoriLine|null>{
   if(!signals.length)return null;
   try{const {data,error}=await supabase().functions.invoke('bori-talk',{body:{action:'open',holdings,signals}});
-    return !error&&typeof data?.reply?.text==='string'?data.reply.text:null}catch{return null}
+    return !error&&typeof data?.reply?.text==='string'?{text:data.reply.text,emotion:typeof data.reply.emotion==='string'?data.reply.emotion:'curious'}:null}catch{return null}
 }

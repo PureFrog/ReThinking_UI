@@ -38,9 +38,22 @@ export const LOOK={
     keyTurn:1.7,keyZoom:0.9,
     // a landmark just opened: a lower, closer side view (pitch from straight down, share of the usual distance)
     landmarkPitch:1.0,landmarkDist:0.85,
+    // first person (feedback 11-17): the camera at the player's eyes. eye = height over the ground, back = how far
+    // behind the eye it sits (a drag turns the view round the eye), pitch = the angle from straight down on entering
+    // (a little under level), follow = how fast the eye keeps up with the walk, fov = a wider view than the garden one
+    // talking with 보리 when it came over: the camera comes low and close on the two of them (pitch from straight
+    // down, distance from the point between them, lift = how high over the ground it looks)
+    // turn: how far round from straight behind the player the camera swings, so both faces show (radians)
+    talk:{pitch:1.18,dist:6.5,lift:0.9,turn:0.55},
+    fp:{eye:1.35,back:0.12,pitch:1.42,follow:14,fov:68,maxPitch:1.95},
   },
   // walking (Scene3D Player): speeds up and slows down instead of starting and stopping at once, and turns smoothly;
   // keyStep: how far ahead a held arrow / WASD key keeps the walk target
+  // 보리 coming over on a stop-loss day (Proto3D boriCame): where it stops next to the player, in world units
+  // reach: tapped from farther than this, the player first walks up to stand this far from 보리 (stand)
+  boriCome:{side:1.6,front:1.2,reach:2.6,stand:1.8},
+  // how fast a standing analyst (or 보리) turns to face the player or its task (per second, eased)
+  analystTurn:5,
   walk:{speed:4,accel:10,turn:12,brake:0.7,keyStep:0.8},
 
   // the grade reveal reaching the tree (Scene3D Burst): sparks for a hit, autumn leaves for a miss

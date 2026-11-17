@@ -6,6 +6,7 @@ import {useEffect,useMemo,useState} from 'react';
 import {Bulb} from './Icons';
 import {CHOICES,CHOICE_LABEL,REASON_MAX,LOOKBACK,canRecord,shiftDay,type Choice,type Confidence,type Judgment,type Graded,type Mark} from '../../core/judgment';
 import {CASE,answerCase,type PastCase,type CaseAnswer} from '../../core/cases';
+import {stageFor} from '../../core/master';
 import {DEEP_AT,TRUST_LABEL,EARN} from '../../core/ledger';
 import {REWIND,paidLeft,type RewindRound} from '../../core/rewind';
 import {rewindProvider} from '../../content/rewind';
@@ -103,7 +104,7 @@ export function Briefing({g,signals,holdings,start,onClose,onDeep,onBury,onWrite
   // the analyst remembers the player's last call on this company (core/recall.ts)
   const recall=sig?recallOf(sig.analyst,g.s.judgments,g.s.graded,g.clock.today,holding.id):null;
   return <Sheet kicker={a?`${a.name} · ${MODEL_INFO[sig!.model].name}`:'판단 기록'} title={holding.name} onClose={leave} label="브리핑">
-    {sig&&<NoteCard sig={sig} trustStage={g.s.trust[sig.analyst].stage} onDeep={!made&&onDeep?()=>onDeep(holding.id):undefined}/>}
+    {sig&&<NoteCard sig={sig} trustStage={stageFor(g.s.trust[sig.analyst].stage)} onDeep={!made&&onDeep?()=>onDeep(holding.id):undefined}/>}
     {sig&&!made&&recall&&<Said id={sig.analyst} name={analystById(sig.analyst).name} style={{marginTop:10}}>{say(LINES.remember[sig.analyst][recall.kind],g.clock.today+holding.id,recall)}</Said>}
     {!made&&(onWrite?<button type="button" className="rt-btn primary wide" style={{marginTop:16}} onClick={()=>onWrite(holding.id,sig?.id??null)}>이 종목 일지 쓰기</button>
       :<JudgeForm holding={holding} sig={sig} g={g} onDone={setMade}/>)}
@@ -228,7 +229,7 @@ export function LookBack({g,sig,holding,onJudged,onClose}:{g:G;sig:Signal;holdin
   return <Sheet kicker={`되돌아보기 · ${LOOKBACK}일 전`} title={holding.name} label="되돌아보기" onClose={()=>{g.ops.skipLookback();onClose()}}>
     <div className="rt-note-head" style={{marginBottom:12}}><Face id={a.id} name={a.name}/>
       <div><strong>{say(LINES.lookbackIntro[a.id],sig.id,{n:LOOKBACK})}</strong><small>{line(UI.lookbackNote,{n:LOOKBACK})}</small></div></div>
-    <NoteCard sig={sig} trustStage={g.s.trust[sig.analyst].stage}/>
+    <NoteCard sig={sig} trustStage={stageFor(g.s.trust[sig.analyst].stage)}/>
     <LookbackForm name={holding.name} onDone={onJudged}/>
   </Sheet>;
 }
@@ -264,7 +265,7 @@ export function RewindView({g,onClose}:{g:G;onClose:()=>void}){
     {!round&&<>
       <div className="rt-facts"><div><span>업종</span><b>{rc.sector}</b></div><div><span>보유</span><b>{rc.held}</b></div>
         <div><span>그때 수익률</span><b className={`rt-num ${rc.rate<0?'rt-down':'rt-up'}`}><Num v={rc.rate}/></b></div></div>
-      <div style={{marginTop:10}}><NoteCard sig={rc.sig} trustStage={g.s.trust[rc.sig.analyst].stage}/></div>
+      <div style={{marginTop:10}}><NoteCard sig={rc.sig} trustStage={stageFor(g.s.trust[rc.sig.analyst].stage)}/></div>
       <p className="rt-headline" style={{marginTop:16}}>이때라면 어떻게 할까요?</p>
       <div className="rt-seg" role="group" aria-label="판단">
         {CHOICES.map(c=><button key={c.id} type="button" aria-pressed={choice===c.id} onClick={()=>setChoice(c.id)}>{c.label}<small>{c.sub}</small></button>)}</div>

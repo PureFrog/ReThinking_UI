@@ -291,64 +291,38 @@ test("today's three: the chip, the list, and the way to each one", async ({ page
   clean(errors);
 });
 
-// W2 (docs/brief-wow.md): above the ground is the price, below it the company's books. The note's 땅 속 보기 or a long
-// press on a tree opens the ground under it (Roots3D.tsx): roots for strength, dark spots for bankruptcy risk, a stone
-// for debt (core/roots.ts). A weak company and a healthy one look different at a glance; nothing says sell.
-type Cut = { open: boolean; holdingId: number | null; roots: { count: number; thick: number; spots: number; stone: number } | null };
+// W2 (docs/brief-wow.md), since feedback 11-17: the ground no longer opens under the tree (the roots looked odd). A long
+// press on a tree or the note's 재무 체력 opens the numbers sheet only; nothing says sell.
+type Cut = { open: boolean };
 const cutaway = async (page: Page) => ((await hooks(page)) as unknown as { cutaway?: Cut })?.cutaway ?? null;
-test("the ground opens under a tree: weak and healthy roots look different", async ({ page }) => {
+test("a tree's financial health opens as numbers, without a root cut-away", async ({ page }) => {
   const errors: string[] = [];
   await open(page, errors, "&demo");
   const vp = page.viewportSize()!;
-  // the first tree card says how (once), and a long press on a tree opens its ground
   const trees = (await hooks(page))!.trees;
   let id = -1;
   for (const [k, p] of Object.entries(trees)) if (await tappable(page, p, vp)) { id = Number(k); break; }
   expect(id).toBeGreaterThan(0);
-  const p = trees[id];
-  await page.mouse.click(p.x, p.y);
-  await expect(page.getByRole("dialog", { name: /나무$/ })).toContainText("길게 누르면");
-  await page.getByRole("dialog", { name: /나무$/ }).getByRole("button", { name: "닫기" }).click();
-  await settled(page);
-  const q = (await hooks(page))!.trees[id];
+  const q = trees[id];
   await page.mouse.move(q.x, q.y); await page.mouse.down(); await page.waitForTimeout(900); await page.mouse.up();
   await expect(sheet(page, "재무 체력")).toBeVisible();
-  await expect.poll(async () => (await cutaway(page))?.holdingId).toBe(id);
+  expect((await cutaway(page))?.open ?? false).toBe(false);
   await sheet(page, "재무 체력").getByRole("button", { name: "닫기" }).click();
-  await expect.poll(async () => (await cutaway(page))?.open).toBe(false);
 
   // from the research note: a weak company (the demo's POSCO홀딩스: F-score 3, Ohlson 17%, debt 214%)
   await dock(page, "일지").click();
   await noteRow(page, /POSCO홀딩스/).click();
   await sheet(page, "브리핑").getByRole("button", { name: /재무 체력/ }).click();
   const deep = sheet(page, "재무 체력");
-  await expect(deep).toContainText("회사 체력");
   await expect(deep).toContainText("F-score");
   await expect(deep).toContainText("3/9");
   await expect(deep).toContainText("17%");
   await expect(deep).toContainText("214%");
-  await expect(deep).toContainText("3점");// tori says the number
+  await expect(deep).not.toContainText("뿌리");
   await expect(deep).not.toContainText(BANNED);
-  await expect.poll(async () => (await cutaway(page))?.holdingId).toBe(7);
-  const weak = (await cutaway(page))!.roots!;
-  expect(weak.spots).toBeGreaterThan(0);
-  expect(weak.stone).toBeGreaterThan(0.5);
-  // closing covers the ground and goes back to the note
+  expect((await cutaway(page))?.open ?? false).toBe(false);
   await deep.getByRole("button", { name: "닫기" }).click();
   await expect(sheet(page, "브리핑")).toContainText("POSCO홀딩스");
-  await expect.poll(async () => (await cutaway(page))?.open).toBe(false);
-  await sheet(page, "브리핑").getByRole("button", { name: "닫기" }).first().click();
-
-  // a healthy one (SK하이닉스): more and thicker roots, no spots
-  await dock(page, "일지").click();
-  await noteRow(page, /SK하이닉스/).click();
-  await sheet(page, "브리핑").getByRole("button", { name: /재무 체력/ }).click();
-  await expect.poll(async () => (await cutaway(page))?.holdingId).toBe(1);
-  const good = (await cutaway(page))!.roots!;
-  expect(good.count).toBeGreaterThan(weak.count);
-  expect(good.thick).toBeGreaterThan(weak.thick);
-  expect(good.spots).toBe(0);
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("rethink-garden-v1")!).seen.cutaway)).toBe(3);
   clean(errors);
 });
 

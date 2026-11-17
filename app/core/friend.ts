@@ -3,6 +3,12 @@
 // the server (docs/server.md); until then these lines and a few quick replies.
 // Voice: quick, warm, a little nosy, 반말. Never tells anyone to buy or sell, never calls a price.
 export const FRIEND={id:'bori',name:'보리',role:'말 걸어오는 친구'} as const;
+// 보리's faces (tools/blender/analysts.py bori_faces, docs/mockups/bori-faces.html): the talk server picks one per line
+// (persona_bori.json allowed_emotions); anything else shows as neutral. The small talk's openers pick by topic.
+export const BORI_FACES=['neutral','curious','concerned','happy','thinking','playful','tired'] as const;
+export type BoriFace=typeof BORI_FACES[number];
+export const FRIEND_FACE={of:(e:string):BoriFace=>(BORI_FACES as readonly string[]).includes(e)?e as BoriFace:'neutral',
+  topic:{grades:'happy',signal:'concerned',chat:'playful'} as Record<'grades'|'signal'|'chat',BoriFace>};
 export type FriendCtx={hour:number;due:number;signal:{name:string;analyst:string}|null;holdings:string[]};
 export type FriendTopic='grades'|'signal'|'chat';
 

@@ -30,7 +30,7 @@ const read=msgs=>{const c=msgs[1].content;
 const elic=(text,o={})=>msgs=>{const {cur,rev,st}=read(msgs);const x=typeof o==='function'?o(cur,st):o;
   return JSON.stringify({reply:{text,emotion:'curious',mentioned_news_ids:[]},conversation_state_update:null,profile_update:{base_revision:null,changes:[],strategy_proposals:[]},
     elicitation:{base_revision:x.rev??rev,decision:x.decision??'continue',finish_reason:x.finish_reason??null,decision_note:x.note??'이유를 듣는 중',evidence_changes:x.changes??[],
-      unresolved_points:x.unresolved??[],next_question_goal:x.decision&&x.decision!=='continue'?null:(x.goal??'보유 이유 듣기')}})};
+      unresolved_points:x.unresolved??[],next_question_goal:x.decision&&x.decision!=='continue'?null:('goal' in x?x.goal:'보유 이유 듣기')}})};
 const add=(mid,quote,o={})=>({op:'add',target_id:null,kind:o.kind??'reason',origin:o.origin??'user_initiated',source_refs:[{message_id:mid,quote}],context_message_ids:o.ctx??[],summary:o.summary??'요약',is_prior_reason:o.prior??true});
 const finish=(why='sufficient',o={})=>({decision:'finish',finish_reason:why,note:'이유가 충분히 나옴',...o});
 
@@ -74,9 +74,21 @@ test('finish is checked: not while the player is still talking; sufficient build
   assert.equal(ok.elicitation_status,'ready');assert.equal(ok.delivery_request_id,'ar001');
   const job=h.store.jobs[0],p=job.payload;
   assert.equal(job.route,'argument_analysis');assert.equal(p.company_id,'005930');
-  assert.equal(p.investor_natural_language,'메모리 업황이 바닥이라고 봤어 1년 정도 HBM 수주도 기대했어');
-  assert.ok(p.segments.every(s=>h.es.messages.find(m=>m.message_id===s.message_id).role==='user'));
-  const s4=EL.toS4Input(p);assert.equal(s4.spans.length,3);assert.equal(s4.investor_message.slice(s4.spans[2].start,s4.spans[2].end),'HBM 수주도 기대했어');
+  // v2.0: the body is the talk as question/answer pairs, the player's words as said (no quotes cut out, no S4 adapter)
+  assert.equal(p.schema_version,'2.0');assert.ok(!('segments' in p)&&!('investor_natural_language' in p));
+  assert.deepEqual(p.conversation.map(c=>c.answer),['메모리 업황이 바닥이라고 봤어','1년 정도. 그리고 하나 더','HBM 수주도 기대했어']);
+  assert.equal(p.conversation[0].question,'왜 샀었어?');assert.equal(p.conversation[1].question,'그렇구나. 언제까지 볼 생각이었어?');
+});
+
+test('a line that only reacts pairs the next answer with null; corrections stay in the order they were said', async () => {
+  const h=harness();h.signal(['005930']);await h.open(elic('삼성전자 요즘 어떻게 보고 있어?'));
+  await h.say('신제품 때문에 들고 있어',elic('오, 신제품 기대되긴 하더라.',cur=>({goal:null,changes:[add(cur.message_id,'신제품 때문에 들고 있어')]})));
+  await h.say('배당도 좋고',elic('그렇구나.',cur=>({goal:null,changes:[add(cur.message_id,'배당도 좋고')]})));
+  await h.say('아 배당은 아니다. 취소',elic('알겠어, 배당은 빼고. 또 있어?'));
+  const r=await h.say('더는 없어',elic('알겠어, 잘 들었어.',finish('limited_more')));
+  const conv=h.store.jobs.find(j=>j.request_id===r.delivery_request_id).payload.conversation;
+  assert.deepEqual(conv,[{question:'삼성전자 요즘 어떻게 보고 있어?',answer:'신제품 때문에 들고 있어'},{question:null,answer:'배당도 좋고'},
+    {question:null,answer:'아 배당은 아니다. 취소'},{question:'알겠어, 배당은 빼고. 또 있어?',answer:'더는 없어'}]);
 });
 
 test('finish with a question in the line gets a repair; no evidence means no finish', async () => {

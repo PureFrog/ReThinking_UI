@@ -35,8 +35,10 @@ export const PALETTES:{id:string;name:string;primary:string;secondary:string;acc
 ];
 export type Look={coat:string;hat:string|null;bag:string|null;tool:string|null;palette:string};
 export const DEFAULT_LOOK:Look={coat:'coat_vest',hat:'hat_explorer',bag:null,tool:'tool_loupe',palette:'moss'};
-export type WearCtx={rank:number;stamps:string[];trust:Record<Who,number>;bought:string[]};
+// all: the master account (core/master.ts) has everything open
+export type WearCtx={rank:number;stamps:string[];trust:Record<Who,number>;bought:string[];all?:boolean};
 export function isOpen(u:Unlock,c:WearCtx,id:string){
+  if(c.all)return true;
   switch(u.kind){case 'start':return true;case 'rank':return c.rank>=u.index;case 'stamp':return c.stamps.includes(u.id);
     case 'trust':return c.trust[u.who]>=u.stage;case 'buy':return c.bought.includes(id)}
 }

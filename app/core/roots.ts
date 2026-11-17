@@ -26,9 +26,9 @@ export function toneOf(k:keyof typeof ROOT_LINES,v:number):Tone{
 export type RootRow={id:keyof typeof ROOT_LINES;word:string;model:string;value:string;tone:Tone;shows:string};
 export function rootRows(h:Health):RootRow[]{
   return [
-    {id:'fscore',word:'회사 체력',model:'F-score',value:`${h.fscore}/9`,tone:toneOf('fscore',h.fscore),shows:'뿌리 굵기'},
-    {id:'ohlson',word:'부도 위험',model:'올슨',value:`${h.ohlson}%`,tone:toneOf('ohlson',h.ohlson),shows:'검은 반점'},
-    {id:'debt',word:'빚 부담',model:'부채비율',value:`${h.debt}%`,tone:toneOf('debt',h.debt),shows:'돌덩이'},
+    {id:'fscore',word:'회사 체력',model:'F-score',value:`${h.fscore}/9`,tone:toneOf('fscore',h.fscore),shows:'9개 항목 점수'},
+    {id:'ohlson',word:'부도 위험',model:'올슨',value:`${h.ohlson}%`,tone:toneOf('ohlson',h.ohlson),shows:'1년 안 부도 확률'},
+    {id:'debt',word:'빚 부담',model:'부채비율',value:`${h.debt}%`,tone:toneOf('debt',h.debt),shows:'빚 ÷ 자기자본'},
   ];
 }
 // which of tori's lines fits (content/analysts.ts LINES.roots): by strength, then the heaviest other thing

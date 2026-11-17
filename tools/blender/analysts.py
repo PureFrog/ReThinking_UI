@@ -273,6 +273,76 @@ def bori():
     lf = ball('leaf', (0.5, -0.22, 0.78), (0.1, 0.03, 0.06), leaf)
     lf.rotation_euler = (0, -0.6, 0.2)
     attach_new(p['arms']['r'], s | {p['arms']['r']})
+    s = set(bpy.data.objects)
+    bori_faces()
+    attach_new(p['head'], s | {p['head']})
+
+
+# 보리's faces (feedback 11-17, B): one set of pieces per emotion the talk server sends (persona_bori.json
+# allowed_emotions). Every piece is named x_<emotion>_<part>; the scene shows only the current emotion's pieces
+# (app/proto3d/Analyst3D.tsx), and an emotion with its own eyes (x_<emotion>_eye...) hides the round eyes meanwhile.
+EMOTIONS = ('neutral', 'curious', 'concerned', 'happy', 'thinking', 'playful', 'tired')
+
+
+def arc(name, cx, cz, y, r, a0, a1, thick, mat, n=5):
+    """A curved stroke on the face (an eye shut in a smile, a mouth): capsules along a circle in the x-z plane."""
+    pts = [(cx + r * math.cos(a0 + (a1 - a0) * i / n), y, cz + r * math.sin(a0 + (a1 - a0) * i / n)) for i in range(n + 1)]
+    for i in range(n):
+        capsule(f'{name}{i}', pts[i], pts[i + 1], thick, mat)
+
+
+def bori_faces():
+    brow, mouth, tongue, blush, dark = (material('brow', '#5a3a22'), material('mouth', '#3a2420'), material('tongue', '#e98c8c'),
+                                        material('blush', '#f4a3a3'), material('eye', '#1d1f24'))
+    EY, EZ, BY, BZ, MY, MZ = -0.345, 1.24, -0.326, 1.32, -0.377, 1.085
+    def brows(e, lz, rz, tilt):  # tilt > 0: inner ends up (worried); < 0: inner ends down (cross)
+        capsule(f'x_{e}_brow_l', (-0.2, BY, BZ + lz - tilt), (-0.08, BY - 0.01, BZ + lz + tilt), 0.013, brow)
+        capsule(f'x_{e}_brow_r', (0.08, BY - 0.01, BZ + rz + tilt), (0.2, BY, BZ + rz - tilt), 0.013, brow)
+    def lip(e):  # the guinea pig's split lip over the teeth: a small ㅅ
+        capsule(f'x_{e}_mouth_l', (0, MY, MZ + 0.012), (-0.035, MY + 0.004, MZ - 0.012), 0.008, mouth)
+        capsule(f'x_{e}_mouth_r', (0, MY, MZ + 0.012), (0.035, MY + 0.004, MZ - 0.012), 0.008, mouth)
+    def cheeks(e):
+        for side, x in (('l', -0.22), ('r', 0.22)):
+            ball(f'x_{e}_blush_{side}', (x, -0.3, 1.14), (0.055, 0.02, 0.032), blush)
+    def shut(e, side, x, up=True):  # an eye closed in a smile (∩) or tired (a flat line)
+        if up:
+            arc(f'x_{e}_eye_{side}', x, EZ - 0.025, EY, 0.042, math.radians(20), math.radians(160), 0.011, dark)
+        else:
+            capsule(f'x_{e}_eye_{side}', (x - 0.045, EY, EZ - 0.012), (x + 0.045, EY, EZ - 0.018), 0.011, dark)
+    # neutral: the round eyes, calm brows, the small lip
+    brows('neutral', 0, 0, 0); lip('neutral')
+    # curious: brows up, eyes a bit bigger, a small round mouth
+    brows('curious', 0.035, 0.05, 0)
+    for side, x in (('l', -0.13), ('r', 0.13)):
+        ball(f'x_curious_eye_{side}', (x, -0.312, EZ + 0.005), (0.055, 0.032, 0.066), dark, (16, 8))
+        ball(f'x_curious_eye_{side}_hi', (x + 0.018, -0.345, EZ + 0.03), (0.014, 0.008, 0.014), material('shine', '#ffffff'), (12, 6))
+    ball('x_curious_mouth', (0, MY + 0.003, MZ - 0.025), (0.022, 0.012, 0.026), mouth, (16, 8))
+    # concerned: brows up in the middle, a small frown
+    brows('concerned', 0.0, 0.0, 0.03)
+    arc('x_concerned_mouth', 0, MZ - 0.055, MY, 0.04, math.radians(45), math.radians(135), 0.008, mouth)
+    # happy: eyes shut in a smile, open mouth with the teeth on top, pink cheeks
+    for side, x in (('l', -0.13), ('r', 0.13)):
+        shut('happy', side, x)
+    brows('happy', 0.02, 0.02, 0)
+    ball('x_happy_mouth', (0, MY + 0.012, MZ - 0.03), (0.05, 0.02, 0.04), mouth, (24, 12))
+    ball('x_happy_mouth_tongue', (0, MY + 0.002, MZ - 0.05), (0.03, 0.014, 0.018), tongue, (16, 8))
+    cheeks('happy')
+    # thinking: eyes up and to the side, one brow up, the mouth pulled to one side
+    for side, x in (('l', -0.13), ('r', 0.13)):
+        ball(f'x_thinking_eye_{side}', (x + 0.02, -0.33, EZ + 0.022), (0.036, 0.024, 0.044), dark, (16, 8))
+    brows('thinking', 0.0, 0.05, 0)
+    capsule('x_thinking_mouth', (-0.005, MY, MZ - 0.025), (0.045, MY + 0.004, MZ - 0.012), 0.008, mouth)
+    # playful: a wink, the tongue out, cheeks
+    shut('playful', 'l', -0.13)
+    brows('playful', 0.0, 0.035, 0)
+    lip('playful')
+    ball('x_playful_tongue', (0.012, MY - 0.004, MZ - 0.05), (0.026, 0.014, 0.032), tongue, (16, 8))
+    cheeks('playful')
+    # tired: eyes half shut (a lid line), brows down at the ends, a small flat mouth
+    for side, x in (('l', -0.13), ('r', 0.13)):
+        shut('tired', side, x, up=False)
+    brows('tired', -0.012, -0.012, 0.02)
+    capsule('x_tired_mouth', (-0.025, MY, MZ - 0.03), (0.025, MY, MZ - 0.03), 0.008, mouth)
 
 
 def export(path):
