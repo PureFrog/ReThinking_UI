@@ -24,6 +24,7 @@ import {startCooldown,finishCooldown,type Cooldown} from '../core/cooldown';
 import {answerStreak,checkStreak,blankStreak,type Streak} from '../core/streak';
 import {gain,blankRelation,type Relation} from '../core/relationships';
 import type {CaseAnswer} from '../core/cases';
+import {useCast,land,type Fishing} from '../core/fishing';
 import {buyPlant,removePlant,type Plant} from '../core/plants';
 import {EARN,TRUST,MASTER} from '../core/ledger';
 import {playRewind,type RewindRound} from '../core/rewind';
@@ -57,6 +58,8 @@ export type GardenSave={v:1;holdings:Holding[];onboarded:boolean;lookedBack:bool
   built?:Built;
   // decor flowers and trees from the 꽃집 (core/plants.ts)
   plants?:Plant[];
+  // fishing with 나루 at the pond (core/fishing.ts): today's casts and the fish log
+  fishing?:Fishing;
   // 지기 J3: study tasks taken from the analysis (on the next journal's checklist), my principles, types I said don't fit
   jigi?:{tasks:StudyTask[];principles:{text:string;at:number}[];typeNo:Record<string,boolean>}};
 export const SAVE_KEY='rethink-garden-v1';
@@ -232,6 +235,11 @@ export function useGarden(){
     plant(item:{id:string;price:number},x:number,z:number):'ok'|'coins'|'close'{let res:ReturnType<typeof buyPlant>|null=null;
       setS(p=>{const r=buyPlant({currency:p.currency,plants:p.plants??[]},item,x,z,Date.now());res=r;return r.ok?{...p,currency:r.currency,plants:r.plants}:p});
       const r=res as ReturnType<typeof buyPlant>|null;return !r?'coins':r.ok?'ok':r.why},
+    // a cast is used when the line goes in; a fish landed goes into the log and pays a little
+    fishCast(){setS(p=>({...p,fishing:useCast(p.fishing,c.today)}))},
+    fishLand(id:string,size:number){let res:ReturnType<typeof land>|null=null;
+      setS(p=>{const r=land(p.fishing,id,size);res=r;return {...p,fishing:r.fishing,currency:p.currency+r.coins}});
+      return res as ReturnType<typeof land>|null},
     unplant(id:string){setS(p=>({...p,plants:removePlant(p.plants??[],id)}))},
     build(w:Want){let res:ReturnType<typeof spend>|null=null;setS(p=>{const r=spend(p.built??BUILT0,p.currency,w);res=r;return r.ok?{...p,built:r.built,currency:r.coins}:p});
       const r=res as ReturnType<typeof spend>|null;if(!r)return false;

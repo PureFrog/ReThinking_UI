@@ -57,8 +57,13 @@ export function Cart({onPick,flag}:{onPick:()=>void;flag:string}){
     {/* striped awning on two poles */}
     {[-0.65,0.65].map(x=><mesh key={'p'+x} position={[x,1.35,-0.35]}><cylinderGeometry args={[0.04,0.04,1.3,8]}/>{S('#6f5846')}</mesh>)}
     {[0,1,2,3,4].map(i=><mesh key={'a'+i} position={[-0.6+i*0.3,1.98,-0.05]} rotation-x={0.35} castShadow><boxGeometry args={[0.3,0.04,0.9]}/>{S(i%2?'#f4efe4':'#2f5d50')}</mesh>)}
-    {/* goods on the cart */}
-    {[[-0.4,'#d8a24a'],[0,'#6a8fb5'],[0.4,'#b75d4a']].map(([x,c],i)=><mesh key={'g'+i} position={[x as number,1.1,0]} castShadow><boxGeometry args={[0.28,0.22,0.3]}/>{S(c as string)}</mesh>)}
+    {/* the 꽃집 (feedback 11-17): pots of flowers on the cart instead of boxes */}
+    {[[-0.45,'#e2566b'],[0,'#f2c84b'],[0.45,'#8a7be0']].map(([x,c],i)=><group key={'g'+i} position={[x as number,1,0]}>
+      <mesh position-y={0.11} castShadow><cylinderGeometry args={[0.15,0.11,0.22,14]}/>{S('#c27a55')}</mesh>
+      {[[-0.07,0.05],[0.07,0.03],[0,-0.07],[0.02,0.08]].map(([dx,dz],k)=><group key={k} position={[dx,0.22,dz]}>
+        <mesh position-y={0.12}><cylinderGeometry args={[0.012,0.012,0.24,5]}/>{S('#4f8a3a')}</mesh>
+        <mesh position-y={0.27} castShadow><sphereGeometry args={[0.07,10,8]}/>{S(c as string)}</mesh></group>)}
+    </group>)}
     <mesh position={[0.65,2.35,-0.35]}><cylinderGeometry args={[0.025,0.025,0.6,6]}/>{S('#6f5846')}</mesh>
     <mesh ref={cloth} position={[0.85,2.5,-0.35]}><boxGeometry args={[0.36,0.22,0.02]}/>{S(flag)}</mesh>
   </group>;

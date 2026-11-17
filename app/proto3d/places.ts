@@ -25,7 +25,7 @@ const PLACES0:{id:PlaceId;label:string;x:number;z:number;rot:number;walk:{x:numb
   {id:'plaza',label:'리그 광장',x:-2,z:19.6,rot:0,walk:{x:-2,z:17.4}},
   {id:'observatory',label:'관측소',x:-9,z:1.2,rot:1.25,walk:{x:-7,z:1.8}},
   {id:'cart',label:'꽃집',x:-3.6,z:5.3,rot:0.5,walk:{x:-2.6,z:6}},
-  {id:'pond',label:'연못',x:0.5,z:8,rot:0,walk:{x:2.6,z:6}},
+  {id:'pond',label:'연못',x:0.5,z:8,rot:0,walk:{x:2.0,z:5.4}},// walk: by 나루 the otter (fishing)
 ];
 // each place moves out with its walk point (the spot in front of it keeps its distance)
 export const PLACES=PLACES0.map(p=>{const dx=(SPREAD-1)*p.x,dz=(SPREAD-1)*p.z;return {...p,x:p.x+dx,z:p.z+dz,walk:{x:p.walk.x+dx,z:p.walk.z+dz}}});
@@ -65,3 +65,9 @@ export function route(from:{x:number;z:number},to:{x:number;z:number},inPond:(x:
   const mid=streamZ(BRIDGE.x),s=southOfStream(from.x,from.z)?1:-1;
   return [{x:BRIDGE.x,z:mid+s*BRIDGE.half},{x:BRIDGE.x,z:mid-s*BRIDGE.half},t];
 }
+
+// 나루 the otter by the pond (feedback 11-17, docs/mockups/otter-fishing.html): where it stands, where the player stands
+// to fish, and where the float lands (the middle of the big pond piece, Scene3D POND)
+const at=(x:number,z:number)=>{const [a,b]=spread(x,z);return {x:a,z:b}};
+export const NARU=at(3.4,6.2),FISH_STAND=at(2.0,5.4),FISH_AT=at(0.2,7.8);
+

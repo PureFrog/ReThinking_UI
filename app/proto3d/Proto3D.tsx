@@ -85,10 +85,12 @@ import {LetterSheet} from './ui/Letter';
 import {letterOf,letterDue,prevMonth,monthOf,monthLabel} from '../core/letter';
 import {stampById} from '../core/stamps';
 import {daysBetween as daysFrom} from '../core/judgment';
-import {place,type PlaceId} from './places';
+import {place,NARU,FISH_STAND,FISH_AT,type PlaceId} from './places';
 import {Bubbles} from './ui/Bubbles';
 import {FriendSheet} from './ui/Friend';
 import {FRIEND,friendOpener,type BoriFace} from '../core/friend';
+import {NaruTalk,FishingPlay,FishLog} from './ui/Fishing';
+import {castsLeft,land} from '../core/fishing';
 import {FlowerShop} from './ui/FlowerShop';
 import {shopPlant} from '../content/flower-shop';
 import {Intro} from './ui/Intro';
@@ -224,6 +226,8 @@ export default function Proto3D(){
   const toggleFp=()=>setFp(v=>{const n=!v;try{localStorage.setItem('rethink-fp',n?'1':'0')}catch{/* this visit only */}return n});
   // the 꽃집: which decor is being placed (the next tap on open grass plants it, Scene3D plantBlock)
   const [planting,setPlanting]=useState<{item:string}|null>(null);
+  // fishing with 나루 at the pond (ui/Fishing.tsx, core/fishing.ts): talking, fishing, or the log; the float's phase
+  const [fish,setFish]=useState<'talk'|'play'|'log'|null>(null),[bob,setBob]=useState<'wait'|'bite'|null>(null);
   const goPlace=(id:PlaceId)=>{const p=place(id);setPicked(null);setFocus(null);setView(null);setGoTo({...p.walk,at:Date.now()});setSheet(null)};
   // W5 타임랩스 (core/history.ts): which weekly frame is shown, and whether it plays on by itself
   const [lapse,setLapse]=useState<{i:number;playing:boolean}|null>(null);
@@ -387,7 +391,9 @@ export default function Proto3D(){
   // 보리 (core/friend.ts): comes over once the garden is planted and starts a talk from what is going on today;
   // after one talk a day it stays but says nothing more until tomorrow
   const [friendDay,setFriendDay]=useState<string|null>(()=>{try{return localStorage.getItem('rethink-friend-day')}catch{return null}});
-  const friendHere=ready&&!lapse&&!calm&&!inside;
+  // 보리 is only around in the plain garden (feedback 11-17: it talked over My Page): not on My Page, the sky, the
+  // 넓히기 mode, while planting, in the timelapse or inside the house
+  const friendHere=ready&&!lapse&&!calm&&!inside&&!me&&!skyOpen&&!buildMode&&!planting&&!fish;
   const friendCtx={hour:Math.floor(minutes/60),due:g.due.length,
     signal:firstOpen&&firstHolding?{name:firstHolding.name,analyst:ANALYSTS.find(a=>a.id===firstOpen.analyst)?.name??''}:null,holdings:holdings.map(x=>x.name)};
   const opener=friendOpener(friendCtx,clock.today);
@@ -413,7 +419,8 @@ export default function Proto3D(){
     setTalkSpot({at,me:stand});setPicked(null);setSheet({kind:'friend'});setFriendDay(clock.today);try{localStorage.setItem('rethink-friend-day',clock.today)}catch{/* stays for this visit */}};
   useEffect(()=>{if(sheet?.kind!=='friend'){setTalkSpot(null);setBoriFace('neutral')}},[sheet]);
   // 보리 came over: once the server has answered, the dialogue opens by itself (nothing else open)
-  useEffect(()=>{if(boriCame&&boriCame.text!==undefined&&friendDay!==clock.today&&!sheet&&friendHere)talkFriend()},[boriCame?.text]);// eslint-disable-line react-hooks/exhaustive-deps
+  // (also when the player comes back from My Page, the sky or the like: the talk waited)
+  useEffect(()=>{if(boriCame&&boriCame.text!==undefined&&friendDay!==clock.today&&!sheet&&friendHere)talkFriend()},[boriCame?.text,friendHere]);// eslint-disable-line react-hooks/exhaustive-deps
   // 지기 투자일지 (docs/jigi.md): a new page from a tree, a quick chip, a signal or the book; the camera goes to its tree
   const journals=s.journals??[];
   // the master account gets its coins topped up once it is known (the save syncs as usual)
@@ -462,7 +469,10 @@ export default function Proto3D(){
       const r=g.ops.plant(it,x,z);if(r==='ok'){g.say(`${it.name} 심었어요 · 코인 -${it.price}`);setPlanting(null);cue('capsule-mark')}
       else g.say(r==='coins'?'코인이 모자라요':'다른 꽃·나무랑 너무 가까워요')},
     // 보리 came over and is talking: the camera comes close on the two of them until the talk opens or is answered
-    talk:talkSpot&&sheet?.kind==='friend'?{x:(talkSpot.at.x+talkSpot.me.x)/2,z:(talkSpot.at.z+talkSpot.me.z)/2,
+    // with 나루: the camera on the two of them while talking, over the player's shoulder onto the water while fishing
+    talk:fish==='talk'?{x:(NARU.x+FISH_STAND.x)/2,z:(NARU.z+FISH_STAND.z)/2,az:Math.atan2(FISH_STAND.x-NARU.x,FISH_STAND.z-NARU.z)+LOOK.camera.talk.turn}
+      :fish==='play'?{x:FISH_AT.x*0.8+FISH_STAND.x*0.2,z:FISH_AT.z*0.8+FISH_STAND.z*0.2,az:Math.atan2(FISH_STAND.x-FISH_AT.x,FISH_STAND.z-FISH_AT.z)+0.35,pitch:LOOK.camera.fish.pitch,dist:LOOK.camera.fish.dist}
+      :talkSpot&&sheet?.kind==='friend'?{x:(talkSpot.at.x+talkSpot.me.x)/2,z:(talkSpot.at.z+talkSpot.me.z)/2,
       // from behind the player looking at 보리 (it faces the player, so its face shows), swung a little to the side
       az:Math.atan2(talkSpot.me.x-talkSpot.at.x,talkSpot.me.z-talkSpot.at.z)+LOOK.camera.talk.turn}:null,
     room:{books:s.judgments.slice(-36).map(j=>{const gr=s.graded.filter(x=>x.judgmentId===j.id).at(-1);return {state:gr?(gr.hit?'hit':'miss'):'waiting'} as const}),
@@ -470,6 +480,8 @@ export default function Proto3D(){
       resting:ANALYSTS.filter(a=>day[a.id].kind==='home'||day[a.id].kind==='spot').map(a=>a.id),
       onDesk:()=>setSheet({kind:'today'}),onShelf:()=>setSheet({kind:'records'}),
       onBoard:()=>{if(g.due.length)setSheet({kind:'grades'});else g.say(capsules.length?line(UI.boardWait,{n:capsules.length}):UI.boardEmpty)},onDoor:()=>swapRoom(false)},
+    naru:ready&&!lapse&&!calm&&!inside&&!me&&!skyOpen?{at:NARU,onPick:()=>{if(fish)return;setPicked(null);setSheet(null);setGoTo({...FISH_STAND,at:Date.now()});setFish('talk')}}:null,
+    fishing:fish==='play'&&bob?{...FISH_AT,phase:bob}:null,
     friend:friendHere?{at:talkSpot&&sheet?.kind==='friend'?talkSpot.at:boriAt,onPick:talkFriend,face:boriFace}:null,
     view,
     build:ready?{built,mode:buildMode&&!quiet&&!inside,onLot:key=>{const [k,id]=key.split(':');if(k==='city'){setPicked(null);setSheet({kind:'cities'});return}setWant({kind:k as 'land'|'building',id})}}:null,
@@ -525,7 +537,7 @@ export default function Proto3D(){
       {ready&&!h&&!quiet&&!inside&&!sheet&&!capFx&&!me&&<Signs built={built}/>}
       {ready&&!h&&!quiet&&!inside&&!sheet&&!capFx&&!buildMode&&<CapsuleTags items={markers} names={Object.fromEntries(holdings.map(x=>[x.id,x.name]))} onPick={onCapsule}/>}
       {jump&&<div className="rt-jump" role="status">{UI.jump}</div>}
-      {!h&&!quiet&&!inside&&!buildMode&&<Bubbles items={bubbleNow} onPick={id=>id===FRIEND.id?talkFriend():world.onAnalyst(id as AnalystId)}/>}
+      {!h&&!quiet&&!inside&&!buildMode&&!me&&!skyOpen&&!planting&&<Bubbles items={bubbleNow} onPick={id=>id===FRIEND.id?talkFriend():world.onAnalyst(id as AnalystId)}/>}
       {!ready&&!sheet&&<button type="button" className="rt-banner" onClick={()=>setSheet({kind:'onboard'})}><span>정원이 비어 있어</span><b>내 종목 넣기</b></button>}
       {ready&&!sheet&&!quiet&&!inside&&!capFx&&!jump&&!buildMode&&h===undefined&&<NextCard step={next} tasks={{done:tasksDone,total:tasks.length}} onToday={()=>setSheet({kind:'today'})}
         onGo={()=>{setPicked(null);setSheet(next.kind==='grades'?{kind:'grades'}:next.kind==='signal'?{kind:'brief',start:{signalId:next.id}}:next.kind==='letter'?{kind:'letter',month:lastLetter.month}:{kind:'case'})}}/>}
@@ -631,6 +643,10 @@ export default function Proto3D(){
       {sheet?.kind==='cart'&&<FlowerShop coins={s.currency} plants={s.plants??[]} onClose={close} onGoods={()=>setSheet({kind:'goods'})}
         onRemove={id=>g.ops.unplant(id)} onPick={id=>{setSheet(null);setPicked(null);setPlanting({item:id})}}/>}
       {sheet?.kind==='goods'&&<CartView g={g} onClose={()=>setSheet({kind:'cart'})}/>}
+      {fish==='talk'&&!sheet&&<NaruTalk left={castsLeft(s.fishing,clock.today,master)} onFish={()=>setFish('play')} onLog={()=>setFish('log')} onClose={()=>setFish(null)}/>}
+      {fish==='play'&&!sheet&&<FishingPlay left={castsLeft(s.fishing,clock.today,master)} onCast={()=>g.ops.fishCast()} onPhase={setBob} onLog={()=>setFish('log')} onClose={()=>setFish(null)}
+        onLand={(id,size)=>{const r=land(s.fishing,id,size);g.ops.fishLand(id,size);cue('capsule-mark');return {coins:r.coins,first:r.first,best:r.best}}}/>}
+      {fish==='log'&&!sheet&&<FishLog fishing={s.fishing} onClose={()=>setFish(null)}/>}
       {planting&&!sheet&&<div className="rt-plant-bar" role="status"><span>{shopPlant(planting.item)?.name} 심을 풀밭을 눌러요</span>
         <button type="button" onClick={()=>setPlanting(null)}>취소</button></div>}
       {sheet?.kind==='friend'&&<FriendSheet opener={opener.text} topic={opener.topic} seed={clock.today} onClose={close}

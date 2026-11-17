@@ -81,6 +81,13 @@ function plantBlock(x:number,z:number):string|null{
   if(PATHS.some(l=>l.some(([px,pz])=>Math.hypot(x-px,z-pz)<0.7)))return '길 위에는 못 심어요';
   return null;
 }
+// every garden starts with a few of the 꽃집's trees and beds (feedback 11-17 "나무들 추가한거 어디감? 과일나무
+// 꽃나무"): fruit and blossom trees here and there, flower beds by the 꽃집; more are bought there
+const STARTER0:[string,number,number][]=[['cherry',-10,8],['magnolia',8,-13],['mandarin',-13,-10],['lemon',16,10],['apple',-17,2],['cherry',3,-21],
+  ['tulips',SPOTS.cart.x+1.6,SPOTS.cart.z+1.2],['hydrangea',SPOTS.cart.x-1.7,SPOTS.cart.z+1.1],['sunflowers',SPOTS.cart.x+0.2,SPOTS.cart.z+2.1]];
+let starterCache:{id:string;item:string;x:number;z:number}[]|null=null;
+// (the flower beds by the cart stand where they are; the trees only where a planted one could go)
+function starter(){return starterCache??=STARTER0.filter(([item,x,z])=>['tulips','hydrangea','sunflowers'].includes(item)||!plantBlock(x,z)).map(([item,x,z],i)=>({id:'starter'+i,item,x,z}))}
 // analysts idle around the campfire when nothing is flagged
 const IDLE:Record<AnalystId,{x:number;z:number}>={tori:spreadXZ({x:-3.1,z:-0.2}),moa:spreadXZ({x:-0.2,z:-2.3}),luon:spreadXZ({x:-1.0,z:-2.9})};
 
@@ -361,7 +368,7 @@ const easeInOut=(k:number)=>k<0.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
 // low: the root cut-away is open, so the camera comes down to the side of it (keeping the way it faces)
 // near: a capsule is being buried or dug up (W3): the camera comes closer to it
 // aim: a landmark just opened — the camera comes down to a side view from the garden's side, facing it (core/land.ts)
-function FollowCam({pos,recenter,focus,orbit,low,near,aim,fp=false,talk=null}:{pos:React.MutableRefObject<THREE.Vector3>;recenter:number;focus:THREE.Vector3|null;orbit:Orbit|null;low:number|null;near:boolean;aim?:number|null;fp?:boolean;talk?:number|null}){
+function FollowCam({pos,recenter,focus,orbit,low,near,aim,fp=false,talk=null}:{pos:React.MutableRefObject<THREE.Vector3>;recenter:number;focus:THREE.Vector3|null;orbit:Orbit|null;low:number|null;near:boolean;aim?:number|null;fp?:boolean;talk?:{az:number;pitch?:number;dist?:number}|null}){
   const shift=useRef({x:0,y:0}),back=useRef(false),lean=useMemo(()=>new THREE.Vector3(),[]),side=useMemo(()=>new THREE.Vector3(),[]),tv=useRef({x:0,y:0});
   const ctl=useRef<OrbitControlsImpl>(null),{camera,size}=useThree(),fpWas=useRef(false);
   const prev=useMemo(()=>new THREE.Vector3(),[]),want=useMemo(()=>new THREE.Vector3(),[]),fwd=useMemo(()=>new THREE.Vector3(),[]);
@@ -387,7 +394,7 @@ function FollowCam({pos,recenter,focus,orbit,low,near,aim,fp=false,talk=null}:{p
     const R=LOOK.roots,off=fwd.subVectors(camera.position,c.target),polar=Math.acos(Math.min(1,Math.max(-1,off.y/Math.max(1e-6,off.length()))));
     const pose=fpOn?null:low!==null?{az:low,pitch:R.camPitch,dist:R.camDist*fr.dist/LOOK.camera.frames[0].dist}
       :aim!=null?{az:aim,pitch:LOOK.camera.landmarkPitch,dist:fr.dist*LOOK.camera.landmarkDist}
-      :talk!=null?{az:talk,pitch:LOOK.camera.talk.pitch,dist:LOOK.camera.talk.dist}
+      :talk!=null?{az:talk.az,pitch:talk.pitch??LOOK.camera.talk.pitch,dist:talk.dist??LOOK.camera.talk.dist}
       :near?{az:null,pitch:LOOK.capsule.pitch,dist:fr.dist*LOOK.capsule.near}:back.current?{az:null,pitch:fr.pitch,dist:fr.dist}:null;
     c.maxPolarAngle=pose?Math.max(1.12,polar+0.05,pose.pitch+0.15):1.12;c.minDistance=pose?Math.min(LOOK.camera.minDist,pose.dist*0.6):LOOK.camera.minDist;
     const pc=camera as THREE.PerspectiveCamera;
@@ -493,6 +500,9 @@ export type Landmark='observatory'|'signpost'|'cart'|'library'|'plaza'|'house';
 export type World={
   // 보리, the friend who comes over to talk (core/friend.ts): where it waits and what a tap does; null keeps it home
   friend?:{at:{x:number;z:number};onPick:()=>void;face?:string}|null;
+  // 나루 the otter by the pond, and the float while fishing (wait: bobbing, bite: pulled under)
+  naru?:{at:{x:number;z:number};onPick:()=>void}|null;
+  fishing?:{x:number;z:number;phase:'wait'|'bite'}|null;
   // 부지·건물·랜드마크 (core/land.ts): what is built, whether 넓히기 mode shows the closed lots, and what a tap on one does
   // (key 'land:<id>' | 'building:<id>' | 'city:<id>')
   build?:{built:Built;mode:boolean;onLot:(key:string)=>void}|null;
@@ -525,7 +535,7 @@ export type World={
   plants?:{id:string;item:string;x:number;z:number;scale:number}[];
   planting?:{item:string}|null;onPlant?:(x:number,z:number,why:string|null)=>void;
   // 보리 came over to talk: the camera frames the point between it and the player (LOOK.camera.talk)
-  talk?:{x:number;z:number;az:number}|null;
+  talk?:{x:number;z:number;az:number;pitch?:number;dist?:number}|null;
   // inside the house (Interior3D.tsx): the garden is put away and the workroom drawn instead
   // my observer: how it is dressed (core/wardrobe.ts), and whether its stage (ui/MyPage.tsx) is open instead of the garden
   look:Look;stage:boolean;
@@ -576,7 +586,7 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
   const onTops=useMemo(()=>treePos.map(p=>(y:number)=>{p.v.y=surfaceY(p.v.x,p.v.z)+0.12+y*0.75}),[treePos]);
   // each analyst reports its head top: the body point is for tapping it, the bubble point sits above the head
   // the friend reports as friend-<id> (not analyst-), so the analysts' count stays theirs; its bubble point is shared
-  const reportFriend=useCallback((id:string,v:THREE.Vector3)=>{(testHooks() as {friendAt?:{x:number;z:number}}).friendAt={x:v.x,z:v.z};for(const [k,dy] of [['friend-'+id,-1.2],['bubble-'+id,0.55]] as const){let p=points.get(k);if(!p){p=new THREE.Vector3();points.set(k,p)}p.copy(v).y+=dy}},[points]);
+  const reportFriend=useCallback((id:string,v:THREE.Vector3)=>{if(id==='bori')(testHooks() as {friendAt?:{x:number;z:number}}).friendAt={x:v.x,z:v.z};for(const [k,dy] of [['friend-'+id,-1.2],['bubble-'+id,0.55]] as const){let p=points.get(k);if(!p){p=new THREE.Vector3();points.set(k,p)}p.copy(v).y+=dy}},[points]);
   const reportAnalyst=useCallback((id:string,v:THREE.Vector3)=>{for(const [k,dy] of [['analyst-'+id,-1.2],['bubble-'+id,0.55]] as const){let p=points.get(k);if(!p){p=new THREE.Vector3();points.set(k,p)}p.copy(v).y+=dy}},[points]);
   // an analyst with a flag stands in front of that tree, a little to one side (so two on one tree do not overlap)
   const spotFor=(id:AnalystId,at:number|null,near?:boolean,spot?:{x:number;z:number}|null)=>{const t=at===null?null:trees.find(x=>x.h.id===at);
@@ -586,8 +596,8 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
     return {x:t.x+side*1.05,z:t.z+1.15}};
   // e2e: plant at a ground point as a tap there would (only while the 꽃집 waits for a spot); how many decor stand
   useEffect(()=>{const h=testHooks() as {plantAt?:(x:number,z:number)=>string|null;decor?:number};h.decor=(world.plants??[]).length;
-    h.plantAt=(x,z)=>{if(!world.planting||!world.onPlant)return 'not planting';const why=plantBlock(x,z)||(tooClose(world.plants??[],x,z)?'다른 꽃·나무랑 너무 가까워요':null);world.onPlant(x,z,why);return why}});
-  const walk=(p:THREE.Vector3)=>{if(world.planting&&world.onPlant){world.onPlant(p.x,p.z,plantBlock(p.x,p.z)||(tooClose(world.plants??[],p.x,p.z)?'다른 꽃·나무랑 너무 가까워요':null));return}const r=route(pos.current,p,(x,z)=>inPond(x,z,0.2));if(!r)return;const [first,...rest]=r;target.current.set(first.x,0,first.z);stops.current=rest;onPick(null)};
+    h.plantAt=(x,z)=>{if(!world.planting||!world.onPlant)return 'not planting';const why=plantBlock(x,z)||(tooClose([...(world.plants??[]),...starter()],x,z)?'다른 꽃·나무랑 너무 가까워요':null);world.onPlant(x,z,why);return why}});
+  const walk=(p:THREE.Vector3)=>{if(world.planting&&world.onPlant){world.onPlant(p.x,p.z,plantBlock(p.x,p.z)||(tooClose([...(world.plants??[]),...starter()],p.x,p.z)?'다른 꽃·나무랑 너무 가까워요':null));return}const r=route(pos.current,p,(x,z)=>inPond(x,z,0.2));if(!r)return;const [first,...rest]=r;target.current.set(first.x,0,first.z);stops.current=rest;onPick(null)};
   const reportPoint=useCallback((k:string,v:THREE.Vector3)=>{let p=points.get(k);if(!p){p=new THREE.Vector3();points.set(k,p)}p.copy(v)},[points]);
   useEffect(()=>{testHooks().inside=world.inside;testHooks().stage=world.stage},[world.inside,world.stage]);
   // 넓히기 mode: where each closed lot's tag sits (ui/BuildMode.tsx), and the landmarks' (always, for their name tags)
@@ -618,6 +628,7 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
       report={reportPoint} reportAnalyst={reportAnalyst}/>:<>
     <Ground onWalk={walk}/>
     {(world.plants??[]).map(p=><Suspense key={p.id} fallback={null}><DecorPlant item={p.item} x={p.x} z={p.z} scale={p.scale}/></Suspense>)}
+    {starter().map(p=><Suspense key={p.id} fallback={null}><DecorPlant item={p.item} x={p.x} z={p.z} scale={['tulips','hydrangea','sunflowers'].includes(p.item)?0.8:0.95}/></Suspense>)}
     <Tufts/>
     <Pond dim={world.light.night*0.85}/>
     <Flowers/>
@@ -650,12 +661,14 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
     <Suspense fallback={null}>
       {world.analysts.filter(a=>!a.home).map(a=><Analyst key={a.id} id={a.id} to={spotFor(a.id,a.at,a.near,a.spot)} act={a.at===null&&a.spot?a.spot.act:a.at!==null&&!a.near?'look':undefined} faceTo={a.at===null&&a.spot?a.spot.face:undefined} from={world.enterFrom} face={pos} surface={surfaceY} tilt={tiltAt} bubble={a.bubble}
         onPick={()=>world.onAnalyst(a.id)} report={reportAnalyst}/>)}
+      {world.naru&&<Analyst key="naru" id="naru" to={world.naru.at} act="look" from={null} face={pos} surface={surfaceY} tilt={tiltAt} bubble={null} onPick={world.naru.onPick} report={reportFriend}/>}
+      {world.fishing&&<Bobber x={world.fishing.x} z={world.fishing.z} bite={world.fishing.phase==='bite'}/>}
       {world.friend&&<Analyst key="bori" id="bori" to={world.friend.at} act="look" mood={world.friend.face} from={world.enterFrom} face={pos} surface={surfaceY} tilt={tiltAt} bubble={null} onPick={world.friend.onPick} report={reportFriend}/>}
     </Suspense>
     {/* out of the way while the camera looks into the open ground */}
     <Keys pos={pos} target={target} stops={stops} onMove={()=>onPick(null)} enabled={!world.inside&&!world.stage&&!world.sky&&!cut&&!world.capsuleFx}/>
     <Player walls={walls} look={world.look} target={target} stops={stops} pos={pos} hidden={(!!cut&&!cut.c.closing)||!!world.capsuleFx||(!!world.fp&&!focusPos)}/>
-    {!world.sky&&<FollowCam pos={pos} recenter={recenter} focus={focusPos} orbit={orbit} near={!!world.capsuleFx} aim={world.view?.az??null} low={cut&&!cut.c.closing?cut.yaw:null} fp={!!world.fp} talk={world.talk?.az??null}/>}
+    {!world.sky&&<FollowCam pos={pos} recenter={recenter} focus={focusPos} orbit={orbit} near={!!world.capsuleFx} aim={world.view?.az??null} low={cut&&!cut.c.closing?cut.yaw:null} fp={!!world.fp} talk={world.talk?{az:world.talk.az,pitch:world.talk.pitch,dist:world.talk.dist}:null}/>}
     </>}
     <Hooks pos={pos} treePos={treePos} points={points}/>
 
@@ -675,5 +688,20 @@ function DecorPlant({item,x,z,scale}:{item:string;x:number;z:number;scale:number
   const obj=useMemo(()=>{const r=scene.clone(true);r.traverse(o=>{const m=o as THREE.Mesh;if(m.isMesh){m.castShadow=true;m.receiveShadow=true}});return r},[scene]);
   const yaw=useMemo(()=>((x*928.37+z*311.1)%(Math.PI*2)),[x,z]);
   return <group position={[x,surfaceY(x,z),z]} rotation-y={yaw} scale={LOOK.holdingTreeScale*scale} name={`decor-${item}`}><primitive object={obj}/></group>;
+}
+
+// the float on the pond while fishing with 나루: it bobs, and when a fish bites it is pulled under with a splash ring
+function Bobber({x,z,bite}:{x:number;z:number;bite:boolean}){
+  const g=useRef<THREE.Group>(null),ring=useRef<THREE.Mesh>(null);
+  useFrame(({clock})=>{const t=clock.elapsedTime;if(g.current)g.current.position.y=bite?-0.09+Math.sin(t*30)*0.015:Math.sin(t*2.4)*0.025;
+    if(ring.current){const k=bite?(t*2.2)%1:(t*0.8)%1;ring.current.scale.setScalar(0.4+k*(bite?1.6:1));(ring.current.material as THREE.MeshBasicMaterial).opacity=(1-k)*(bite?0.9:0.45)}});
+  return <OnGround x={x} z={z} lift={0.2}>
+    <group ref={g} name="bobber">
+      <mesh position-y={0.07}><sphereGeometry args={[0.09,16,10,0,Math.PI*2,0,Math.PI/2]}/><meshStandardMaterial color="#e2566b"/></mesh>
+      <mesh position-y={0.07} rotation-x={Math.PI}><sphereGeometry args={[0.09,16,10,0,Math.PI*2,0,Math.PI/2]}/><meshStandardMaterial color="#ffffff"/></mesh>
+      <mesh position-y={0.19}><cylinderGeometry args={[0.01,0.01,0.12,6]}/><meshStandardMaterial color="#22281f"/></mesh>
+    </group>
+    <mesh ref={ring} rotation-x={-Math.PI/2} position-y={0.02}><ringGeometry args={[0.32,0.36,40]}/><meshBasicMaterial color="#ffffff" transparent opacity={0.4}/></mesh>
+  </OnGround>;
 }
 

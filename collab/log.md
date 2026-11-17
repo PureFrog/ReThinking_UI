@@ -217,3 +217,16 @@
     - 더보기에도 꽃집을 넣었다.
   - 테스트: e2e proto3d-feedback-1117b 4개, 단위 plants-flow 2개, jigi-journal 필수 칸 수정.
 - 2026-11-17 [asset] 보리 표정 7개(B안): tools/blender/analysts.py bori_faces()가 x_<표정>_ 부품(입·눈썹·감은 눈·볼터치)을 만든다. 시안은 docs/mockups/bori-faces.html(tools/blender/bori_faces.py). 서버가 대사마다 보내는 emotion이 supabase.ts → 대화창(data-face) → Analyst3D mood로 가서 그 부품만 보이고 몸짓이 붙는다(궁금 갸웃, 기쁨 통통, 생각 팔 턱, 피곤 흔들). 작은 수다는 주제별 표정(core/friend.ts FRIEND_FACE). 토리·모아·루온은 아직 없음. tests: friend.test 표정 1개, e2e 1117 표정 확인.
+- 2026-11-17 [fix] 피드백 11-17 (3차):
+  - PC: 가로 1000px 이상이면 시트 폭이 520px(38vw)이 되고, 화면 위 UI를 zoom 1.18로 키운다. 시트는 탭 막대 위에서 끝난다(rethink.css).
+  - 꽃집 수레에 꽃 화분을 얹고, 옆에 꽃밭 셋을 깔았다. 정원마다 기본 과일·꽃나무 몇 그루가 있다(Scene3D STARTER0).
+  - 보리는 마이페이지·하늘·넓히기·심기·타임랩스 중에는 없고, 미뤄 둔 대화는 돌아오면 열린다.
+  - 비밀번호: 실서버는 Supabase Auth가 bcrypt로 저장하고, 기기 전용 모드는 저장하지 않는다.
+  - 테스트: e2e proto3d-pc 1개, 1117b 마이페이지 1개.
+- 2026-11-17 [feature] 수달 나루와 낚시(docs/mockups/otter-fishing.html):
+  - tools/blender/analysts.py naru(), 모델 public/models/analysts/naru.glb, 그림 tools/blender/portrait.py.
+  - 나루는 연못 동쪽에 서 있다(places.ts NARU, FISH_STAND, FISH_AT). 지도의 "연못"을 누르면 나루 옆으로 간다.
+  - 누르면 나루 대화창이 뜬다(이름표 파랑). 낚시는 던지기 → 찌(Scene3D Bobber)가 쑥 들어갈 때 탭(창 650ms) → 잡았다 카드 → 도감 12종 순서다(content/fish.ts, core/fishing.ts, ui/Fishing.tsx).
+  - 하루 3번이고, 마스터는 무제한이다. 코인은 보통 1, 희귀 3, 전설 10, 처음 잡으면 +2.
+  - 낚시 카메라는 LOOK.camera.fish다. 낚시 중에는 보리가 오지 않는다.
+  - 테스트: 단위 fishing 4개, e2e proto3d-fishing 1개(__fishBite, __fishWindow, __fishPick).

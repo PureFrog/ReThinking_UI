@@ -125,3 +125,22 @@ test("the 꽃집: buy tulips, plant them on open grass (not off the garden), the
   await page.screenshot({ path: info.outputPath("planted.png") });
   expect(errors).toEqual([]);
 });
+
+test("My Page is its own place: 보리 does not come over or talk while it is open, only after", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(e.message));
+  // the stand-in server answers only when the test says so: 보리 is on its way while My Page opens
+  await page.addInitScript(() => { const w = window as unknown as { __boriOpen: () => Promise<string>; __boriGo?: () => void };
+    w.__boriOpen = () => new Promise(r => { w.__boriGo = () => r("잠깐 얘기할래?") }); });
+  await page.goto("/proto3d?demo&weather=clear");
+  await expect(dock(page)).toBeVisible({ timeout: 30_000 });
+  await page.getByRole("button", { name: /^내 프로필/ }).click();
+  await expect.poll(() => page.evaluate(() => !!(window as unknown as { __boriGo?: () => void }).__boriGo), { timeout: 30_000 }).toBe(true);
+  await page.evaluate(() => (window as unknown as { __boriGo: () => void }).__boriGo());
+  await page.waitForTimeout(4000);
+  await expect(page.getByRole("dialog", { name: "보리와 대화" })).toHaveCount(0);
+  await expect(page.locator('.rt-bubble[data-analyst="bori"]')).toHaveCount(0);
+  await page.getByRole("button", { name: "닫기" }).first().click();
+  await expect(page.getByRole("dialog", { name: "보리와 대화" })).toBeVisible({ timeout: 30_000 });
+  expect(errors).toEqual([]);
+});

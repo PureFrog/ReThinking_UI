@@ -278,6 +278,47 @@ def bori():
     attach_new(p['head'], s | {p['head']})
 
 
+def naru():
+    """나루, the otter of the pond (feedback 11-17 "연못에 수달 추가, 낚시"): sleek dark-brown fur, a pale face and
+    chest, tiny low ears, a big dark nose with whiskers, a long thick tail, a straw hat and a little rod."""
+    c = dict(fur='#7a4e32', belly='#efdcc0')
+    p = base(c)
+    hat, band, rod, line, whisk = (material('hat', '#e4c27a'), material('band', '#3f7fae'), material('rod', '#8a5a34'),
+                                   material('line', '#f4f1e8'), material('whisker', '#fbf6ec'))
+    for o in bpy.data.objects:
+        if o.name.startswith('torso'): o.scale = (0.34, 0.31, 0.46)
+        if o.name.startswith('skull'): o.scale = (0.36, 0.32, 0.31)
+        if o.name.startswith('muzzle'): o.scale = (0.17, 0.1, 0.1)
+        if o.name.startswith('nose'): o.scale = (0.055, 0.04, 0.038)
+    s = set(bpy.data.objects)
+    # a pale face mask round the muzzle and the eyes' lower half
+    ball('face', (0, -0.22, 1.13), (0.27, 0.13, 0.16), p['mats']['belly'])
+    for x in (-0.27, 0.27):
+        ball('ear', (x, 0.02, 1.36), (0.07, 0.04, 0.06), p['mats']['fur'])
+    for side in (-1, 1):
+        for k, dz in enumerate((0.0, -0.03, -0.06)):
+            capsule(f'whisker_{side}_{k}', (side * 0.1, -0.37, 1.12 + dz), (side * 0.32, -0.33, 1.14 + dz * 1.6), 0.006, whisk)
+    # a straw hat with a blue band
+    bpy.ops.mesh.primitive_cylinder_add(vertices=40, radius=0.36, depth=0.03, location=(0, 0.02, 1.48))
+    brim = bpy.context.active_object; brim.name = 'hat_brim'; brim.data.materials.append(hat); smooth(brim, 0)
+    bpy.ops.mesh.primitive_cylinder_add(vertices=32, radius=0.2, depth=0.16, location=(0, 0.02, 1.57))
+    crown = bpy.context.active_object; crown.name = 'hat_crown'; crown.data.materials.append(hat); smooth(crown, 0)
+    bpy.ops.mesh.primitive_cylinder_add(vertices=32, radius=0.205, depth=0.04, location=(0, 0.02, 1.51))
+    b = bpy.context.active_object; b.name = 'hat_band'; b.data.materials.append(band); smooth(b, 0)
+    attach_new(p['head'], s | {p['head']})
+    # the long tail behind, resting on the ground
+    s = set(bpy.data.objects)
+    capsule('tail', (0, 0.28, 0.32), (0, 0.72, 0.1), 0.11, p['mats']['fur'])
+    capsule('tail_tip', (0, 0.72, 0.1), (0, 0.95, 0.06), 0.07, p['mats']['fur'])
+    attach_new(p['root'], s | {p['root']})
+    # a little rod in the right hand, its line hanging
+    s = set(bpy.data.objects)
+    capsule('rod', (0.42, -0.2, 0.42), (0.62, -0.7, 1.15), 0.018, rod)
+    capsule('rod_line', (0.62, -0.7, 1.15), (0.66, -0.8, 0.55), 0.004, line)
+    ball('rod_float', (0.66, -0.8, 0.52), (0.04, 0.04, 0.05), material('float', '#e2566b'))
+    attach_new(p['arms']['r'], s | {p['arms']['r']})
+
+
 # 보리's faces (feedback 11-17, B): one set of pieces per emotion the talk server sends (persona_bori.json
 # allowed_emotions). Every piece is named x_<emotion>_<part>; the scene shows only the current emotion's pieces
 # (app/proto3d/Analyst3D.tsx), and an emotion with its own eyes (x_<emotion>_eye...) hides the round eyes meanwhile.
@@ -354,7 +395,7 @@ def export(path):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    for name, build in (('tori', tori), ('moa', moa), ('luon', luon), ('bori', bori)):
+    for name, build in (('tori', tori), ('moa', moa), ('luon', luon), ('bori', bori), ('naru', naru)):
         reset()
         build()
         export(os.path.join(OUT, name + '.glb'))

@@ -45,6 +45,8 @@ export const LOOK={
     // down, distance from the point between them, lift = how high over the ground it looks)
     // turn: how far round from straight behind the player the camera swings, so both faces show (radians)
     talk:{pitch:1.18,dist:6.5,lift:0.9,turn:0.55},
+    // fishing with 나루: higher, looking down on the float past the player
+    fish:{pitch:0.82,dist:8.5},
     fp:{eye:1.35,back:0.12,pitch:1.42,follow:14,fov:68,maxPitch:1.95},
   },
   // walking (Scene3D Player): speeds up and slows down instead of starting and stopping at once, and turns smoothly;
