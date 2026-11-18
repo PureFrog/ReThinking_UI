@@ -230,3 +230,4 @@
   - 하루 3번이고, 마스터는 무제한이다. 코인은 보통 1, 희귀 3, 전설 10, 처음 잡으면 +2.
   - 낚시 카메라는 LOOK.camera.fish다. 낚시 중에는 보리가 오지 않는다.
   - 테스트: 단위 fishing 4개, e2e proto3d-fishing 1개(__fishBite, __fishWindow, __fishPick).
+- 2026-11-18 [docs] 팀원 인계 문서 docs/handoff-2026-11-18.md(한 것·Supabase 할 일·남은 것과 방향·작업 방법·정할 것). CLAUDE.md 읽을 목록에 추가. 마이페이지 시안 두 벌(docs/mockups/mypage.html 탈락, mypage-3d.html A/B 결정 대기), 옷 썸네일 docs/mockups/mypage/wear.

@@ -10,8 +10,9 @@
 
 1. `docs/redesign.md` — 지금의 설계서 (톤, 캐릭터, 핵심 루프, 3D 제작 방식, 만드는 순서)
 2. `README.md`, `docs/features.md` — 이미 만든 기능(2D 앱)과 `app/core/` 로직의 위치
-3. `collab/log.md`의 최근 기록 — 지금 어디까지 왔는지
-4. 필요할 때만:
+3. `docs/handoff-2026-11-18.md` — 마지막 인계: 한 것, 남은 것, 하려던 방향, 정할 것
+4. `collab/log.md`의 최근 기록 — 지금 어디까지 왔는지
+5. 필요할 때만:
    - `docs/ux-spec.md` — 옛 설계서. 기존 기능이 원래 뭘 하려던 건지 볼 때만
    - `docs/deferred.md`
    - `docs/COLLABORATION.md`

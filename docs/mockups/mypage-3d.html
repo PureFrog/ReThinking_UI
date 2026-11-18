@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>마이페이지 3D 시안</title>
+<!-- 2026-11-17 feedback: the first My Page mockup felt like a flat 2D app after the 3D garden. Two directions that stay
+     in the 3D world: A puts the facts as glass cards standing round the character on its stage; B makes it a game
+     status screen over the stage. Background: the real My Page stage (stage-phone.png). Example numbers. -->
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#22281f;--mute:#6a7266;--green:#3f9e3a;--gold:#ffd76a}
+*{box-sizing:border-box;margin:0}
+html,body{background:#1b1d1a;font-family:'Gowun Dodum',sans-serif;color:var(--ink)}
+.wrap{display:flex;gap:26px;justify-content:center;flex-wrap:wrap;padding:28px 16px 30px}
+.col{display:flex;flex-direction:column;gap:10px;align-items:center}
+.cap{color:#e8ece2;font-size:14px;text-align:center;max-width:390px;line-height:1.55}
+.cap b{font-family:'Jua';font-weight:400;font-size:16px;display:block;color:#fff}
+.phone{position:relative;width:390px;height:844px;border-radius:34px;overflow:hidden;background:#3a362c url(mypage/stage-phone.png) center/cover;box-shadow:0 20px 50px #0008;perspective:900px}
+.top{position:absolute;top:16px;left:16px;right:16px;display:flex;justify-content:space-between;align-items:center;z-index:3}
+.pill{font-size:12.5px;padding:7px 12px;border-radius:999px;background:#ffffffd0;color:var(--ink)}
+.glass{background:linear-gradient(160deg,#ffffffd9,#ffffffa8);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid #ffffffe0;box-shadow:0 18px 30px -14px #000c,inset 0 1px 0 #fff}
+/* A: cards standing in the scene */
+.plate{position:absolute;left:50%;top:466px;transform:translateX(-50%) rotateX(18deg);text-align:center;padding:10px 18px 9px;border-radius:14px;min-width:230px}
+.plate h1{font-family:'Jua';font-weight:400;font-size:24px;line-height:1.1}
+.plate .rank{font-size:12px;color:#5a4a20;margin-top:3px}
+.plate .xp{height:5px;border-radius:3px;background:#22281f1a;margin:6px auto 0;width:150px;overflow:hidden}.plate .xp i{display:block;height:100%;width:62%;background:var(--green)}
+.float{position:absolute;padding:10px 10px;border-radius:16px;width:122px;transform-style:preserve-3d}
+.float .k{font-size:11.5px;color:var(--mute)}
+.float b{display:block;font-family:'Jua';font-weight:400;font-size:22px;line-height:1.1;margin-top:2px}
+.float small{font-size:11.5px;color:var(--mute)}
+.float .tag{position:absolute;top:-9px;left:12px;font-size:10.5px;padding:2px 8px;border-radius:999px;background:var(--ink);color:#fff}
+.l1{left:8px;top:130px;transform:rotateY(22deg)}
+.r1{right:8px;top:140px;transform:rotateY(-22deg)}
+.l2{left:10px;top:290px;transform:rotateY(18deg)}
+.r2{right:10px;top:300px;transform:rotateY(-18deg)}
+.mini-ring{width:34px;height:34px;border-radius:50%;background:conic-gradient(var(--green) 0 62%,#22281f18 62%);display:grid;place-items:center;float:right;margin-top:-4px}
+.mini-ring i{width:24px;height:24px;border-radius:50%;background:#fff}
+.dots{display:flex;gap:4px;margin-top:6px}.dots i{width:12px;height:12px;border-radius:50%;background:var(--green)}.dots i.x{background:#c9ccc4}.dots i.w{background:none;border:2px dashed #b3b9ad}
+.say{position:absolute;left:16px;right:16px;bottom:118px;border-radius:20px;padding:24px 16px 14px}
+.say .name{position:absolute;top:-13px;left:16px;font-family:'Jua';font-size:15px;color:#fff;background:#2f8a3a;padding:3px 12px 2px;border-radius:999px}
+.say p{font-size:15px;line-height:1.55}
+.say .chips{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+.say .chips span{font-size:11.5px;padding:4px 9px;border-radius:999px;background:#eef4e6;color:#3d6b34}
+.say .chips span.g{background:#fff4dc;color:#8a5a00}
+.dock{position:absolute;left:16px;right:16px;bottom:24px;display:flex;gap:6px;padding:6px;border-radius:18px}
+.dock span{flex:1;text-align:center;padding:10px 0;border-radius:12px;font-size:14px;color:#4c5447}
+.dock span.on{background:var(--ink);color:#fff}
+.dock span small{display:block;font-size:10.5px;opacity:.75}
+/* B: game status screen */
+.dim{position:absolute;inset:auto 0 0 0;height:56%;background:linear-gradient(180deg,#0000,#14140fd8 18%,#14140ff2)}
+.namebar{position:absolute;left:16px;right:16px;top:378px;display:flex;align-items:flex-end;justify-content:space-between;color:#fff}
+.namebar h1{font-family:'Jua';font-weight:400;font-size:30px;line-height:1;text-shadow:0 2px 8px #000a}
+.namebar .lv{font-family:'Jua';font-size:15px;padding:5px 10px;border-radius:10px;background:var(--gold);color:#3d2c00}
+.namebar .sub{font-size:12.5px;opacity:.85;margin-top:5px}
+.stats{position:absolute;left:16px;right:16px;top:446px;display:grid;gap:9px;color:#fff}
+.stat{display:grid;grid-template-columns:70px 1fr 52px;gap:10px;align-items:center;font-size:13px}
+.stat .bar{height:12px;border-radius:6px;background:#ffffff22;overflow:hidden;box-shadow:inset 0 1px 3px #0006}
+.stat .bar i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#7ed46a,#3f9e3a)}
+.stat .bar i.gold{background:linear-gradient(90deg,#ffe28a,#e0a82a)}.stat .bar i.blue{background:linear-gradient(90deg,#8cc4ff,#2f7ad6)}
+.stat b{font-family:'Jua';font-weight:400;font-size:16px;text-align:right}
+.quote{position:absolute;left:16px;right:16px;top:600px;padding:12px 14px;border-radius:16px;color:var(--ink)}
+.quote .who{display:flex;gap:7px;align-items:center;font-size:12px;color:var(--mute)}
+.quote .who i{width:22px;height:22px;border-radius:50%;background:#fff url(mypage/bori.png) center/cover}
+.quote p{font-size:14.5px;margin-top:5px}
+.tabs3{position:absolute;left:16px;right:16px;bottom:24px;display:flex;gap:8px}
+.tabs3 span{flex:1;text-align:center;padding:11px 0 9px;border-radius:14px;background:#ffffff14;border:1px solid #ffffff24;color:#fff;font-size:13.5px}
+.tabs3 span.on{background:var(--gold);color:#3d2c00;border-color:var(--gold)}
+.tabs3 span i{display:block;font-style:normal;font-size:18px;margin-bottom:2px}
+.note{max-width:900px;margin:0 auto 40px;color:#cfd6c8;font-size:14px;line-height:1.75;padding:0 16px}
+.note b{color:#fff}
+@media(max-width:430px){.phone{width:100%;height:auto;aspect-ratio:390/844}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="col">
+    <div class="phone">
+      <div class="top"><span class="pill">‹ 정원</span><span class="pill">꾸미기</span></div>
+      <div class="float glass l1"><span class="tag">성적</span><span class="mini-ring"><i></i></span><span class="k">내 판단 적중</span><b>62%</b><small>21번 중 13번</small></div>
+      <div class="float glass r1"><span class="tag">습관</span><span class="k">자주 고르는 것</span><b>보유</b><small>58% · 평균 4.2개월</small></div>
+      <div class="float glass l2"><span class="tag">최근</span><span class="k">최근 7번</span><div class="dots"><i></i><i></i><i class="x"></i><i></i><i></i><i class="x"></i><i class="w"></i></div><small>다음 채점 D-3</small></div>
+      <div class="float glass r2"><span class="tag">모은 것</span><span class="k">업적 · 도감</span><b>12 · 5</b><small>출석 연속 4일</small></div>
+      <div class="plate glass"><h1>주니</h1><div class="rank">주니어 애널리스트 · 다음까지 38XP</div><div class="xp"><i></i></div></div>
+      <div class="say glass"><span class="name">보리가 기억하는 너</span>
+        <p>"배당 주는 회사를 오래 들고 가고, 한 종목에 20% 넘게는 안 넣는 편이지?"</p>
+        <div class="chips"><span>평소 투자 이유</span><span>손실 관리</span><span class="g">추측 1개 · 확인해 줘</span></div></div>
+      <div class="dock glass"><span class="on">나<small>요약</small></span><span>성적<small>자세히</small></span><span>기록<small>출석·수집</small></span><span>계정<small>설정</small></span></div>
+    </div>
+    <p class="cap"><b>A. 무대 위 유리 카드</b>캐릭터가 서 있는 3D 무대 그대로. 정보는 정원 화면과 같은 유리 카드로 캐릭터 양옆에 비스듬히 서 있어. 무대 앞엔 명패, 아래엔 보리가 기억한 나를 대화창으로. 카드를 누르면 그 카드가 커지며 자세히, 캐릭터는 돌려 볼 수 있어.</p>
+  </div>
+  <div class="col">
+    <div class="phone">
+      <div class="top"><span class="pill">‹ 정원</span><span class="pill">꾸미기</span></div>
+      <div class="dim"></div>
+      <div class="namebar"><div><h1>주니</h1><div class="sub">주니어 애널리스트 · 홀드 위주 · 일지 14편</div></div><span class="lv">Lv.2</span></div>
+      <div class="stats">
+        <div class="stat">적중률<span class="bar"><i style="width:62%"></i></span><b>62%</b></div>
+        <div class="stat">확신 감각<span class="bar"><i class="blue" style="width:71%"></i></span><b>71%</b></div>
+        <div class="stat">꾸준함<span class="bar"><i class="gold" style="width:40%"></i></span><b>12일</b></div>
+        <div class="stat">기록<span class="bar"><i class="gold" style="width:56%"></i></span><b>14편</b></div>
+        <div class="stat">수집<span class="bar"><i class="blue" style="width:42%"></i></span><b>5/12</b></div>
+      </div>
+      <div class="quote glass"><div class="who"><i></i>보리가 기억하는 너 · 3개</div><p>"한 종목에 20% 넘게는 안 넣어"</p></div>
+      <div class="tabs3"><span class="on"><i>★</i>요약</span><span><i>◎</i>성적</span><span><i>▦</i>기록</span><span><i>⚙</i>계정</span></div>
+    </div>
+    <p class="cap"><b>B. 게임 캐릭터 정보창</b>위는 3D 무대와 캐릭터, 아래는 어두운 게임 정보창. 내 기록을 능력치 막대(적중률·확신 감각·꾸준함·기록·수집)로. 레벨=직급. 탭을 누르면 같은 어두운 창에서 자세히.</p>
+  </div>
+</div>
+<div class="note"><b>둘 다</b> 3D 무대를 화면 전체에 깔고 그 위에 정보를 올려. 정원의 유리 패널 재질과 같은 톤이라 정원에서 넘어와도 끊기지 않아. 숫자는 예시. 꾸미기는 오른쪽 위 버튼으로 따로(앞 시안의 썸네일·코디·무대·칭호 그대로).</div>
+</body>
+</html>
