@@ -131,3 +131,49 @@ export async function boriOpen(holdings:BoriHolding[],signals:string[]):Promise<
   try{const {data,error}=await supabase().functions.invoke('bori-talk',{body:{action:'open',holdings,signals}});
     return !error&&typeof data?.reply?.text==='string'?data.reply.text:null}catch{return null}
 }
+
+// 오늘의 관측소 (db/functions/quest-settle): the server replays a finished run and keeps the XP ledger; investor_progress
+// lives in the profile (llm1_docs). Signed in, its answers replace this device's: the run's result, the XP, the course
+// order and the day's ranking. A null means the server could not be reached (the local result stands).
+import type {DailyPack,DailyRun,Fields,InvestorProgress,QuestDef} from '../core/game/daily/model';
+import type {DailyRow} from '../core/game/daily/ranking';
+import type {Grant} from '../core/game/daily/rewards';
+export type ObservatoryServer={
+  settle(r:DailyRun):Promise<{run:DailyRun;progress:InvestorProgress;grants?:Grant[]}|{error:string}|null>;
+  progress():Promise<{progress:InvestorProgress;finished:string[];grants:Grant[]}|null>;
+  ranking(dailyId:string,gradeVersion?:string,metric?:'journal'|'excess'):Promise<DailyRow[]|null>;
+  // a run whose assessment is pending (the judge could not answer yet): ask again
+  result(runId:string):Promise<{run:DailyRun;progress:InvestorProgress;grants?:Grant[]}|null>;
+  // official packs, scene by scene (quest-content today, quest-play): the app never holds more than the current cut
+  // today's one request (the server's course and my record; nothing still to come is ever sent) and the day's pack
+  today():Promise<{request:{def:QuestDef;done:boolean;run:string|null}|null;official:boolean;practice?:boolean;mentor?:DailyPack['mentor'];company?:{alias:string;business:string}}|null>;
+  start(practice?:boolean):Promise<{run:string;quest:string;def:QuestDef;day:string;pack:string;version:number;dto:DailyPack;drafts?:Record<string,Partial<Fields>>;draftRev?:number}|{error:string}|null>;
+  decide(run:string,d:{scene:string;fraction:string;fields:Fields}):Promise<{dto:DailyPack;done:boolean}|{error:string}|null>;
+  hint(run:string,field:string,draft:string):Promise<string|null>;
+  // call C: the settled result in one sentence (the rule sentence when the model cannot)
+  explain(run:string):Promise<string|null>;
+  // save what is being written; a stale revision comes back as the latest drafts to choose from
+  draft(run:string,scene:string,fields:Fields,revision:number):Promise<{revision:number}|{conflict:{drafts:Record<string,Partial<Fields>>;revision:number}}|null>;
+};
+const callQuest=(body:Record<string,unknown>)=>callFn('quest-settle',body);
+const callFn=async(fn:string,body:Record<string,unknown>)=>{try{const {data,error}=await supabase().functions.invoke(fn,{body});
+  if(error){const ctx=(error as {context?:Response}).context;const j=(ctx?await ctx.json().catch(()=>null):null) as {error?:unknown}|null;return j?.error?{error:String(j.error)}:null}
+  return (data??null) as Record<string,unknown>|null}catch{return null}};
+export const observatoryServer:ObservatoryServer={
+  async settle(r){const d=await callQuest({action:'settle',run:r.id,quest:r.quest,pack:r.pack,version:r.version,day:r.day,
+    decisions:r.decisions.map(x=>({scene:x.scene,fraction:x.fraction,fields:x.fields}))});
+    if(!d)return null;if(typeof d.error==='string')return {error:d.error};
+    return d.run&&d.progress?{run:d.run as DailyRun,progress:d.progress as InvestorProgress,grants:(d.grants as Grant[])??[]}:null},
+  async progress(){const d=await callQuest({action:'progress'});return d&&d.progress?{progress:d.progress as InvestorProgress,finished:(d.finished as string[])??[],grants:(d.grants as Grant[])??[]}:null},
+  async ranking(dailyId,gradeVersion,metric){const d=await callQuest({action:'ranking',daily_id:dailyId,grade_version:gradeVersion,metric});return Array.isArray(d?.rows)?d!.rows as DailyRow[]:null},
+  async result(runId){const d=await callQuest({action:'result',run:runId});return d&&d.run&&d.progress?{run:d.run as DailyRun,progress:d.progress as InvestorProgress,grants:(d.grants as Grant[])??[]}:null},
+  async today(){const d=await callFn('quest-play',{action:'today'});return d&&'request' in d?d as never:null},
+  async start(practice){const d=await callFn('quest-play',{action:'start',practice:!!practice});if(!d)return null;if(typeof d.error==='string')return {error:d.error};return d.dto?d as never:null},
+  async decide(run,x){const d=await callFn('quest-play',{action:'decide',run,...x});if(!d)return null;if(typeof d.error==='string')return {error:d.error};return d.dto?{dto:d.dto as DailyPack,done:!!d.done}:null},
+  async draft(run,scene,fields,revision){try{const {data,error}=await supabase().functions.invoke('quest-play',{body:{action:'draft',run,scene,fields,revision}});
+    if(error){const ctx=(error as {context?:Response}).context;const j=(ctx?await ctx.json().catch(()=>null):null) as {error?:string;drafts?:Record<string,Partial<Fields>>;revision?:number}|null;
+      return j?.error==='conflict'?{conflict:{drafts:j.drafts??{},revision:Number(j.revision??0)}}:null}
+    return typeof data?.revision==='number'?{revision:data.revision}:null}catch{return null}},
+  async explain(run){const d=await callQuest({action:'explain',run});return typeof d?.text==='string'?d.text:null},
+  async hint(run,field,draft){const d=await callFn('quest-play',{action:'hint',run,field,draft});return typeof d?.question==='string'?d.question:null},
+};

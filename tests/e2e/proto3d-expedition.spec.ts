@@ -86,17 +86,18 @@ test("a whole 판: brief, the flow, every moment decided, the reveal, and the ru
   expect(errors).toEqual([]);
 });
 
-test("the observatory door opens this week's 판", async ({ page }) => {
+// 2026-11-18 (daily_quest_design v1): the door now opens 오늘의 관측소 (proto3d-daily.spec.ts); the weekly 판 is no
+// longer started from it, and its old records are read-only under 과거 원정. The 판 itself still opens with ?game.
+test("the observatory door opens 오늘의 관측소; the weekly 판 is only a read-only record there", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?demo&weather=clear&gameTutorial=0");
   await expect(page.locator(".proto3d canvas")).toBeVisible({ timeout: 30_000 });
-  await page.getByRole("navigation", { name: "메뉴" }).getByRole("button", { name: /^챌린지/ }).click();
-  const door = page.getByRole("dialog", { name: "주간 챌린지" });
-  await door.getByRole("button", { name: /이번 주 판 시작/ }).click();
-  await expect(page.getByTestId("expedition")).toBeVisible();
-  await expect.poll(async () => (await game(page))?.phase, { timeout: 30_000 }).toBe("brief");
-  expect((await game(page))?.pack).toMatch(/^[0-9a-f]{8}$/);
-  await page.getByRole("button", { name: "챌린지 닫기" }).click();
+  await page.getByRole("navigation", { name: "메뉴" }).getByRole("button", { name: /^관측소/ }).click();
+  const door = page.getByRole("dialog", { name: "오늘의 관측소" });
+  await expect(door.getByTestId("dq-door")).toBeVisible();
+  await expect(door.getByRole("button", { name: /이번 주 판 시작/ })).toHaveCount(0);
+  await door.getByRole("tab", { name: "지난 기록" }).click();
+  await expect(door.getByTestId("dq-past")).toContainText("보기만 할 수 있어요");
   await expect(page.getByTestId("expedition")).toHaveCount(0);
 });
 

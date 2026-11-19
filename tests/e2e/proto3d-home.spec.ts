@@ -47,7 +47,7 @@ test("home: four tabs, one next step, the journal only journals, the rest under 
   const nav = page.getByRole("navigation", { name: "메뉴" });
   await expect(nav).toBeVisible({ timeout: 30_000 });
   await expect(nav.getByRole("button")).toHaveCount(4);
-  for (const t of ["정원", "일지", "챌린지", "더보기"]) await expect(nav.getByRole("button", { name: new RegExp("^" + t) })).toBeVisible();
+  for (const t of ["정원", "일지", "관측소", "더보기"]) await expect(nav.getByRole("button", { name: new RegExp("^" + t) })).toBeVisible();
   // the top holds only the weather and me
   await expect(page.getByRole("button", { name: /소리 (끄기|켜기)/ })).toHaveCount(0);
   await expect(page.getByLabel("내 숫자")).toHaveCount(0);

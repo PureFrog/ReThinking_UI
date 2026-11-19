@@ -1,4 +1,6 @@
 import { test, expect, type Page } from "./fixtures";
+// where things stand comes from the app's own map (the garden was spread out 1.4× on 2026-11-16, core/world.ts SPREAD)
+import { place } from "../../app/proto3d/places";
 
 // R3–R6 ReThink Garden on /proto3d: the analysts, the judgment loop, grades, cooldown, today's case, track record,
 // league, the game door, cart and drawer. Every test starts from a fresh demo save (?demo) under a fixed sky.
@@ -168,10 +170,11 @@ test("league, game door, cart and drawer", async ({ page }) => {
   const lg = sheet(page, /리그$/);
   await expect(lg.locator(".rt-row")).toHaveCount(12);
   await expect(lg).toContainText("(나)");
-  await dock(page, "챌린지").click();
-  const game = sheet(page, "주간 챌린지");
-  await expect(game).toContainText("반박");
-  await expect(game.getByRole("button", { name: /이번 주 판 시작/ })).toBeEnabled();
+  // the observatory door opens 오늘의 관측소 (daily_quest_design v1); the weekly 판 is a read-only record there
+  await dock(page, "관측소").click();
+  const game = sheet(page, "오늘의 관측소");
+  await expect(game).toContainText("관측소 숙련도");
+  await expect(game.getByRole("button", { name: /의뢰 시작 · 가격표 뒤의 고객/ })).toBeEnabled();
   await game.getByRole("button", { name: "닫기" }).click();
   // the cart is a landmark in the world: tap it when it is on screen, otherwise go through the drawer
   const cartPt = (await hooks(page))!.points.cart, vp = page.viewportSize()!;
@@ -195,10 +198,17 @@ test("the observatory and the signpost in the world open the game door and the t
   const errors: string[] = [];
   await open(page, errors, "&demo");
   await expect(nextCard(page)).toContainText("채점 결과 2건");
-  const pts = (await hooks(page))!.points, vp = page.viewportSize()!;
-  // on a phone the observatory can be off screen until the player turns the camera; check whichever is in view
+  let pts = (await hooks(page))!.points;
+  const vp = page.viewportSize()!;
+  // check whichever is in view; on a phone the spread-out garden (2026-11-16) can leave both off screen, so the map
+  // walks the player to the observatory first
   const seen: (readonly ["signpost" | "observatory", string])[] = [];
-  for (const e of [["signpost", "내 판단의 질"], ["observatory", "주간 챌린지"]] as const) if (await tappable(page, pts[e[0]], vp)) seen.push(e);
+  for (const e of [["signpost", "내 판단의 질"], ["observatory", "오늘의 관측소"]] as const) if (await tappable(page, pts[e[0]], vp)) seen.push(e);
+  if (!seen.length) {
+    await walkTo(page, "관측소", place("observatory").walk);
+    pts = (await hooks(page))!.points;
+    if (await tappable(page, pts.observatory, vp)) seen.push(["observatory", "오늘의 관측소"]);
+  }
   expect(seen.length).toBeGreaterThan(0);
   for (const [k, name] of seen) {
     await page.mouse.click(pts[k].x, pts[k].y);
@@ -464,12 +474,15 @@ async function walkTo(page: Page, label: string, to: Pt) {
   await sheet(page, "정원 지도").getByRole("button", { name: label, exact: true }).click();
   await expect.poll(async () => { const p = await player(page); return Math.hypot(p.x - to.x, p.z - to.z) }, { timeout: 60_000 }).toBeLessThan(0.2);
   await settled(page);
+  // today's observatory request (a notice above the next-task card) is put away first, as a player would
+  const notice = page.getByTestId("request-notice");
+  if (await notice.isVisible()) await notice.getByRole("button", { name: "알림 닫기" }).click();
 }
 test("the map walks to the library and over the bridge to the league square", async ({ page }) => {
   const errors: string[] = [];
   await open(page, errors, "&demo");
   const vp = page.viewportSize()!;
-  await walkTo(page, "사례 서고", { x: 1, z: -13.6 });
+  await walkTo(page, "사례 서고", place("library").walk);
   const lib = (await hooks(page))!.points.library;
   expect(await tappable(page, lib, vp)).toBe(true);
   await page.mouse.click(lib.x, lib.y);
@@ -479,7 +492,7 @@ test("the map walks to the library and over the bridge to the league square", as
   await expect(sheet(page, "오늘의 케이스")).toBeVisible();
   await sheet(page, "오늘의 케이스").getByRole("button", { name: "닫기" }).first().click();
   // across the stream: the walk goes by the bridge
-  await walkTo(page, "리그 광장", { x: -2, z: 17.4 });
+  await walkTo(page, "리그 광장", place("plaza").walk);
   const sq = (await hooks(page))!.points.plaza;
   expect(await tappable(page, sq, vp)).toBe(true);
   await page.mouse.click(sq.x, sq.y);
@@ -493,7 +506,7 @@ test("the house opens into the analysts' workroom and back out", async ({ page }
   const errors: string[] = [];
   await open(page, errors, "&demo");
   const vp = page.viewportSize()!;
-  await walkTo(page, "집", { x: -4.3, z: -0.8 });
+  await walkTo(page, "집", place("home").walk);
   const house = (await hooks(page))!.points.house;
   expect(await tappable(page, house, vp)).toBe(true);
   await page.mouse.click(house.x, house.y);
