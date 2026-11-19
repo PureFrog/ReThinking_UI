@@ -1,0 +1,21 @@
+# Netlify: the site only (decided 2026-11-16, docs/deploy.md). Supabase keeps sign-in, the DB, Realtime and the AI
+# functions; a real-time game server will live elsewhere. The build is vinext's static export (STATIC_EXPORT=1 turns
+# on output:'export' in next.config.ts); the old Cloudflare worker build (`pnpm build` without it) stays as it was.
+[build]
+  command = "corepack enable && pnpm install --frozen-lockfile && STATIC_EXPORT=1 pnpm build"
+  publish = "dist/client"
+
+[build.environment]
+  NODE_VERSION = "22"
+  # set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (the publishable key) in
+  # Netlify → Site configuration → Environment variables. Never the service_role / sb_secret_ key.
+
+# the 3D models, fonts and brand images change only with a new build: cache them hard
+[[headers]]
+  for = "/models/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

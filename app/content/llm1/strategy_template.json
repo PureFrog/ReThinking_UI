@@ -1,0 +1,42 @@
+{
+  "strategy_id": null,
+  "name": null,
+  "usage_status": "unknown",
+  "opportunity_search": null,
+  "asset_universe": null,
+  "research": {
+    "qualitative": null,
+    "financial": null
+  },
+  "scenario_method": null,
+  "valuation_method": null,
+  "entry": {
+    "signal": null,
+    "gap_definition": null,
+    "threshold": null
+  },
+  "sizing": {
+    "initial_weight": null,
+    "max_weight": null,
+    "increase_condition": null
+  },
+  "rebalancing": null,
+  "review": {
+    "interval": null,
+    "event_trigger": null,
+    "update_targets": null
+  },
+  "exit": {
+    "signal": null,
+    "threshold": null,
+    "stop_loss": null,
+    "time_rule": null,
+    "partial_sale": null,
+    "event_end": null
+  },
+  "replacement": {
+    "candidate_rule": null,
+    "priority": null
+  },
+  "unresolved_points": []
+}

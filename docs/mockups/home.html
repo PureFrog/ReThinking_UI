@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>홈 정리 목업</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Mockup: the home screen cut down to one job (one next step, four tabs), the 일지 that only writes, 더보기 for the
+   rest, and a four-step first-run tutorial on the real screen. Background is a real capture of the 3D garden. */
+:root{--paper:#f4eedf;--paper2:#fbf7ec;--rule:#d8ccae;--ink:#2a2620;--mute:#6f6656;--seal:#b8372b;--accent:#4b6638;--up:#b8372b;--down:#2c5c92;
+  --in:cubic-bezier(.32,.72,0,1);--pop:cubic-bezier(.16,1,.3,1)}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+html,body{min-height:100%;background:#1d1b18;font-family:'Gowun Dodum',sans-serif;color:var(--ink)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+.serif{font-family:'Gowun Batang',serif;font-weight:700}
+
+/* page: controls on the left, the device on the right */
+.page{display:flex;gap:28px;align-items:flex-start;justify-content:center;padding:28px 16px 40px;flex-wrap:wrap}
+.ctl{display:grid;gap:4px;width:200px;padding:8px;background:#2b2925;border-radius:12px;color:#d8d2c4;font-size:12px}
+.ctl h2{font-size:11px;color:#8d8576;padding:8px 8px 2px;font-weight:400}
+.ctl button{height:32px;padding:0 10px;border-radius:7px;text-align:left;color:#d8d2c4}
+.ctl button[aria-pressed=true]{background:var(--paper);color:var(--ink)}
+.ctl p{font-size:11px;line-height:1.5;color:#a59d8d;padding:6px 8px}
+
+.dev{position:relative;width:390px;height:844px;border-radius:28px;overflow:hidden;box-shadow:0 0 0 10px #0b0a09,0 30px 80px #000a;background:#7a9a5a;flex:none;transition:width .4s var(--in),height .4s var(--in)}
+.dev.side{width:844px;height:390px}
+.dev.desk{width:1200px;height:740px;border-radius:10px}
+.bg{position:absolute;inset:0;background:url(home/bg-portrait.png) center/cover}
+.dev.side .bg,.dev.desk .bg{background-position:center 42%}
+.before{position:absolute;inset:0;background:url(home/before-portrait.png) center/cover;z-index:40}
+
+/* top: weather (left), me (right). that's all */
+.top{position:absolute;left:14px;right:14px;top:14px;display:flex;justify-content:space-between;align-items:center;z-index:5}
+.chip{display:flex;align-items:baseline;gap:7px;height:34px;padding:0 12px;background:#f4eedfe6;border:1px solid var(--rule);border-radius:2px;font-size:12px;box-shadow:0 6px 18px #0002;backdrop-filter:blur(6px)}
+.chip b{font-family:'Gowun Batang',serif;font-size:13px}
+.chip .mono{font-size:11px;color:var(--up)}
+.me{width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 50% 38%,#f2d3b5 0 30%,#3b2f2a 31% 46%,transparent 47%),#4b6638;box-shadow:0 0 0 2px var(--paper),0 6px 18px #0003;position:relative}
+.me i{position:absolute;right:-2px;top:-2px;width:10px;height:10px;border-radius:50%;background:var(--seal);box-shadow:0 0 0 2px var(--paper)}
+
+/* one bubble at a time: the analyst with the newest thing to say */
+.bubble{position:absolute;left:52%;top:33%;transform:translate(-50%,-100%);padding:7px 11px 8px;background:var(--paper);border:1px solid var(--rule);border-radius:2px;box-shadow:0 10px 26px #0003;font-size:12px;white-space:nowrap;z-index:3}
+.bubble::after{content:'';position:absolute;left:50%;bottom:-6px;width:10px;height:10px;margin-left:-5px;background:var(--paper);border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);transform:rotate(45deg)}
+.bubble b{font-family:'Gowun Batang',serif}
+.bubble small{color:var(--mute)}
+
+/* the one next step */
+.next{position:absolute;left:14px;right:14px;bottom:86px;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 12px 12px 14px;background:var(--paper);border:1px solid var(--rule);outline:1px solid var(--rule);outline-offset:-4px;border-radius:2px;box-shadow:0 14px 40px #0004;z-index:5}
+.face{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-family:'Gowun Batang',serif;font-weight:700;color:#fff;font-size:15px;background:#8b6a3e}
+.face.moa{background:#b0566a}.face.luon{background:#3e4a6e}
+.next .k{font-size:10.5px;color:var(--mute)}
+.next .t{font-family:'Gowun Batang',serif;font-weight:700;font-size:15px;letter-spacing:-.4px;line-height:1.3}
+.next .s{font-size:11.5px;color:var(--mute)}
+.go{height:42px;padding:0 14px;background:var(--ink);color:var(--paper);border-radius:2px;font-family:'Gowun Batang',serif;font-weight:700;font-size:13.5px;white-space:nowrap}
+.steps{display:flex;gap:3px;margin-top:5px}.steps i{width:16px;height:3px;border-radius:2px;background:var(--rule)}.steps i.on{background:var(--accent)}
+
+.map{position:absolute;right:14px;bottom:172px;width:40px;height:40px;border-radius:50%;background:#f4eedfe6;border:1px solid var(--rule);display:grid;place-items:center;z-index:4;box-shadow:0 6px 18px #0002}
+
+/* four tabs */
+.dock{position:absolute;left:0;right:0;bottom:0;height:72px;display:grid;grid-template-columns:repeat(4,1fr);background:var(--paper);border-top:1px solid var(--rule);z-index:6;padding-bottom:6px}
+.dock button{display:grid;place-items:center;align-content:center;gap:3px;font-size:11.5px;color:var(--mute);position:relative}
+.dock button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.6}
+.dock button[aria-pressed=true]{color:var(--ink);font-weight:700}
+.dock button[aria-pressed=true]::before{content:'';position:absolute;top:0;left:30%;right:30%;height:2px;background:var(--ink)}
+.dock .dot{position:absolute;top:10px;left:calc(50% + 8px);min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--seal);color:#fff;font-size:10px;display:grid;place-items:center;font-family:'IBM Plex Mono',monospace}
+
+/* sideways: tabs become a rail on the left, the next step sits bottom-left */
+.dev.side .dock{top:0;right:auto;width:76px;height:auto;grid-template-columns:none;grid-template-rows:repeat(4,1fr);border-top:0;border-right:1px solid var(--rule);padding:8px 0}
+.dev.side .dock button[aria-pressed=true]::before{top:30%;bottom:30%;left:0;right:auto;width:2px;height:auto}
+.dev.side .dock .dot{top:calc(50% - 22px)}
+.dev.side .top{left:90px}
+.dev.side .next{left:90px;right:auto;width:380px;bottom:14px}
+.dev.side .map{bottom:14px}
+.dev.side .sheet{left:76px}
+.dev.desk .dock{top:0;right:auto;width:88px;height:auto;grid-template-columns:none;grid-template-rows:repeat(4,80px);align-content:start;padding-top:80px;border-top:0;border-right:1px solid var(--rule)}
+.dev.desk .dock button[aria-pressed=true]::before{top:30%;bottom:30%;left:0;right:auto;width:2px;height:auto}
+.dev.desk .dock .dot{top:12px}
+.dev.desk .top{left:104px}
+.dev.desk .next{left:auto;right:24px;width:400px;bottom:24px}
+.dev.desk .map{bottom:24px;right:440px}
+.dev.desk .sheet{left:auto;right:0;top:0;width:440px;max-height:none;border-top:0;border-left:1px solid var(--rule)}
+
+/* sheets (일지, 더보기) */
+.sheet{position:absolute;left:0;right:0;bottom:72px;top:64px;display:flex;flex-direction:column;background:var(--paper);border-top:1px solid var(--rule);box-shadow:0 -20px 60px #0005;z-index:5;transform:translateY(110%);transition:transform .45s var(--in)}
+.dev.side .sheet{top:0;bottom:0}
+.dev.desk .sheet{bottom:0;transform:translateX(110%)}
+.sheet.on,.dev.desk .sheet.on{transform:none}
+.sh-head{padding:16px 16px 10px;border-bottom:1px solid var(--rule)}
+.sh-head .k{font-size:11px;color:var(--mute)}
+.sh-head h3{font-family:'Gowun Batang',serif;font-size:22px;letter-spacing:-.6px}
+.tabs{display:flex;gap:16px;margin-top:10px}
+.tabs button{font-size:13px;color:var(--mute);padding-bottom:6px}
+.tabs button[aria-pressed=true]{color:var(--ink);font-weight:700;box-shadow:inset 0 -2px var(--ink)}
+.sh-body{overflow:auto;padding:14px 16px 18px;display:grid;gap:12px;align-content:start;scrollbar-width:none}
+.todo{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:11px 12px;border:1px solid var(--rule);background:var(--paper2);border-radius:2px;text-align:left}
+.todo .t{font-family:'Gowun Batang',serif;font-weight:700;font-size:14px}
+.todo small{display:block;color:var(--mute);font-size:11.5px}
+.todo .arr{font-size:18px;color:var(--mute)}
+.sec{font-size:11.5px;color:var(--mute);display:flex;justify-content:space-between}
+.past{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:baseline;padding:9px 2px;border-bottom:1px dashed var(--rule);font-size:12.5px}
+.past .d{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--mute)}
+.past .r{font-size:11px;padding:1px 6px;border-radius:2px}
+.r.hit{color:var(--accent);border:1px solid var(--accent)}.r.miss{color:var(--seal);border:1px solid var(--seal)}.r.wait{color:var(--mute);border:1px dashed var(--rule)}
+
+/* writing view */
+.note{padding:12px;border:1px solid var(--rule);background:var(--paper2);border-radius:2px;display:grid;gap:8px}
+.note .h{display:flex;gap:10px;align-items:center}
+.note .h strong{font-size:13px;display:block}.note .h small{font-size:11px;color:var(--mute)}
+.note p{font-family:'Gowun Batang',serif;font-weight:700;font-size:15px;line-height:1.4;letter-spacing:-.3px}
+.ev{display:grid;grid-template-columns:1fr auto;gap:4px 10px;font-size:12px}
+.ev b{font-family:'IBM Plex Mono',monospace;font-weight:500}
+.lbl{font-size:12px;color:var(--mute);margin-bottom:6px;display:flex;justify-content:space-between}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.seg button{padding:10px 6px;border:1px solid var(--rule);background:var(--paper2);border-radius:2px;font-weight:700;font-size:13px;display:grid;gap:2px}
+.seg button small{font-weight:400;font-size:10.5px;color:var(--mute)}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}.seg button[aria-pressed=true] small{color:#d8ccae}
+textarea{width:100%;font:inherit;font-size:13px;padding:10px;border:1px solid var(--rule);background:#fff;border-radius:2px;resize:none}
+.conf{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.conf button{height:38px;border:1px solid var(--rule);background:var(--paper2);border-radius:2px;font-family:'IBM Plex Mono',monospace}
+.conf button[aria-pressed=true]{background:var(--ink);color:var(--paper)}
+.save{height:48px;background:var(--ink);color:var(--paper);border-radius:2px;font-family:'Gowun Batang',serif;font-weight:700;font-size:15px}
+.fine{font-size:11px;color:var(--mute);line-height:1.5;text-align:center}
+.back{font-size:12px;color:var(--mute);margin-bottom:6px}
+
+/* 더보기 */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tile{display:grid;gap:3px;padding:12px;text-align:left;border:1px solid var(--rule);background:var(--paper2);border-radius:2px;position:relative}
+.tile strong{font-family:'Gowun Batang',serif;font-size:14px}
+.tile small{font-size:11px;color:var(--mute);line-height:1.35}
+.tile i{position:absolute;right:10px;top:10px;width:8px;height:8px;border-radius:50%;background:var(--seal)}
+
+/* tutorial: a spotlight on the real thing, a paper card that says one sentence */
+.tut{position:absolute;inset:0;z-index:30;pointer-events:none}
+.spot{position:absolute;border-radius:999px;box-shadow:0 0 0 2000px #14110dcc;transition:all .55s var(--in)}
+.spot::after{content:'';position:absolute;inset:-6px;border-radius:inherit;border:2px solid #f4eedf;animation:ring 1.6s infinite}
+@keyframes ring{0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(1.15)}}
+.coach{position:absolute;left:16px;right:16px;padding:14px 14px 12px;background:var(--paper);border:1px solid var(--rule);outline:1px solid var(--rule);outline-offset:-4px;border-radius:2px;box-shadow:0 20px 50px #0008;pointer-events:auto;transition:top .55s var(--in),bottom .55s var(--in)}
+.dev.side .coach{left:auto;right:16px;width:340px}
+.dev.desk .coach{left:auto;right:auto;width:360px}
+.coach .n{display:flex;justify-content:space-between;font-size:11px;color:var(--mute)}
+.coach h4{font-family:'Gowun Batang',serif;font-size:18px;letter-spacing:-.5px;margin:4px 0 4px}
+.coach p{font-size:13px;line-height:1.5}
+.coach .acts{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+.coach .skip{font-size:12px;color:var(--mute);text-decoration:underline}
+.coach .nx{height:38px;padding:0 16px;background:var(--ink);color:var(--paper);border-radius:2px;font-family:'Gowun Batang',serif;font-weight:700}
+.pips{display:flex;gap:4px}.pips i{width:6px;height:6px;border-radius:50%;background:var(--rule)}.pips i.on{background:var(--ink)}
+
+.cap{position:absolute;left:50%;bottom:-34px;transform:translateX(-50%);color:#a59d8d;font-size:12px;white-space:nowrap}
+.wrap{position:relative;padding-bottom:40px}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="ctl" role="group" aria-label="목업 조작">
+    <h2>화면</h2>
+    <button data-v="before">지금 (전)</button>
+    <button data-v="home" aria-pressed="true">홈 (후)</button>
+    <button data-v="journal">일지 · 쓸 것</button>
+    <button data-v="write">일지 · 쓰기</button>
+    <button data-v="more">더보기</button>
+    <h2>첫 실행 튜토리얼</h2>
+    <button data-v="t1">1 · 나무</button>
+    <button data-v="t2">2 · 분석가</button>
+    <button data-v="t3">3 · 일지</button>
+    <button data-v="t4">4 · 채점</button>
+    <h2>크기</h2>
+    <button data-s="" aria-pressed="true">세로 390×844</button>
+    <button data-s="side">가로 844×390</button>
+    <button data-s="desk">데스크톱</button>
+    <p>배경은 실제 3D 정원 캡처. 예시 데이터.</p>
+  </div>
+
+  <div class="wrap">
+  <div class="dev" id="dev">
+    <div class="bg"></div>
+    <div class="before" id="before" hidden></div>
+
+    <div class="top">
+      <div class="chip"><span>오늘 시장</span><b>맑음</b><span class="mono">+0.04%</span></div>
+      <button class="me" aria-label="내 관찰자"><i></i></button>
+    </div>
+
+    <div class="bubble" id="bubble"><b>모아</b> <small>·</small> 꽃빛뷰티 저점이 3주째 낮아지는 중</div>
+
+    <button class="map" aria-label="지도"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#2a2620" stroke-width="1.6"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg></button>
+
+    <div class="next" id="next">
+      <span class="face luon">루</span>
+      <div>
+        <div class="k">다음 할 일 · 오늘 1/3</div>
+        <div class="t">판정 2건이 돌아왔어</div>
+        <div class="s">30일 전 내 판단, 맞았는지 볼 차례</div>
+      </div>
+      <button class="go" data-go="journal">확인</button>
+    </div>
+
+    <nav class="dock" aria-label="메뉴">
+      <button data-tab="home" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M12 3c-4 3-6 6-6 9a6 6 0 0012 0c0-3-2-6-6-9z"/><path d="M12 21v-7"/></svg>정원</button>
+      <button data-tab="journal"><svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 10h8M8 14h8M8 18h5"/></svg>일지<span class="dot">3</span></button>
+      <button data-tab="game"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4v3M12 17v3M4 12h3M17 12h3"/></svg>원정</button>
+      <button data-tab="more"><svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18" cy="12" r="1.3"/></svg>더보기</button>
+    </nav>
+
+    <!-- 일지: only the journal. what to write, what came back, what I wrote -->
+    <section class="sheet" id="journal" aria-label="투자일지">
+      <div class="sh-head"><div class="k">투자일지</div><h3>쓸 것 3</h3>
+        <div class="tabs"><button aria-pressed="true">쓸 것</button><button>지난 일지 · 7</button></div></div>
+      <div class="sh-body">
+        <div class="sec"><span>돌아온 판정</span><span>먼저 확인</span></div>
+        <button class="todo"><span class="face luon">루</span><div><span class="t">새봄반도체 · 30일 판정</span><small>내가 "더 지켜봄", 확신 3이라고 적었어</small></div><span class="arr">›</span></button>
+        <button class="todo"><span class="face luon">루</span><div><span class="t">강철중공업 · 30일 판정</span><small>내가 "홀드", 확신 4라고 적었어</small></div><span class="arr">›</span></button>
+        <div class="sec" style="margin-top:6px"><span>새 신호 · 판단 적기</span><span>1건</span></div>
+        <button class="todo" data-go="write"><span class="face moa">모</span><div><span class="t">꽃빛뷰티</span><small>모아 · 서서히 모델 · 저점이 3주째 낮아지는 중</small></div><span class="arr">›</span></button>
+        <div class="sec" style="margin-top:6px"><span>최근 일지</span><span>적중 4/6</span></div>
+        <div class="past"><span class="d">10.14</span><span>새봄반도체 · 더 지켜봄</span><span class="r wait">채점 대기</span></div>
+        <div class="past"><span class="d">10.02</span><span>강철중공업 · 홀드</span><span class="r hit">맞음</span></div>
+        <div class="past"><span class="d">09.21</span><span>꽃빛뷰티 · 손절 검토</span><span class="r miss">빗나감</span></div>
+      </div>
+    </section>
+
+    <!-- writing: the note on top, three fields, one button -->
+    <section class="sheet" id="write" aria-label="일지 쓰기">
+      <div class="sh-head"><button class="back" data-go="journal">‹ 쓸 것</button><div class="k">일지 쓰기 · 10월 14일</div><h3>꽃빛뷰티</h3></div>
+      <div class="sh-body">
+        <div class="note">
+          <div class="h"><span class="face moa">모</span><div><strong>모아가 본 것</strong><small>서서히 모델 · 천천히 빠지는 흐름</small></div></div>
+          <p>저점이 3주째 조금씩 낮아지고 있어.</p>
+          <div class="ev"><span>20일 전보다</span><b style="color:var(--down)">−8.4%</b><span>거래량</span><b>평소의 0.7배</b></div>
+        </div>
+        <div><div class="lbl"><span>내 판단</span></div>
+          <div class="seg"><button aria-pressed="true">홀드<small>산 이유가 아직 유효</small></button><button>손절 검토<small>기준을 다시 본다</small></button><button>더 지켜봄<small>기준 정하고 대기</small></button></div></div>
+        <div><div class="lbl"><span>이유 한 줄</span><span>30일 뒤 이 문장 그대로 돌아와</span></div>
+          <textarea rows="2">신제품 출시가 다음 달. 그때까지는 본다.</textarea></div>
+        <div><div class="lbl"><span>확신</span><span>높을수록 크게 맞고 크게 틀려</span></div>
+          <div class="conf"><button>1</button><button>2</button><button aria-pressed="true">3</button><button>4</button><button>5</button></div></div>
+        <button class="save">일지에 적기</button>
+        <p class="fine">30일·90일 뒤에 채점돼서 일지로 돌아와.</p>
+      </div>
+    </section>
+
+    <!-- 더보기: everything that isn't the daily loop -->
+    <section class="sheet" id="more" aria-label="더보기">
+      <div class="sh-head"><div class="k">더보기</div><h3>나머지 전부</h3></div>
+      <div class="sh-body">
+        <div class="sec"><span>매일 하나씩</span></div>
+        <div class="grid">
+          <button class="tile"><i></i><strong>오늘의 케이스</strong><small>과거 사례 하나, 맞혀 보기</small></button>
+          <button class="tile"><strong>되감기</strong><small>그때 내가 봤다면</small></button>
+        </div>
+        <div class="sec"><span>나</span></div>
+        <div class="grid">
+          <button class="tile"><strong>내 관찰자</strong><small>칭호·도장·한 달 편지</small></button>
+          <button class="tile"><strong>서랍</strong><small>꾸미기</small></button>
+        </div>
+        <div class="sec"><span>함께</span></div>
+        <div class="grid">
+          <button class="tile"><strong>리그</strong><small>이번 주 순위</small></button>
+          <button class="tile"><strong>다른 정원들</strong><small>하늘에 뜬 행성</small></button>
+        </div>
+        <div class="sec"><span>설정</span></div>
+        <div class="grid">
+          <button class="tile"><strong>내 종목</strong><small>캡처·직접 입력</small></button>
+          <button class="tile"><strong>설정</strong><small>소리·기울이기·튜토리얼 다시 보기</small></button>
+        </div>
+      </div>
+    </section>
+
+    <div class="tut" id="tut" hidden>
+      <div class="spot" id="spot"></div>
+      <div class="coach" id="coach">
+        <div class="n"><span id="cn">1 / 4</span><div class="pips" id="pips"><i class="on"></i><i></i><i></i><i></i></div></div>
+        <h4 id="ch"></h4><p id="cp"></p>
+        <div class="acts"><button class="skip">건너뛰기</button><button class="nx" id="cnx">다음</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="cap" id="cap"></div>
+  </div>
+</div>
+<script>
+const dev=document.getElementById('dev'),$=id=>document.getElementById(id);
+// spotlight targets as fractions of the device so they follow the size toggle
+const T={
+  t1:{h:'나무 한 그루 = 내 종목 하나',p:'잎 색이 그 종목의 상태야. 초록은 튼튼, 갈색은 손실 신호가 있다는 뜻.',spot:()=>box('.bg',.52,.4,.44,.3,true),coach:'below'},
+  t2:{h:'분석가 셋이 신호를 짚어줘',p:'토리·모아·루온이 우리 모델이 본 걸 말해 줘. 사라, 팔라는 말은 안 해. 판단은 네 몫이야.',spot:()=>el('#bubble',10),coach:'below'},
+  t3:{h:'본 걸 읽고, 일지에 한 줄',p:'판단 셋 중 하나, 이유 한 줄, 확신 1~5. 일지는 여기서만 써.',spot:()=>tab(1),coach:'above'},
+  t4:{h:'30일 뒤, 채점돼서 돌아와',p:'그때 내 판단이 맞았는지 확인하는 순간이 이 게임의 핵심이야. 돌아오면 여기 뜰 거야.',spot:()=>el('#next',6),coach:'above',last:true},
+};
+function rectOf(sel){const d=dev.getBoundingClientRect(),r=document.querySelector(sel).getBoundingClientRect();return {x:r.left-d.left,y:r.top-d.top,w:r.width,h:r.height}}
+function el(sel,pad){const r=rectOf(sel);return {x:r.x-pad,y:r.y-pad,w:r.w+pad*2,h:r.h+pad*2,rad:12}}
+function box(_,cx,cy,w,h){const W=dev.clientWidth,H=dev.clientHeight,s=Math.min(W,H);return {x:W*cx-s*w/2,y:H*cy-s*h/2,w:s*w,h:s*h,rad:999}}
+function tab(i){const b=document.querySelectorAll('.dock button')[i];const d=dev.getBoundingClientRect(),r=b.getBoundingClientRect();return {x:r.left-d.left+4,y:r.top-d.top+4,w:r.width-8,h:r.height-8,rad:12}}
+let view='home';
+function show(v){
+  view=v;
+  document.querySelectorAll('[data-v]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v));
+  $('before').hidden=v!=='before';
+  ['journal','write','more'].forEach(id=>$(id).classList.toggle('on',v===id));
+  const tabOf={home:'home',journal:'journal',write:'journal',more:'more'}[v]??'home';
+  document.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tab===tabOf));
+  $('bubble').hidden=['journal','write','more','t1'].includes(v);
+  $('next').hidden=['journal','write','more'].includes(v)&&!dev.classList.contains('desk');
+  const t=T[v];$('tut').hidden=!t;
+  if(t)place(t);
+  $('cap').textContent={before:'지금: 위 버튼 7개 · 떠 있는 태그 5개 · 메뉴 7개',home:'후: 할 일 하나 · 탭 넷',journal:'일지는 일지만: 돌아온 판정 → 새 신호 → 지난 일지',write:'쓰는 화면: 본 것 · 판단 · 이유 · 확신 · 버튼 하나',more:'매일 루프 밖의 것은 전부 여기',t1:'첫 실행 1/4',t2:'첫 실행 2/4',t3:'첫 실행 3/4',t4:'첫 실행 4/4 · 끝나면 첫 일지로 바로'}[v];
+}
+function place(t){
+  const s=t.spot(),sp=$('spot');
+  Object.assign(sp.style,{left:s.x+'px',top:s.y+'px',width:s.w+'px',height:s.h+'px',borderRadius:s.rad+'px'});
+  const i=+view[1];$('cn').textContent=i+' / 4';[...$('pips').children].forEach((p,j)=>p.classList.toggle('on',j<i));
+  $('ch').textContent=t.h;$('cp').textContent=t.p;$('cnx').textContent=t.last?'첫 일지 쓰러 가기':'다음';
+  const c=$('coach'),H=dev.clientHeight,side=dev.classList.contains('side')||dev.classList.contains('desk');
+  c.style.top=c.style.bottom='auto';
+  if(side){c.style.top=Math.max(14,Math.min(H-c.offsetHeight-14,s.y+s.h/2-c.offsetHeight/2))+'px';
+    if(dev.classList.contains('desk'))c.style.left=Math.min(dev.clientWidth-380,s.x+s.w+24)+'px';else c.style.left='';}
+  else if(t.coach==='below')c.style.top=(s.y+s.h+18)+'px';else c.style.bottom=(H-s.y+18)+'px';
+}
+document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>show(b.dataset.v));
+document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{dev.className='dev '+b.dataset.s;document.querySelectorAll('[data-s]').forEach(x=>x.setAttribute('aria-pressed',x===b));setTimeout(()=>show(view),420)});
+document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>show(b.dataset.go));
+document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>show(b.dataset.tab==='game'?'home':b.dataset.tab));
+$('cnx').onclick=()=>{const i=+view[1];show(i<4?'t'+(i+1):'write')};
+document.querySelector('.skip').onclick=()=>show('home');
+const q=new URLSearchParams(location.search);if(q.get('s')){dev.className='dev '+q.get('s');document.querySelectorAll('[data-s]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.s===q.get('s')))}
+show(q.get('v')||'home');
+</script>
+</body>
+</html>

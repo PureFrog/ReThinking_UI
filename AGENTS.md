@@ -1,34 +1,43 @@
-# AGENTS.md — ChatGPT / Codex 작업 규칙
+# AGENTS.md — AI 코딩 도구(Codex 등) 작업 규칙
 
-이 저장소의 코드는 Claude가 맡는다. Codex가 이 폴더에서 하는 일은 **작동 테스트**뿐이다. 자세한 절차는 `docs/COLLABORATION.md` 7장을 따른다.
+팀원이 Codex 같은 AI 도구로 이 저장소를 고칠 때 따르는 규칙이다. 사람이 읽는 안내는 `README.md`에 있다.
+
+**2026-11-12 방향 전환:** 메인 화면을 2D Phaser에서 3D(React Three Fiber)로 바꾸고, 톤을 감성·힐링에서 세련되고 건조하게 바꾼다. 설계서는 `docs/redesign.md`이고, `docs/ux-spec.md`보다 우선한다.
 
 ## 먼저 읽을 것
 
-1. `docs/COLLABORATION.md` — 특히 1장(맥락), 2장(역할과 구역), 7장(작동 테스트)
-2. 받은 테스트 요청서 (`collab/to-gpt/NNN-test-*.md`)
-3. `docs/ux-spec.md` 11.16 금지 목록
+1. `docs/redesign.md` — 지금의 설계서
+2. `README.md`, `docs/features.md` — 이미 만든 기능과 `app/core/` 로직 위치
+3. `collab/log.md`의 최근 기록
+4. 옛 설계(`docs/ux-spec.md`)는 기존 기능의 의도를 볼 때만 참고한다.
 
-## 쓸 수 있는 곳
+## 규칙
 
-- `collab/from-gpt/` — 테스트 보고서
-- `test-results/` — 스크린샷과 실행 결과 (커밋하지 않음)
+- 새 화면은 React Three Fiber(`app/proto3d/`)로 만든다. 로직은 `app/core/`에 엔진과 상관없이 둔다. Phaser 앱은 3D가 같은 기능에 도달할 때까지 남겨 둔다.
+- 3D 모델은 Blender 스크립트(`tools/blender/`), CC0 팩, 도구를 자유롭게 쓴다.
+  - 결과물은 `public/models/`에 두고 `app/proto3d/models.ts` 매니페스트에 등록한다.
+  - 받은 에셋의 출처는 `public/models/CREDITS.md`에 적는다.
+- 지금 데이터는 모의다. 실제 과거 사례 데이터와 서버 DB는 쓰기로 했다(`docs/redesign.md` 8장 R5). 대사·뉴스·퀴즈·탐지는 `app/content/`의 공급자를 거친다. 주문·거래는 연결하지 않는다.
+- 캐릭터 대사에 매매 권유("팔아", "사", "계속 들고 있어")나 가격 예측("오를 거야")을 넣지 않는다. 모델이 본 것을 말하고 판단은 사용자에게 둔다. 톤은 `docs/redesign.md` 2장을 따른다.
+- 수익률을 보상 계산에 쓰지 않는다.
+- `public/assets/incoming/`과 `collab/from-gpt/`는 읽기만 한다.
+- 배포 설정(`worker/`, `lib/connector*`, `.openai/`, `vite.config.ts`의 호스팅 부분)은 바꾸지 않는다.
+- 토큰·비밀값을 코드, 문서, 출력에 남기지 않는다.
+- 시간값은 `app/core/timing.ts`에, 3D 룩 값은 `app/proto3d/look.ts`에 둔다.
 
-그 밖의 파일은 읽기만 한다.
+## 작업을 마치기 전에
 
-## 할 수 있는 것
+```bash
+node node_modules/typescript/bin/tsc --noEmit
+pnpm test:unit
+pnpm test:e2e
+pnpm build
+```
 
-- 의존성 설치, 개발 서버 실행, `tests/e2e/`의 테스트 실행
-- 브라우저 자동화로 화면을 열고 클릭·입력·스크린샷
-- 요청서 시나리오 밖의 동작도 탐색해서 보고
+- 새 계산 로직에는 `tests/*.test.mjs` 단위 테스트, 새 화면 동작에는 `tests/e2e/` 테스트를 붙인다.
+- `collab/log.md`에 한 줄 남긴다.
+- 커밋 메시지: `[R-n] 요약`, `[stage-n] 요약`, `[asset NNN] 요약`, `[fix] 요약`, `[docs] 요약`.
 
-## 하지 않는 것
+## 작동 테스트만 맡았을 때
 
-- 코드, 테스트 파일, 설정, 문서 수정 — 버그를 찾아도 고치지 말고 보고서에 적는다
-- git 커밋, 브랜치 생성, 푸시
-- 디자인 의견을 버그처럼 보고하기 — 의견은 보고서의 "제안" 칸에만
-- 실행하지 않은 것을 확인했다고 쓰기 — 못 한 건 Not Tested와 이유
-- 토큰·비밀값을 파일이나 출력에 남기기
-
-## 보고서 양식
-
-`collab/templates/test-report.md`. 검수한 커밋 SHA를 반드시 적는다.
+요청서(`collab/to-gpt/NNN-test-*.md`)를 받아 테스트만 하는 경우에는 코드·문서를 고치지 않고, `collab/templates/test-report.md` 양식으로 `collab/from-gpt/`에 보고서를 쓴다. 검수한 커밋 SHA를 적고, 실행하지 못한 것은 Not Tested와 이유를 쓴다. 자세한 절차는 `docs/COLLABORATION.md` 7장.

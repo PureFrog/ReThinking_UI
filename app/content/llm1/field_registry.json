@@ -1,0 +1,131 @@
+{
+  "registry_version": "5.0-mvp",
+  "notes": "MVP 필드 레지스트리. 경로별 value 자료형을 고정한다. text=300자 이내 문자열, quantity={amount,unit,reference,condition}, age={years,age_band,as_of}.",
+  "text_max_chars": 300,
+  "profile_paths": {
+    "profile.age": "age",
+    "profile.life_context": "text",
+    "conversation_preferences.tone": "text",
+    "conversation_preferences.explanation_style": "text",
+    "conversation_preferences.detail_level": "text",
+    "conversation_preferences.question_pace": "text",
+    "personality_tendencies.decision_style": "text",
+    "personality_tendencies.uncertainty_response": "text",
+    "preferences.volatility": "text",
+    "preferences.return_form": "text",
+    "preferences.monitoring": "text",
+    "preferences.holding_horizon": "text",
+    "investment_philosophy.market_view.efficiency": "text",
+    "investment_philosophy.market_view.pricing_gaps": "text",
+    "investment_philosophy.market_view.expectation_formation": "text",
+    "investment_philosophy.edge.expected_sources": "text",
+    "investment_philosophy.edge.counterparty_view": "text",
+    "investment_philosophy.edge.constraints": "text",
+    "investment_philosophy.edge.research_process": "text",
+    "investment_philosophy.edge.falsification": "text",
+    "investment_philosophy.analysis_purpose": "text",
+    "investment_philosophy.belief_revision": "text",
+    "investment_philosophy.recurring_reasons": "text",
+    "investment_philosophy.risk_management.risk_definition": "text",
+    "investment_philosophy.risk_management.portfolio_loss_budget": "quantity",
+    "investment_philosophy.risk_management.concentration_limits": "quantity",
+    "investment_philosophy.risk_management.liquidity_needs": "text",
+    "investment_philosophy.risk_management.leverage_policy": "text",
+    "investment_philosophy.performance_review.benchmark": "text",
+    "investment_philosophy.performance_review.evaluation_horizon": "text",
+    "investment_philosophy.performance_review.method": "text",
+    "investment_philosophy.performance_review.evidence_status": "text",
+    "interests": "text"
+  },
+  "concept_path_prefix": "financial_knowledge.concepts",
+  "concept_value_type": "text",
+  "concept_ids": [
+    "revenue_vs_profit",
+    "operating_margin",
+    "per",
+    "pbr",
+    "cash_flow",
+    "dividend",
+    "exchange_rate_effect",
+    "valuation_scenario",
+    "diversification",
+    "volatility",
+    "value_chain",
+    "capex_cycle"
+  ],
+  "company_view_prefix": "company_views",
+  "company_view_fields": {
+    "current_thesis": "text",
+    "valuation_reference": "text",
+    "review_plan": "text",
+    "exit_plan": "text"
+  },
+  "company_view_meta_fields": [
+    "strategy_id",
+    "expires_at"
+  ],
+  "strategy_prefix": "investment_philosophy.strategies",
+  "strategy_paths": {
+    "opportunity_search": "text",
+    "asset_universe": "text",
+    "research.qualitative": "text",
+    "research.financial": "text",
+    "scenario_method": "text",
+    "valuation_method": "text",
+    "entry.signal": "text",
+    "entry.gap_definition": "text",
+    "entry.threshold": "quantity",
+    "sizing.initial_weight": "quantity",
+    "sizing.max_weight": "quantity",
+    "sizing.increase_condition": "text",
+    "rebalancing": "text",
+    "review.interval": "text",
+    "review.event_trigger": "text",
+    "review.update_targets": "text",
+    "exit.signal": "text",
+    "exit.threshold": "quantity",
+    "exit.stop_loss": "quantity",
+    "exit.time_rule": "text",
+    "exit.partial_sale": "quantity",
+    "exit.event_end": "text",
+    "replacement.candidate_rule": "text",
+    "replacement.priority": "text"
+  },
+  "strategy_usage_status": [
+    "unknown",
+    "example_only",
+    "considering",
+    "in_use",
+    "inactive"
+  ],
+  "quantity_units": {
+    "portfolio_weight": "ratio",
+    "position_fraction": "ratio",
+    "price_change": "ratio",
+    "price_gap": "ratio",
+    "days": "count",
+    "weeks": "count",
+    "months": "count",
+    "krw": "money"
+  },
+  "basis_values": [
+    "explicit",
+    "inferred"
+  ],
+  "confidence_values": [
+    "low",
+    "medium",
+    "high"
+  ],
+  "confidence_rank": {
+    "low": 1,
+    "medium": 2,
+    "high": 3
+  },
+  "generalization_rules": {
+    "investment_philosophy.recurring_reasons": {
+      "note": "종목을 넘어 반복되는 매수·보유 이유. 사용자가 직접 일반화해 말했으면(explicit) 기록. 추론(inferred)은 현재 생각이 기록된 종목이 최소 N개일 때만.",
+      "inferred_min_company_views": 2
+    }
+  }
+}

@@ -1,0 +1,703 @@
+/* D2 (docs/brief-design.md): direction A 현장 노트·표본실. Free (OFL) fonts: Gowun Batang titles, Gowun Dodum text,
+   IBM Plex Mono numbers, Nanum Pen Script for the analyst's margin note. Google Fonts serves Korean in unicode-range slices. */
+@import url('https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&family=IBM+Plex+Mono:wght@400;500;600&family=Nanum+Pen+Script&family=Jua&display=swap');
+/* ReThink Garden UI (redesign 6장, docs/brief-design.md A): a field notebook. Paper, fine rules, specimen labels, a red seal.
+   Surfaces: 1 paper (sheets, HUD tags, menu strip) · 2 ruled page inside (notes, records) · 3 ink (the one thing to press).
+   Shape: 2px corners, 1px rules, 4px spacing unit. Every class starts with rt-. Colours as tokens: world values in look.ts. */
+.proto3d{
+  --rt-ink:#2a2620;--rt-sub:#5c5447;--rt-mute:#6f6656;/* AA on paper (4.7:1) */--rt-line:#2a26201c;--rt-line2:#2a262040;
+  --rt-paper:#f4eedf;--rt-paper2:#fbf7ec;--rt-rule:#d8ccae;--rt-accent:#4b6638;--rt-accent-soft:#4b663818;
+  --rt-up:#b8372b;--rt-down:#2c5c92;--rt-warn:#9c6c12;--rt-seal:#b8372b;
+  --rt-tori:#7a5238;--rt-moa:#c4652e;--rt-luon:#4d4a8a;
+  --rt-r:2px;--rt-shadow:0 1px 0 #fffaf0 inset,0 1px 2px #2a26202e,0 8px 20px #2a262014;
+  font-family:'Gowun Dodum','Noto Sans KR',sans-serif;letter-spacing:-.15px;
+
+  --rt-hit:#b8372b;--rt-miss:#5c5447;/* a grade's verdict: the red seal or graphite, never the up/down colours */
+  --rt-glass:var(--rt-paper);--rt-glass2:var(--rt-paper);
+  color:var(--rt-ink);font-size:14px;
+}
+.proto3d{overflow:clip}
+.proto3d button{font-family:inherit}
+.rt-num{font-variant-numeric:tabular-nums;font-feature-settings:'tnum'}
+/* prices only: Korean convention, up red, down blue */
+.rt-up{color:var(--rt-up)}.rt-down{color:var(--rt-down)}
+
+/* top: weather on the left, my numbers on the right */
+.proto3d-top{align-items:flex-start;gap:12px}
+.rt-weather{pointer-events:auto;display:grid;grid-template-columns:auto auto auto;align-items:baseline;column-gap:8px;row-gap:2px;
+  background:var(--rt-glass);border:1px solid #ffffffb0;border-radius:14px;padding:10px 14px;box-shadow:var(--rt-shadow);backdrop-filter:blur(14px)}
+.rt-weather-k{font-size:11px;color:var(--rt-mute);font-weight:500}
+.rt-weather strong{font-size:15px;font-weight:700}
+.rt-weather .rt-num{font-size:12px;color:var(--rt-sub)}
+.rt-weather small{grid-column:1/-1;font-size:11.5px;color:var(--rt-sub);max-width:260px}
+.rt-hud{pointer-events:auto;display:flex;gap:6px}
+.rt-stat{display:flex;flex-direction:column;align-items:flex-end;background:var(--rt-glass);border:1px solid #ffffffb0;border-radius:12px;padding:7px 11px;box-shadow:var(--rt-shadow);backdrop-filter:blur(14px);min-width:56px}
+.rt-stat span{font-size:10px;color:var(--rt-mute);font-weight:500;white-space:nowrap}
+.rt-stat b{font-size:15px;font-weight:700}
+.proto3d-hint{top:auto;bottom:96px;color:#16211b8c;font-size:11px}
+
+/* bottom dock */
+.rt-dock{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;gap:2px;padding:5px;border-radius:18px;background:var(--rt-glass);border:1px solid #ffffffb0;box-shadow:var(--rt-shadow);backdrop-filter:blur(14px);z-index:5}
+.rt-dock button{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:58px;padding:8px 8px 6px;border-radius:13px;font-size:10.5px;font-weight:600;color:var(--rt-sub)}
+.rt-dock button:hover{background:#16211b0a;filter:none}
+.rt-dock button[aria-pressed=true]{background:var(--rt-ink);color:#fff}
+.rt-dock i{position:absolute;top:5px;right:12px;width:7px;height:7px;border-radius:50%;background:var(--rt-seal);box-shadow:0 0 0 2px #fff}
+.proto3d-locate{bottom:22px;right:16px;background:var(--rt-glass);color:var(--rt-ink);border:1px solid #ffffffb0}
+
+/* sheet: right panel on desktop, bottom sheet on phones */
+.rt-sheet{position:absolute;top:16px;right:16px;bottom:16px;width:400px;max-width:calc(100vw - 32px);display:flex;flex-direction:column;
+  background:var(--rt-glass2);border:1px solid #ffffffc0;border-radius:22px;box-shadow:0 24px 80px #16211b33;backdrop-filter:blur(18px);z-index:10;animation:rt-in .22s ease-out}
+.rt-sheet-head{display:flex;align-items:flex-start;gap:12px;padding:20px 16px 14px 22px;border-bottom:1px solid var(--rt-line)}
+.rt-sheet-head>div{flex:1;min-width:0}
+.rt-kicker{font-size:11px;font-weight:600;color:var(--rt-mute);letter-spacing:.2px;text-transform:uppercase}
+.rt-sheet-head h2{font-size:19px;font-weight:700;letter-spacing:-.5px;line-height:1.35;margin-top:3px}
+.rt-close{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;color:var(--rt-sub)}
+.rt-close:hover{background:#16211b0d;filter:none}
+.rt-sheet-body{flex:1;overflow:auto;padding:18px 22px 22px}
+.rt-sheet-foot{padding:14px 22px 18px;border-top:1px solid var(--rt-line);display:flex;gap:8px}
+@keyframes rt-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media(max-width:700px){
+  .rt-sheet{top:auto;left:8px;right:8px;bottom:80px;width:auto;max-width:none;max-height:min(calc(100dvh - 160px),620px);border-radius:22px}
+  .proto3d.no-dock .rt-sheet{bottom:12px;max-height:min(calc(100dvh - 110px),660px)}
+  .rt-weather{padding:8px 11px;grid-template-columns:auto auto}
+  .rt-weather .rt-num{grid-column:auto}
+  .rt-weather small{display:none}
+  .rt-stat{padding:6px 8px;min-width:0}
+  .rt-stat:nth-of-type(n+3){display:none}
+  .rt-dock{bottom:10px;left:8px;right:8px;transform:none;justify-content:space-between}
+  .rt-dock button{min-width:0;flex:1;padding:8px 2px 6px}
+  .proto3d-locate{bottom:84px}
+  .proto3d-hint{bottom:146px}
+}
+
+/* buttons */
+.rt-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 16px;border-radius:12px;font-size:14px;font-weight:600;border:1px solid var(--rt-line2);background:#fff;color:var(--rt-ink)}
+.rt-btn:hover{filter:none;background:#f3f5f2}
+.rt-btn.primary{background:var(--rt-ink);border-color:var(--rt-ink);color:#fff}
+.rt-btn.primary:hover{background:#26342c}
+.rt-btn.ghost{background:none;border-color:transparent;color:var(--rt-sub)}
+.rt-btn.wide{flex:1}
+.rt-btn:disabled{opacity:.4}
+.rt-link{font-size:12.5px;font-weight:600;color:var(--rt-accent);text-decoration:none}
+
+/* analyst face + tags */
+.rt-face{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;color:#fff;font-weight:700;font-size:15px;flex-shrink:0}
+.rt-face.sm{width:28px;height:28px;border-radius:9px;font-size:12px}
+.rt-face.tori{background:var(--rt-tori)}.rt-face.moa{background:var(--rt-moa)}.rt-face.luon{background:var(--rt-luon)}
+.rt-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;background:#16211b0d;color:var(--rt-sub)}
+.rt-tag.signal{background:#b8372b14;color:var(--rt-seal)}
+.rt-tag.ok{background:var(--rt-accent-soft);color:var(--rt-accent)}
+.rt-tag.warn{background:#b9801a17;color:var(--rt-warn)}
+
+/* research note */
+.rt-note{border:1px solid var(--rt-line);border-radius:var(--rt-r);background:#fff;padding:16px}
+.rt-note+.rt-note{margin-top:10px}
+.rt-note-head{display:flex;gap:10px;align-items:center}
+.rt-note-head strong{display:block;font-size:13px}
+.rt-note-head small{display:block;font-size:11.5px;color:var(--rt-mute);margin-top:2px}
+.rt-headline{font-size:16px;font-weight:700;line-height:1.45;letter-spacing:-.4px;margin:12px 0 10px}
+.rt-evidence{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.rt-evidence li{display:flex;justify-content:space-between;gap:12px;font-size:12.5px;color:var(--rt-sub);padding:7px 0;border-top:1px solid var(--rt-line)}
+.rt-evidence li b{color:var(--rt-ink);font-weight:600}
+.rt-say{font-size:13.5px;line-height:1.6;color:var(--rt-ink);margin-top:10px}
+.rt-say::before{content:'“';color:var(--rt-mute)}.rt-say::after{content:'”';color:var(--rt-mute)}
+
+/* form bits */
+.rt-field{display:flex;flex-direction:column;gap:8px;margin-top:18px;font-size:12px;font-weight:600;color:var(--rt-sub)}
+.rt-seg{display:grid;grid-template-columns:repeat(var(--n,3),1fr);gap:6px}
+.rt-seg button{min-height:46px;border-radius:12px;border:1px solid var(--rt-line2);background:#fff;font-size:13px;font-weight:600;color:var(--rt-sub);padding:4px}
+.rt-seg button small{display:block;font-size:10.5px;font-weight:500;color:var(--rt-mute);margin-top:1px}
+.rt-seg button[aria-pressed=true]{background:var(--rt-ink);border-color:var(--rt-ink);color:#fff}
+.rt-seg button[aria-pressed=true] small{color:#ffffffb0}
+.rt-input{width:100%;border:1px solid var(--rt-line2);border-radius:12px;padding:12px 13px;font:inherit;font-size:14px;color:var(--rt-ink);background:#fff;outline:none;resize:none}
+.rt-input:focus{border-color:var(--rt-ink);box-shadow:0 0 0 3px #16211b10}
+.rt-conf{display:flex;gap:6px}
+.rt-conf button{flex:1;height:40px;border-radius:10px;border:1px solid var(--rt-line2);background:#fff;font-size:14px;font-weight:700;color:var(--rt-mute)}
+.rt-conf button[aria-pressed=true]{background:var(--rt-accent);border-color:var(--rt-accent);color:#fff}
+.rt-hint{font-size:11.5px;color:var(--rt-mute);font-weight:400}
+.rt-quote{margin-top:16px;border-left:3px solid var(--rt-luon);background:#6a5aa80d;border-radius:0 12px 12px 0;padding:12px 14px}
+.rt-quote strong{font-size:12px;color:var(--rt-luon)}
+.rt-quote p{font-size:13.5px;line-height:1.55;margin-top:4px}
+.rt-quote .rt-quote-acts{display:flex;gap:6px;margin-top:10px}
+.rt-quote .rt-btn{min-height:36px;font-size:12.5px;padding:0 12px}
+
+/* lists and stats */
+.rt-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--rt-line);width:100%;text-align:left}
+button.rt-row:hover{filter:none;background:#16211b05}
+.rt-row>div{flex:1;min-width:0}
+.rt-row strong{display:block;font-size:14px;font-weight:600}
+.rt-row small{display:block;font-size:12px;color:var(--rt-mute);margin-top:2px}
+.rt-row b{font-size:14px}
+.rt-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rt-cell{border:1px solid var(--rt-line);border-radius:14px;background:#fff;padding:12px 14px}
+.rt-cell span{display:block;font-size:11px;color:var(--rt-mute);font-weight:600}
+.rt-cell b{display:block;font-size:24px;font-weight:700;letter-spacing:-.8px;margin-top:4px}
+.rt-cell small{display:block;font-size:11px;color:var(--rt-sub);margin-top:2px}
+.rt-section{font-size:12px;font-weight:700;color:var(--rt-mute);margin:22px 0 6px;letter-spacing:.2px}
+.rt-section:first-child{margin-top:0}
+.rt-empty{padding:28px 6px;text-align:center;font-size:13px;color:var(--rt-mute);line-height:1.7}
+.rt-bar{height:6px;border-radius:3px;background:#16211b12;overflow:hidden}
+.rt-bar i{display:block;height:100%;background:var(--rt-accent);border-radius:3px;transition:width .3s}
+.rt-tabs{display:flex;gap:4px;margin-bottom:14px;background:#16211b0a;padding:3px;border-radius:12px}
+.rt-tabs button{flex:1;min-height:36px;border-radius:9px;font-size:12.5px;font-weight:600;color:var(--rt-sub)}
+.rt-tabs button[aria-selected=true]{background:#fff;color:var(--rt-ink);box-shadow:0 1px 3px #16211b1f}
+
+/* case */
+.rt-timer{height:4px;border-radius:2px;background:#16211b12;overflow:hidden;margin:4px 0 14px}
+.rt-timer i{display:block;height:100%;background:var(--rt-ink);transition:width 1s linear}
+.rt-timer.low i{background:var(--rt-seal)}
+.rt-facts{display:flex;flex-direction:column;gap:0;border:1px solid var(--rt-line);border-radius:14px;background:#fff;padding:4px 14px}
+.rt-facts div{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--rt-line);font-size:13px}
+.rt-facts div:last-child{border:0}
+.rt-facts span{color:var(--rt-mute)}
+.rt-facts b{font-weight:600;text-align:right}
+.rt-reveal{border-radius:var(--rt-r);padding:16px;margin-top:14px;background:var(--rt-ink);color:#fff;animation:rt-in .3s}
+.rt-reveal small{display:block;font-size:11px;color:#ffffffa0;font-weight:600}
+.rt-reveal strong{display:block;font-size:18px;margin-top:4px;letter-spacing:-.4px}
+.rt-reveal p{font-size:13px;line-height:1.6;color:#ffffffd0;margin-top:8px}
+
+/* verdict */
+.rt-verdict{text-align:left}
+.rt-verdict .rt-big{font-size:40px;font-weight:800;letter-spacing:-1.5px;line-height:1.1;margin:6px 0 4px}
+.rt-then{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--rt-line);border-radius:14px;overflow:hidden;margin-top:14px;background:#fff}
+.rt-then>div{padding:12px 14px}
+.rt-then>div+div{border-left:1px solid var(--rt-line)}
+.rt-then span{display:block;font-size:11px;font-weight:600;color:var(--rt-mute)}
+.rt-then b{display:block;font-size:15px;margin-top:4px}
+.rt-then small{display:block;font-size:12px;color:var(--rt-sub);margin-top:3px;line-height:1.5}
+
+/* toast and world bubbles */
+.rt-toast{position:absolute;left:50%;top:84px;transform:translateX(-50%);background:var(--rt-ink);color:#fff;border-radius:12px;padding:11px 16px;font-size:13px;font-weight:600;box-shadow:0 10px 30px #16211b40;z-index:30;animation:rt-in .2s;white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis}
+.rt-bubble{position:absolute;transform:translate(-50%,calc(-100% - 10px));display:flex;align-items:center;gap:7px;background:var(--rt-glass2);border:1px solid #ffffffd0;border-radius:12px;padding:7px 10px 7px 7px;box-shadow:0 6px 20px #16211b26;font-size:12px;font-weight:600;white-space:nowrap;z-index:4;cursor:pointer;max-width:min(260px,calc(100vw - 24px));overflow:hidden;text-overflow:ellipsis}
+.rt-bubble::after{content:'';position:absolute;left:50%;bottom:-5px;width:9px;height:9px;background:var(--rt-glass2);transform:translateX(-50%) rotate(45deg)}
+/* a long line (보리 coming over with the talk's first line) wraps instead of being cut */
+.rt-bubble[data-long]{white-space:normal;text-align:left;line-height:1.45;width:min(260px,calc(100vw - 24px))}
+.rt-bubble .rt-dot{width:7px;height:7px;border-radius:50%;background:var(--rt-seal)}
+.rt-bubble:hover{filter:none;transform:translate(-50%,calc(-100% - 12px))}
+.proto3d-card{border-radius:18px;background:var(--rt-glass2);bottom:96px;max-width:380px;padding:14px 8px 14px 18px;box-shadow:var(--rt-shadow);flex-wrap:wrap}
+.proto3d-card h2{font-size:17px;font-weight:700;color:var(--rt-ink)}
+.proto3d-card p{font-size:13px;color:var(--rt-sub)}
+.proto3d-card small{font-size:12px;color:var(--rt-mute)}
+.proto3d-card .rt-card-acts{flex-basis:100%;display:flex;gap:6px;margin:10px 10px 0 0}
+.proto3d-card .rt-card-acts .rt-btn{flex:1;min-height:40px;font-size:13px;padding:0 8px}
+@media(max-width:700px){.proto3d-card{bottom:84px}}
+@media(prefers-reduced-motion:reduce){.rt-sheet,.rt-toast,.rt-bubble,.rt-reveal{animation:none}}
+.rt-banner{position:absolute;left:50%;top:16px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:var(--rt-ink);color:#fff;border-radius:14px;padding:7px 8px 7px 8px;font-size:13px;font-weight:600;box-shadow:0 10px 30px #16211b40;z-index:6;animation:rt-in .3s;white-space:nowrap}
+.rt-banner>b:last-child{background:#ffffff1f;border-radius:9px;padding:6px 10px;font-size:12px}
+.rt-banner:hover{filter:none;background:#26342c}
+@media(max-width:700px){.rt-banner{top:auto;bottom:146px}.proto3d-hint{display:none}}
+/* onboarding: putting my holdings in (ui/Onboarding.tsx) */
+.rt-pick{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.rt-pick-card{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;border:1px solid var(--rt-line2);border-radius:14px;padding:16px 14px;background:#fff;color:var(--rt-ink);cursor:pointer}
+.rt-pick-card:hover{border-color:var(--rt-ink)}
+.rt-pick-card strong{font-size:15px}
+.rt-pick-card small{font-size:12px;color:var(--rt-mute);line-height:1.45}
+.rt-drafts{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
+.rt-drafts li{border:1px solid var(--rt-line);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.rt-drafts li.off{opacity:.5}
+.rt-draft-top{display:flex;gap:8px;align-items:center}
+.rt-draft-top .rt-input{padding:10px 12px}
+.rt-draft-bottom{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--rt-mute)}
+.rt-draft-bottom label{display:flex;flex-direction:row;align-items:center;gap:6px;margin:0;font-size:13px;color:var(--rt-mute)}
+.rt-draft-bottom .rt-input{width:84px;padding:9px 10px;font-size:13px}
+.rt-draft-bottom select.rt-input{width:auto;margin-left:auto}
+.rt-icon-btn{flex:none;min-width:38px;height:38px;border-radius:10px;border:1px solid var(--rt-line2);background:#fff;color:var(--rt-mute);display:grid;place-items:center;font-size:12px;cursor:pointer;padding:0 8px}
+.rt-icon-btn:hover{color:var(--rt-ink);border-color:var(--rt-ink)}
+/* the 2D app's global label and input rules (globals.css) would stack these */
+.rt-sheet label.rt-row{flex-direction:row;margin-top:0;font-size:inherit;color:inherit}
+.rt-sheet input[type=checkbox]{width:18px;height:18px;flex:none;accent-color:var(--rt-ink)}
+
+/* phones: upright is the main screen (the rules above at max-width 700px); notches and home bars are kept clear */
+.proto3d{-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+.proto3d input,.proto3d textarea,.proto3d select{-webkit-user-select:text;user-select:text}
+.proto3d-top{top:calc(16px + env(safe-area-inset-top,0px));left:calc(16px + env(safe-area-inset-left,0px));right:calc(16px + env(safe-area-inset-right,0px))}
+@media(max-width:700px){
+  .proto3d-top{top:calc(12px + env(safe-area-inset-top,0px));left:12px;right:12px}
+  .rt-dock{bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+  .rt-sheet{bottom:calc(80px + env(safe-area-inset-bottom,0px))}
+  .proto3d.no-dock .rt-sheet{bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+  .proto3d-locate{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  .proto3d-card{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  .rt-banner{bottom:calc(146px + env(safe-area-inset-bottom,0px))}
+}
+/* a phone on its side: the menu becomes a rail on the left, sheets open on the right, and the garden keeps the middle */
+@media(orientation:landscape) and (max-height:520px){
+  .proto3d{--rail:calc(8px + env(safe-area-inset-left,0px))}
+  .proto3d-top{top:calc(8px + env(safe-area-inset-top,0px));left:var(--rail);right:calc(8px + env(safe-area-inset-right,0px))}
+  .rt-weather{padding:6px 10px;grid-template-columns:auto auto}
+  .rt-weather small{display:none}
+  .rt-stat{padding:5px 9px}
+  .proto3d-hint{display:none}
+  .rt-dock{left:var(--rail);top:62px;bottom:auto;transform:none;flex-direction:column;padding:4px;gap:0;border-radius:16px}
+  .rt-dock button{min-width:52px;min-height:40px;padding:3px 4px 3px;gap:0;font-size:9.5px}
+  .rt-dock button svg{width:18px;height:18px}
+  .rt-dock i{top:4px;right:9px}
+  .rt-sheet{top:calc(8px + env(safe-area-inset-top,0px));bottom:calc(8px + env(safe-area-inset-bottom,0px));right:calc(8px + env(safe-area-inset-right,0px));
+    left:auto;width:min(400px,52vw);max-height:none;border-radius:18px}
+  .rt-sheet-head{padding:12px 12px 10px 18px}
+  .rt-sheet-head h2{font-size:17px}
+  .rt-sheet-body{padding:12px 18px 16px}
+  .rt-sheet-foot{padding:10px 18px 12px}
+  .proto3d-card{bottom:calc(10px + env(safe-area-inset-bottom,0px));left:84px;right:84px}
+  .proto3d-locate{bottom:calc(10px + env(safe-area-inset-bottom,0px));right:calc(10px + env(safe-area-inset-right,0px))}
+  .rt-banner{top:calc(8px + env(safe-area-inset-top,0px));bottom:auto}
+  .rt-toast{top:58px}
+}
+/* an analyst's spoken line (ui/Sheet.tsx Said) */
+.rt-said{display:flex;gap:9px;align-items:flex-start;font-size:13.5px;line-height:1.55;color:var(--rt-ink);margin-top:12px}
+.rt-said .rt-face{margin-top:-2px}
+.rt-reveal .rt-said{color:#ffffffe0}
+/* a toast longer than a phone is wide wraps instead of being cut off */
+.rt-toast{white-space:normal;width:max-content;text-align:center;line-height:1.45}
+/* sound on/off, first in the numbers row */
+.rt-sound{display:grid;place-items:center;width:40px;align-self:stretch;min-height:40px;border-radius:12px;background:var(--rt-glass);border:1px solid #ffffffb0;box-shadow:var(--rt-shadow);backdrop-filter:blur(14px);color:var(--rt-sub)}
+.rt-sound[aria-pressed=true]{color:var(--rt-mute)}
+/* the grade reveal (ui/Loop.tsx Reveal): the move counts up, the verdict stamps down, the rest fades in */
+.rt-big-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.rt-stamp{flex:none;font-size:20px;font-weight:800;letter-spacing:-.4px;padding:6px 14px;border:3px solid currentColor;border-radius:12px;transform:rotate(-8deg);animation:rt-stamp .45s cubic-bezier(.2,1.6,.4,1) both}
+.rt-stamp.hit{color:var(--rt-hit)}
+.rt-stamp.miss{color:var(--rt-miss)}
+@keyframes rt-stamp{0%{opacity:0;transform:rotate(-8deg) scale(2.2)}60%{opacity:1;transform:rotate(-8deg) scale(.92)}100%{transform:rotate(-8deg) scale(1)}}
+.rt-verdict[data-phase=stamp] .rt-big{animation:rt-shake .3s}
+@keyframes rt-shake{0%,100%{transform:none}30%{transform:translateY(2px)}60%{transform:translateY(-1px)}}
+.rt-fade{animation:rt-in .35s ease-out both}
+.rt-mute{color:var(--rt-mute)}
+.rt-verdict:not([data-phase=done]){cursor:pointer}
+@media(prefers-reduced-motion:reduce){.rt-stamp,.rt-fade,.rt-verdict .rt-big{animation:none}}
+/* today's three (Panels.tsx TodaySheet) and its chip under the weather */
+.rt-top-left{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.rt-today{pointer-events:auto;display:flex;align-items:center;gap:8px;min-height:36px;padding:0 12px;border-radius:12px;background:var(--rt-ink);color:#fff;font-size:12.5px;font-weight:700;box-shadow:var(--rt-shadow)}
+.rt-today[data-done=true]{background:var(--rt-accent)}
+.rt-today-dots{display:flex;gap:3px}
+.rt-today-dots i{width:7px;height:7px;border-radius:50%;border:1.5px solid #ffffffb0}
+.rt-today-dots i[data-on=true]{background:#fff;border-color:#fff}
+.rt-task .rt-btn{min-height:36px;font-size:13px;padding:0 14px}
+.rt-check{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;border:1.5px solid var(--rt-line2);font-size:12px;font-weight:700;color:var(--rt-mute);flex:none}
+.rt-task[data-done=true] .rt-check{background:var(--rt-accent);border-color:var(--rt-accent);color:#fff}
+.rt-task[data-done=true] strong{color:var(--rt-mute);text-decoration:line-through}
+.rt-say-plain{font-size:13.5px;line-height:1.55}
+@media(orientation:landscape) and (max-height:520px){.rt-top-left{flex-direction:row;align-items:center}}
+/* W1 the garden being born (ui/Birth.tsx): the holding cards flying to their plots, and the skip layer */
+.rt-skip-layer{position:absolute;inset:0;z-index:12;background:none;display:flex;align-items:flex-end;justify-content:center;padding-bottom:calc(28px + env(safe-area-inset-bottom,0px));cursor:pointer}
+.rt-skip-layer span{font-size:12px;font-weight:600;color:#fff;background:#16211b8c;padding:7px 14px;border-radius:999px;backdrop-filter:blur(8px);animation:rt-fade-in .6s 1.2s both}
+@keyframes rt-fade-in{from{opacity:0}to{opacity:1}}
+.rt-birth-card{position:absolute;left:0;top:0;z-index:11;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:1px;padding:9px 14px;border-radius:14px;
+  background:var(--rt-glass2);border:1px solid #ffffffd0;box-shadow:0 12px 34px #16211b38;white-space:nowrap;will-change:transform,opacity;transform-origin:center}
+.rt-birth-card strong{font-size:15px;font-weight:700;letter-spacing:-.3px}
+.rt-birth-card b{font-size:17px;font-weight:800}
+/* W2 the root cut-away panel (ui/Deep.tsx) and the note's button */
+.rt-sheet.compact{bottom:auto;max-height:calc(100dvh - 32px)}
+@media(max-width:700px){.rt-sheet.compact{bottom:80px;max-height:min(46dvh,420px)}.proto3d.no-dock .rt-sheet.compact{bottom:12px}}
+@media(orientation:landscape) and (max-height:520px){.rt-sheet.compact{bottom:auto;max-height:calc(100dvh - 16px)}}
+.rt-roots{list-style:none;margin:12px 0 0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.rt-roots li{position:relative;display:flex;flex-direction:column-reverse;gap:2px;padding:10px 10px 9px;border-radius:12px;background:#fff;border:1px solid var(--rt-line)}
+.rt-roots li::before{content:'';position:absolute;top:10px;right:10px;width:8px;height:8px;border-radius:50%;background:var(--rt-accent)}
+.rt-roots li[data-tone=mid]::before{background:var(--rt-warn)}
+.rt-roots li[data-tone=weak]::before{background:var(--rt-seal)}
+.rt-roots li div{display:flex;flex-direction:column;flex:1;min-width:0}
+.rt-roots strong{font-size:14px;font-weight:700}
+.rt-roots small{font-size:11px;color:var(--rt-mute)}
+.rt-roots b{font-size:19px;font-weight:800;line-height:1.1}
+.rt-deep-btn{width:100%;margin-top:12px;justify-content:space-between}
+.rt-deep-btn small{font-size:11.5px;font-weight:500;color:var(--rt-mute)}
+.rt-deep-hint{color:var(--rt-accent);font-weight:600}
+/* W3 time capsules (ui/Capsules.tsx): the markers' tags, the memo folding into its capsule, "30일 뒤" */
+.rt-cap-tag{position:absolute;left:0;top:0;z-index:4;pointer-events:auto;font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;white-space:nowrap;
+  background:#e9f1f6e6;color:#4a5b68;border:1px solid #ffffffc0;box-shadow:0 4px 14px #16211b26;backdrop-filter:blur(8px)}
+.rt-cap-tag[data-due=true]{background:#fff4cf;color:#6b4d00;border-color:#ffe39a;box-shadow:0 0 0 3px #ffe39a66,0 6px 22px #ffc94a80;font-size:12px;padding:6px 12px;animation:rt-cap-pulse 1.6s ease-in-out infinite}
+@keyframes rt-cap-pulse{50%{box-shadow:0 0 0 7px #ffe39a33,0 6px 26px #ffc94aa0}}
+.rt-pack{position:relative;height:96px;margin:2px 0 12px;display:grid;place-items:center}
+.rt-pack-memo{position:absolute;inset:0 6px;display:flex;flex-direction:column;gap:3px;justify-content:center;padding:10px 14px;border-radius:12px;background:#fffdf4;border:1px solid #eadfba;
+  box-shadow:0 4px 14px #16211b14;animation:rt-fold 1s .25s cubic-bezier(.6,0,.4,1) forwards;transform-origin:50% 50%}
+.rt-pack-memo b{font-size:13px}.rt-pack-memo span{font-size:12.5px;color:var(--rt-sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@keyframes rt-fold{40%{transform:scale(.62,.5);border-radius:40px;opacity:1}100%{transform:scale(.18,.34);border-radius:60px;opacity:0}}
+.rt-pack-capsule{width:84px;height:34px;border-radius:17px;background:linear-gradient(90deg,#c9d3db 0 32%,#fff2c6 32% 68%,#c9d3db 68%);border:1.5px solid #8c98a3;
+  box-shadow:0 0 18px #ffe39a,inset 0 2px 0 #ffffffc0;opacity:0;transform:scale(.4);animation:rt-cap-in .45s 1.05s cubic-bezier(.3,1.6,.5,1) forwards}
+@keyframes rt-cap-in{to{opacity:1;transform:scale(1)}}
+.rt-capsule-memo{background:#fffdf4;border-color:#eadfba;animation:rt-memo-in .5s calc(var(--dig,1.1s)) both}
+@keyframes rt-memo-in{from{opacity:0;transform:translateY(10px) scale(.96)}}
+.rt-jump{position:absolute;inset:0;z-index:12;display:grid;place-items:center;font-size:44px;font-weight:800;letter-spacing:-1.5px;color:#fff;
+  text-shadow:0 4px 30px #16211b80;background:radial-gradient(circle,#16211b40,transparent 70%);pointer-events:none;animation:rt-jump 1.1s ease-out both}
+@keyframes rt-jump{0%{opacity:0;transform:scale(1.2)}25%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0}}
+@media(prefers-reduced-motion:reduce){.rt-pack-memo{animation:none;opacity:0}.rt-pack-capsule{animation:none;opacity:1;transform:none}.rt-capsule-memo,.rt-jump,.rt-cap-tag{animation:none}}
+
+/* ===== D2: direction A applied (was themes.css theme-a) ===== */
+/* ---------- shared: faces from the models, no frosted glass anywhere ---------- */
+.proto3d .rt-face{background-size:118%;background-position:50% 30%;background-repeat:no-repeat;color:transparent;font-size:0}
+.proto3d .rt-face.tori{background-image:url(/models/analysts/faces/tori.png)}
+.proto3d .rt-face.moa{background-image:url(/models/analysts/faces/moa.png)}
+.proto3d .rt-face.luon{background-image:url(/models/analysts/faces/luon.png)}
+.proto3d :is(.rt-weather,.rt-stat,.rt-sound,.rt-dock,.rt-sheet,.rt-bubble,.rt-today,.proto3d-locate,.rt-cap-tag){backdrop-filter:none}
+.proto3d .rt-stamp.hit,.proto3d .rt-stamp.miss{background:none}
+
+/* =====================================================================================================
+   A. 현장 노트·표본실 — a botanist's field notebook. Paper, fine rules, specimen labels, a red seal.
+   Type: Gowun Batang (titles), Gowun Dodum (text), IBM Plex Mono (numbers), Nanum Pen Script (the analyst's
+   margin note: the one hand-made thing). Colours from the garden: moss (ground dark), bark, soil; seal vermilion.
+   Surfaces: 1 paper (sheets, HUD labels) · 2 ruled page inside it (the note) · 3 ink (the one thing to press)
+   Shape: 2px corners, 1px rules, 4px unit
+   ===================================================================================================== */
+
+.proto3d .rt-num,.proto3d .rt-evidence b,.proto3d .rt-kicker,.proto3d .rt-stat b{font-family:'IBM Plex Mono',monospace;letter-spacing:-.4px}
+.proto3d h2,.proto3d .rt-headline,.proto3d .rt-weather strong,.proto3d .rt-then b{font-family:'Gowun Batang',serif;font-weight:700;letter-spacing:-.4px}
+.proto3d :is(.rt-weather,.rt-stat,.rt-sound,.proto3d-locate){background:var(--rt-paper);border:1px solid var(--rt-rule);border-radius:2px;box-shadow:var(--rt-shadow)}
+/* HUD labels read like specimen tags: a double rule inside */
+.proto3d .rt-weather{outline:1px solid var(--rt-rule);outline-offset:-4px;padding:11px 14px}
+.proto3d .rt-weather-k{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0}
+.proto3d .rt-stat span{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:0}
+.proto3d .rt-today{border-radius:2px;background:var(--rt-ink);color:var(--rt-paper)}
+.proto3d .rt-today-dots i{border-radius:0;border-color:#f4eedf99}.proto3d .rt-today-dots i[data-on=true]{background:var(--rt-paper)}
+/* the menu is the notebook's bottom edge, a strip, not a floating pill */
+.proto3d .rt-dock{background:var(--rt-paper);border:0;border-top:1px solid var(--rt-rule);border-radius:0;box-shadow:0 -1px 0 #fffaf0 inset,0 -6px 18px #2a262012}
+.proto3d .rt-dock button{border-radius:0;font-family:'Gowun Batang',serif;font-weight:700;font-size:10px;color:var(--rt-sub)}
+.proto3d .rt-dock button[aria-pressed=true]{background:none;color:var(--rt-ink);box-shadow:inset 0 2px 0 var(--rt-accent)}
+.proto3d .rt-dock svg{stroke-width:1.35}
+.proto3d .rt-dock i{border-radius:0;width:6px;height:6px;background:var(--rt-seal);box-shadow:none;transform:rotate(45deg)}
+.proto3d .rt-bubble{background:var(--rt-paper);border:1px solid var(--rt-rule);border-radius:2px;font-family:'Gowun Batang',serif}
+.proto3d .rt-bubble::after{background:var(--rt-paper);border-right:1px solid var(--rt-rule);border-bottom:1px solid var(--rt-rule)}
+.proto3d .rt-bubble .rt-dot{border-radius:0;transform:rotate(45deg);background:var(--rt-seal)}
+.proto3d .rt-banner,.proto3d .rt-toast{border-radius:2px;background:var(--rt-ink);color:var(--rt-paper)}
+/* the sheet is a page */
+.proto3d .rt-sheet{background:var(--rt-paper);border:1px solid var(--rt-rule);border-radius:3px;box-shadow:0 1px 0 #fffaf0 inset,0 18px 50px #2a262033}
+.proto3d .rt-sheet-head{border-bottom:3px double var(--rt-rule)}
+.proto3d .rt-kicker{text-transform:none;font-size:10.5px;color:var(--rt-mute);font-weight:500}
+
+.proto3d .rt-close{border-radius:2px}
+/* the note: a ruled notebook page with a margin line */
+.proto3d .rt-note{background:var(--rt-paper2) repeating-linear-gradient(transparent 0 27px,#e6dcc2 27px 28px);border:1px solid var(--rt-rule);border-left:2px solid #d9a497;border-radius:0;padding:14px 14px 14px 16px}
+.proto3d .rt-note-head strong{font-family:'Gowun Batang',serif;font-size:14px}
+.proto3d .rt-headline{font-size:18px;line-height:1.4}
+.proto3d .rt-tag{border-radius:0;background:#fffdf6;border:1px solid currentColor;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;padding:2px 7px 2px 13px;position:relative;color:var(--rt-sub)}
+.proto3d .rt-tag::before{content:'';position:absolute;left:4px;top:50%;width:4px;height:4px;margin-top:-2px;border-radius:50%;border:1px solid currentColor}
+.proto3d .rt-tag.signal{color:var(--rt-seal);background:#fffdf6}
+.proto3d .rt-evidence li{border-top:1px dotted #c9bb98;font-size:13px}
+.proto3d .rt-evidence li b{font-weight:500}
+/* the one hand-made thing: the analyst's own words in the margin */
+.proto3d .rt-note .rt-say{font-family:'Nanum Pen Script',cursive;font-size:21px;line-height:1.15;color:#3e4a6e;transform:rotate(-.8deg);transform-origin:left;margin-top:12px}
+.proto3d .rt-note .rt-say::before,.proto3d .rt-note .rt-say::after{content:none}
+.proto3d .rt-hint{color:var(--rt-mute)}
+.proto3d .rt-field{font-family:'Gowun Batang',serif;font-weight:700;color:var(--rt-ink);font-size:13px}
+.proto3d .rt-field .rt-hint{font-family:'Gowun Dodum',sans-serif;font-weight:400}
+.proto3d .rt-seg button,.proto3d .rt-conf button{border-radius:0;background:#fffdf6;border:1px solid var(--rt-line2);color:var(--rt-sub)}
+.proto3d .rt-seg button[aria-pressed=true],.proto3d .rt-conf button[aria-pressed=true]{background:var(--rt-ink);border-color:var(--rt-ink);color:var(--rt-paper)}
+.proto3d .rt-conf button{font-family:'IBM Plex Mono',monospace;font-weight:500}
+.proto3d .rt-input{border:0;border-bottom:1.5px solid var(--rt-ink);border-radius:0;background:transparent;padding:10px 2px}
+.proto3d .rt-input:focus{box-shadow:none;border-bottom-color:var(--rt-accent)}
+.proto3d .rt-btn{border-radius:2px;background:#fffdf6;border-color:var(--rt-line2);transition:transform .06s,box-shadow .06s;box-shadow:0 2px 0 #2a262026}
+.proto3d .rt-btn:active{transform:translateY(2px);box-shadow:none}
+.proto3d .rt-btn.primary{background:var(--rt-ink);border-color:var(--rt-ink);color:var(--rt-paper);font-family:'Gowun Batang',serif;font-weight:700}
+.proto3d .rt-quote{border-left-color:var(--rt-luon);background:#4d4a8a0c;border-radius:0}
+/* the grade: the move in mono, the verdict a red seal pressed a little crooked */
+.proto3d .rt-verdict .rt-big{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:44px;letter-spacing:-2px}
+.proto3d .rt-stamp{font-family:'Gowun Batang',serif;font-weight:700;border:3px double currentColor;border-radius:4px;padding:5px 12px}
+.proto3d .rt-stamp.hit{color:var(--rt-seal)}.proto3d .rt-stamp.miss{color:#5c5447}
+.proto3d .rt-then{border-radius:0;background:var(--rt-paper2);border-color:var(--rt-rule)}
+.proto3d .rt-then span{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:10px}
+.proto3d .rt-then small{font-family:'Nanum Pen Script',cursive;font-size:18px;line-height:1.1;color:#3e4a6e}
+/* faces: small round portraits in a thin ink ring, like pasted photographs */
+.proto3d .rt-face{border-radius:50%;background-color:#e9dfc8;box-shadow:0 0 0 1px var(--rt-ink),0 0 0 3px var(--rt-paper)}
+.proto3d .rt-reveal{border-radius:2px}
+
+
+/* ===== D2: the rest of the screens in the notebook's terms ===== */
+/* meaning colours: a grade's verdict (seal / graphite), a check that passed or fell short; up/down only for prices */
+.rt-hit{color:var(--rt-hit)}.rt-miss{color:var(--rt-miss)}.rt-ok{color:var(--rt-accent)}.rt-bad{color:var(--rt-warn)}
+.proto3d .rt-mute{color:var(--rt-mute)}
+/* titles and section heads set in the book face */
+.proto3d :is(.rt-section,.rt-pick-card strong,.rt-row strong,.proto3d-card h2,.rt-reveal strong,.rt-roots strong){font-family:'Gowun Batang',serif;font-weight:700}
+.proto3d .rt-section{color:var(--rt-ink);font-size:13px;letter-spacing:0;display:flex;align-items:center;gap:8px}
+.proto3d .rt-section::after{content:'';flex:1;border-top:1px solid var(--rt-rule)}
+.proto3d .rt-empty{font-family:'Gowun Batang',serif}
+/* lists: entries on a ruled page */
+.proto3d .rt-row{border-bottom:1px dotted #c9bb98}
+.proto3d button.rt-row:hover{background:#2a262008}
+.proto3d .rt-row b{font-family:'IBM Plex Mono',monospace;font-weight:500}
+/* records: tabs are index tabs on the page edge, not a segmented control */
+.proto3d .rt-tabs{background:none;padding:0;border-radius:0;gap:0;border-bottom:1px solid var(--rt-ink)}
+.proto3d .rt-tabs button{border-radius:0;font-family:'Gowun Batang',serif;font-weight:700;color:var(--rt-mute);border:1px solid transparent;border-bottom:0;margin-bottom:-1px}
+.proto3d .rt-tabs button[aria-selected=true]{background:var(--rt-paper2);color:var(--rt-ink);box-shadow:none;border-color:var(--rt-ink);border-bottom:1px solid var(--rt-paper2)}
+/* figures: one ruled table, not a box of boxes */
+.proto3d .rt-grid{gap:0;border-top:1px solid var(--rt-ink);border-left:1px solid var(--rt-rule)}
+.proto3d .rt-cell{border:0;border-right:1px solid var(--rt-rule);border-bottom:1px solid var(--rt-rule);border-radius:0;background:none;padding:10px 12px}
+.proto3d .rt-cell span{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:10px}
+.proto3d .rt-cell b{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:22px;letter-spacing:-1px}
+.proto3d .rt-bar{height:4px;border-radius:0;background:var(--rt-rule)}
+.proto3d .rt-bar i{border-radius:0;background:var(--rt-accent)}
+.proto3d .rt-facts{border:0;border-top:1px solid var(--rt-ink);border-bottom:1px solid var(--rt-ink);border-radius:0;background:none;padding:0}
+.proto3d .rt-facts div{border-bottom:1px dotted #c9bb98}
+.proto3d .rt-facts b{font-family:'IBM Plex Mono',monospace;font-weight:500}
+.proto3d .rt-timer{border-radius:0;height:3px;background:var(--rt-rule)}
+/* start: two index cards to pick from */
+.proto3d .rt-pick-card{border-radius:0;background:var(--rt-paper2) repeating-linear-gradient(transparent 0 23px,#e6dcc2 23px 24px);border:1px solid var(--rt-rule);box-shadow:0 2px 0 #2a262022;transition:transform .06s,box-shadow .06s}
+.proto3d .rt-pick-card:hover{border-color:var(--rt-ink)}
+.proto3d .rt-pick-card:active{transform:translateY(2px);box-shadow:none}
+.proto3d .rt-drafts li{border-radius:0;border:0;border-bottom:1px dotted #c9bb98;padding:10px 0}
+.proto3d .rt-icon-btn{border-radius:2px;background:#fffdf6}
+.proto3d select.rt-input{border:1px solid var(--rt-line2);border-radius:2px;padding:8px}
+/* today's three: square check boxes ticked in ink */
+.proto3d .rt-check{border-radius:0;border-color:var(--rt-ink);font-family:'IBM Plex Mono',monospace;font-weight:500}
+.proto3d .rt-task[data-done=true] .rt-check{background:none;border-color:var(--rt-ink);color:var(--rt-ink);font-family:'Nanum Pen Script',cursive;font-size:22px}
+.proto3d .rt-today[data-done=true]{background:var(--rt-accent)}
+/* the tree card: a specimen tag on a string */
+.proto3d .proto3d-card{border-radius:2px;background:var(--rt-paper);border:1px solid var(--rt-rule);outline:1px solid var(--rt-rule);outline-offset:-5px;box-shadow:var(--rt-shadow)}
+.proto3d .proto3d-card small{font-family:'IBM Plex Mono',monospace;font-size:11px}
+/* the ink block (judgment recorded, case answer): the one dark surface */
+.proto3d .rt-reveal{border-radius:2px}
+.proto3d .rt-reveal small{font-family:'IBM Plex Mono',monospace;font-weight:500}
+/* W1–W3 pieces in the same paper */
+.proto3d .rt-birth-card{border-radius:2px;background:var(--rt-paper);border:1px solid var(--rt-rule);outline:1px solid var(--rt-rule);outline-offset:-4px}
+.proto3d .rt-birth-card strong{font-family:'Gowun Batang',serif}
+.proto3d .rt-birth-card b{font-family:'IBM Plex Mono',monospace;font-weight:600}
+.proto3d .rt-cap-tag{border-radius:2px;background:var(--rt-paper);color:var(--rt-sub);border:1px solid var(--rt-rule);font-family:'IBM Plex Mono',monospace;font-weight:500}
+.proto3d .rt-cap-tag[data-due=true]{background:var(--rt-paper2);color:var(--rt-seal);border-color:var(--rt-seal);font-family:'Gowun Batang',serif;font-weight:700}
+.proto3d .rt-roots{gap:0;border-top:1px solid var(--rt-ink)}
+.proto3d .rt-roots li{border-radius:0;background:none;border:0;border-right:1px dotted #c9bb98;border-bottom:1px solid var(--rt-ink)}
+.proto3d .rt-roots li:last-child{border-right:0}
+.proto3d .rt-roots li::before{border-radius:0;transform:rotate(45deg)}
+.proto3d .rt-roots b{font-family:'IBM Plex Mono',monospace;font-weight:600}
+.proto3d .rt-pack-memo{border-radius:0;background:var(--rt-paper2) repeating-linear-gradient(transparent 0 19px,#e6dcc2 19px 20px)}
+.proto3d .rt-pack-memo span{font-family:'Nanum Pen Script',cursive;font-size:18px;color:#3e4a6e}
+.proto3d .rt-capsule-memo{border-left:2px solid #d9a497}
+.proto3d .rt-capsule-memo .rt-say{font-family:'Nanum Pen Script',cursive;font-size:21px;line-height:1.15;color:#3e4a6e}
+.proto3d .rt-capsule-memo .rt-say::before,.proto3d .rt-capsule-memo .rt-say::after{content:none}
+.proto3d .rt-jump{font-family:'Gowun Batang',serif}
+.proto3d .rt-skip-layer span{border-radius:2px;background:#2a2620b0}
+.proto3d .rt-said{line-height:1.6}
+.proto3d .rt-quote strong{font-family:'Gowun Batang',serif}
+
+/* ===== D3: details ===== */
+/* figures: sign and unit small and raised a little, the digits carry the weight */
+.proto3d .rt-sign,.proto3d .rt-unit{font-size:.58em;font-weight:500;vertical-align:.32em;letter-spacing:0}
+.proto3d .rt-sign{margin-right:.06em}.proto3d .rt-unit{margin-left:.08em}
+.proto3d .rt-evidence b,.proto3d .rt-facts b{text-align:right;font-variant-numeric:tabular-nums}
+/* Korean lines: break between words, keep headings even, no single syllable left on a line */
+.proto3d{word-break:keep-all;overflow-wrap:anywhere}
+.proto3d :is(h2,.rt-headline,.rt-section){text-wrap:balance}
+.proto3d :is(p,.rt-say,.rt-said,.rt-hint,small){text-wrap:pretty}
+/* spacing on a 4px unit: inside a block 8/12, between blocks 20/24 */
+.proto3d .rt-sheet-body{padding:20px 20px 24px}
+.proto3d .rt-note+.rt-note,.proto3d .rt-note+form{margin-top:20px}
+.proto3d .rt-field{margin-top:20px;gap:8px}
+/* every press feels like pressing paper: it sinks a hair and its shadow goes (not the things placed by transform) */
+.proto3d :is(.rt-seg button,.rt-conf button,.rt-dock button,button.rt-row,.rt-today,.rt-sound,.rt-icon-btn,.rt-close,.proto3d-locate,.rt-tabs button){transition:transform .06s ease-out}
+.proto3d :is(.rt-seg button,.rt-conf button,.rt-dock button,button.rt-row,.rt-today,.rt-sound,.rt-icon-btn,.rt-close,.proto3d-locate,.rt-tabs button):active{transform:translateY(1px)}
+/* icons: drawn for the garden (ui/Icons.tsx), a fine pen line */
+.proto3d svg.rt-icon{flex:none}
+@media(prefers-reduced-motion:reduce){.proto3d :is(.rt-btn,.rt-seg button,.rt-conf button,.rt-dock button,button.rt-row,.rt-pick-card):active{transform:none}}
+/* W4 the share card's preview (ui/Share.tsx) */
+.rt-share-preview{display:grid;place-items:center;background:#2a26200d;border:1px solid var(--rt-rule);padding:10px}
+.rt-share-preview img{display:block;max-width:100%;max-height:min(52dvh,560px);box-shadow:0 6px 18px #2a262033}
+@media(orientation:landscape) and (max-height:520px){.rt-share-preview img{max-height:60dvh}}
+/* W5 the timelapse strip (ui/Timelapse.tsx): a ruler along the bottom of the notebook */
+.rt-lapse{position:absolute;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:10;max-width:560px;margin:0 auto;padding:12px 14px 10px;
+  background:var(--rt-paper);border:1px solid var(--rt-rule);border-radius:2px;box-shadow:var(--rt-shadow)}
+.rt-lapse-head{display:flex;align-items:center;gap:8px}
+.rt-lapse-head>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.rt-lapse-head strong{font-family:'Gowun Batang',serif;font-size:16px}
+.rt-lapse-head .rt-btn{min-height:36px;padding:0 14px;font-size:13px}
+.rt-lapse-range{width:100%;margin:12px 0 2px;accent-color:var(--rt-ink);height:24px}
+.rt-lapse-scale{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--rt-mute);
+  background:linear-gradient(90deg,var(--rt-rule) 1px,transparent 1px) 0 0/calc(100% / 12) 5px repeat-x;padding-top:6px}
+/* the garden map (ui/MapSheet.tsx): drawn on the notebook page */
+.rt-map{display:block;width:100%;max-height:min(42dvh,380px);background:var(--rt-paper2);border:1px solid var(--rt-rule)}
+.rt-map-land{fill:#dfe6c8;stroke:var(--rt-rule);stroke-width:2}
+.rt-map-water{fill:none;stroke:#7fb0d8;stroke-width:12;stroke-linecap:round;stroke-linejoin:round}
+.rt-map-bridge{stroke:#946c4b;stroke-width:9}
+.rt-map-path{fill:none;stroke:#c9b98f;stroke-width:3;stroke-dasharray:2 6;stroke-linecap:round}
+.rt-map-plot{fill:#4b6638}
+.rt-map-me{fill:var(--rt-seal);stroke:#fffaf0;stroke-width:3}
+.rt-map-places{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.rt-map-places .rt-btn{min-height:36px;font-size:13px;padding:0 12px}
+/* the map button sits right above the locate button */
+.proto3d-locate.proto3d-map{bottom:80px}
+@media(max-width:700px){.proto3d-locate.proto3d-map{bottom:calc(142px + env(safe-area-inset-bottom,0px))}}
+@media(orientation:landscape) and (max-height:520px){.proto3d-locate.proto3d-map{bottom:calc(68px + env(safe-area-inset-bottom,0px))}}
+/* inside the house: the fade between garden and room, and the tags pinned over the room's things */
+.rt-room-fade{position:absolute;inset:0;z-index:20;background:var(--rt-paper);animation:rt-room-fade .38s ease-out both;pointer-events:none}
+@keyframes rt-room-fade{from{opacity:0}to{opacity:1}}
+.rt-room-tag{position:absolute;left:0;top:0;z-index:4;font-family:'Gowun Batang',serif;font-weight:700;font-size:12px;padding:5px 10px;white-space:nowrap;
+  background:var(--rt-paper);color:var(--rt-ink);border:1px solid var(--rt-rule);border-radius:2px;outline:1px solid var(--rt-rule);outline-offset:-4px;box-shadow:var(--rt-shadow)}
+.rt-room-tag[data-alert=true]{color:var(--rt-seal);border-color:var(--rt-seal)}
+@media(prefers-reduced-motion:reduce){.rt-room-fade{animation:none}}
+.rt-exit{position:absolute;right:16px;bottom:22px;z-index:6;min-height:40px;font-family:'Gowun Batang',serif;font-weight:700}
+@media(max-width:700px){.rt-exit{right:auto;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
+@media(orientation:landscape) and (max-height:520px){.rt-exit{right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px))}}
+/* night (core/daylight.ts): stars behind the transparent canvas, a few twinkling */
+.proto3d-stars{position:absolute;inset:0 0 40% 0;pointer-events:none;
+  background:radial-gradient(1.2px 1.2px at 12% 18%,#fff 98%,transparent),radial-gradient(1px 1px at 28% 8%,#fff 98%,transparent),radial-gradient(1.4px 1.4px at 46% 22%,#fffbe6 98%,transparent),
+    radial-gradient(1px 1px at 63% 12%,#fff 98%,transparent),radial-gradient(1.2px 1.2px at 79% 26%,#fff 98%,transparent),radial-gradient(1px 1px at 91% 9%,#fff 98%,transparent),
+    radial-gradient(1px 1px at 7% 35%,#fff 98%,transparent),radial-gradient(1.3px 1.3px at 36% 38%,#fff 98%,transparent),radial-gradient(1px 1px at 55% 4%,#fff 98%,transparent),
+    radial-gradient(1px 1px at 71% 40%,#fff 98%,transparent),radial-gradient(1.6px 1.6px at 85% 44%,#ffe9b0 98%,transparent),radial-gradient(1px 1px at 20% 48%,#fff 98%,transparent);
+  animation:rt-twinkle 4s ease-in-out infinite alternate}
+@keyframes rt-twinkle{to{filter:brightness(.6)}}
+@media(prefers-reduced-motion:reduce){.proto3d-stars{animation:none}}
+
+/* ── home, cut down to one job (ui/Home.tsx, docs/mockups/home.html) ── */
+.proto3d .proto3d-top{justify-content:space-between}
+.proto3d .rt-me-chip{position:relative;width:42px;height:42px;min-height:0;padding:0;justify-content:center;border-radius:50%;flex:none}
+.proto3d .rt-me-chip .rt-me-chip-face{width:34px;height:34px}
+.rt-me-dot{position:absolute;right:-2px;top:-2px;width:10px;height:10px;border-radius:50%;background:var(--rt-seal);box-shadow:0 0 0 2px var(--rt-paper)}
+/* tabs: four, a count where something waits */
+.proto3d .rt-dock button{font-size:11px}
+.proto3d .rt-dock i.rt-dock-n{width:auto;height:15px;min-width:15px;padding:0 4px;border-radius:8px;transform:none;top:4px;right:auto;left:calc(50% + 6px);
+  display:grid;place-items:center;color:#fff;font-style:normal;font:600 9.5px/1 'IBM Plex Mono',monospace}
+@media(min-width:701px){.proto3d .rt-dock button{min-width:76px}}
+/* the one next step, just above the tabs */
+.rt-next{position:absolute;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:5;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;
+  padding:11px 11px 11px 13px;background:var(--rt-paper);border:1px solid var(--rt-rule);outline:1px solid var(--rt-rule);outline-offset:-4px;border-radius:2px;box-shadow:var(--rt-shadow);
+  animation:rt-next-in .4s cubic-bezier(.16,1,.3,1) both}
+@keyframes rt-next-in{from{opacity:0;transform:translateY(10px)}}
+.rt-next .rt-face{width:38px;height:38px;font-size:15px}
+.rt-next-text{display:grid;gap:1px;min-width:0}
+.rt-next-k{justify-self:start;font-size:10.5px;color:var(--rt-sub);padding:0}
+.rt-next-k .rt-num{color:var(--rt-ink)}
+.rt-next-text strong{font-family:'Gowun Batang',serif;font-size:15px;letter-spacing:-.4px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rt-next-text small{font-size:11.5px;color:var(--rt-sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.proto3d .rt-next-go{min-height:42px;padding:0 14px;white-space:nowrap}
+@media(min-width:701px){.rt-next{left:50%;right:auto;width:440px;transform:translateX(-50%);bottom:96px}
+  @keyframes rt-next-in{from{opacity:0;transform:translate(-50%,10px)}}}
+@media(orientation:landscape) and (max-height:520px){.rt-next{left:calc(var(--rail) + 76px);right:auto;width:min(400px,calc(100% - var(--rail) - 150px));bottom:calc(10px + env(safe-area-inset-bottom,0px));transform:none}
+  @keyframes rt-next-in{from{opacity:0;transform:translateY(10px)}}}
+@media(max-width:700px){.proto3d-locate.proto3d-map{bottom:calc(170px + env(safe-area-inset-bottom,0px))}}
+@media(orientation:landscape) and (max-height:520px){.proto3d-locate.proto3d-map{bottom:calc(10px + env(safe-area-inset-bottom,0px))}}
+@media(min-width:701px) and (min-height:521px){.proto3d-locate.proto3d-map{bottom:96px}}
+/* 1인칭/3인칭: right above the map button */
+.proto3d-locate.proto3d-view{bottom:136px}
+.rt-view-label{font-size:11.5px;font-weight:700;letter-spacing:-.02em}
+.proto3d-locate.proto3d-view[aria-pressed="true"]{background:#1f2a1c;color:#fff}
+@media(max-width:700px){.proto3d-locate.proto3d-view{bottom:calc(224px + env(safe-area-inset-bottom,0px))}}
+@media(orientation:landscape) and (max-height:520px){.proto3d-locate.proto3d-view{bottom:calc(64px + env(safe-area-inset-bottom,0px))}}
+@media(min-width:701px) and (min-height:521px){.proto3d-locate.proto3d-view{bottom:152px}}
+/* 일지 */
+.proto3d .rt-jr-sec{justify-content:space-between}
+.proto3d .rt-jr-sec span:last-child{font-weight:400;font-size:11.5px;color:var(--rt-sub)}
+.rt-jr-past{list-style:none;padding:0;margin:0}
+.rt-jr-past li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:baseline;padding:9px 2px;border-bottom:1px dashed var(--rt-rule);font-size:12.5px}
+.rt-jr-past li>span:first-child{font-size:11px;color:var(--rt-sub)}
+.rt-jr-v{font-size:11px;padding:1px 6px;border-radius:2px;border:1px dashed var(--rt-rule);color:var(--rt-sub)}
+.rt-jr-v.hit{border:1px solid var(--rt-accent);color:var(--rt-accent)}.rt-jr-v.miss{border:1px solid var(--rt-seal);color:var(--rt-seal)}
+/* 더보기 */
+.rt-more-nums{display:flex;gap:16px;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--rt-rule);background:var(--rt-paper2,#fbf7ec);font-size:12px;color:var(--rt-sub)}
+.rt-more-nums b{color:var(--rt-ink);margin-left:2px}
+.rt-more-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rt-more-tile{position:relative;display:grid;gap:3px;padding:12px;text-align:left;border:1px solid var(--rt-rule);background:var(--rt-paper2,#fbf7ec);border-radius:2px}
+.rt-more-tile strong{font-family:'Gowun Batang',serif;font-size:14px}
+.rt-more-tile small{font-size:11px;color:var(--rt-sub);line-height:1.35}
+.rt-more-tile i{position:absolute;right:10px;top:10px;width:8px;height:8px;border-radius:50%;background:var(--rt-seal)}
+/* the first-run tutorial: a spotlight over the real screen, one paper card */
+.rt-tut{position:absolute;inset:0;z-index:40}
+.rt-tut-spot{position:absolute;box-shadow:0 0 0 3000px #14110dc4;transition:left .5s cubic-bezier(.32,.72,0,1),top .5s cubic-bezier(.32,.72,0,1),width .5s cubic-bezier(.32,.72,0,1),height .5s cubic-bezier(.32,.72,0,1),border-radius .5s;pointer-events:none}
+.rt-tut-spot::after{content:'';position:absolute;inset:-6px;border-radius:inherit;border:2px solid var(--rt-paper);animation:rt-tut-ring 1.6s infinite}
+@keyframes rt-tut-ring{to{opacity:0;transform:scale(1.12)}}
+.rt-tut-card{position:absolute;width:min(360px,calc(100% - 32px));padding:14px 14px 12px;background:var(--rt-paper);border:1px solid var(--rt-rule);outline:1px solid var(--rt-rule);outline-offset:-4px;border-radius:2px;box-shadow:0 20px 50px #0008;transition:top .45s cubic-bezier(.32,.72,0,1),left .45s cubic-bezier(.32,.72,0,1)}
+.rt-tut-n{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--rt-sub)}
+.rt-tut-pips{display:flex;gap:4px}.rt-tut-pips i{width:6px;height:6px;border-radius:50%;background:var(--rt-rule)}.rt-tut-pips i[data-on=true]{background:var(--rt-ink)}
+.rt-tut-card h3{font-family:'Gowun Batang',serif;font-size:18px;letter-spacing:-.5px;margin:4px 0}
+.rt-tut-card p{font-size:13px;line-height:1.5}
+.rt-tut-acts{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+.rt-tut-skip{font-size:12px;color:var(--rt-sub);text-decoration:underline;padding:6px 0}
+@media(prefers-reduced-motion:reduce){.rt-tut-spot,.rt-tut-card{transition:none}.rt-tut-spot::after,.rt-next{animation:none}}
+/* sideways phone: the tabs start under the two-line weather chip */
+@media(orientation:landscape) and (max-height:520px){.proto3d .rt-dock{top:calc(88px + env(safe-area-inset-top,0px))}}
+/* 실제 시세로 넣기 (ui/RealEntry.tsx): the stock search under its field */
+.rt-suggest{flex-basis:100%;list-style:none;margin:2px 0 0;padding:4px;background:#fffdf7;border:1px solid var(--rt-line);border-radius:12px;box-shadow:0 12px 28px -12px #10200d55;max-height:240px;overflow:auto}
+.rt-suggest button{display:flex;flex-direction:column;align-items:flex-start;width:100%;padding:8px 10px;border-radius:8px;text-align:left}
+.rt-suggest button:hover,.rt-suggest button:focus-visible{background:#22281f0d}
+.rt-suggest small{color:var(--rt-mute);font-size:11.5px}
+.rt-suggest-none{flex-basis:100%;margin:2px 0 0}
+.rt-real-tag{font-size:11.5px;color:var(--rt-mute)}
+.rt-real-tag[data-real="yes"]{color:#2f8a3a}
+/* 보리 dialogue (ui/Friend.tsx, docs/mockups/bori-talk.html): the bottom of the screen, a glass box with a name tag; the
+   rest of the screen steps back while it is up */
+.rt-talk{position:absolute;inset:0;z-index:30;pointer-events:none;font-family:'Gowun Dodum',var(--rt-font,sans-serif)}
+.rt-talk>*{pointer-events:auto}
+.proto3d:has(.rt-talk) :is(.rt-dock,.rt-next,.rt-weather,.rt-coins,.rt-me-chip,.proto3d-locate,.rt-bubble,.rt-sign,.rt-cap-tag){opacity:0;pointer-events:none;transition:opacity .25s}
+.rt-talk-box{position:absolute;left:14px;right:14px;bottom:calc(22px + env(safe-area-inset-bottom,0px));background:#ffffffdb;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid #ffffffe0;border-radius:22px;padding:28px 20px 22px;box-shadow:0 18px 40px -16px #10200d90;min-height:138px;cursor:pointer;color:#22281f;animation:rt-talk-in .28s ease-out both}
+@keyframes rt-talk-in{from{opacity:0;transform:translateY(16px)}}
+.rt-talk-name{position:absolute;top:-14px;left:18px;font-family:'Jua',sans-serif;font-size:16px;color:#fff;background:#2f8a3a;padding:4px 14px 3px;border-radius:999px;box-shadow:0 4px 10px -4px #10200d80}
+.rt-talk-line{font-size:17px;line-height:1.6;letter-spacing:-.01em;min-height:54px;margin:0;word-break:keep-all}
+.rt-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.rt-talk-more{position:absolute;right:20px;bottom:12px;width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:10px solid #c98a16;animation:rt-talk-bob 1s ease-in-out infinite}
+@keyframes rt-talk-bob{50%{transform:translateY(4px)}}
+.rt-talk-choices{position:absolute;right:14px;bottom:calc(178px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.rt-talk-choice{font:inherit;font-size:15.5px;padding:11px 18px;border-radius:16px;background:#ffffffdb;backdrop-filter:blur(12px);border:1px solid #ffffffe0;box-shadow:0 10px 24px -12px #10200d80;min-width:150px;text-align:left;color:#22281f;cursor:pointer;animation:rt-talk-in .22s ease-out both}
+.rt-talk-choice.first{background:#22281f;color:#fff;border-color:#22281f}
+.rt-talk-choice.first::before{content:'▸ ';color:#9ee08f}
+.rt-talk-me{position:absolute;right:14px;bottom:calc(250px + env(safe-area-inset-bottom,0px));max-width:min(290px,80%);margin:0;font-size:14.5px;line-height:1.5;padding:9px 13px;border-radius:16px 16px 4px 16px;background:#2f8a3ae8;color:#fff;box-shadow:0 10px 24px -12px #10200d80}
+.rt-talk-type{display:flex;gap:8px;margin-top:12px}
+.rt-talk-type .rt-input{flex:1;min-width:0}
+.rt-btn.rt-btn-ink{background:#22281f;color:#fff;border-color:#22281f}
+.rt-talk-note{margin:8px 0 0;font-size:11.5px;color:#5e665a}
+.rt-talk-leave{position:absolute;top:calc(16px + env(safe-area-inset-top,0px));right:16px;font:inherit;font-size:12.5px;padding:7px 12px;border-radius:999px;background:#ffffffb8;border:1px solid #ffffffd0;color:#4c5447;cursor:pointer}
+@media(min-width:701px){.rt-talk-box{left:50%;right:auto;width:560px;transform:translateX(-50%);bottom:28px}
+  @keyframes rt-talk-in{from{opacity:0;transform:translate(-50%,16px)}}
+  .rt-talk-choices{right:calc(50% - 280px);bottom:200px}.rt-talk-me{right:calc(50% - 280px);bottom:270px}}
+.rt-talk-choice{animation-name:rt-talk-pop}@keyframes rt-talk-pop{from{opacity:0;transform:translateY(8px)}}
+@media(orientation:landscape) and (max-height:520px){.rt-talk-box{left:auto;right:16px;width:min(520px,60vw);bottom:12px;min-height:110px;padding:24px 18px 16px}
+  .rt-talk-choices{bottom:150px}.rt-talk-me{bottom:200px}}
+/* the first entry's introductions (ui/Intro.tsx): the four faces above the box, the one talking comes forward */
+.rt-intro{background:linear-gradient(180deg,#0000 40%,#10200d40)}
+.rt-intro-faces{position:absolute;left:18px;bottom:calc(178px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;align-items:flex-end}
+.rt-intro-face{width:46px;height:46px;border-radius:50%;background:#fffaf0 center/cover no-repeat;border:2px solid #ffffffd0;box-shadow:0 6px 14px -8px #10200d90;opacity:.55;filter:saturate(.6);transition:all .25s}
+.rt-intro-face.on{width:74px;height:74px;opacity:1;filter:none;border-color:#fff}
+.rt-intro-face.f-bori{background-image:url(/models/analysts/faces/bori.png)}.rt-intro-face.f-tori{background-image:url(/models/analysts/faces/tori.png)}
+.rt-intro-face.f-moa{background-image:url(/models/analysts/faces/moa.png)}.rt-intro-face.f-luon{background-image:url(/models/analysts/faces/luon.png)}
+.rt-talk-name.n-tori{background:#3d6aa8}.rt-talk-name.n-moa{background:#b97a12}.rt-talk-name.n-luon{background:#6a4c93}
+.rt-intro-step{position:absolute;left:20px;bottom:10px;font-size:11px;color:#5e665a}
+@media(min-width:701px){.rt-intro-faces{left:calc(50% - 270px);bottom:196px}}
+@media(orientation:landscape) and (max-height:520px){.rt-intro-faces{left:auto;right:calc(min(520px,60vw) - 40px);bottom:140px}}
+/* the journal's one line on how the stock has been moving (core/jigi/flow.ts) */
+.jg-flow{margin:2px 0 10px;padding:9px 12px;border-radius:12px;background:#fff6e0;border:1px solid #f0d9a8;font-size:13px;line-height:1.5;color:#4a3a14}
+.jg-flow b{margin-right:4px}
+/* 꽃집 (ui/FlowerShop.tsx) */
+.fs-tabs{margin-bottom:12px}
+.fs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+.fs-card{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 6px 10px;border-radius:16px;border:1.5px solid #22281f14;background:#ffffffd9;font:inherit;color:#22281f;cursor:pointer}
+.fs-card[aria-pressed="true"]{border-color:#3f9e3a;box-shadow:0 0 0 3px #3f9e3a26}
+.fs-card strong{font-size:14px}.fs-card small{font-size:11px;color:#5e665a}
+.fs-pic{width:100%;aspect-ratio:1;border-radius:12px;background:#e8f2dc center/contain no-repeat}
+.fs-pic.sm{width:40px;height:40px;flex:none}
+.fs-price,.rt-coins-inline{display:inline-flex;align-items:center;gap:4px;font-weight:700;font-size:13px;margin-top:4px}
+.rt-coin{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:#e7b53c;color:#6b4a07;font-size:10px;font-weight:800}
+.fs-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%}
+.fs-goods{display:grid;gap:10px}
+.fs-mine{list-style:none;padding:0;margin:0;display:grid;gap:6px}
+.fs-mine li{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:12px;background:#ffffffc0}
+.fs-mine li span:nth-child(2){flex:1;font-size:14px}
+/* planting: the garden asks where (Proto3D) */
+.rt-plant-bar{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:12;display:flex;align-items:center;gap:10px;
+  padding:8px 8px 8px 14px;border-radius:999px;background:#22281fe6;color:#fff;font-size:13.5px;box-shadow:0 10px 24px -12px #000a;white-space:nowrap}
+.rt-plant-bar button{font:inherit;font-size:12.5px;padding:6px 12px;border-radius:999px;border:0;background:#ffffff26;color:#fff;cursor:pointer}
+.proto3d:has(.rt-plant-bar) :is(.rt-next,.rt-bubble){opacity:0;pointer-events:none}
+/* PC (feedback 11-17 "PC로 볼 때 너무 잘 안 보임, 탭이 세로로 좁은 느낌"): on a wide screen the sheets are a wider
+   panel and everything on top of the garden reads bigger (zoom keeps the phone layout's proportions) */
+@media(min-width:1000px) and (min-height:600px){
+  .proto3d :is(.rt-sheet,.rt-me-panel,.rt-dock,.rt-next,.rt-weather,.rt-coins,.rt-me-chip,.rt-toast,.rt-bubble,.proto3d-locate,.rt-talk,.rt-plant-bar,.rt-tip){zoom:1.18}
+  /* the sheet stops above the tab bar so the tabs stay whole (bottom is in the zoomed panel's own pixels) */
+  .rt-sheet{width:min(520px,38vw);bottom:86px}
+  .rt-me-panel{width:min(470px,36vw)}
+  .proto3d .rt-dock button{min-width:92px}
+}
+html[data-text="l"] .proto3d :is(.rt-sheet,.rt-me-panel,.rt-dock,.rt-next){zoom:1.12}
+@media(min-width:1000px) and (min-height:600px){html[data-text="l"] .proto3d :is(.rt-sheet,.rt-me-panel,.rt-dock,.rt-next){zoom:1.3}}
+/* 나루 and fishing (ui/Fishing.tsx) */
+.rt-talk-name.n-naru{background:#1f6fa8}
+.rt-fish-left{position:absolute;top:calc(16px + env(safe-area-inset-top,0px));left:16px;display:flex;gap:6px;align-items:center;font-size:13px;padding:8px 12px;border-radius:999px;background:#ffffffd0}
+.rt-fish-left i{width:9px;height:9px;border-radius:50%;background:#1f86d6;display:inline-block}.rt-fish-left i.off{background:#c9d3c3}
+.rt-fish-hint{position:absolute;left:50%;top:60%;transform:translateX(-50%);color:#fff;font-size:16px;text-shadow:0 1px 6px #000a;text-align:center;white-space:nowrap}
+.rt-fish-tap{position:absolute;left:50%;bottom:calc(36px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:124px;height:124px;border-radius:50%;border:0;background:#ffffffe8;
+  font-family:'Jua',sans-serif;font-size:24px;color:#22281f;box-shadow:0 0 0 10px #ffffff40,0 14px 30px -10px #000a;cursor:pointer}
+.rt-fish-tap.hot{background:#9ee08f;animation:rt-fish-hot .25s ease-in-out infinite alternate}
+@keyframes rt-fish-hot{to{box-shadow:0 0 0 18px #9ee08f80,0 14px 30px -10px #000a}}
+.rt-fish-card{position:absolute;left:24px;right:24px;top:110px;background:#fffdf7;border-radius:24px;padding:20px 20px 18px;text-align:center;box-shadow:0 30px 60px -20px #000c;animation:rt-talk-pop .25s ease-out both}
+.rt-fish-card h2{font-family:'Jua',sans-serif;font-weight:400;font-size:28px;margin:6px 0 2px}
+.rt-fish-tag{display:table;margin:0 auto;font-size:12px;padding:4px 10px;border-radius:999px;background:#eef4e6;color:#4c5447;font-weight:700}
+.rt-fish-tag.r-희귀{background:#fff1c9;color:#8a5a00}.rt-fish-tag.r-전설{background:#f3e0ff;color:#6a2a9a}
+.rt-fish-size{font-size:14px;color:#5e665a;margin:0}.rt-fish-new{margin:8px 0 0;font-size:13.5px;color:#2f8a3a;font-weight:700}
+.rt-fish-coins{display:inline-flex;gap:6px;align-items:center;margin:8px 0 0;font-weight:700}
+.rt-fish-row{display:flex;gap:8px;margin-top:14px;justify-content:center}.rt-fish-row .rt-btn{flex:1}
+.rt-fish-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.rt-fish-cell{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border-radius:12px;background:#eef4e6;text-align:center}
+.rt-fish-cell b{font-size:12.5px}.rt-fish-cell small{font-size:10.5px;color:#5e665a}.rt-fish-cell.no b{color:#8a928a}
+@media(min-width:701px){.rt-fish-card{left:50%;right:auto;width:400px;transform:translateX(-50%)}}

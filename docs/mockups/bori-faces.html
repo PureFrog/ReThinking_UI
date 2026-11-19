@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>보리 표정 7개</title>
+<!-- 2026-11-17 feedback (B): 보리's faces, one per emotion the talk server sends (persona_bori.json allowed_emotions).
+     Rendered by tools/blender/bori_faces.py from tools/blender/analysts.py bori_faces(). -->
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#22281f;--mute:#5e665a}
+*{box-sizing:border-box;margin:0}
+html,body{background:#f3f0e6;font-family:'Gowun Dodum',sans-serif;color:var(--ink)}
+.wrap{max-width:1240px;margin:0 auto;padding:28px 16px 40px}
+h1{font-family:'Jua';font-weight:400;font-size:26px}
+.sub{color:var(--mute);font-size:14px;margin:6px 0 22px;line-height:1.6}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.card{background:#fff;border-radius:20px;padding:10px 10px 14px;box-shadow:0 10px 24px -16px #10200d60;text-align:center}
+.card img{width:100%;aspect-ratio:1;border-radius:14px;background:radial-gradient(circle at 50% 40%,#e8f2dc,#d4e6c4)}
+.card b{display:block;font-family:'Jua';font-weight:400;font-size:18px;margin-top:8px}
+.card code{font-size:12px;color:var(--mute)}
+.card p{font-size:12.5px;color:var(--mute);margin-top:6px;line-height:1.45}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>보리 표정 7개</h1>
+  <p class="sub">보리 대화 서버(LLM)가 대사마다 보내는 표정 그대로야. 대화창에서 보리가 말할 때마다 얼굴이 바뀌고, 고개·팔 몸짓도 같이 붙여.</p>
+  <div class="grid">
+    <div class="card"><img src="bori-faces/bori_neutral.png" alt=""><b>보통</b><code>neutral</code><p>평소 수다</p></div>
+    <div class="card"><img src="bori-faces/bori_curious.png" alt=""><b>궁금</b><code>curious</code><p>눈썹 위로, 눈 커짐 · 고개 갸웃</p></div>
+    <div class="card"><img src="bori-faces/bori_concerned.png" alt=""><b>걱정</b><code>concerned</code><p>눈썹 가운데가 올라감 · 고개 살짝 숙임</p></div>
+    <div class="card"><img src="bori-faces/bori_happy.png" alt=""><b>기쁨</b><code>happy</code><p>웃는 눈, 벌린 입, 볼터치 · 통통 뜀</p></div>
+    <div class="card"><img src="bori-faces/bori_thinking.png" alt=""><b>생각</b><code>thinking</code><p>눈 위로, 한쪽 눈썹 · 팔을 턱에</p></div>
+    <div class="card"><img src="bori-faces/bori_playful.png" alt=""><b>장난</b><code>playful</code><p>윙크, 혀 내밀기</p></div>
+    <div class="card"><img src="bori-faces/bori_tired.png" alt=""><b>피곤</b><code>tired</code><p>반쯤 감은 눈 · 천천히 흔들림</p></div>
+  </div>
+</div>
+</body>
+</html>

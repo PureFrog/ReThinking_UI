@@ -1,0 +1,95 @@
+/* Glass, not paper (2026-11-15): every panel floats over the 3D world as frosted glass — translucent white, a blur of
+   what is behind, a thin light edge, soft shadow, round corners. Loaded last, it overrides the paper look of
+   rethink.css, me.css and game/game.css (paper fill, double rules, grain) without touching their layout. To go back,
+   drop the import. */
+.proto3d{
+  --rt-ink:#22281f;--rt-sub:#4c5447;--rt-mute:#5e665a;--rt-line:#22281f14;--rt-line2:#22281f2b;
+  --rt-paper:#ffffffc4;--rt-paper2:#ffffffe0;--rt-rule:#22281f1c;
+  --rt-r:14px;--rt-shadow:inset 0 1px 0 #ffffffb3,0 14px 34px -16px #10200d66;
+  --rt-glass:var(--rt-paper);--rt-glass2:var(--rt-paper);
+  --glass-blur:blur(16px) saturate(1.25);
+  --glass-edge:#ffffffc2;
+}
+/* the floating surfaces: glass, no double rules */
+.proto3d :is(.rt-sheet,.proto3d-card,.rt-next,.rt-dock,.rt-weather,.rt-me-chip,.rt-coins,.rt-tip,.rt-tut-card,.rt-birth-card,.rt-bubble,.rt-cap-tag,.rt-room-tag,
+  .proto3d-locate,.rt-lapse,.rt-me-plate,.rt-me-panel,.rt-me-top .rt-btn,.sky-plate,.sky-tag,.sky-sheet,.sky-pill,.rt-wel-card){
+  -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);outline:none;border-color:var(--glass-edge)}
+.proto3d :is(.rt-weather,.proto3d-card,.rt-birth-card,.rt-next,.rt-tut-card,.rt-me-plate,.sky-plate,.sky-tag,.gx-panel){outline:none!important}
+
+/* sheets: a little more opaque, so long text reads easily over a busy garden */
+.proto3d .rt-sheet{background:#ffffffd6;border:1px solid var(--glass-edge);border-radius:22px;box-shadow:inset 0 1px 0 #ffffffcc,0 24px 60px -24px #10200d80}
+.proto3d .rt-sheet-head{border-bottom:1px solid var(--rt-line)}
+@media(min-width:701px){.proto3d .rt-sheet{border-radius:22px}}
+
+/* cards and chips */
+.proto3d :is(.proto3d-card,.rt-next,.rt-tut-card,.rt-birth-card){border-radius:18px;box-shadow:var(--rt-shadow)}
+.proto3d :is(.rt-weather,.proto3d-locate,.rt-tip){border-radius:14px;box-shadow:var(--rt-shadow)}
+.proto3d .rt-me-chip{box-shadow:0 0 0 2px #ffffffd9,0 8px 20px -8px #10200d66}
+.proto3d :is(.rt-bubble,.rt-cap-tag,.rt-room-tag,.sky-tag){border-radius:12px;box-shadow:0 10px 24px -12px #10200d70}
+.proto3d .rt-bubble::after,.proto3d .sky-tag::after{background:var(--rt-paper)}
+
+/* the tab bar: a glass strip, the chosen tab marked by the logo green */
+.proto3d .rt-dock{background:#ffffffc7;border:1px solid var(--glass-edge);border-radius:20px 20px 0 0;box-shadow:inset 0 1px 0 #ffffffcc,0 -10px 30px -18px #10200d66}
+.proto3d .rt-dock button[aria-pressed=true]{color:var(--rt-ink);box-shadow:inset 0 2px 0 #3f9e3a}
+@media(orientation:landscape) and (max-height:520px){.proto3d .rt-dock{border-radius:18px}}
+@media(min-width:701px){.proto3d .rt-dock{border-radius:18px}}
+
+/* things inside panels: plain rounded tiles, no ruled paper */
+.proto3d :is(.rt-note,.rt-row,.rt-cell,.rt-more-tile,.rt-pick-card,.rt-more-nums,.rt-quote,.rt-step,.rt-task,.rt-jr-v,.sky-tree,.sky-opt){border-radius:12px}
+.proto3d :is(.rt-note,.rt-more-tile,.rt-pick-card,.rt-more-nums,.sky-tree,.sky-opt){background:#ffffffb3;border-color:var(--rt-line)}
+.proto3d .rt-jr-past li{border-bottom:1px solid var(--rt-line)}
+.proto3d .rt-btn{border-radius:12px}
+.proto3d .rt-input,.proto3d .rt-sheet input:not([type=checkbox]):not([type=range]),.proto3d .rt-sheet textarea{border-radius:10px;background:#ffffffe6;border-color:var(--rt-line2)}
+.proto3d .rt-seg button,.proto3d .rt-conf button{border-radius:10px}
+
+/* 주간 챌린지: a clean light page instead of grained paper; its panels are glass tiles */
+.proto3d .gx{background:linear-gradient(180deg,#f4f7f1 0%,#e7eee2 100%)}
+.proto3d .gx::after{display:none}
+.proto3d .gx-panel{background:#ffffffd9;border:1px solid #ffffff;border-radius:16px;box-shadow:inset 0 1px 0 #ffffffcc,0 10px 26px -16px #10200d55}
+.proto3d :is(.gx-chip,.gx-pill,.gx-fact,.gx-news,.gx-coach-slip,.gx-fill,.gx-x){border-radius:12px}
+@media(min-width:760px) and (min-height:521px){.proto3d .gx{box-shadow:0 0 0 1px #ffffff,0 30px 80px #0004}}
+
+/* my profile: the name plate and the panel as glass; tiles round; locked pieces dimmed instead of hatched paper */
+.proto3d :is(.rt-me-plate,.rt-me-panel){background:#ffffffc9;border:1px solid var(--glass-edge);border-radius:20px;box-shadow:inset 0 1px 0 #ffffffcc,0 20px 50px -24px #10200d80}
+.proto3d .rt-me-plate{outline:none}
+.proto3d .rt-me-top .rt-btn{border-radius:999px;background:#ffffffc4;border-color:var(--glass-edge)}
+.proto3d .rt-me-habit strong{font-family:'Jua',sans-serif;font-size:20px;color:#2d7a2c}
+.proto3d .rt-me-xp{border-radius:999px;overflow:hidden;background:#22281f1a}
+.proto3d .rt-me-xp i{background:linear-gradient(90deg,#7fd35a,#3f9e3a)}
+.proto3d .rt-me-slots button{border-radius:10px;background:#ffffffb3;border-color:var(--rt-line2)}
+.proto3d .rt-me-tile{border-radius:14px;background:#ffffffb8;border-color:var(--rt-line)}
+.proto3d .rt-me-tile[data-locked=true]{background:#ffffff66;opacity:.75}
+.proto3d .rt-me-tile[aria-pressed=true]{box-shadow:inset 0 0 0 1.5px #3f9e3a,0 0 0 3px #3f9e3a2e;border-color:#3f9e3a}
+.proto3d .rt-me-record .rt-me-big{border-top:0;border-left:0;gap:8px}
+.proto3d .rt-me-big>div{border:1px solid var(--rt-line);border-radius:12px;background:#ffffffb3}
+.proto3d .rt-me-bars i{border-radius:999px;background:linear-gradient(90deg,#7fd35a,#3f9e3a)}
+.proto3d .rt-me-stamp{border-radius:14px}
+.proto3d .rt-me-stamp[data-got=true]{background:#ffffffb8}
+
+/* other users: the plate and the controls as glass */
+.proto3d :is(.sky-plate,.sky-pill,.sky-close){background:#ffffffc4;border:1px solid var(--glass-edge);border-radius:16px;outline:none;-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur)}
+.proto3d .sky-sheet{background:#ffffffd6;border-radius:22px 22px 0 0}
+@media(min-width:760px) and (min-height:521px){.proto3d .sky-sheet{border-radius:22px}}
+
+/* challenge: round buttons and tiles */
+.proto3d .gx .gx-btn{border-radius:14px}
+.proto3d .gx :is(.gx-co,.gx-seal,.gx-focus){border-radius:12px}
+.proto3d .rt-me-slots button[aria-pressed=true]{background:var(--rt-ink);border-color:var(--rt-ink);color:#fff}
+
+/* talking with 보리 (ui/Friend.tsx) */
+.rt-chat{display:grid;gap:8px}
+.rt-chat-line{max-width:84%;padding:9px 12px;border-radius:16px;font-size:14px;line-height:1.45}
+.rt-chat-line.bori{justify-self:start;background:#ffffffe6;border:1px solid var(--rt-line);border-bottom-left-radius:6px}
+.rt-chat-line.me{justify-self:end;background:#3f9e3a;color:#fff;border-bottom-right-radius:6px}
+.rt-chat-replies{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.rt-chat-replies .rt-btn{min-height:38px;border-radius:999px;font-size:13px}
+.rt-chat-input{display:grid;grid-template-columns:1fr auto;gap:6px;margin-top:16px}
+
+/* account deletion (ui/Settings.tsx): a quiet link, then a red confirm */
+.proto3d .rt-sheet button.rt-link{background:none;border:0;padding:4px 0;color:var(--rt-mute);text-decoration:underline;cursor:pointer;font-family:inherit}
+.proto3d .rt-btn.primary.danger{background:#c4392f;border-color:#c4392f;color:#fff}
+.proto3d .rt-err{color:#b3261e;font-size:13px;margin:6px 0 0}
+.rt-chat-typing{display:flex;gap:4px;align-items:center;min-height:36px}
+.rt-chat-typing i{width:6px;height:6px;border-radius:50%;background:#22281f55;animation:rt-typing 1s infinite ease-in-out}
+.rt-chat-typing i:nth-child(2){animation-delay:.15s}.rt-chat-typing i:nth-child(3){animation-delay:.3s}
+@keyframes rt-typing{0%,80%,100%{opacity:.3;transform:none}40%{opacity:1;transform:translateY(-3px)}}

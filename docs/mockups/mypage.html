@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>마이페이지 시안</title>
+<!-- 2026-11-17 feedback: My Page is about "what kind of investor am I", not the dress-up. One summary on top, three tabs
+     (나 · 성적 · 기록), each reading as a page about me rather than a list of features; 꾸미기 is its own richer room.
+     Numbers are an example garden. Thumbnails: tools/blender/portrait.py on public/models/explorer. -->
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#22281f;--sub:#4c5447;--mute:#6a7266;--line:#22281f14;--green:#3f9e3a;--seal:#2f8a3a;--up:#c8382c;--down:#2357c2;--coin:#c98a16;--paper:#f6f3ea}
+*{box-sizing:border-box;margin:0}
+html,body{background:#1b1d1a;font-family:'Gowun Dodum',sans-serif;color:var(--ink)}
+.wrap{display:flex;gap:24px;justify-content:center;flex-wrap:wrap;padding:28px 16px 30px}
+.col{display:flex;flex-direction:column;gap:10px;align-items:center}
+.cap{color:#e8ece2;font-size:14px;text-align:center;max-width:390px;line-height:1.55}
+.cap b{font-family:'Jua';font-weight:400;font-size:16px;display:block;color:#fff}
+.phone{position:relative;width:390px;height:844px;border-radius:34px;overflow:hidden;background:var(--paper);box-shadow:0 20px 50px #0008;display:flex;flex-direction:column}
+.scroll{flex:1;overflow:hidden;padding:0 16px 16px}
+/* hero */
+.hero{position:relative;margin:0 -16px;padding:52px 18px 18px;background:linear-gradient(160deg,#2f5d3a,#4b7a44 60%,#7aa05a);color:#fff}
+.hero .close{position:absolute;top:16px;right:16px;font-size:12.5px;padding:6px 11px;border-radius:999px;background:#ffffff30}
+.hero .row{display:flex;gap:14px;align-items:center}
+.ava{width:76px;height:76px;border-radius:50%;background:#e9e2cf url(mypage/stage.png) 34.2% 31%/570% no-repeat;border:3px solid #fff;flex:none;position:relative}
+.ava .edit{position:absolute;right:-6px;bottom:-4px;font-size:11px;background:#fff;color:var(--ink);padding:3px 7px;border-radius:999px;box-shadow:0 2px 6px #0004}
+.hero h1{font-family:'Jua';font-weight:400;font-size:24px;line-height:1.1}
+.rank{display:inline-block;font-size:11.5px;padding:3px 8px;border-radius:999px;background:#ffffff26;margin-top:5px}
+.xp{height:5px;border-radius:3px;background:#ffffff30;margin-top:7px;width:150px;overflow:hidden}.xp i{display:block;height:100%;width:62%;background:#ffd76a}
+.one{margin-top:14px;padding:11px 13px;border-radius:14px;background:#ffffff1f;font-size:14px;line-height:1.5}
+.one b{color:#ffd76a;font-weight:700}
+.tabs{display:flex;gap:4px;margin:14px 0 12px;padding:4px;border-radius:14px;background:#22281f0d}
+.tabs span{flex:1;text-align:center;padding:9px 0;border-radius:10px;font-size:14.5px;color:var(--sub)}
+.tabs span.on{background:#fff;color:var(--ink);font-weight:700;box-shadow:0 2px 6px #0001}
+/* blocks */
+.h2{display:flex;align-items:center;gap:8px;font-family:'Jua';font-weight:400;font-size:17px;margin:14px 2px 8px}
+.h2 small{font-family:'Gowun Dodum';font-size:12px;color:var(--mute);margin-left:auto}
+.face{width:28px;height:28px;border-radius:50%;background:#fff url(mypage/bori.png) center/cover;border:2px solid #fff;box-shadow:0 1px 4px #0002}
+.memo{background:#fff;border-radius:16px;padding:12px 13px;margin-bottom:8px;box-shadow:0 2px 10px -6px #0003;position:relative}
+.memo q{display:block;font-size:15px;line-height:1.5;quotes:'“' '”'}
+.memo .meta{display:flex;gap:6px;align-items:center;margin-top:7px;font-size:11.5px;color:var(--mute)}
+.memo .k{padding:2px 7px;border-radius:999px;background:#eef4e6;color:#3d6b34}
+.memo .dots{position:absolute;right:10px;top:8px;color:#b3b9ad;font-size:18px;letter-spacing:1px}
+.memo.guess q{color:var(--sub)}.memo.guess .k{background:#fff4dc;color:#8a5a00}
+.card{background:#fff;border-radius:16px;padding:13px;box-shadow:0 2px 10px -6px #0003;margin-bottom:8px}
+.stack{display:flex;height:14px;border-radius:7px;overflow:hidden;margin:6px 0 8px}
+.stack i{display:block;height:100%}
+.legend{display:flex;gap:12px;font-size:12px;color:var(--sub)}.legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fact{background:#fff;border-radius:14px;padding:11px 12px;box-shadow:0 2px 10px -6px #0003}
+.fact b{display:block;font-family:'Jua';font-weight:400;font-size:22px}.fact small{font-size:11.5px;color:var(--mute)}
+/* 성적 */
+.score{display:flex;gap:16px;align-items:center}
+.ring{width:118px;height:118px;border-radius:50%;background:conic-gradient(var(--green) 0 62%,#e6ebe0 62% 100%);display:grid;place-items:center;flex:none}
+.ring div{width:92px;height:92px;border-radius:50%;background:#fff;display:grid;place-items:center;text-align:center}
+.ring b{font-family:'Jua';font-weight:400;font-size:28px;line-height:1}.ring small{font-size:11px;color:var(--mute)}
+.score p{font-size:13px;line-height:1.6;color:var(--sub)}.score p b{color:var(--ink)}
+.bars{display:grid;gap:6px;margin-top:4px}
+.bar{display:grid;grid-template-columns:44px 1fr 36px;gap:8px;align-items:center;font-size:12.5px}
+.bar span{height:10px;border-radius:5px;background:#e6ebe0;overflow:hidden}.bar span i{display:block;height:100%;background:var(--green)}
+.dotsrow{display:flex;gap:6px;margin-top:6px}.dotsrow i{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-style:normal;color:#fff}
+.hit{background:var(--green)}.miss{background:#c9ccc4}.wait{background:#fff;border:2px dashed #b3b9ad;color:var(--mute)!important}
+.donutrow{display:flex;gap:14px;align-items:center}
+.donut{width:86px;height:86px;border-radius:50%;background:conic-gradient(#3f9e3a 0 43%,#2357c2 43% 71%,#c98a16 71% 86%,#a07ab8 86% 100%);display:grid;place-items:center;flex:none}
+.donut div{width:52px;height:52px;border-radius:50%;background:#fff;display:grid;place-items:center;font-family:'Jua';font-size:20px}
+/* 기록 */
+.grass{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:6px}
+.grass i{aspect-ratio:1;border-radius:4px;background:#e6ebe0}.grass i.a{background:#b7dba8}.grass i.b{background:#79bf66}.grass i.c{background:#3f9e3a}
+.coll{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tile{background:#fff;border-radius:16px;padding:12px;box-shadow:0 2px 10px -6px #0003;display:flex;gap:10px;align-items:center}
+.tile .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:20px;flex:none}
+.tile b{display:block;font-size:14px}.tile small{font-size:12px;color:var(--mute)}
+.prog{height:5px;border-radius:3px;background:#e6ebe0;margin-top:5px;overflow:hidden}.prog i{display:block;height:100%;background:var(--green)}
+.acct{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px -6px #0003}
+.acct div{display:flex;justify-content:space-between;padding:11px 13px;border-top:1px solid var(--line);font-size:13.5px}.acct div:first-child{border-top:0}
+.acct small{color:var(--mute)}.acct .danger{color:var(--up)}
+.badge{font-size:11px;padding:2px 7px;border-radius:999px;background:#ffd76a;color:#5a3d00;font-weight:700}
+/* 꾸미기 */
+.stage{position:relative;height:380px;margin:0 -16px;background:#3b3a33 url(mypage/stage.png) 34% 42%/235% no-repeat}
+.stage .top{position:absolute;top:16px;left:16px;right:16px;display:flex;justify-content:space-between}
+.pill{font-size:12.5px;padding:7px 12px;border-radius:999px;background:#ffffffd8;color:var(--ink)}
+.pill.ink{background:var(--ink);color:#fff}
+.trying{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);font-size:12.5px;padding:6px 12px;border-radius:999px;background:#ffd76a;color:#5a3d00;white-space:nowrap}
+.rot{position:absolute;right:14px;bottom:14px;font-size:11.5px;color:#fff;opacity:.8}
+.slots{display:flex;gap:6px;margin:12px 0 10px}
+.slot{flex:1;border-radius:12px;padding:7px 6px;text-align:center;font-size:12px;background:#fff;border:1.5px solid transparent}
+.slot.on{border-color:var(--green)}.slot b{display:block;font-size:12.5px}
+.cats{display:flex;gap:6px;overflow:hidden;margin-bottom:10px}
+.cats span{flex:none;font-size:13px;padding:7px 12px;border-radius:999px;background:#fff}
+.cats span.on{background:var(--ink);color:#fff}
+.items{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.it{position:relative;background:#fff;border-radius:14px;padding:6px 4px 6px;text-align:center;border:1.5px solid transparent}
+.it img{width:100%;aspect-ratio:1;object-fit:contain;display:block}
+.it span{font-size:11px;display:block;margin-top:2px}
+.it.on{border-color:var(--green);box-shadow:0 0 0 3px #3f9e3a22}
+.it.lock img{filter:brightness(0) opacity(.18)}.it.lock span{color:var(--mute)}
+.it.lock small{position:absolute;left:4px;right:4px;top:28%;font-size:10px;color:var(--sub);line-height:1.3}
+.it.new::after{content:'NEW';position:absolute;top:4px;right:4px;font-size:9px;font-weight:800;color:#fff;background:var(--up);padding:1px 4px;border-radius:5px}
+.colors{display:flex;gap:8px;margin-top:10px}.colors i{width:30px;height:30px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px #0002}.colors i.on{box-shadow:0 0 0 2px var(--ink)}
+.note{max-width:1680px;margin:0 auto 40px;color:#cfd6c8;font-size:14px;line-height:1.75;padding:0 16px}
+.note b{color:#fff}
+@media(max-width:430px){.phone{width:100%;height:auto;min-height:844px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- 1. 나 -->
+  <div class="col">
+    <div class="phone"><div class="scroll">
+      <div class="hero"><span class="close">닫기</span>
+        <div class="row"><span class="ava"><span class="edit">꾸미기</span></span>
+          <div><h1>주니</h1><span class="rank">주니어 애널리스트 · 다음 직급까지 38XP</span><div class="xp"><i></i></div></div></div>
+        <p class="one">나는 <b>홀드 위주</b>로 판단하고, <b>확신이 높을 때 더 잘 맞히는</b> 편이에요. 일지 14편 · 채점 21번.</p></div>
+      <div class="tabs"><span class="on">나</span><span>성적</span><span>기록</span></div>
+      <div class="h2"><span class="face"></span>보리가 기억하는 나<small>대화에서 기억한 것 · 틀리면 고쳐 줘</small></div>
+      <div class="memo"><span class="dots">⋯</span><q>배당 주는 회사를 오래 들고 가는 편이야</q><div class="meta"><span class="k">평소 투자 이유</span>네가 직접 말함 · 11/16</div></div>
+      <div class="memo"><span class="dots">⋯</span><q>한 종목에 20% 넘게는 안 넣어</q><div class="meta"><span class="k">손실 관리</span>네가 직접 말함 · 11/16</div></div>
+      <div class="memo guess"><span class="dots">⋯</span><q>삼성전자는 HBM에서 내년엔 따라잡을 거라고 봐</q><div class="meta"><span class="k">종목 생각</span>보리 추측 · 확인 필요</div></div>
+      <div class="h2">내 습관<small>최근 30일 · 판단만, 평가는 안 해요</small></div>
+      <div class="card"><div style="font-size:13px;color:var(--sub)">신호가 뜬 나무에서 내가 고른 것</div>
+        <div class="stack"><i style="width:58%;background:#3f9e3a"></i><i style="width:27%;background:#2357c2"></i><i style="width:15%;background:#c98a16"></i></div>
+        <div class="legend"><span><i style="background:#3f9e3a"></i>보유 58%</span><span><i style="background:#2357c2"></i>관찰 27%</span><span><i style="background:#c98a16"></i>손절 검토 15%</span></div></div>
+      <div class="facts"><div class="fact"><b>4.2개월</b><small>평균 보유 기간</small></div><div class="fact"><b>2.1일</b><small>신호 뒤 첫 판단까지</small></div></div>
+    </div></div>
+    <p class="cap"><b>1. 나</b>맨 위는 나를 한 줄로. "기능"이 아니라 "나는 이런 사람"으로 읽히게. 보리가 기억한 건 말풍선 카드, 직접 말한 것과 보리 추측을 색으로 구분하고 ⋯에서 고치기·지우기.</p>
+  </div>
+  <!-- 2. 성적 -->
+  <div class="col">
+    <div class="phone"><div class="scroll">
+      <div class="hero" style="padding-bottom:14px"><span class="close">닫기</span>
+        <div class="row"><span class="ava" style="width:52px;height:52px"></span><div><h1 style="font-size:20px">주니</h1><span class="rank">주니어 애널리스트</span></div></div></div>
+      <div class="tabs"><span>나</span><span class="on">성적</span><span>기록</span></div>
+      <div class="card"><div class="score"><div class="ring"><div><span><b>62%</b><br><small>21번 중 13번</small></span></div></div>
+        <p>내 판단 적중률<br><b>41~79%</b> 사이일 가능성이 커요<br><small style="color:var(--mute)">채점이 쌓일수록 범위가 좁아져요</small></p></div></div>
+      <div class="h2">확신이 높을 때 더 맞았나?</div>
+      <div class="card bars">
+        <div class="bar">낮음<span><i style="width:40%"></i></span>40%</div>
+        <div class="bar">보통<span><i style="width:58%"></i></span>58%</div>
+        <div class="bar">높음<span><i style="width:71%"></i></span>71%</div></div>
+      <div class="h2">최근 10번<small>채점 대기 4 · 다음 채점 D-3</small></div>
+      <div class="card"><div class="dotsrow"><i class="hit">✓</i><i class="hit">✓</i><i class="miss">✕</i><i class="hit">✓</i><i class="hit">✓</i><i class="miss">✕</i><i class="hit">✓</i><i class="wait">3</i><i class="wait">9</i><i class="wait">21</i></div></div>
+      <div class="h2">내 포트폴리오 한눈에</div>
+      <div class="card donutrow"><div class="donut"><div>7</div></div>
+        <div style="font-size:13px;line-height:1.7;color:var(--sub)"><b style="color:var(--ink)">7종목</b> · 실제 시세 5 · 모의 2<br><i style="color:#3f9e3a">●</i> 반도체 43% <i style="color:#2357c2">●</i> 2차전지 28%<br><i style="color:#c98a16">●</i> 금융 15% <i style="color:#a07ab8">●</i> 인터넷 14%<br>지금 신호가 뜬 나무 <b style="color:var(--ink)">2그루</b></div></div>
+    </div></div>
+    <p class="cap"><b>2. 성적</b>적중률은 링 하나로 크게. 확신별 막대, 최근 10번 점(대기 중은 남은 날), 내 포트폴리오 요약. 숫자만, 매매 얘기는 없어.</p>
+  </div>
+  <!-- 3. 기록 -->
+  <div class="col">
+    <div class="phone"><div class="scroll">
+      <div class="hero" style="padding-bottom:14px"><span class="close">닫기</span>
+        <div class="row"><span class="ava" style="width:52px;height:52px"></span><div><h1 style="font-size:20px">주니 <span class="badge">마스터</span></h1><span class="rank">주니어 애널리스트</span></div></div></div>
+      <div class="tabs"><span>나</span><span>성적</span><span class="on">기록</span></div>
+      <div class="h2">11월 출석<small>12일 · 연속 4일</small></div>
+      <div class="card"><div class="grass">
+        <i></i><i></i><i class="a"></i><i class="b"></i><i></i><i class="c"></i><i class="a"></i>
+        <i class="b"></i><i class="c"></i><i></i><i class="a"></i><i class="b"></i><i class="b"></i><i></i>
+        <i class="c"></i><i class="a"></i><i class="b"></i><i class="c"></i><i class="c"></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+      <div class="h2">모은 것</div>
+      <div class="coll">
+        <div class="tile"><span class="ic" style="background:#fff1c9">🏆</span><div style="flex:1"><b>업적 12</b><small>30개 중</small><div class="prog"><i style="width:40%"></i></div></div></div>
+        <div class="tile"><span class="ic" style="background:#dceefb">🐟</span><div style="flex:1"><b>물고기 5</b><small>12종 중</small><div class="prog"><i style="width:42%"></i></div></div></div>
+        <div class="tile"><span class="ic" style="background:#fde3ea">🌷</span><div style="flex:1"><b>꽃·나무 4</b><small>정원에 심음</small></div></div>
+        <div class="tile"><span class="ic" style="background:#eee6fb">🗼</span><div style="flex:1"><b>도시 2</b><small>5곳 중</small><div class="prog"><i style="width:40%"></i></div></div></div></div>
+      <div class="h2">계정</div>
+      <div class="acct"><div><span>로그인</span><small>카카오</small></div><div><span>다른 유저에게 보이기</span><small>이름 가림 ›</small></div>
+        <div><span>내 기록 내려받기</span><small>›</small></div><div><span class="danger">계정 삭제</span><small>›</small></div></div>
+    </div></div>
+    <p class="cap"><b>3. 기록</b>출석 잔디, 모은 것(업적·도감·꽃집·도시)을 진행 막대로. 계정은 맨 아래 조용히. 마스터면 이름 옆에 배지.</p>
+  </div>
+  <!-- 4. 꾸미기 -->
+  <div class="col">
+    <div class="phone"><div class="scroll">
+      <div class="stage"><div class="top"><span class="pill">‹ 마이페이지</span><span class="pill ink">저장</span></div>
+        <span class="trying">입어 보는 중 · 연구 가운</span><span class="rot">↻ 끌어서 돌리기</span></div>
+      <div class="slots"><div class="slot on"><b>코디 1</b>평소</div><div class="slot"><b>코디 2</b>비 오는 날</div><div class="slot"><b>+</b>새 코디</div></div>
+      <div class="cats"><span class="on">겉옷</span><span>모자</span><span>가방</span><span>손</span><span>색</span><span>무대</span><span>칭호</span></div>
+      <div class="items">
+        <div class="it"><img src="mypage/wear/coat_vest.png" alt=""><span>필드 조끼</span></div>
+        <div class="it on"><img src="mypage/wear/coat_lab.png" alt=""><span>연구 가운</span></div>
+        <div class="it new"><img src="mypage/wear/coat_rain.png" alt=""><span>노란 우비 · C6</span></div>
+        <div class="it lock"><img src="mypage/wear/coat_knit.png" alt=""><small>7일 연속 출석하면</small><span>줄무늬 니트</span></div>
+      </div>
+      <div class="h2" style="margin-top:12px">색<small>옷 전체 색</small></div>
+      <div class="colors"><i class="on" style="background:#4b6638"></i><i style="background:#2a2620"></i><i style="background:#2c5c92"></i><i style="background:#b8372b"></i><i style="background:#7a5238;opacity:.35"></i></div>
+      <div class="h2">무대 · 칭호</div>
+      <div class="facts"><div class="fact"><b style="font-size:16px">밤하늘 무대</b><small>채점 10번이면 열려요</small></div><div class="fact"><b style="font-size:16px">"끈기 있는 관찰자"</b><small>업적에서 고른 칭호</small></div></div>
+    </div></div>
+    <p class="cap"><b>4. 꾸미기 (따로)</b>옷마다 썸네일, 누르면 바로 입어 보기. 잠긴 건 그림자 + 여는 법. 코디 저장 3칸, 색, 무대 배경, 칭호까지. 다른 유저 방문 화면에도 그대로 보여.</p>
+  </div>
+</div>
+<div class="note">
+  <b>정할 것</b><br>
+  1. 맨 위 한 줄 요약: 기록에서 자동으로 만든 문장(예시처럼). 기록이 적으면 "판단 3개부터 나를 요약해 줄게요".<br>
+  2. 보리가 기억한 것: 직접 말한 것(초록)과 보리 추측(노랑)을 구분. 고치기·지우기는 ⋯ 메뉴. 지운 건 보리가 다시 묻지 않아.<br>
+  3. 꾸미기 새 것: 코디 저장, 무대 배경, 칭호. 무대·칭호는 업적·채점 수로 열려.<br>
+  4. 숫자는 예시 정원 기준. 실제 데이터로 채워져.
+</div>
+</body>
+</html>

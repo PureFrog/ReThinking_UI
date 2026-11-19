@@ -1,0 +1,91 @@
+/* Jua (loaded in rethink.css): the round, chunky Korean face that sits next to the logo's Luckiest Guy (OFL) */
+/* The first screens (ui/Welcome.tsx) and the logo (ui/Logo.tsx), in the app's paper look (rethink.css tokens). */
+.rt-logo{display:block;user-select:none}
+.rt-logo-anim{position:relative;display:inline-block;flex:none;user-select:none}
+.rt-logo-anim img{position:absolute;display:block;max-width:none;transition:transform .55s cubic-bezier(.2,1.5,.4,1),opacity .25s}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+.rt-wel{position:fixed;inset:0;z-index:60;overflow:auto;color:var(--rt-ink);font-family:'Gowun Dodum','Noto Sans KR',sans-serif;
+  padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0);
+  /* the live garden behind: a soft light at the top for the logo, a little shade at the bottom for the buttons */
+  background:linear-gradient(180deg,#ffffff38 0%,#ffffff00 34%,#ffffff00 58%,#1c261a55 100%)}
+.rt-wel[data-view=login],.rt-wel[data-view=signup]{background:linear-gradient(180deg,#1c261a2e,#1c261a66)}
+.rt-wel-auth .rt-wel-back,.rt-wel-auth>.rt-wel-fine{color:#fff;text-shadow:0 1px 3px #1c261a}
+.rt-wel-auth>.rt-logo{filter:drop-shadow(0 8px 16px #1c261a66)}
+.rt-wel .rt-btn{border-radius:2px;font-family:'Gowun Batang',serif;font-weight:700;min-height:50px;font-size:15.5px;background:var(--rt-paper2)}
+.rt-wel .rt-btn.primary{background:var(--rt-ink);color:var(--rt-paper)}
+/* title screen */
+.rt-wel-title{--logo-h:clamp(64px,22vw,150px);min-height:100%;display:grid;grid-template-rows:1fr auto auto;justify-items:center;padding:16px 18px 22px;position:relative}
+.rt-wel-mark{align-self:center;display:grid;justify-items:center;gap:14px;margin-top:-6vh}
+.rt-wel-mark .rt-logo-anim{filter:drop-shadow(0 10px 18px #1c261a55)}
+.rt-wel-tag{font-family:'Jua',sans-serif;font-size:19px;letter-spacing:-.2px;color:#fff;text-shadow:0 1px 2px #10200dcc,0 4px 14px #10200d88}
+.rt-wel-panel{width:100%;max-width:340px;display:grid;gap:12px;padding:0 4px}
+.rt-wel-note{font-family:'Jua',sans-serif;font-size:12px;color:#fff8e6;text-align:center;text-shadow:0 1px 2px #1c261acc;margin-top:2px}
+.rt-wel-auth{min-height:100%;display:grid;align-content:start;justify-items:center;padding:20px 20px 30px;position:relative}
+.rt-wel-back{justify-self:start;font-size:13px;color:var(--rt-sub);padding:6px 0;margin-bottom:18px}
+.rt-wel-card{width:100%;max-width:380px;margin-top:18px;padding:22px;display:grid;gap:14px;border-radius:22px;
+  background:#ffffffb3;border:1px solid #ffffffd9;backdrop-filter:blur(18px) saturate(1.15);box-shadow:0 24px 60px -24px #10200d99}
+.rt-wel-card h2{font-family:'Jua',sans-serif;font-weight:400;font-size:22px;letter-spacing:-.3px;color:#24301f}
+.rt-wel-field{display:grid;gap:6px;font-size:13px;color:var(--rt-mute)}
+.rt-wel-field input{height:48px;padding:0 13px;border-radius:2px;border:1px solid var(--rt-rule);background:#fffdf7;font:inherit;font-size:15px;color:var(--rt-ink)}
+.rt-wel-field input:focus{outline:2px solid #3f9e3a;outline-offset:-1px}
+.rt-wel-field input[aria-invalid=true]{border-color:var(--rt-seal)}
+.rt-wel-err{color:var(--rt-seal);font-size:12px}
+.rt-wel-sub{margin:-4px 0 4px;font-size:13px;line-height:1.5;color:var(--rt-ink-2,#4c5447)}
+.rt-wel-or{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--rt-mute)}.rt-wel-or::before,.rt-wel-or::after{content:'';flex:1;height:1px;background:var(--rt-rule)}
+.rt-wel-social{display:grid;gap:8px}
+.rt-wel .rt-wel-kakao{background:#fee500;border-color:#e5cf00;color:#191600;font-family:inherit;font-weight:400}
+.rt-wel .rt-wel-google{background:#fff;font-family:inherit;font-weight:400}
+.rt-wel-social b{font-family:'Gowun Batang',serif;margin-right:6px}
+.rt-wel-google b{color:#4285f4}
+.rt-wel-links{display:flex;justify-content:space-between;font-size:13px;color:var(--rt-mute)}
+.rt-wel-links button{color:#2d7a2c;font-family:'Jua',sans-serif;font-size:14px}
+.rt-wel-agree{display:grid;gap:10px;padding:14px;border-radius:14px;background:#ffffff80;border:1px solid #24301f14;font-size:13.5px;margin:0}
+.rt-wel-agree label{display:flex;gap:10px;align-items:flex-start}
+.rt-wel-agree label.all{font-family:'Jua',sans-serif;padding-bottom:10px;border-bottom:1px solid #24301f1a}
+.rt-wel-agree small{color:var(--rt-mute);font-size:11.5px;display:block;margin-top:2px}
+.rt-wel-agree input{width:18px;height:18px;accent-color:var(--rt-ink);margin-top:1px;flex:none}
+.rt-wel-fine{margin-top:14px;font-size:11.5px;color:var(--rt-mute);text-align:center;line-height:1.55}
+
+@media(min-width:760px){.rt-wel-title{--logo-h:150px}.rt-wel-auth{padding-top:40px}}
+@media(prefers-reduced-motion:reduce){.rt-logo-anim img{transition:none}}
+/* a phone on its side: logo and buttons side by side */
+@media(min-width:600px) and (max-height:520px){
+  .rt-wel-title{--logo-h:clamp(56px,16vh,96px);grid-template-rows:1fr;grid-template-columns:1.2fr 1fr;align-items:center;gap:24px;padding:14px 28px}
+  .rt-wel-mark{margin-top:0}
+  .rt-wel-panel{gap:8px;padding:12px}.rt-wel .rt-wel-panel .rt-btn{min-height:42px}
+  .rt-wel-auth{padding-top:12px}
+}
+/* the 2D app's global label and input rules (globals.css) would stack and shrink these */
+.rt-wel label{margin:0;justify-content:flex-start;text-align:left}
+.rt-wel .rt-wel-field{display:grid;justify-content:stretch;grid-template-columns:minmax(0,1fr);flex-direction:initial;font-size:13px;color:var(--rt-mute);margin:0}
+.rt-wel .rt-wel-agree label{display:flex;flex-direction:row;align-items:flex-start;gap:10px;font-size:13.5px;color:var(--rt-ink);margin:0}
+.rt-wel .rt-wel-agree input[type=checkbox]{width:18px;height:18px;min-width:18px;padding:0;margin:1px 0 0;border-radius:2px;flex:none;accent-color:var(--rt-ink)}
+.rt-wel .rt-wel-field input{width:100%;height:48px;padding:0 14px;border-radius:12px;border:1px solid #24301f1f;background:#ffffffe6;font-size:15px;color:#24301f}
+
+/* buttons: the logo's green as the one main action, a light glass one beside it. Restrained depth: a darker edge of
+   the same hue, a shallow side, a soft sheen; every button the same size */
+.proto3d .rt-gbtn,.rt-wel .rt-gbtn,.rt-wel .rt-wel-guest,.rt-wel .rt-wel-pill,.rt-wel .rt-wel-links button{font-family:'Jua',sans-serif}
+.rt-gbtn{--face1:#7fd35a;--face2:#3f9e3a;--edge:#2d7a2c;--side:#25652a;--ink:#fff;--depth:4px;
+  position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:52px;padding:0 20px;
+  font-size:18px;letter-spacing:-.1px;color:var(--ink);text-shadow:0 1px 1px #00000033;
+  background:linear-gradient(180deg,var(--face1),var(--face2));border:1.5px solid var(--edge);border-radius:16px;
+  box-shadow:inset 0 1px 0 #ffffff70,0 var(--depth) 0 var(--side),0 calc(var(--depth) + 10px) 20px -10px #10200d66;
+  transition:transform .08s ease-out,box-shadow .08s ease-out,filter .15s;cursor:pointer;user-select:none}
+.rt-gbtn:hover{filter:brightness(1.04)}
+.rt-gbtn:active{transform:translateY(calc(var(--depth) - 1px));box-shadow:inset 0 1px 0 #ffffff50,0 1px 0 var(--side),0 4px 10px -6px #10200d66}
+.rt-gbtn:disabled{filter:grayscale(.4) brightness(.97);cursor:default}
+.rt-gbtn:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.rt-gbtn.light{--face1:#ffffffee;--face2:#f1f4ecdd;--edge:#ffffff;--side:#c9d2c0;--ink:#24301f;text-shadow:none;backdrop-filter:blur(8px)}
+.rt-gbtn.kakao{--face1:#ffeb3b;--face2:#fee500;--edge:#e9d200;--side:#c4b000;--ink:#191600;text-shadow:none;font-size:16px}
+.rt-gbtn.google{--face1:#ffffff;--face2:#f3f5f7;--edge:#dfe3e8;--side:#c3c9d1;--ink:#1f1f1f;text-shadow:none;font-size:16px}
+.rt-gbtn.google b{color:#4285f4}
+.rt-gbtn b{font-weight:400}
+.rt-wel-pill{position:absolute;top:14px;right:16px;height:36px;padding:0 16px;border-radius:999px;font-family:'Jua',sans-serif;font-size:14px;color:#24301f;
+  background:#ffffffb8;border:1px solid #ffffffcc;backdrop-filter:blur(10px);box-shadow:0 6px 18px -8px #10200d66}
+.rt-wel-guest{font-family:'Jua',sans-serif;font-size:14px;color:#fff;text-shadow:0 1px 3px #10200dcc;padding:8px;justify-self:center;opacity:.92}
+.rt-wel-guest:hover{text-decoration:underline;text-underline-offset:3px}
+/* the notice: small, quiet, formal */
+.rt-wel-legal{max-width:360px;margin:14px auto 0;font-size:10.5px;line-height:1.55;color:#ffffffb3;text-align:center;letter-spacing:-.1px;text-shadow:0 1px 2px #10200d99}
+@media(prefers-reduced-motion:reduce){.rt-gbtn{transition:none}}
+.rt-wel-notice{max-width:360px;margin:10px auto 0;padding:10px 14px;border-radius:14px;background:#fff3f0e6;border:1px solid #f3c2b8;color:#8a2b1f;font-size:13px;line-height:1.5;text-align:center;backdrop-filter:blur(10px)}

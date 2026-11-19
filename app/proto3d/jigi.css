@@ -1,0 +1,186 @@
+/* 지기 투자일지 (ui/JigiBook.tsx, JigiWrite.tsx, JigiChart.tsx): our glass panels, the prototype's diary sentence with
+   blanks, Gowun Batang for what I wrote, IBM Plex Mono for numbers. Hit = the logo green, miss = graphite; prices stay
+   red up / blue down. */
+.proto3d{--jg-seal:#2f8a3a;--jg-seal-soft:#2f8a3a1f;--jg-warn:#9a6200;--jg-warn-soft:#f5ead2;--jg-up:#c8382c;--jg-down:#2357c2}
+
+/* the tab switch and links */
+.proto3d .jg-tabs{margin:-2px 0 14px}
+.proto3d .jg-back{background:none;border:0;padding:4px 0;color:var(--rt-sub);font:inherit;font-size:13px;cursor:pointer}
+.proto3d .jg-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:6px 0 10px}
+.proto3d .jg-links{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
+.proto3d .jg-links button{border:1px solid var(--rt-line2);background:#ffffffb3;border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;color:var(--rt-ink);cursor:pointer}
+.proto3d .jg-links b{margin-left:4px;color:var(--jg-seal)}
+.proto3d .jg-legal{margin:18px 0 0;font-size:11px;color:var(--rt-mute);opacity:.8}
+.proto3d .rt-btn.wide{width:100%}
+
+/* bookshelf and cards */
+.proto3d .jg-shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.proto3d .jg-stock{display:grid;gap:2px;text-align:left;background:#ffffffb8;border:1px solid var(--rt-line);border-radius:14px;padding:12px 14px;font:inherit;cursor:pointer;color:var(--rt-ink)}
+.proto3d .jg-stock strong{font-family:'Gowun Batang',serif;font-size:16px}
+.proto3d .jg-stock small{color:var(--rt-mute);font-size:12px}
+.proto3d .jg-list{display:grid;gap:8px}
+.proto3d .jg-card{display:grid;grid-template-columns:54px 1fr;gap:4px 12px;text-align:left;width:100%;background:#ffffffc4;border:1px solid var(--rt-line);border-left:3px solid #e3a9a2;border-radius:12px;padding:11px 12px;font:inherit;color:var(--rt-ink);cursor:pointer}
+.proto3d .jg-when{font-size:11.5px;color:var(--rt-mute);line-height:1.4}
+.proto3d .jg-card-main small{color:var(--rt-mute);font-size:12px}
+.proto3d .jg-hy{display:block;color:var(--rt-sub);font-size:13.5px;margin-top:2px;font-family:'Gowun Batang',serif;overflow-wrap:anywhere}
+.proto3d .jg-cont{display:block;font-size:12px;color:var(--jg-seal);margin-top:2px}
+.proto3d .jg-card-st{grid-column:2;display:flex;flex-wrap:wrap;gap:4px}
+.proto3d .jg-pill{display:inline-flex;align-items:center;font-size:11.5px;padding:1px 8px;border-radius:999px;border:1px solid var(--rt-line2);color:var(--rt-sub);white-space:nowrap;background:#ffffffb3}
+.proto3d .jg-pill.hit{color:var(--jg-seal);border-color:var(--jg-seal);background:var(--jg-seal-soft)}
+.proto3d .jg-pill.fail{color:#3b4038;border-color:#3b4038}
+.proto3d .jg-pill.wait{color:var(--jg-warn);border-color:#9a620066;background:var(--jg-warn-soft)}
+.proto3d .jg-pill.demo{border-style:dashed;margin-left:6px}
+.proto3d .jg-trash{display:grid;gap:4px;background:#ffffffb3;border:1px solid var(--rt-line);border-radius:12px;padding:12px;margin-bottom:8px}
+.proto3d .jg-trash small{color:var(--rt-mute);font-size:12px}
+.proto3d .jg-empty-card{background:#ffffffb3;border:1px solid var(--rt-line);border-radius:14px;padding:16px}
+.proto3d .jg-empty-card h3{font-family:'Gowun Batang',serif;font-size:17px;margin:0 0 6px}
+.proto3d .jg-empty-card p{margin:0;color:var(--rt-sub);font-size:14px}
+
+/* a stock's time bar: one round pin per journal, two lanes so close days don't overlap */
+.proto3d .jg-tl{position:relative;height:96px;margin:8px 0 12px;background:#ffffffa6;border:1px solid var(--rt-line);border-radius:14px}
+.proto3d .jg-tl-bar{position:absolute;left:7%;right:7%;bottom:12px;height:4px;border-radius:2px;background:var(--jg-seal)}
+.proto3d .jg-ent{position:absolute;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:0;padding:0;cursor:pointer;font:inherit}
+.proto3d .jg-ent span{font-size:10.5px;color:var(--rt-mute);white-space:nowrap}
+.proto3d .jg-ent i{width:16px;height:16px;border-radius:50%;border:2px solid var(--jg-seal);background:#fff}
+.proto3d .jg-ent.dr i{border-style:dashed}
+.proto3d .jg-ent.on i{background:var(--jg-seal)}
+.proto3d .jg-ent.on span{color:var(--rt-ink);font-weight:700}
+
+/* one journal opened */
+.proto3d .jg-sec{background:#ffffffb8;border:1px solid var(--rt-line);border-radius:14px;margin-top:10px}
+.proto3d .jg-sec>summary{padding:11px 14px;font-family:'Gowun Batang',serif;font-weight:700;font-size:15.5px;cursor:pointer}
+.proto3d .jg-sec>:not(summary){margin:0 14px 14px}
+.proto3d .jg-kv{display:grid;grid-template-columns:max-content 1fr;gap:5px 14px;font-size:14px}
+.proto3d .jg-kv dt{color:var(--rt-mute);font-size:12.5px}.proto3d .jg-kv dd{margin:0;overflow-wrap:anywhere}
+.proto3d .jg-kv-row{display:contents}
+.proto3d .jg-orig{font-family:'Gowun Batang',serif;white-space:pre-wrap}
+.proto3d .jg-hypo{border-top:1px solid var(--rt-line);padding:10px 0 2px}
+.proto3d .jg-hypo:first-of-type{border-top:0;padding-top:0}
+.proto3d .jg-hypo .jg-row{margin:0 0 2px}
+.proto3d .jg-rule{font-size:12.5px;background:#22281f0d;border-radius:8px;padding:7px 9px;margin:6px 0 0}
+.proto3d .jg-vers{margin:0;padding-left:18px;font-size:13px}
+
+/* the chart */
+.proto3d .jg-chart{background:#ffffffb8;border:1px solid var(--rt-line);border-radius:14px;padding:10px 10px 6px;margin:12px 0 6px}
+.proto3d .jg-chart-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-bottom:4px;font-size:13px}
+.proto3d .jg-mock{font-size:11px;color:var(--jg-warn);border:1px dashed #9a620088;border-radius:999px;padding:0 7px}
+.proto3d .jg-ranges{margin-left:auto;display:flex;gap:2px}
+.proto3d .jg-ranges button{border:0;background:none;border-radius:8px;padding:3px 7px;font:inherit;font-size:11.5px;color:var(--rt-mute);cursor:pointer}
+.proto3d .jg-ranges button[aria-pressed=true]{background:#22281f12;color:var(--rt-ink);font-weight:700}
+.proto3d .jg-chart svg{display:block;width:100%;height:auto}
+.proto3d .jg-grid{stroke:#22281f14;stroke-width:1}
+.proto3d .jg-ax{font:9px 'IBM Plex Mono',monospace;fill:#5e665a}
+.proto3d .jg-up{stroke:var(--jg-up);fill:var(--jg-up)}.proto3d .jg-down{stroke:var(--jg-down);fill:var(--jg-down)}
+.proto3d .jg-mark line{stroke:var(--jg-seal);stroke-dasharray:2 4;opacity:.6}
+.proto3d .jg-mark circle{fill:var(--jg-seal);stroke:#fff;stroke-width:1.5;opacity:.7}
+.proto3d .jg-mark.main line{stroke-dasharray:4 3;opacity:1}.proto3d .jg-mark.main circle{opacity:1}
+.proto3d .jg-mark text{font:10px 'IBM Plex Sans KR',sans-serif;fill:var(--jg-seal);font-weight:700}
+
+/* writing: four pages, a diary sentence with blanks */
+.proto3d .jg-pages{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:-2px 0 12px}
+.proto3d .jg-pages button{position:relative;display:grid;gap:1px;justify-items:start;text-align:left;border:0;border-bottom:2px solid var(--rt-line);background:none;padding:4px 2px 6px;font:inherit;font-size:12px;color:var(--rt-mute);cursor:pointer}
+.proto3d .jg-pages button span{font-size:10.5px}
+.proto3d .jg-pages button[aria-current=step]{color:var(--rt-ink);font-weight:700;border-color:var(--jg-seal)}
+.proto3d .jg-dot{position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:#c4392f}
+.proto3d .jg-paper{background:#ffffffc9;border:1px solid var(--rt-line);border-radius:14px;padding:14px 14px 16px 30px;position:relative;min-height:240px}
+.proto3d .jg-paper::before{content:'';position:absolute;left:18px;top:0;bottom:0;width:1px;background:#e3a9a2}
+.proto3d .jg-diary{font-family:'Gowun Batang',serif;font-size:17px;line-height:2.25;margin:0}
+.proto3d .jg-diary.soft{font-size:15.5px;color:var(--rt-sub);margin-top:10px}
+.proto3d .jg-slot{font:inherit;border:0;border-bottom:2px solid var(--jg-seal);background:var(--jg-seal-soft);color:var(--rt-ink);padding:0 9px;border-radius:6px 6px 0 0;line-height:1.5;cursor:pointer}
+.proto3d .jg-slot.empty{background:none;border-bottom:2px dashed #5e665a;color:var(--rt-mute)}
+.proto3d .jg-slot.on{outline:2px solid var(--jg-seal);outline-offset:1px}
+.proto3d .jg-slot.miss,.proto3d .jg-q.miss{outline:2px solid #c4392f;outline-offset:3px;border-radius:6px}
+.proto3d .jg-pick{margin:4px 0 8px}
+.proto3d .jg-pick .rt-input{width:100%}
+.proto3d .jg-results{display:grid;gap:4px;margin-top:6px}
+.proto3d .jg-q{display:block;margin:4px 0 14px}
+.proto3d .jg-q-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px}
+.proto3d .jg-prompt{display:block;font-size:13px;color:var(--rt-sub);margin-bottom:2px}
+.proto3d .jg-lined{width:100%;border:0;border-bottom:1px solid var(--rt-line2);border-radius:0;background:repeating-linear-gradient(transparent,transparent 27px,#22281f1a 27px,#22281f1a 28px);background-attachment:local;
+  line-height:28px;padding:0 2px;resize:vertical;min-height:57px;font-family:'Gowun Batang',serif;font-size:16px;color:var(--rt-ink)}
+.proto3d .jg-paper textarea.jg-lined{background-color:transparent;border-radius:0}
+.proto3d .jg-lined:focus{outline:none;border-bottom-color:var(--jg-seal)}
+.proto3d .jg-chip{border:1px solid var(--rt-line2);background:#ffffffcc;border-radius:999px;padding:3px 10px;font:inherit;font-size:12px;color:var(--rt-sub);cursor:pointer}
+.proto3d .jg-chip[aria-pressed=true]{background:var(--jg-seal);border-color:var(--jg-seal);color:#fff}
+.proto3d .jg-chip.add{border-style:dashed}
+.proto3d .jg-more{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.proto3d .jg-opt{border:1px solid var(--rt-line);border-radius:12px;padding:10px;margin-top:10px;background:#ffffff99}
+.proto3d .jg-opt .rt-seg{margin-top:6px}
+.proto3d .jg-guide{font-size:13px;background:var(--jg-seal-soft);border-radius:8px;padding:8px 10px;margin:6px 0}
+.proto3d .jg-hz{margin-top:4px}
+.proto3d .jg-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;width:100%}
+.proto3d .jg-count{display:flex;align-items:center;gap:6px}
+.proto3d .jg-count i{display:block;width:56px;height:5px;border-radius:3px;background:#22281f1a;overflow:hidden}
+.proto3d .jg-count i span{display:block;height:100%;background:var(--jg-seal)}
+.proto3d .jg-saved{flex:1;min-width:80px;margin:0}
+
+/* tree card: quick chips that start a journal */
+.proto3d .rt-quick{flex-basis:100%;display:flex;gap:6px;margin-top:8px}
+.proto3d .rt-quick button{flex:1;border:1px solid var(--rt-line2);background:#ffffffb3;border-radius:999px;padding:6px 0;font:inherit;font-size:12.5px;color:var(--rt-ink);cursor:pointer}
+
+/* J2: editing a hypothesis draft, the review, a verdict dug up */
+.proto3d .jg-hypo.edit{background:#ffffffa6;border:1px dashed var(--rt-line2);border-radius:12px;padding:10px;margin-top:8px}
+.proto3d .jg-hgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;margin:8px 0}
+.proto3d .jg-hgrid label{display:grid;gap:2px;font-size:11.5px;color:var(--rt-mute)}
+.proto3d .jg-hgrid select,.proto3d .jg-hgrid input{border:1px solid var(--rt-line2);background:#fff;border-radius:8px;padding:5px 6px;font:inherit;font-size:13px;color:var(--rt-ink);width:100%}
+.proto3d .jg-warn{font-size:12.5px;color:var(--jg-warn);margin:4px 0}
+.proto3d .jg-check{display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--rt-sub);margin:6px 0}
+.proto3d .jg-review{border-top:1px solid var(--rt-line);margin-top:12px;padding-top:12px}
+.proto3d .jg-review .rt-seg{margin:4px 0 10px}
+.proto3d .jg-quote{font-family:'Gowun Batang',serif;font-size:17px;line-height:1.6;margin:8px 0 12px;padding:2px 0 2px 12px;border-left:3px solid #e3a9a2;background:none;color:var(--rt-ink);font-style:normal}
+.proto3d .jg-verdict{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;background:#ffffffb8;border:1px solid var(--rt-line);border-radius:14px;padding:12px}
+.proto3d .jg-verdict>div:not(.jg-arrow):not(.jg-move){display:grid;gap:1px}
+.proto3d .jg-verdict small{font-size:11px;color:var(--rt-mute)}
+.proto3d .jg-verdict b{font-size:17px}
+.proto3d .jg-arrow{color:var(--rt-mute)}
+.proto3d .jg-move{grid-column:1/-1;text-align:center;font-size:26px;font-weight:700}
+.proto3d .jg-stamp{display:flex;justify-content:center;margin:14px 0 6px}
+.proto3d .jg-stamp .jg-pill{font-size:16px;padding:4px 18px;border-width:2px;transform:rotate(-4deg)}
+@media(prefers-reduced-motion:no-preference){.proto3d .jg-stamp .jg-pill{animation:jg-stamp .35s cubic-bezier(.2,1.6,.4,1) both}}
+@keyframes jg-stamp{from{transform:scale(1.8) rotate(-12deg);opacity:0}to{transform:rotate(-4deg);opacity:1}}
+
+/* the first visit's 되돌아보기 as a practice journal (ui/Loop.tsx LookbackForm) */
+.proto3d .jg-look{margin-top:14px;background:#ffffffc9;border:1px solid var(--rt-line);border-radius:14px;padding:12px 14px}
+.proto3d .jg-look .jg-diary{font-size:16px}
+.proto3d .jg-look-dir{display:inline-flex;gap:4px;margin:0 6px;vertical-align:middle}
+.proto3d .jg-look-dir button{min-height:32px;padding:2px 12px}
+
+/* J3 분석 (ui/JigiStats.tsx) */
+.proto3d .jg-stats{display:grid;gap:10px}
+.proto3d .jg-demo-note{margin:0;font-size:12.5px;color:var(--jg-warn);background:var(--jg-warn-soft);border-radius:10px;padding:7px 10px}
+.proto3d .jg-filters{display:flex;flex-wrap:wrap;gap:6px}
+.proto3d .jg-filters select{flex:1;min-width:0;border:1px solid var(--rt-line2);background:#ffffffd9;border-radius:10px;padding:6px 8px;font:inherit;font-size:12.5px;color:var(--rt-ink)}
+.proto3d .jg-secs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;margin:0 -2px;padding:2px}
+.proto3d .jg-secs::-webkit-scrollbar{display:none}
+.proto3d .jg-secs button{flex:none;border:1px solid var(--rt-line2);background:#ffffffb3;border-radius:999px;padding:5px 11px;font:inherit;font-size:12.5px;color:var(--rt-sub);cursor:pointer;white-space:nowrap}
+.proto3d .jg-secs button[aria-selected=true]{background:var(--rt-ink);border-color:var(--rt-ink);color:#fff;font-weight:700}
+.proto3d .jg-acard{background:#ffffffc4;border:1px solid var(--rt-line);border-radius:14px;padding:13px 14px}
+.proto3d .jg-acard h3{font-family:'Gowun Batang',serif;font-size:16px;line-height:1.45;margin:0 0 8px}
+.proto3d .jg-acard p{margin:6px 0;font-size:14px}
+.proto3d .jg-llm{border-left:3px solid var(--jg-seal);padding:2px 0 2px 10px;color:var(--rt-sub)}
+.proto3d .jg-sug{font-weight:700}
+.proto3d .jg-big-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px}
+.proto3d .jg-big{font-size:40px;line-height:1.1;font-weight:700}
+.proto3d .jg-ci{position:relative;display:block;height:14px;min-width:90px;margin:6px 0;background:linear-gradient(#22281f22,#22281f22) center/100% 2px no-repeat}
+.proto3d .jg-ci::after{content:'';position:absolute;left:50%;top:0;bottom:0;width:1px;background:#22281f40}
+.proto3d .jg-ci i{position:absolute;top:4px;height:6px;background:var(--jg-seal);opacity:.35;border-radius:3px}
+.proto3d .jg-ci b{position:absolute;top:1px;width:3px;height:12px;background:var(--jg-seal);border-radius:1px;transform:translateX(-1px)}
+.proto3d .jg-three{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:10px}
+.proto3d .jg-three>div{background:#22281f0a;border-radius:10px;padding:9px 10px}
+.proto3d .jg-three p{margin:3px 0 6px;font-size:13.5px}
+.proto3d .jg-tw{overflow-x:auto}
+.proto3d .jg-table{border-collapse:collapse;width:100%;font-size:13px}
+.proto3d .jg-table th,.proto3d .jg-table td{text-align:left;padding:6px 6px;border-bottom:1px solid var(--rt-line);white-space:nowrap}
+.proto3d .jg-table th{font-weight:500;color:var(--rt-mute);font-size:11.5px}
+.proto3d .jg-table .n{text-align:right}
+.proto3d .jg-table td small{color:var(--rt-mute)}
+.proto3d .jg-table td .jg-ci{min-width:80px}
+.proto3d .jg-ev{margin:6px 0;padding-left:18px;font-size:13.5px}
+.proto3d .jg-steps{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.proto3d .jg-steps button{display:grid;text-align:left;border:1px solid var(--rt-line);background:#fff;border-radius:10px;padding:6px 9px;font:inherit;font-size:12px;cursor:pointer;color:var(--rt-ink)}
+.proto3d .jg-steps small{color:var(--rt-mute)}
+.proto3d .jg-check-list{font-size:13px;background:var(--jg-seal-soft);border-radius:8px;padding:7px 10px;margin:8px 0}
+/* the 분석 section buttons wrap instead of scrolling sideways (a mouse could not drag the strip) */
+.proto3d .jg-secs{flex-wrap:wrap;overflow:visible}
+.proto3d .jg-tw{cursor:grab}
+.proto3d .jg-tw.dragging{cursor:grabbing;user-select:none}

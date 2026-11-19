@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>다른 정원들 목업</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&family=IBM+Plex+Mono:wght@400;500;600&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
+<style>
+/* Mockup: other players' gardens as planets in the sky (sky → visit → what I share). Example data only. */
+:root{--paper:#f4eedf;--paper2:#fbf7ec;--rule:#d8ccae;--ink:#2a2620;--mute:#6f6656;--seal:#b8372b;--accent:#4b6638;--up:#b8372b;--down:#2c5c92;
+  --in:cubic-bezier(.32,.72,0,1);--pop:cubic-bezier(.16,1,.3,1);--spring:cubic-bezier(.2,1.6,.4,1)}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+html,body{height:100%;background:#0d1426;overflow:hidden;font-family:'Gowun Dodum',sans-serif;color:var(--ink)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+#stage{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 120%,#3b4a74 0%,#1b2545 45%,#0d1426 100%)}
+#stage canvas{position:absolute;inset:0;width:100%;height:100%}
+.tags{position:absolute;inset:0;pointer-events:none}
+.tag{position:absolute;transform:translate(-50%,-100%);transform-origin:50% 100%;pointer-events:auto;cursor:pointer;display:grid;gap:1px;padding:5px 9px 6px;background:var(--paper);border:1px solid var(--rule);
+  outline:1px solid var(--rule);outline-offset:-4px;border-radius:2px;box-shadow:0 10px 30px #0007;transition:opacity .4s,transform .4s var(--pop);font-size:11px;white-space:nowrap}
+.tag::after{content:'';position:absolute;left:50%;bottom:-6px;width:10px;height:10px;margin-left:-5px;background:var(--paper);border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);transform:rotate(45deg)}
+.tag b{font-family:'Gowun Batang',serif;font-size:13px}
+.tag .rank{font-family:'Gowun Batang',serif;font-weight:700;font-size:9px;color:#fff;background:var(--seal);padding:1px 5px;justify-self:start;transform:rotate(-2deg)}
+.tag small{color:var(--mute);font-size:10px}
+.tag.me{background:var(--ink);color:var(--paper);border-color:var(--ink);outline-color:#ffffff30}.tag.me::after{background:var(--ink);border-color:var(--ink)}.tag.me small{color:#d8ccae}
+.tag.dim{opacity:0;pointer-events:none}
+.top{position:absolute;left:16px;right:16px;top:calc(14px + env(safe-area-inset-top,0px));display:flex;justify-content:space-between;align-items:flex-start;gap:8px;z-index:5}
+.plate{padding:10px 14px;background:var(--paper);border:1px solid var(--rule);outline:1px solid var(--rule);outline-offset:-4px;border-radius:2px;box-shadow:0 14px 40px #0006}
+.kick{font-family:'Gowun Batang',serif;font-weight:700;font-size:11px;color:var(--mute)}
+.title{font-family:'Gowun Batang',serif;font-weight:700;font-size:20px;letter-spacing:-.6px}
+.pill{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;background:var(--paper);border:1px solid var(--rule);border-radius:2px;font-weight:700;font-size:12px;box-shadow:0 10px 30px #0006}
+.sample{display:inline-block;margin-top:4px;font-size:10px;padding:2px 6px;background:var(--rule);color:var(--ink);border-radius:2px}
+.hint{position:absolute;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);color:#e9e1cc;font-size:12px;letter-spacing:.2px;opacity:.85;white-space:nowrap;z-index:4}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:58dvh;display:flex;flex-direction:column;background:var(--paper);border-top:1px solid var(--rule);box-shadow:0 -20px 60px #0008;z-index:6;
+  transform:translateY(100%);transition:transform .45s var(--in)}
+.sheet.on{transform:none}
+.sheet .body{overflow:auto;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));display:grid;gap:12px;scrollbar-width:none}
+.sheet .grab{width:44px;height:4px;background:var(--rule);border-radius:2px;margin:8px auto 0}
+.name{display:flex;align-items:center;gap:12px}
+.avatar{width:54px;height:54px;border-radius:50%;flex:none;background:radial-gradient(circle at 50% 38%,#f2d3b5 0 30%,#3b2f2a 31% 46%,transparent 47%),var(--c,#4b6638);box-shadow:0 0 0 1px var(--ink),0 0 0 4px var(--paper),0 0 0 5px var(--rule)}
+.seal{display:inline-block;font-family:'Gowun Batang',serif;font-weight:700;font-size:11px;color:#fff;background:var(--seal);padding:2px 8px;transform:rotate(-2deg)}
+.who{font-family:'Gowun Batang',serif;font-weight:700;font-size:24px;letter-spacing:-.6px;display:block}
+.habit{font-family:'Nanum Pen Script',cursive;font-size:21px;color:#3e4a6e;line-height:1}
+.grid{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--ink);border-left:1px solid var(--rule)}
+.grid>div{padding:9px 11px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.grid span{display:block;font-size:10px;color:var(--mute)}.grid b{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:24px;letter-spacing:-1px}
+.sec{font-family:'Gowun Batang',serif;font-weight:700;font-size:12px;color:var(--mute);display:flex;justify-content:space-between;align-items:baseline}
+.trees{display:grid;gap:6px}
+.tree{display:grid;grid-template-columns:14px 1fr auto;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--rule);background:var(--paper2);border-radius:2px;font-size:12.5px}
+.tree i{width:12px;height:12px;border-radius:50%;background:var(--c)}
+.tree .ink{display:inline-block;width:3.6em;height:.9em;background:var(--ink);border-radius:2px 6px 3px 5px/5px 2px 6px 3px;vertical-align:-1px;margin-right:6px}
+.tree small{color:var(--mute);font-size:11px}
+.stamps{display:flex;gap:8px;flex-wrap:wrap}
+.stamp{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-family:'Gowun Batang',serif;font-weight:700;font-size:16px;color:var(--seal);border:3px double var(--seal);transform:rotate(-8deg)}
+.stamp.off{color:var(--rule);border:2px dashed var(--rule);transform:none}
+.row{display:grid;grid-template-columns:1fr 2fr;gap:8px}
+.btn{display:flex;align-items:center;justify-content:center;gap:6px;min-height:46px;border-radius:2px;background:var(--ink);color:var(--paper);font-family:'Gowun Batang',serif;font-weight:700;font-size:15px}
+.btn.ghost{background:var(--paper2);color:var(--ink);border:1px solid var(--rule)}
+.btn:active{transform:scale(.98)}
+.cheer{position:relative}
+.cheer .pop{position:absolute;right:16px;top:-14px;font-family:'Gowun Batang',serif;font-weight:700;color:var(--seal);border:2px double var(--seal);border-radius:50%;width:40px;height:40px;display:grid;place-items:center;background:var(--paper);animation:stamp .3s var(--spring) both}
+@keyframes stamp{from{opacity:0;transform:scale(1.7) rotate(-16deg)}to{opacity:1;transform:scale(1) rotate(-6deg)}}
+.note{font-size:10.5px;color:var(--mute);line-height:1.45}
+.opts{display:grid;gap:8px}
+.opt{display:grid;grid-template-columns:22px 1fr;gap:4px 10px;text-align:left;padding:12px;border:1px solid var(--rule);background:var(--paper2);border-radius:2px}
+.opt .dot{grid-row:span 2;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--ink);margin-top:2px;display:grid;place-items:center}
+.opt[aria-pressed=true]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.opt[aria-pressed=true] .dot::after{content:'';width:10px;height:10px;border-radius:50%;background:var(--ink)}
+.opt strong{font-family:'Gowun Batang',serif;font-size:14px}.opt small{font-size:11.5px;color:var(--mute);line-height:1.4}
+.never{display:flex;flex-wrap:wrap;gap:6px}
+.never span{font-size:11px;padding:3px 8px;border:1px solid var(--seal);color:var(--seal);border-radius:2px;text-decoration:line-through}
+.preview{display:flex;gap:10px;align-items:center;padding:10px;border:1px dashed var(--rule);border-radius:2px}
+.preview .tag{position:static;transform:none;box-shadow:none}
+.preview .tag::after{display:none}
+.ctl{position:fixed;left:20px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:4px;padding:6px;background:#2b2925;border-radius:12px;z-index:50;box-shadow:0 8px 30px #0008}
+.ctl button{height:34px;padding:0 12px;border-radius:8px;color:#d8d2c4;font-size:12px;white-space:nowrap;text-align:left}
+.ctl button[aria-pressed=true]{background:#f4eedf;color:#2a2620}
+@media(max-width:900px){.ctl{left:50%;top:auto;bottom:auto;top:calc(70px + env(safe-area-inset-top,0px));transform:translateX(-50%);flex-direction:row;opacity:.9}}
+body.bare .ctl{display:none}
+@media(min-width:760px) and (min-height:521px){.sheet{left:auto;right:24px;bottom:24px;width:400px;max-height:calc(100dvh - 120px);border:1px solid var(--rule);outline:1px solid var(--rule);outline-offset:-5px;transform:translateX(calc(100% + 40px))}.sheet.on{transform:none}.sheet .grab{display:none}}
+@media(orientation:landscape) and (max-height:520px){.sheet{left:auto;right:8px;top:8px;bottom:8px;width:min(400px,52vw);max-height:none;transform:translateX(calc(100% + 20px))}.sheet.on{transform:none}.title{font-size:16px}}
+@media(prefers-reduced-motion:reduce){*{animation-duration:1ms!important;transition-duration:120ms!important}}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+</head>
+<body>
+<div id="stage"><div class="tags" id="tags"></div></div>
+<div class="top">
+  <div class="plate"><div class="kick">하늘 · 이번 주 리그 그룹</div><div class="title">다른 정원들</div><span class="sample">예시 행성 · 서버 연결 전</span></div>
+  <button class="pill" id="share">내 공개 범위 · <b id="shareLabel">이름 가림</b></button>
+</div>
+<div class="hint" id="hint">행성을 눌러 들러 봐 · 끌어서 둘러보기</div>
+<div class="sheet" id="visit"><div class="grab"></div><div class="body" id="visitBody"></div></div>
+<div class="sheet" id="privacy"><div class="grab"></div><div class="body" id="privacyBody"></div></div>
+<nav class="ctl" id="ctl"><button data-s="1">1 하늘</button><button data-s="2">2 방문</button><button data-s="3">3 공개 설정</button><button data-r>다시</button></nav>
+<script type="module">
+import * as THREE from 'three';
+const P=new URLSearchParams(location.search);if(P.has('bare'))document.body.classList.add('bare');
+const $=s=>document.querySelector(s);
+// ---- example players (no amounts, no returns, no notes; sectors instead of names unless they opened them)
+const STATE={ok:['#5f8a45','튼튼'],warn:['#c9a03c','신호 있음'],wilt:['#9b6a3c','시듦'],bloom:['#d98aa0','꽃 핌']};
+let share='hide';
+const PEOPLE=[
+  {id:'me',name:'나',rank:'관찰자 3급',hit:61,calib:74,best:40,stamps:6,habit:'버티는 관찰자',color:'#4b6638',trees:['ok','warn','ok','bloom','wilt','ok','warn'],me:true},
+  {id:'a',name:'북쪽창',rank:'수석 관찰자',hit:72,calib:81,best:70,stamps:11,habit:'급락에 덤덤한 사람',color:'#36557e',trees:['ok','ok','bloom','ok','warn','ok'],sectors:['반도체 장비','2차전지 소재','게임','바이오','조선','화장품'],open:false},
+  {id:'b',name:'느린복기',rank:'관찰자 2급',hit:55,calib:88,best:30,stamps:8,habit:'확신을 아끼는 사람',color:'#7a5238',trees:['warn','wilt','ok','ok'],sectors:['유통','통신','건설','철강'],open:true,names:['한빛유통','청솔텔레콤','바위건설','강철중공업']},
+  {id:'c',name:'공시러',rank:'관찰자 1급',hit:48,calib:62,best:10,stamps:4,habit:'뉴스부터 보는 사람',color:'#c4652e',trees:['ok','warn','warn','ok','bloom','ok','ok','wilt'],sectors:['바이오','의료기기','바이오','제약','바이오','플랫폼','핀테크','엔터']},
+  {id:'d',name:'현금비중',rank:'관찰자 2급',hit:66,calib:70,best:50,stamps:9,habit:'정리가 빠른 사람',color:'#4d4a8a',trees:['ok','ok','ok'],sectors:['은행','보험','지주']},
+  {id:'e',name:'추세선',rank:'관찰자 1급',hit:44,calib:58,best:-10,stamps:3,habit:'다시 생각하는 중',color:'#9c6c12',trees:['wilt','warn','ok','ok','warn'],sectors:['자동차 부품','2차전지','반도체','디스플레이','로봇']},
+  {id:'f',name:'분기노트',rank:'수석 관찰자',hit:69,calib:84,best:60,stamps:12,habit:'숫자로 버티는 사람',color:'#1e6b4a',trees:['ok','bloom','ok','ok','ok','warn'],sectors:['음식료','소비재','유통','화장품','의류','여행']},
+  {id:'g',name:'오후3시',rank:'관찰자 3급',hit:58,calib:66,best:20,stamps:7,habit:'루온 말을 듣는 사람',color:'#6a5aa8',trees:['warn','ok','ok','wilt'],sectors:['미디어','게임','엔터','통신']},
+];
+// ---- three.js scene
+const stage=$('#stage'),renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});renderer.setPixelRatio(Math.min(2,devicePixelRatio));stage.prepend(renderer.domElement);
+const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(42,1,.1,400);
+scene.add(new THREE.HemisphereLight('#fff4dd','#26304f',1.05));const sun=new THREE.DirectionalLight('#ffe2b0',1.6);sun.position.set(-20,30,25);scene.add(sun);
+// stars
+{const g=new THREE.BufferGeometry(),n=900,a=new Float32Array(n*3);for(let i=0;i<n;i++){const r=150+Math.random()*80,t=Math.random()*Math.PI*2,p=Math.acos(2*Math.random()-1);a.set([r*Math.sin(p)*Math.cos(t),r*Math.cos(p),r*Math.sin(p)*Math.sin(t)],i*3)}
+ g.setAttribute('position',new THREE.BufferAttribute(a,3));scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:'#f4eedf',size:.7,sizeAttenuation:true,transparent:true,opacity:.8})))}
+const planets=[];
+function planet(p,i){
+  const R=p.me?5.2:2.4+p.trees.length*.12,grp=new THREE.Group();
+  const land=new THREE.Mesh(new THREE.IcosahedronGeometry(R,4),new THREE.MeshStandardMaterial({color:new THREE.Color('#7d9a52').lerp(new THREE.Color(p.color),p.me?0:.18),roughness:.95,flatShading:true}));
+  const pos=land.geometry.attributes.position;for(let k=0;k<pos.count;k++){const v=new THREE.Vector3().fromBufferAttribute(pos,k),n=1+Math.sin(v.x*1.7+i)*Math.cos(v.z*1.3)*.025;v.multiplyScalar(n);pos.setXYZ(k,v.x,v.y,v.z)}land.geometry.computeVertexNormals();
+  grp.add(land);
+  // a ring of path and a little pond, so it reads as a garden and not a ball
+  const pond=new THREE.Mesh(new THREE.CircleGeometry(R*.22,20),new THREE.MeshStandardMaterial({color:'#6d9cb8',roughness:.3}));pond.position.set(0,R*.995,0);pond.rotation.x=-Math.PI/2;
+  const pondG=new THREE.Group();pondG.add(pond);pondG.rotation.set(.5,0,.3);grp.add(pondG);
+  const big=p.me?1:1.5;p.trees.forEach((st,k)=>{const t=new THREE.Group(),h=(R*.22+((k*37)%5)*.04)*big;t.scale.setScalar(1);
+    const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.06,.09,h,6),new THREE.MeshStandardMaterial({color:'#6a4a32'}));trunk.position.y=h/2;t.add(trunk);
+    const crown=new THREE.Mesh(st==='wilt'?new THREE.ConeGeometry(R*.11*big,R*.2*big,6):new THREE.IcosahedronGeometry(R*.13*big,1),new THREE.MeshStandardMaterial({color:STATE[st][0],flatShading:true,roughness:.8}));crown.position.y=h+R*.08*big;t.add(crown);
+    const lat=.35+((k*53)%100)/100*1.1,lon=k/p.trees.length*Math.PI*2+i;const dir=new THREE.Vector3(Math.sin(lat)*Math.cos(lon),Math.cos(lat),Math.sin(lat)*Math.sin(lon));
+    t.position.copy(dir.clone().multiplyScalar(R*.98));t.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);grp.add(t)});
+  // a tiny house in the owner's colour
+  const house=new THREE.Group();const body=new THREE.Mesh(new THREE.BoxGeometry(R*.22,R*.16,R*.18),new THREE.MeshStandardMaterial({color:'#efe6d2'}));body.position.y=R*.08;house.add(body);
+  const roof=new THREE.Mesh(new THREE.ConeGeometry(R*.18,R*.14,4),new THREE.MeshStandardMaterial({color:p.color,flatShading:true}));roof.position.y=R*.23;roof.rotation.y=Math.PI/4;house.add(roof);
+  const hd=new THREE.Vector3(-.3,1,.5).normalize();house.position.copy(hd.clone().multiplyScalar(R*.98));house.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),hd);grp.add(house);
+  // halo for the owner's colour
+  const halo=new THREE.Mesh(new THREE.RingGeometry(R*1.25,R*1.3,64),new THREE.MeshBasicMaterial({color:p.color,transparent:true,opacity:.35,side:THREE.DoubleSide}));halo.rotation.x=Math.PI/2.4;grp.add(halo);
+  // my garden low and near; the others in two loose rows above it, further back
+  const SLOTS=[[0,-10,6],[-8,-1,-2],[7,1,-5],[-2,6,-9],[9,9,-12],[-9,11,-13],[2,16,-18],[-4,19,-22]];
+  const [x,y,z]=SLOTS[i%SLOTS.length];grp.position.set(x,y,z);
+  scene.add(grp);return {p,grp,R,base:grp.position.clone(),a:i,land};
+}
+PEOPLE.forEach((p,i)=>planets.push(planet(p,i)));
+// tags
+const tags=$('#tags');
+for(const pl of planets){const el=document.createElement('div');el.className='tag'+(pl.p.me?' me':'');el.dataset.id=pl.p.id;
+  el.innerHTML=pl.p.me?`<b>나 · 내 정원</b><small>${shareText()}</small>`:`<b>${pl.p.name}</b><small class="mono">적중 ${pl.p.hit}%</small>`;
+  el.onclick=()=>visit(pl.p.id);tags.appendChild(el);pl.tag=el}
+function shareText(){return {off:'비공개 · 아무도 못 봐',hide:'종목 이름 가림',open:'종목 공개'}[share]}
+// ---- camera: start close on my garden and pull back to the sky; fly to a visited planet
+let target=null,yaw=0,pitch=.12,dist=58,want={yaw:0,pitch:.12,dist:58,look:new THREE.Vector3(0,0,-4)},look=new THREE.Vector3(0,-2,0);
+let t0=performance.now(),intro=true;
+const ease=t=>1-Math.pow(1-t,3);
+let portrait=false;
+function size(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();portrait=w<h;want.dist=portrait?62:46;want.look.set(0,portrait?1:0,-4)}
+addEventListener('resize',size);size();
+let drag=null;stage.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,yaw:want.yaw,pitch:want.pitch}});
+addEventListener('pointerup',()=>drag=null);addEventListener('pointermove',e=>{if(!drag||target)return;want.yaw=drag.yaw-(e.clientX-drag.x)*.005;want.pitch=Math.max(-.2,Math.min(.9,drag.pitch+(e.clientY-drag.y)*.004))});
+function frame(now){
+  const t=(now-t0)/1000;
+  // planets drift on their orbits and turn slowly
+  for(const pl of planets){pl.grp.rotation.y+=pl.p.me?.0015:.003;const s=portrait?.72:1.3;pl.grp.position.set(pl.base.x*s+(pl.p.me?0:Math.sin(t*.3+pl.a)*.4),pl.base.y*(portrait?1.05:.8)+Math.sin(t*.6+pl.a*3)*.35,pl.base.z)}
+  let d=want.dist,l=want.look;
+  if(intro){const k=Math.min(1,(now-t0)/1800);d=8+(want.dist-8)*ease(k);if(k>=1)intro=false}
+  if(target){const pl=planets.find(x=>x.p.id===target);l=pl.grp.position.clone().add(new THREE.Vector3(0,portrait?-pl.R*1.1:0,0));d=pl.R*(portrait?6:4.6)}
+  yaw+=(want.yaw-yaw)*.08;pitch+=(want.pitch-pitch)*.08;look.lerp(intro?planets[0].grp.position:l,.08);
+  const cd=intro?d:(dist+=(d-dist)*.07);
+  cam.position.set(look.x+Math.sin(yaw)*Math.cos(pitch)*cd,look.y+Math.sin(pitch)*cd+(intro?2:0),look.z+Math.cos(yaw)*Math.cos(pitch)*cd);cam.lookAt(look);
+  renderer.render(scene,cam);
+  const W=stage.clientWidth,H=stage.clientHeight;
+  for(const pl of planets){const v=pl.grp.position.clone().add(new THREE.Vector3(0,pl.R*1.15,0)).project(cam);const el=pl.tag;
+    el.style.left=(v.x*.5+.5)*W+'px';el.style.top=(-v.y*.5+.5)*H+'px';const dd=cam.position.distanceTo(pl.grp.position);el.style.scale=pl.p.me?1:Math.max(.72,Math.min(1,55/dd));el.style.zIndex=String(Math.round(200-dd));el.classList.toggle('dim',v.z>1||intro&&!pl.p.me||(target&&target!==pl.p.id)||(target===pl.p.id))}
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+// ---- visit sheet
+function visit(id){
+  const p=PEOPLE.find(x=>x.id===id);if(p.me){openPrivacy();return}
+  target=id;$('#hint').hidden=true;$('#privacy').classList.remove('on');
+  const shown=p.open?p.names:null;
+  $('#visitBody').innerHTML=`<div class="name"><span class="avatar" style="--c:${p.color}"></span><div><span class="seal">${p.rank}</span><span class="who">${p.name}</span><span class="habit">${p.habit}</span></div></div>
+    <div class="grid"><div><span>판정 적중</span><b>${p.hit}<small style="font-size:12px">%</small></b></div><div><span>확신 보정</span><b>${p.calib}</b></div><div><span>원정 최고</span><b>${p.best>0?'+':''}${p.best}</b></div><div><span>도장</span><b>${p.stamps}<small style="font-size:12px">/15</small></b></div></div>
+    <div class="sec"><span>정원 · 나무 ${p.trees.length}그루</span><span class="note">${p.open?'이 사람은 종목 이름을 공개했어':'종목 이름은 가려 뒀어 · 업종만'}</span></div>
+    <div class="trees">${p.trees.map((s,k)=>`<div class="tree" style="--c:${STATE[s][0]}"><i></i><span>${shown?`<b style="font-family:'Gowun Batang',serif">${shown[k]}</b> · `:'<span class="ink"></span>'}${p.sectors[k]}</span><small>${STATE[s][1]}</small></div>`).join('')}</div>
+    <div class="sec"><span>도장첩</span></div>
+    <div class="stamps">${['첫','적','겸','열','원','칩','4주','보'].map((c,k)=>`<span class="stamp${k<Math.min(8,Math.round(p.stamps/2))?'':' off'}">${c}</span>`).join('')}</div>
+    <p class="note">금액·수량·수익률·판단 메모는 누구에게도 안 보여. 보이는 건 나무 상태와 판단의 질뿐이야.</p>
+    <div class="row cheer"><button class="btn ghost" onclick="window.__back()">하늘로</button><button class="btn" id="cheer">응원 도장 남기기</button></div>`;
+  $('#visit').classList.add('on');
+  $('#cheer').onclick=e=>{const b=e.currentTarget;if(b.dataset.done)return;b.dataset.done=1;b.textContent='응원 도장 남김';const s=document.createElement('span');s.className='pop';s.textContent='응';b.parentElement.appendChild(s)};
+}
+window.__back=()=>{target=null;$('#visit').classList.remove('on');$('#hint').hidden=false};
+// ---- privacy sheet
+function openPrivacy(){
+  target=null;$('#visit').classList.remove('on');$('#hint').hidden=true;
+  const opt=(k,t,d)=>`<button class="opt" data-k="${k}" aria-pressed="${share===k}"><span class="dot"></span><strong>${t}</strong><small>${d}</small></button>`;
+  $('#privacyBody').innerHTML=`<div class="kick">내 공개 범위</div><div class="title">다른 사람에게 보이는 내 정원</div>
+    <div class="opts">${opt('off','비공개','하늘에 내 행성이 안 떠. 리그 순위엔 이름만 남아.')}${opt('hide','이름 가림 (기본)','나무 상태와 업종, 판단 점수, 칭호, 도장이 보여. 종목 이름은 가려.')}${opt('open','종목 공개','위에 더해 종목 이름까지 보여.')}</div>
+    <div class="sec"><span>어떤 경우에도 안 보이는 것</span></div>
+    <div class="never"><span>금액</span><span>수량</span><span>수익률</span><span>판단 메모</span><span>캡처한 화면</span></div>
+    <div class="sec"><span>다른 사람 눈에는 이렇게</span></div>
+    <div class="preview" id="pv"></div>
+    <button class="btn" onclick="window.__back();document.getElementById('privacy').classList.remove('on')">하늘로</button>`;
+  const pv=()=>{$('#pv').innerHTML=share==='off'?'<p class="note">하늘에 내 행성이 없어.</p>':`<div class="tag"><span class="rank">관찰자 3급</span><b>${'나'}</b><small class="mono">적중 61% · 원정 +40</small></div><div class="note">${share==='open'?'나무 7그루 · 종목 이름 공개':'나무 7그루 · 업종만 · 이름 가림'}</div>`;
+    $('#shareLabel').textContent={off:'비공개',hide:'이름 가림',open:'종목 공개'}[share];const me=planets[0].tag.querySelector('small');if(me)me.textContent=shareText()};
+  pv();$('#privacyBody').querySelectorAll('.opt').forEach(b=>b.onclick=()=>{share=b.dataset.k;$('#privacyBody').querySelectorAll('.opt').forEach(x=>x.setAttribute('aria-pressed',x===b));pv()});
+  $('#privacy').classList.add('on');
+}
+$('#share').onclick=openPrivacy;
+// ---- controls for the mockup
+const go=s=>{$('#ctl').querySelectorAll('[data-s]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.s==s));
+  if(s==1){window.__back();$('#privacy').classList.remove('on');t0=performance.now();intro=true}
+  if(s==2)visit('b');if(s==3)openPrivacy();const u=new URL(location);u.searchParams.set('scene',s);history.replaceState(null,'',u)};
+$('#ctl').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.r!==undefined){go(+(P.get('scene')||1));return}go(+b.dataset.s)};
+go(+(P.get('scene')||1));if(P.get('scene')==='2')setTimeout(()=>visit('b'),1900);
+</script>
+</body>
+</html>

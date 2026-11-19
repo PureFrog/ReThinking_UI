@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>퀘스트 일지 목업</title>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&family=Jua&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* Mockup (2026-11-17, docs/quest-journal.md): the journal written by answering one question at a time, each brought by
+   the character whose job it is. Garden capture + our glass panels; faces are the real 3D renders. */
+:root{--ink:#22281f;--sub:#4c5447;--mute:#5e665a;--line:#22281f14;--green:#3f9e3a;--seal:#2f8a3a;--up:#c8382c;--down:#2357c2;--coin:#c98a16}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#1b1d1a;font-family:'Gowun Dodum',sans-serif;color:var(--ink)}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+.mono{font-family:'IBM Plex Mono',monospace}
+section{max-width:1340px;margin:0 auto;padding:30px 16px 10px}
+section>h2{color:#e9e5da;font-family:'Gowun Batang',serif;font-size:22px;margin-bottom:6px}
+section>p{color:#b9b3a4;font-size:14px;line-height:1.6;max-width:860px;margin-bottom:16px}
+.page{display:flex;gap:34px;justify-content:center;flex-wrap:wrap}
+.col{display:grid;gap:12px;justify-items:center;align-content:start}
+.col h1{color:#e9e5da;font-family:'Gowun Batang',serif;font-size:18px}
+.col p.why{color:#a9a395;font-size:12.5px;line-height:1.55;width:390px}
+.dev{position:relative;width:390px;height:844px;border-radius:28px;overflow:hidden;box-shadow:0 0 0 9px #0b0a09,0 30px 80px #000a;background:#7a9a5a}
+.bg{position:absolute;inset:0;background:url(home/bg-portrait.png) center/cover}
+.dim{position:absolute;inset:0;background:#10200d1f}
+.glass{background:#ffffffe0;border:1px solid #ffffffc2;backdrop-filter:blur(16px) saturate(1.25);box-shadow:inset 0 1px 0 #ffffffcc,0 18px 40px -20px #10200d80}
+.top{position:absolute;left:12px;right:12px;top:12px;display:flex;justify-content:space-between;z-index:3}
+.pill{display:flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:14px;font-size:12.5px}
+.coin{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe9a8,#e0a72a 60%,#a8740f);color:#7a5208;font:700 10px 'IBM Plex Mono'}
+.face{width:44px;height:44px;border-radius:50%;background:#f4efe3 center/cover;border:2px solid #fff;box-shadow:0 2px 8px #10200d33;flex:none}
+.face.s{width:26px;height:26px;border-width:1.5px}
+.f-bori{background-image:url(/models/analysts/faces/bori.png)}.f-tori{background-image:url(/models/analysts/faces/tori.png)}
+.f-moa{background-image:url(/models/analysts/faces/moa.png)}.f-luon{background-image:url(/models/analysts/faces/luon.png)}
+.card{position:absolute;left:10px;right:10px;border-radius:20px;padding:12px 14px;z-index:4}
+.kicker{font-size:11.5px;color:var(--mute)}
+.title{font-family:'Gowun Batang',serif;font-weight:700;font-size:19px;margin:2px 0 8px}
+.q{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px dotted #c9bb98}
+.q:first-of-type{border-top:0}
+.q strong{font-size:14px;display:block}.q small{font-size:11.5px;color:var(--mute)}
+.q .r{margin-left:auto;font-family:'Jua';font-size:13px;display:flex;align-items:center;gap:4px}
+.q.done strong{color:var(--mute);text-decoration:line-through}
+.q.done .r{color:var(--seal)}
+.go{padding:7px 12px;border-radius:12px;background:linear-gradient(180deg,#5fbf52,#3f9e3a);color:#fff;font-family:'Jua';font-size:13px;box-shadow:inset 0 -3px 0 #2d7a2c}
+.bar{height:6px;border-radius:3px;background:#22281f14;overflow:hidden;margin-top:6px}.bar i{display:block;height:100%;background:var(--green)}
+/* the character's question */
+.say{position:absolute;left:12px;right:12px;bottom:12px;border-radius:22px;padding:14px;z-index:5}
+.who{display:flex;align-items:center;gap:10px}
+.who b{font-family:'Jua';font-weight:400;font-size:15px}.who small{font-size:11.5px;color:var(--mute);display:block}
+.line{font-family:'Gowun Batang',serif;font-size:18px;font-weight:700;line-height:1.45;margin:10px 2px 12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:10px 14px;border-radius:14px;background:#fff;border:1px solid #22281f22;font-family:'Jua';font-size:15px}
+.chip.on{background:#22281f;color:#fff;border-color:#22281f}
+.chip.up{color:var(--up)}.chip.down{color:var(--down)}
+.chip.on.up{background:var(--up);color:#fff;border-color:var(--up)}.chip.on.down{background:var(--down);color:#fff;border-color:var(--down)}
+.sub{font-size:12px;color:var(--mute);margin:12px 2px 6px}
+.steps{display:flex;gap:4px;margin:2px 0 10px}.steps i{flex:1;height:4px;border-radius:2px;background:#22281f1a}.steps i.on{background:var(--green)}
+.spark{display:block;width:100%;height:84px;border-radius:12px;background:#fffdf7;border:1px solid var(--line);margin-bottom:10px}
+.foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:12px;color:var(--mute)}
+.bubble{position:absolute;z-index:3;padding:8px 12px;border-radius:14px;font-size:13px;transform:translate(-50%,-100%)}
+.bubble:after{content:'';position:absolute;left:50%;bottom:-6px;width:12px;height:12px;background:inherit;transform:translateX(-50%) rotate(45deg);border-right:1px solid #ffffffc2;border-bottom:1px solid #ffffffc2}
+/* the journal page */
+.sheet{position:absolute;left:8px;right:8px;top:70px;bottom:12px;border-radius:22px;padding:16px;z-index:4;overflow:hidden}
+.row{display:grid;grid-template-columns:26px 74px 1fr;gap:8px;align-items:center;padding:9px 0;border-top:1px dotted #c9bb98;font-size:14px}
+.row .k{font-size:12px;color:var(--mute)}
+.row .v b{font-weight:700}
+.row.empty .v{color:#9a9a8c}
+.cap{margin-top:12px;border-radius:14px;padding:12px;background:#fff8ec;border:1px solid #e5d3b2;display:flex;gap:10px;align-items:center;font-size:13px}
+.cap b{font-family:'Jua';font-weight:400;font-size:15px;display:block}
+.toast{position:absolute;left:50%;top:22px;transform:translateX(-50%);z-index:6;padding:8px 14px;border-radius:999px;background:#22281fe6;color:#fff;font-size:13px;white-space:nowrap}
+</style>
+</head>
+<body>
+<section>
+  <h2>퀘스트 일지 — 화면 셋</h2>
+  <p>일지 칸을 직접 채우지 않는다. 캐릭터가 질문 하나를 들고 오고, 답하면 그 칸이 채워진다. 보리 듣는다 · 토리 확인한다 · 모아 알려준다 · 루온 반박한다. 설계는 <code>docs/quest-journal.md</code>.</p>
+  <div class="page">
+
+  <!-- 1. the day's three -->
+  <div class="col">
+    <h1>① 오늘의 퀘스트 3개</h1>
+    <p class="why">정원 위 카드 하나. 출석(보리 1탭) · 오늘의 퀴즈(O/X) · 내 나무 한 그루. 셋이 끝이고 더 늘지 않는다. 누르면 그 캐릭터가 걸어와서 말을 건다.</p>
+    <div class="dev"><div class="bg"></div><div class="dim"></div>
+      <div class="top"><div class="pill glass">오늘 시장 <b>흐림</b></div><div class="pill glass"><span class="coin">C</span><b class="mono">14</b></div></div>
+      <div class="bubble glass" style="left:120px;top:330px">오늘 기분 어때?</div>
+      <div class="card glass" style="bottom:12px">
+        <div class="kicker">오늘의 퀘스트 · 11월 17일</div>
+        <div class="title">2개 남았어요</div>
+        <div class="q done"><span class="face s f-bori"></span><div><strong>출석 · 오늘의 나</strong><small>차분함</small></div><span class="r">완료 <span class="coin">C</span>2</span></div>
+        <div class="q"><span class="face s f-moa"></span><div><strong>오늘의 퀴즈</strong><small>이런 일이 있었을까요? O/X 한 문제</small></div><button class="go r">풀기</button></div>
+        <div class="q"><span class="face s f-tori"></span><div><strong>삼성전자 나무</strong><small>신호가 떴어요 · 질문 6개 중 2개 답함</small><div class="bar"><i style="width:33%"></i></div></div><button class="go r">이어서</button></div>
+        <div class="foot"><span>셋 다 하면 <span class="coin">C</span>+3 · 출석 4/5일 → 씨앗 1</span><span>안 와도 정원은 안 시들어요</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. one question -->
+  <div class="col">
+    <h1>② 질문 하나 (모아 · 한 달 뒤)</h1>
+    <p class="why">종목 퀘스트 6단계 중 3번째. 모아가 차트 한 장을 보여 주고 묻는다. 고르기만 하면 다음 사람(보리 "왜")이 이어 온다. 여기서 고른 방향과 기간이 30일 뒤 채점된다.</p>
+    <div class="dev"><div class="bg"></div><div class="dim"></div>
+      <div class="top"><div class="pill glass">오늘 시장 <b>흐림</b></div><div class="pill glass"><span class="coin">C</span><b class="mono">14</b></div></div>
+      <div class="say glass">
+        <div class="steps"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div>
+        <div class="who"><span class="face f-moa"></span><div><b>모아 · 알려준다</b><small>삼성전자 · 실제 시세 11/16 종가</small></div></div>
+        <svg class="spark" viewBox="0 0 340 84" preserveAspectRatio="none" aria-hidden="true">
+          <polyline fill="none" stroke="#9aa494" stroke-width="1" stroke-dasharray="3 3" points="0,30 340,30"/>
+          <polyline fill="none" stroke="#2357c2" stroke-width="2.5" points="0,22 30,18 60,26 90,20 120,28 150,34 180,31 210,42 240,47 270,45 300,58 340,64"/>
+          <circle cx="340" cy="64" r="4" fill="#2357c2"/><text x="6" y="78" font-size="10" fill="#5e665a">산 날 8/18</text><text x="276" y="78" font-size="10" fill="#5e665a">-27%</text>
+        </svg>
+        <div class="line">어, 20일선 밑에서 13일째야. 한 달 뒤엔 어떨 것 같아?</div>
+        <div class="chips"><button class="chip up">오를 것 같아</button><button class="chip on down">내릴 것 같아</button><button class="chip">모르겠어</button></div>
+        <div class="sub">언제까지 볼래?</div>
+        <div class="chips"><button class="chip on">1개월</button><button class="chip">3개월</button><button class="chip">6개월</button></div>
+        <div class="foot"><span>예측이 아니라 네 생각을 적는 거야</span><button class="go">다음 · 보리</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. the journal it made -->
+  <div class="col">
+    <h1>③ 저절로 된 일지 한 편</h1>
+    <p class="why">답이 모이면 일지 한 편. 줄마다 누가 물었는지 얼굴이 붙는다. 가설과 이유까지만 해도 저장되고, 빈 칸은 다음에 그 나무에 오면 그 칸부터 이어진다. 처음 저장하면 일지 탭이 열린다.</p>
+    <div class="dev"><div class="bg"></div><div class="dim"></div>
+      <div class="toast">일지 책장이 열렸어요</div>
+      <div class="sheet glass">
+        <div class="kicker">일지 · 11월 17일 · 퀘스트로 씀</div>
+        <div class="title">삼성전자</div>
+        <div class="row"><span class="face s f-bori"></span><span class="k">오늘의 나</span><span class="v">차분함</span></div>
+        <div class="row"><span class="face s f-tori"></span><span class="k">이해</span><span class="v">퀴즈 맞힘 · <b>일부 이해</b></span></div>
+        <div class="row"><span class="face s f-tori"></span><span class="k">한 일</span><span class="v"><b>보유</b></span></div>
+        <div class="row"><span class="face s f-moa"></span><span class="k">가설</span><span class="v">한 달 안에 <b style="color:var(--down)">내릴</b> 것 같다</span></div>
+        <div class="row"><span class="face s f-bori"></span><span class="k">이유</span><span class="v">"HBM 납품이 생각보다 늦어지는 것 같아서"</span></div>
+        <div class="row"><span class="face s f-luon"></span><span class="k">틀리면</span><span class="v">실적 발표 때 다시 본다</span></div>
+        <div class="row empty"><span class="face s f-luon"></span><span class="k">확신</span><span class="v">다음에 루온이 물어볼게</span></div>
+        <div class="cap"><span class="face f-luon"></span><div><b>12월 17일에 채점</b>그때 네가 쓴 이 문장도 같이 꺼내 줄게.</div></div>
+        <div class="foot"><span>자세히 쓰기(4쪽)는 일지 탭에서</span><span><span class="coin">C</span>+2</span></div>
+      </div>
+    </div>
+  </div>
+  </div>
+</section>
+<div style="height:40px"></div>
+</body>
+</html>
