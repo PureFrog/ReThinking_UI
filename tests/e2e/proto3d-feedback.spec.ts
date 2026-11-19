@@ -44,7 +44,8 @@ test("apple trees, and a wider garden to walk", async ({ page }) => {
   await expect.poll(() => page.evaluate(() => !!(window as unknown as { __proto3d?: { ready?: boolean } }).__proto3d?.ready), { timeout: 60_000 }).toBe(true);
   await expect.poll(() => page.evaluate(() => (window as unknown as { __proto3d?: { fruit?: number } }).__proto3d?.fruit ?? 0), { timeout: 30_000 }).toBeGreaterThan(0);
   await page.locator(".proto3d-map").first().click();
-  await page.getByRole("button", { name: "사례 서고" }).click();
-  await expect.poll(() => page.evaluate(() => (window as unknown as { __proto3d?: { player?: { z: number } } }).__proto3d?.player?.z ?? 0), { timeout: 30_000 }).toBeLessThan(-19);
+  // (the 사례 서고 moved next to the cottage on 2026-11-18, so the far end of the walk is the 리그 광장 now)
+  await page.getByRole("button", { name: "리그 광장" }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __proto3d?: { player?: { z: number } } }).__proto3d?.player?.z ?? 0), { timeout: 30_000 }).toBeGreaterThan(22);
   expect(errors).toEqual([]);
 });
