@@ -15,7 +15,7 @@ export type Spot={id:string;x:number;z:number;act:Act;face:number/* radians, whi
 export const ROUTINE={swapMinutes:4/* how often they move between their spots */,meetEvery:3/* one swap in this many brings two to the same spot */};
 // each analyst's own places (x,z in garden coordinates, app/proto3d/places.ts): what they do there says who they are
 const SPOTS0:Record<Who,Spot[]>={
-  tori:[{id:'library',x:2.6,z:-13.4,act:'read',face:Math.PI},{id:'desk-log',x:-2.2,z:-2.4,act:'read',face:0.6},{id:'farm-edge',x:1.4,z:-0.6,act:'note',face:-1.2}],
+  tori:[{id:'library',x:1.2,z:-10.1,act:'read',face:Math.PI}/* by the 서고 shelf beside the cottage (2026-11-18) */,{id:'desk-log',x:-2.2,z:-2.4,act:'read',face:0.6},{id:'farm-edge',x:1.4,z:-0.6,act:'note',face:-1.2}],
   moa:[{id:'scope',x:-7.2,z:3.2,act:'scope',face:2.4},{id:'orchard',x:9,z:0.6,act:'look',face:-1.6},{id:'pond',x:2.8,z:6.4,act:'look',face:0.4}],
   luon:[{id:'board',x:-2,z:18.2,act:'board',face:Math.PI},{id:'fire',x:-1,z:-2.9,act:'arms',face:0.3},{id:'bridge',x:-0.6,z:11.2,act:'arms',face:-0.6}],
 };

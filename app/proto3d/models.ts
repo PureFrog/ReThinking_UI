@@ -25,9 +25,11 @@ export const ALL_TREE_FILES=[...GROWTHS.flatMap(g=>Array.from({length:TREE_VARIA
 export const CANOPY:Record<Condition,{leaf:string;keep:number;blossom:boolean;falling:number;fallColor:string;droop:number;fruit:number;fallen:boolean}>={
   bloom:{leaf:'#5db04a',keep:1,blossom:true,falling:5,fallColor:'#ffd3df',droop:0,fruit:1,fallen:false},
   well:{leaf:'#4d9d45',keep:1,blossom:false,falling:0,fallColor:'#4d9d45',droop:0,fruit:1,fallen:false},
-  dull:{leaf:'#a9b14c',keep:1,blossom:false,falling:2,fallColor:'#c8b44e',droop:0,fruit:0.35,fallen:false},
-  wilt:{leaf:'#bc9c58',keep:0.6,blossom:false,falling:6,fallColor:'#c9944a',droop:0.06,fruit:0.12,fallen:true},
-  rot:{leaf:'#7d6b4d',keep:0.4,blossom:false,falling:4,fallColor:'#7a5f3e',droop:0.14,fruit:0,fallen:true},
+  // 2026-11-18 (user): a losing stock still looks like a round green fruit tree (it used to go a brown lump); the signal is
+  // fewer apples, apples on the ground and a slightly yellower green
+  dull:{leaf:'#5aa446',keep:1,blossom:false,falling:1,fallColor:'#8fb04a',droop:0,fruit:0.35,fallen:false},
+  wilt:{leaf:'#68a445',keep:0.9,blossom:false,falling:2,fallColor:'#a3ad4c',droop:0.03,fruit:0.12,fallen:true},
+  rot:{leaf:'#77a246',keep:0.8,blossom:false,falling:2,fallColor:'#ada24e',droop:0.05,fruit:0,fallen:true},
   dead:{leaf:'#7d6b4d',keep:0,blossom:false,falling:0,fallColor:'#7d6b4d',droop:0,fruit:0,fallen:false},
 };
 export const BARK='#6c5b53';

@@ -18,13 +18,15 @@ export const southOfStream=(x:number,z:number)=>z>streamZ(x);
 // named places: where they stand (x,z,rot) and where the player stops to use them (walk)
 export type PlaceId='home'|'farm'|'orchard'|'library'|'plaza'|'observatory'|'cart'|'pond';
 const PLACES0:{id:PlaceId;label:string;x:number;z:number;rot:number;walk:{x:number;z:number}}[]=[
-  {id:'home',label:'집',x:-5.5,z:-3,rot:0.5,walk:{x:-4.3,z:-0.8}},
+  // 2026-11-18 (user): the house is a cottage at the end of a straight stone path north from the middle, past the campfire (door 2.9 in front);
+  // the 서고 is a bookshelf with a sign beside it, tapped from outside; the 꽃집 took the old house's grass
+  {id:'home',label:'집',x:0,z:-10.5,rot:0,walk:{x:0,z:-7.6}},
   {id:'farm',label:'밭',x:4.6,z:1,rot:0,walk:{x:3.2,z:3}},
   {id:'orchard',label:'과수원',x:12.2,z:1.4,rot:0,walk:{x:8.8,z:1.2}},
-  {id:'library',label:'사례 서고',x:1,z:-16.5,rot:0,walk:{x:1,z:-13.6}},
+  {id:'library',label:'사례 서고',x:2.571,z:-10.071,rot:0,walk:{x:2.571,z:-8.571}},
   {id:'plaza',label:'리그 광장',x:-2,z:19.6,rot:0,walk:{x:-2,z:17.4}},
   {id:'observatory',label:'관측소',x:-9,z:1.2,rot:1.25,walk:{x:-7,z:1.8}},
-  {id:'cart',label:'꽃집',x:-3.6,z:5.3,rot:0.5,walk:{x:-2.6,z:6}},
+  {id:'cart',label:'꽃집',x:-4.5,z:-1.5,rot:0.5,walk:{x:-3.5,z:-0.8}},
   {id:'pond',label:'연못',x:0.5,z:8,rot:0,walk:{x:2.0,z:5.4}},// walk: by 나루 the otter (fishing)
 ];
 // each place moves out with its walk point (the spot in front of it keeps its distance)
@@ -32,7 +34,7 @@ export const PLACES=PLACES0.map(p=>{const dx=(SPREAD-1)*p.x,dz=(SPREAD-1)*p.z;re
 export const place=(id:PlaceId)=>PLACES.find(p=>p.id===id)!;
 // solid footprints the player walks around, not through (2026-11-16 "캐릭터가 건물을 통과"): circles on the ground.
 // Each place's walk point stays outside its circle. Bought buildings and landmarks join when they stand.
-const SOLID_R:Partial<Record<PlaceId,number>>={home:2.1,library:2.4,observatory:1.5,cart:0.8};
+const SOLID_R:Partial<Record<PlaceId,number>>={home:2.4,library:0.8,observatory:1.5,cart:0.8};
 const BUILDING_R:Record<string,number>={greenhouse:1.7,silo:1.3,windmill:1.4};
 export type Solid={x:number;z:number;r:number};
 export function solids(built:Built|null|undefined):Solid[]{
@@ -55,7 +57,11 @@ const PATHS0:[number,number][][]=[
   [[-1.4,1.4],[-4.4,1.6],[-7,1.8]],
 ];
 // the ends meet the places' walk points (moved with them), the stones between spread evenly
-export const PATHS:[number,number][][]=PATHS0.map(l=>l.map(([x,z],i)=>i===0||i===l.length-1?spread(x,z):[x*SPREAD,z*SPREAD] as [number,number]));
+const PATHS1:[number,number][][]=PATHS0.map(l=>l.map(([x,z],i)=>i===0||i===l.length-1?spread(x,z):[x*SPREAD,z*SPREAD] as [number,number]));
+// 2026-11-18: the north path runs straight from the middle (past the campfire) to the cottage's door (spread coordinates)
+const HOME_WALK=PLACES.find(p=>p.id==='home')!.walk;
+PATHS1[0]=[[HOME_WALK.x,PATHS1[0][0][1]],[HOME_WALK.x,HOME_WALK.z]];
+export const PATHS:[number,number][][]=PATHS1;
 // Where the player walks when tapping (x,z): clamped to the edge, never into the water; across the stream only by
 // the bridge (the walk goes to its near end, over, then on). Returns the stops in order, or null if it cannot go.
 export function route(from:{x:number;z:number},to:{x:number;z:number},inPond:(x:number,z:number)=>boolean):{x:number;z:number}[]|null{

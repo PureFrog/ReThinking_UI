@@ -17,7 +17,8 @@ test('an anchor moves SPREAD times out; a point beside it keeps its offset', () 
 test('places are farther apart than before, and each walk point stays the same step in front of its place', () => {
   const home=P.place('home'),farm=P.place('farm');
   assert.ok(Math.hypot(home.x-farm.x,home.z-farm.z)>13);// was ~10.6
-  assert.ok(Math.abs((home.walk.x-home.x)-1.2)<1e-9&&Math.abs((home.walk.z-home.z)-2.2)<1e-9);
+  // 2026-11-18: the house stands where the 사례 서고 building was (places.ts), its walk point 2.9 in front of the door
+  assert.ok(Math.abs(home.walk.x-home.x)<1e-9&&Math.abs((home.walk.z-home.z)-2.9)<1e-9);
   for(const p of P.PLACES)assert.ok(Math.hypot(p.walk.x,p.walk.z)<P.WORLD.walk,p.id);
 });
 

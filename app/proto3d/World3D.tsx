@@ -62,7 +62,8 @@ export function Forest(){
   const trunks=useRef<THREE.InstancedMesh>(null),crowns=useRef<THREE.InstancedMesh>(null),spires=useRef<THREE.InstancedMesh>(null);
   const trees=useMemo(()=>{const r=rng(91),out:{x:number;z:number;s:number;spire:boolean}[]=[];let guard=0;
     while(out.length<M().forest&&guard++<2000){const a=r()*Math.PI*2,d=WORLD.walk+2.5+r()*8,x=Math.cos(a)*d,z=Math.sin(a)*d;
-      if(out.some(t=>Math.hypot(t.x-x,t.z-z)<2.2))continue;out.push({x,z,s:0.9+r()*0.7,spire:r()<0.4})}return out},[]);
+      // 2026-11-18 (user): the edge is all plain round trees, no teal capsule cypresses (the draw from r() stays so the spots don't move)
+      if(out.some(t=>Math.hypot(t.x-x,t.z-z)<2.2))continue;const s=0.9+r()*0.7;r();out.push({x,z,s,spire:false})}return out},[]);
   const round=trees.filter(t=>!t.spire),spire=trees.filter(t=>t.spire);
   useLayoutEffect(()=>{const o=new THREE.Object3D(),c=new THREE.Color(),place=(t:{x:number;z:number},lift:number,sx:number,sy:number,sz=sx)=>{
       const q=tiltAt(t.x,t.z),up=new THREE.Vector3(0,lift,0).applyQuaternion(q);o.position.set(t.x,surfaceY(t.x,t.z),t.z).add(up);o.quaternion.copy(q);o.scale.set(sx,sy,sz);o.updateMatrix()};
@@ -80,28 +81,41 @@ export function Forest(){
   </group>;
 }
 
-// 사례 서고: the case library at the end of the north path. Stone walls, a steep roof, lit windows, a book on its sign.
+// one plain round tree, the same shape as the forest's (2026-11-18 user: the trees outside the fence are all plain trees,
+// so the fruit trees in the fence are the stock ones). Used for the garden's starter trees (Scene3D starter()).
+export function PlainTree({x,z,s=0.65}:{x:number;z:number;s?:number}){
+  const yaw=(x*928.37+z*311.1)%(Math.PI*2);
+  return <OnGround x={x} z={z}><group rotation-y={yaw} scale={s} name="plain-tree">
+    <mesh position-y={1.5} scale={[0.4,3,0.4]} castShadow><cylinderGeometry args={[0.7,1,1,8]}/>{S('#6c5b53')}</mesh>
+    {([[0,4.2,0,1.9,'#6db24f'],[1.1,3.6,0.4,1.4,'#4f9a45'],[-1,3.7,-0.3,1.5,'#4f9a45']] as const).map(([px,py,pz,r,c],i)=>
+      <mesh key={i} position={[px,py,pz]} scale={r} castShadow receiveShadow><sphereGeometry args={[1,16,12]}/>{S(c)}</mesh>)}
+  </group></OnGround>;
+}
+
+// 사례 서고 (2026-11-18 user: the house took its building's place): a small outdoor bookshelf beside the cottage with a
+// little roof, coloured books, a lantern (bright when today's case is waiting) and the open-book sign on a post
+const BOOKS=['#b8372b','#3f6fa8','#d9a441','#4f8a5b','#7a4f8f','#c46a3a','#2f5e6e','#a8413f'];
 export function Library({onPick,open}:{onPick:()=>void;open:boolean}){
   const p=PLACES.find(x=>x.id==='library')!;
   return <OnGround x={p.x} z={p.z} rot={p.rot}><group onClick={click(onPick)} name="library">
-    <mesh position-y={0.08} receiveShadow><boxGeometry args={[5.6,0.16,4.4]}/>{S('#cfc4b2')}</mesh>
-    <mesh position-y={1.45} castShadow receiveShadow><boxGeometry args={[4.6,2.6,3.4]}/>{S('#e3d8c6')}</mesh>
-    {/* the roof: a long triangular prism */}
-    <mesh position-y={3.35} rotation={[0,0,Math.PI/2]} scale={[1.3,1,1]} castShadow><cylinderGeometry args={[1.25,1.25,5.2,3]}/>{S('#7c4b3b')}</mesh>
-    <mesh position={[0,3.1,0]} rotation-y={Math.PI/2} castShadow><boxGeometry args={[3.7,0.1,0.1]}/>{S('#5d382c')}</mesh>
-    {/* door with a warm light (brighter when today's case is waiting), steps, windows */}
-    <mesh position={[0,1,1.72]}><boxGeometry args={[1.1,1.9,0.08]}/>{S('#5b3d2e')}</mesh>
-    <mesh position={[0,1,1.77]}><planeGeometry args={[0.8,1.6]}/><meshStandardMaterial color="#ffd894" emissive="#ffb347" emissiveIntensity={open?1.3:0.35} toneMapped={false}/></mesh>
-    {[0,1].map(i=><mesh key={i} position={[0,0.12+i*0.12,2+i*-0.18]} receiveShadow><boxGeometry args={[1.6-i*0.3,0.12,0.5]}/>{S('#bdb2a0')}</mesh>)}
-    {[-1.6,1.6].map(x=><group key={x}>{[0.95,2].map(y=><mesh key={y} position={[x,y,1.72]}><planeGeometry args={[0.7,0.62]}/><meshStandardMaterial color="#ffe2a8" emissive="#ffb85a" emissiveIntensity={0.8} toneMapped={false}/></mesh>)}</group>)}
+    {/* the shelf: sides, back, three boards and a slanted plank roof */}
+    {[-0.75,0.75].map(x=><mesh key={x} position={[x,0.85,0]} castShadow><boxGeometry args={[0.1,1.7,0.55]}/>{S('#8a5a3e')}</mesh>)}
+    <mesh position={[0,0.85,-0.24]} castShadow receiveShadow><boxGeometry args={[1.5,1.7,0.06]}/>{S('#6b4130')}</mesh>
+    {[0.08,0.62,1.16].map(y=><mesh key={y} position={[0,y,0]} receiveShadow><boxGeometry args={[1.5,0.07,0.55]}/>{S('#9a6b45')}</mesh>)}
+    <mesh position={[0,1.82,0.05]} rotation-x={0.25} castShadow><boxGeometry args={[1.8,0.08,0.85]}/>{S('#a0523a')}</mesh>
+    {/* books on the two upper boards */}
+    {[0.12,0.66].flatMap((y,row)=>Array.from({length:7},(_,i)=>{const h=0.34+((i*7+row*3)%4)*0.04;
+      return <mesh key={row+'-'+i} position={[-0.58+i*0.19,y+0.04+h/2,0.02]} rotation-z={i===5&&row===1?0.25:0} castShadow><boxGeometry args={[0.14,h,0.38]}/>{S(BOOKS[(i+row*3)%BOOKS.length])}</mesh>}))}
+    {/* a lantern on the side */}
+    <mesh position={[-0.86,1.35,0.15]}><sphereGeometry args={[0.12,12,8]}/><meshStandardMaterial color="#ffd894" emissive="#ffb347" emissiveIntensity={open?1.6:0.4} toneMapped={false}/></mesh>
     {/* the sign: an open book on a post */}
-    <group position={[2.9,0,2.3]}>
+    <group position={[1.25,0,0.45]}>
       <mesh position-y={0.8} castShadow><cylinderGeometry args={[0.06,0.07,1.6,8]}/>{S('#6c5b53')}</mesh>
       {[-1,1].map(s=><mesh key={s} position={[s*0.26,1.62,0]} rotation={[-0.3,0,s*0.28]} castShadow><boxGeometry args={[0.5,0.04,0.36]}/>{S('#f4eedf')}</mesh>)}
       <mesh position-y={1.6} rotation-x={-0.3}><boxGeometry args={[0.04,0.08,0.38]}/>{S('#b8372b')}</mesh>
     </group>
-    {/* an easier thing to tap than the walls */}
-    <mesh position-y={1.6} visible={false}><boxGeometry args={[6,3.4,5]}/></mesh>
+    {/* an easier thing to tap than the boards */}
+    <mesh position={[-0.2,1,0.1]} visible={false}><boxGeometry args={[2.8,2.2,1.4]}/></mesh>
   </group></OnGround>;
 }
 

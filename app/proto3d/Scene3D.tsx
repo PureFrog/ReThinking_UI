@@ -34,7 +34,7 @@ import {OnGround,surfaceY,tiltAt,rng,UP} from './ground';
 import {PLOTS,PATHS,PLACES,place,inStream,route,WORLD,solids,pushOut,type Solid} from './places';
 import {spread,spreadXZ} from '../core/world';
 import {SIGN_PLACES,SIGN_BUILDINGS,SIGN_CITY} from './ui/Signs';
-import {Stream,Bridge,Paths,Forest,Library,Plaza} from './World3D';
+import {Stream,Bridge,Paths,Forest,Library,Plaza,PlainTree} from './World3D';
 import {Interior,type Book,type Note} from './Interior3D';
 import {Explorer} from './Explorer3D';
 import {mixHex,type Daylight} from '../core/daylight';
@@ -66,7 +66,7 @@ const FARM=PLOTS;
 // landmarks (R4–R6, Garden3D.tsx; World3D.tsx) and where grass tufts and flowers keep away from
 const SPOTS={observatory:place('observatory'),signpost:spreadXZ({x:-1.9,z:3.5,rot:0.35}),cart:place('cart')};
 const LIB=place('library'),PLAZA=place('plaza');
-const KEEP_CLEAR:[number,number,number][]=[[SPOTS.observatory.x,SPOTS.observatory.z,2.2],[SPOTS.cart.x,SPOTS.cart.z,1.3],[SPOTS.signpost.x,SPOTS.signpost.z,0.6],[LIB.x,LIB.z,3.6],[PLAZA.x,PLAZA.z,3.8],...DECOR_SLOTS.filter(d=>!d.room).map(d=>[d.x,d.z,0.8] as [number,number,number]),
+const KEEP_CLEAR:[number,number,number][]=[[SPOTS.observatory.x,SPOTS.observatory.z,2.2],[SPOTS.cart.x,SPOTS.cart.z,1.3],[SPOTS.signpost.x,SPOTS.signpost.z,0.6],[LIB.x,LIB.z,2.6],[HOUSE.x,HOUSE.z,3.6],[PLAZA.x,PLAZA.z,3.8],...DECOR_SLOTS.filter(d=>!d.room).map(d=>[d.x,d.z,0.8] as [number,number,number]),
   // the building lots and the landmarks' places stay clear of forest and flowers, built or not (core/land.ts)
   ...BUILDINGS.map(b=>[b.at[0],b.at[1],2.2] as [number,number,number]),...CITIES.map(c=>[c.at[0],c.at[1],3.4] as [number,number,number])];
 const clearOf=(x:number,z:number)=>KEEP_CLEAR.some(([cx,cz,r])=>Math.hypot(x-cx,z-cz)<r)||inStream(x,z,0.6)||PATHS.some(l=>l.some(([px,pz])=>Math.hypot(x-px,z-pz)<0.5));
@@ -152,24 +152,37 @@ function Rock({x,z,s=1,rot=0}:{x:number;z:number;s?:number;rot?:number}){
     <sphereGeometry args={[1,24,16]}/><primitive object={soft('#cdbfb0')} attach="material"/></mesh></OnGround>;
 }
 
+// the cottage's roof pieces: a gable pushed front to back, the wall-coloured triangles under it, the porch roof
+const tri=(w:number,h:number)=>{const s=new THREE.Shape();s.moveTo(-w/2,0);s.lineTo(w/2,0);s.lineTo(0,h);s.closePath();return s};
+const prism=(w:number,h:number,d:number)=>{const g=new THREE.ExtrudeGeometry(tri(w,h),{depth:d,bevelEnabled:false});g.translate(0,0,-d/2);return g};
+const COTTAGE_ROOF=prism(4.3,1.9,4.8),COTTAGE_GABLE=new THREE.ShapeGeometry(tri(3.4,1.5)),COTTAGE_PORCH=prism(1.7,0.55,1.1);
 // the house: tapping it (or its door) goes inside (Interior3D.tsx)
 function House({onEnter,night}:{onEnter:()=>void;night:number}){
   const enter=(e:ThreeEvent<MouseEvent>)=>{e.stopPropagation();onEnter()};
+  const M=(c:string)=><primitive object={soft(c)} attach="material"/>;
+  const glow=<meshStandardMaterial color="#ffb24a" emissive="#ff9a2e" emissiveIntensity={1.2+LOOK.daylight.windows*night} toneMapped={false}/>;
+  // 2026-11-18 (user picked 시안 A): a cottage, cream walls and the brown gable roof, chimney, a little porch roof, flower boxes
   return <OnGround x={HOUSE.x} z={HOUSE.z} rot={HOUSE.rot}><group onClick={enter} name="house">
-    <mesh scale={[2.3,2.7,2.2]} position-y={1.9} castShadow receiveShadow><sphereGeometry args={[1,48,32]}/><primitive object={soft('#ebe0d2')} attach="material"/></mesh>
-    {/* the thumb-like stone on top */}
-    <mesh position={[-1,4.1,-0.4]} rotation-z={0.35} castShadow><capsuleGeometry args={[0.55,1.2,8,16]}/><primitive object={soft('#b7a29a')} attach="material"/></mesh>
-    {/* door with a stone frame */}
-    <group position={[0.2,0.75,2.05]} rotation-y={0.05}>
-      <mesh rotation-x={Math.PI/2} castShadow><cylinderGeometry args={[0.85,0.85,0.35,32]}/><primitive object={soft('#a8968e')} attach="material"/></mesh>
-      <mesh position-z={0.18} rotation-x={Math.PI/2}><cylinderGeometry args={[0.6,0.6,0.08,32]}/><primitive object={soft('#7a3f2c')} attach="material"/></mesh>
-    </group>
-    {/* glowing round windows (bloom picks these up) */}
-    {[[1.4,2.4,1.55,0.42],[-1.2,2.7,1.7,0.34]].map(([x,y,z,r],i)=>(
-      <mesh key={i} position={[x,y,z]} rotation-y={Math.atan2(x,z)}><circleGeometry args={[r,24]}/><meshStandardMaterial color="#ffb24a" emissive="#ff9a2e" emissiveIntensity={1.6+LOOK.daylight.windows*night} toneMapped={false}/></mesh>))}
-    {/* speckles */}
-    {Array.from({length:14},(_,i)=>{const a=i*2.39,y=1+((i*37)%25)/10;const rr=2.25*Math.sqrt(Math.max(0.05,1-((y-1.9)/2.7)**2));
-      return <mesh key={'d'+i} position={[Math.sin(a)*rr*1.0,y,Math.cos(a)*rr*0.96]} scale={0.07+((i*13)%5)/60}><sphereGeometry args={[1,8,6]}/><primitive object={soft('#b9a999')} attach="material"/></mesh>})}
+    <mesh position-y={0.09} receiveShadow><boxGeometry args={[5,0.18,4.4]}/>{M('#cfc4b2')}</mesh>
+    <mesh position-y={1.43} castShadow receiveShadow><boxGeometry args={[4.2,2.5,3.4]}/>{M('#f1e6d4')}</mesh>
+    <mesh position-y={2.68} castShadow geometry={COTTAGE_ROOF}>{M('#a0523a')}</mesh>
+    {[-1.71,1.71].map(z=><mesh key={z} position={[0,2.68,z]} rotation-y={z<0?Math.PI:0} geometry={COTTAGE_GABLE}>{M('#f1e6d4')}</mesh>)}
+    <mesh position-y={2.68+1.9} castShadow><boxGeometry args={[0.12,0.14,4.9]}/>{M('#6e3626')}</mesh>
+    {/* chimney */}
+    <mesh position={[1.2,3.6,-0.6]} castShadow><boxGeometry args={[0.6,1.6,0.6]}/>{M('#b9a999')}</mesh>
+    <mesh position={[1.2,4.45,-0.6]} castShadow><boxGeometry args={[0.75,0.15,0.75]}/>{M('#9d8c7d')}</mesh>
+    {/* door, step and the porch roof over it */}
+    <mesh position={[0,0.95,1.72]}><boxGeometry args={[1,1.7,0.1]}/>{M('#6b4130')}</mesh>
+    <mesh position={[0.32,0.95,1.79]}><sphereGeometry args={[0.06,8,6]}/>{M('#e8c35a')}</mesh>
+    <mesh position={[0,0.2,2.15]} receiveShadow><boxGeometry args={[1.8,0.1,1.1]}/>{M('#bdb2a0')}</mesh>
+    <mesh position={[0,1.95,2.05]} castShadow geometry={COTTAGE_PORCH}>{M('#a0523a')}</mesh>
+    {/* glowing windows (bloom picks these up) with flower boxes */}
+    {[-1.35,1.35].map(x=><group key={x}>
+      <mesh position={[x,1.55,1.72]}><boxGeometry args={[0.85,0.75,0.08]}/>{M('#8a5a3e')}</mesh>
+      <mesh position={[x,1.55,1.77]}><planeGeometry args={[0.7,0.6]}/>{glow}</mesh>
+      <mesh position={[x,1.07,1.85]} castShadow><boxGeometry args={[0.95,0.22,0.3]}/>{M('#8a5a3e')}</mesh>
+      {['#e8607a','#ffd34d','#f08aa8'].map((c,i)=><mesh key={c} position={[x-0.3+i*0.3,1.25,1.88]}><sphereGeometry args={[0.13,10,8]}/>{M(c)}</mesh>)}
+    </group>)}
   </group></OnGround>;
 }
 
@@ -193,10 +206,9 @@ function RoundTree({x,z,s=1}:{x:number;z:number;s?:number}){
       <mesh key={i} position={[a*s,b*s,c*s]} scale={r*s} castShadow receiveShadow><sphereGeometry args={[1,20,14]}/><primitive object={soft(i===4?'#6db24f':'#4f9a45')} attach="material"/></mesh>))}
   </OnGround>;
 }
+// 2026-11-18 (user): no teal capsule cypresses any more; the spots where they stood get a plain round tree
 function Cypress({x,z,s=1}:{x:number;z:number;s?:number}){
-  return <OnGround x={x} z={z}>
-    <mesh position-y={2.4*s} castShadow><capsuleGeometry args={[0.85*s,3.2*s,8,16]}/><primitive object={soft('#2e7a6b')} attach="material"/></mesh>
-  </OnGround>;
+  return <RoundTree x={x} z={z} s={s*0.85}/>;
 }
 
 // A holding as a tree: the model comes from Blender (tools/blender/holding_tree.py, listed in models.ts), the growth
@@ -628,7 +640,10 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
       report={reportPoint} reportAnalyst={reportAnalyst}/>:<>
     <Ground onWalk={walk}/>
     {(world.plants??[]).map(p=><Suspense key={p.id} fallback={null}><DecorPlant item={p.item} x={p.x} z={p.z} scale={p.scale}/></Suspense>)}
-    {starter().map(p=><Suspense key={p.id} fallback={null}><DecorPlant item={p.item} x={p.x} z={p.z} scale={['tulips','hydrangea','sunflowers'].includes(p.item)?0.8:0.95}/></Suspense>)}
+    {/* the starter trees are plain round trees (2026-11-18 user: fruit trees mean stocks, so only the fence has them); the beds stay */}
+    {starter().map(p=>['tulips','hydrangea','sunflowers'].includes(p.item)
+      ?<Suspense key={p.id} fallback={null}><DecorPlant item={p.item} x={p.x} z={p.z} scale={0.8}/></Suspense>
+      :<PlainTree key={p.id} x={p.x} z={p.z}/>)}
     <Tufts/>
     <Pond dim={world.light.night*0.85}/>
     <Flowers/>

@@ -9,7 +9,7 @@ import {PLACES} from '../places';
 import {BUILDINGS,CITIES,type Built} from '../../core/land';
 
 // where the signs stand and how high above the ground (world units); shared with Scene3D
-export const SIGN_PLACES:Record<string,number>={home:3.7,library:4.3,observatory:4.1,cart:2,plaza:2.4};
+export const SIGN_PLACES:Record<string,number>={home:5.1,library:2.6,observatory:4.1,cart:2,plaza:2.4};
 export const SIGN_BUILDINGS:Record<string,number>={greenhouse:3,silo:4.1,windmill:5.6};
 export const SIGN_CITY=6.4;
 export function signsOf(built:Built|null|undefined){
