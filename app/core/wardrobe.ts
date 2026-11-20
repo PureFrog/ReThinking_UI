@@ -1,3 +1,4 @@
+import {WON,won} from './won';
 // What the player's observer can wear (models from tools/blender/explorer.py, drawn by app/proto3d/Explorer3D.tsx).
 // Four places to dress: coat, hat, bag, held tool, plus a colour set. A few things are there from the start; the rest
 // come from playing: a new title (core/rank.ts), a stamp (core/stamps.ts), an analyst's trust, or the cart's currency.
@@ -11,11 +12,11 @@ export const SLOTS:{id:Slot;label:string}[]=[{id:'coat',label:'겉옷'},{id:'hat
 export const WEAR:Wear[]=[
   {id:'coat_vest',slot:'coat',name:'필드 조끼',unlock:{kind:'start'}},
   {id:'coat_lab',slot:'coat',name:'연구 가운',unlock:{kind:'rank',index:2}},
-  {id:'coat_rain',slot:'coat',name:'노란 우비',unlock:{kind:'buy',price:6}},
+  {id:'coat_rain',slot:'coat',name:'노란 우비',unlock:{kind:'buy',price:WON*6}},
   {id:'coat_knit',slot:'coat',name:'줄무늬 니트',unlock:{kind:'stamp',id:'streak7'}},
   {id:'hat_explorer',slot:'hat',name:'탐험 모자',unlock:{kind:'start'}},
   {id:'hat_beret',slot:'hat',name:'베레모',unlock:{kind:'stamp',id:'first-grade'}},
-  {id:'hat_straw',slot:'hat',name:'밀짚모자',unlock:{kind:'buy',price:4}},
+  {id:'hat_straw',slot:'hat',name:'밀짚모자',unlock:{kind:'buy',price:WON*4}},
   {id:'hat_lamp',slot:'hat',name:'헤드램프',unlock:{kind:'stamp',id:'sure-hit'}},
   {id:'bag_specimen',slot:'bag',name:'표본 가방',unlock:{kind:'rank',index:1}},
   {id:'bag_brief',slot:'bag',name:'서류 가방',unlock:{kind:'trust',who:'tori',stage:2}},
@@ -45,7 +46,7 @@ export function isOpen(u:Unlock,c:WearCtx,id:string){
 // how to get it, said plainly (the locked tile shows this)
 export function howTo(u:Unlock,names:{rank:(i:number)=>string;stamp:(id:StampId)=>string;who:(w:Who)=>string}){
   switch(u.kind){case 'start':return '처음부터';case 'rank':return `${names.rank(u.index)} 되면`;case 'stamp':return `업적 '${names.stamp(u.id)}'`;
-    case 'trust':return `${names.who(u.who)} 신뢰 ${u.stage+1}`;case 'buy':return `근거 ${u.price} 내고 사기`}
+    case 'trust':return `${names.who(u.who)} 신뢰 ${u.stage+1}`;case 'buy':return `${won(u.price)}에 사기`}
 }
 // the look as it can be shown: anything not unlocked falls back to the start piece (or nothing)
 export function fitLook(l:Look,c:WearCtx):Look{

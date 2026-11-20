@@ -1,6 +1,6 @@
 // code: the KRX code when known (지기 journal charts and grading, app/core/jigi/stocks.ts)
 // real: on real prices (core/real.ts): price is the real close on `date`, rate and lossDays follow the latest close (asOf)
-export type Holding={id:number;name:string;code?:string;kind:number;price:number;quantity:number;date:string;rate:number;plot:number;lossDays:number;real?:boolean;asOf?:string};
+export type Holding={id:number;name:string;code?:string;kind:number;price:number;quantity:number;date:string;rate:number;plot:number;lossDays:number;real?:boolean;asOf?:string;virtual?:boolean/* a virtual stock bought with coins (core/virtual.ts) */};
 // vitalityDays: no journal for this long switches a tree's vitality off (ux-spec 2장, app/core/vitality.ts)
 export type Rules={oldDays:number;damageDays:number;vitalityDays?:number};
 // flip: turned the other way (11.9, the picture mirrored) · on: a lamp switched on

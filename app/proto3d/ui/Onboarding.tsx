@@ -11,7 +11,7 @@ import {bars,isReal} from '../../core/jigi/stocks';
 import {realToday} from '../../core/model';
 import type {RealPrices} from './RealEntry';
 import {portfolioReader,kindOf,type ReadHolding} from '../../content/portfolio';
-import {openPlots} from '../../core/land';
+import {fieldPlots} from '../../core/land';
 import {UI,line} from '../../content/analysts';
 import {Sheet} from './Sheet';
 import type {useGarden} from '../state';
@@ -38,7 +38,7 @@ export function Onboarding({g,onClose,onPlanted,onDemo,reader,onReal,real,pick=f
   const removed=[...gone,...(rows??[]).filter(r=>r.existing!==null&&!r.keep).map(r=>r.existing!)];
   const staying=holdings.filter(h=>!removed.includes(h.id)).length,newOnes=kept.filter(r=>r.existing===null).length;
   // the open plots (core/land.ts): 14 at first, more with each piece of land opened
-  const open=openPlots(g.s.built?.land??[]),cap=open.length;
+  const open=fieldPlots(g.s.built?.land??[],'farm')/* real stocks go in the 밭 only */,cap=open.length;
   const over=staying+newOnes>cap;
   // each new line's stock among the KRX names (undefined: not looked up yet, null: not found → a mock tree)
   const [found,setFound]=useState<Record<string,{code:string;name:string}|null>>({});

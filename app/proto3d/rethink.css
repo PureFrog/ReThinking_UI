@@ -701,3 +701,28 @@ html[data-text="l"] .proto3d :is(.rt-sheet,.rt-me-panel,.rt-dock,.rt-next){zoom:
 .rt-fish-cell{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border-radius:12px;background:#eef4e6;text-align:center}
 .rt-fish-cell b{font-size:12.5px}.rt-fish-cell small{font-size:10.5px;color:#5e665a}.rt-fish-cell.no b{color:#8a928a}
 @media(min-width:701px){.rt-fish-card{left:50%;right:auto;width:400px;transform:translateX(-50%)}}
+/* 2026-11-20 feedback: the name goes inside the talk box, and the speaker's face sits above it at the top left */
+.rt-talk-box{padding-top:16px}
+.rt-talk-name{position:static;display:block;background:none;box-shadow:none;padding:0;margin:0 0 4px;font-size:16.5px;color:#2f8a3a}
+.rt-talk-name.n-tori{background:none;color:#3d6aa8}.rt-talk-name.n-moa{background:none;color:#b97a12}.rt-talk-name.n-luon{background:none;color:#6a4c93}.rt-talk-name.n-naru{background:none;color:#8a5a2b}
+.rt-talk-name[data-who]::before{content:'';position:absolute;left:16px;top:-64px;width:76px;height:76px;border-radius:50%;background:#fffaf0 center/cover no-repeat;border:3px solid #fff;box-shadow:0 8px 18px -8px #10200d90;animation:rt-talk-in .28s ease-out both}
+.rt-talk-name[data-who=bori]::before{background-image:url(/models/analysts/faces/bori.png)}
+.rt-talk-name[data-who=tori]::before{background-image:url(/models/analysts/faces/tori.png)}
+.rt-talk-name[data-who=moa]::before{background-image:url(/models/analysts/faces/moa.png)}
+.rt-talk-name[data-who=luon]::before{background-image:url(/models/analysts/faces/luon.png)}
+.rt-talk-name[data-who=naru]::before{background-image:url(/models/analysts/faces/naru.png)}
+/* 오늘 퀘스트 under the weather (feedback 2026-11-20) */
+.rt-quests{pointer-events:auto;display:flex;flex-direction:column;gap:2px;background:var(--rt-glass);border:1px solid #ffffffb0;border-radius:14px;padding:8px 10px 8px;box-shadow:var(--rt-shadow);backdrop-filter:blur(14px);min-width:170px}
+.rt-quests-h{all:unset;cursor:pointer;font-size:12px;color:var(--rt-sub);font-weight:600;padding:2px 4px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.rt-quests-fold{font-style:normal;font-size:11px;color:var(--rt-mute)}
+.rt-quests-h b{color:var(--rt-sub);font-weight:600}
+.rt-quest{all:unset;cursor:pointer;display:flex;align-items:center;gap:7px;font-size:13px;color:var(--rt-ink,#22281f);padding:4px 4px;border-radius:8px}
+.rt-quest:hover:not(:disabled){background:#ffffff80}
+.rt-quest i{width:15px;height:15px;border-radius:50%;border:1.5px solid #b9b2a4;display:grid;place-items:center;font-style:normal;font-size:10px;color:#fff;flex:none}
+.rt-quest[data-done=true]{color:var(--rt-mute);text-decoration:line-through;cursor:default}
+.rt-quest[data-done=true] i{background:#2f8a3a;border-color:#2f8a3a}
+/* the village tour points at the weather and the quests: they stay up while 보리 talks */
+.proto3d:has(.vl-tour) .rt-weather{opacity:1;pointer-events:auto}
+.proto3d .proto3d-top{z-index:12}/* the weather and the quests stay above the tree name tags */
+.proto3d:has(.rt-talk) .rt-quests{opacity:0;pointer-events:none;transition:opacity .25s}
+.proto3d:has(.vl-tour) .rt-quests{opacity:1;pointer-events:auto}

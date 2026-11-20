@@ -10,7 +10,7 @@ import {buyClose,refreshed} from '../../core/real';
 import {bars,isReal} from '../../core/jigi/stocks';
 import {realToday} from '../../core/model';
 import {kindOf} from '../../content/portfolio';
-import {openPlots} from '../../core/land';
+import {fieldPlots} from '../../core/land';
 import {UI,line} from '../../content/analysts';
 import {Sheet} from './Sheet';
 import type {StockName} from '../prices';
@@ -36,7 +36,7 @@ export function RealEntry({g,prices,onClose,onPlanted}:{g:G;prices:RealPrices;on
     setRows(rs=>rs.map((x,j)=>j!==i||x.code!==r.code||x.date!==r.date?x:b?{...x,price:b.c,found:true,auto:true}:{...x,found:false,auto:false,price:x.auto?0:x.price}))};
   const pick=(i:number,s:StockName)=>{const r={...rows[i],code:s.code,name:s.name,q:s.name};edit(i,{code:s.code,name:s.name,q:s.name,found:false});setHits(null);void fill(i,r)};
   const ok=rows.filter(r=>realDraftOk(r,today));
-  const open=openPlots(g.s.built?.land??[]),free=freePlots(g.s.holdings,open);
+  const open=fieldPlots(g.s.built?.land??[],'farm')/* real stocks go in the 밭 only */,free=freePlots(g.s.holdings,open);
   const plant=()=>{
     const out=plantReal(g.s.holdings,ok,free,kindOf);
     // the return from the latest real close, for the stocks whose bars are loaded

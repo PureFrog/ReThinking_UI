@@ -1,4 +1,5 @@
 'use client';
+import {WON,won} from '../core/won';
 // The 3D garden's save and every action on it. The rules live in app/core (judgment, cooldown, cases, streak, league,
 // relationships); this file only wires them to one saved state and pays the currency and trust (app/core/ledger.ts).
 // Saved in localStorage until the server (R5) takes it over through app/proto3d/server.ts.
@@ -39,6 +40,8 @@ import {DEFAULT_LOOK,type Look} from '../core/wardrobe';
 import type {RunRecord} from '../core/game/run';
 import type {Share} from '../core/planets';
 import {stampById,type StampId} from '../core/stamps';
+import {buyVirtual,sellVirtual,quote,type VirtualLot} from '../core/virtual';
+import {fieldPlots} from '../core/land';
 
 export type Owned={uid:string;itemId:string;got:string;slot:string|null};
 // settings (ui/Settings.tsx): effect volume, keeping still, text size, tilt
@@ -48,7 +51,7 @@ export const DEFAULT_SETTINGS:Settings={sfx:0.7,still:false,text:'m',tilt:true,s
 // seen: how many times each long scene was played (docs/brief-wow.md: long the first time, short after)
 export type Seen={birth:number;cutaway:number;bury:number};
 // name, look: the player's observer (ui/MyPage.tsx) · stamps: achievements and the day each was earned · wardrobe: pieces bought
-export type GardenSave={v:1;holdings:Holding[];onboarded:boolean;lookedBack:boolean;sound:boolean;seen:Seen;name:string;look:Look;stamps:{id:StampId;day:string}[];wardrobe:string[];tips:string[];settings:Settings;letters:string[];weeksDone:string[];rewinds:RewindRound[];daysDone:string[];rankSeen:number;judgments:Judgment[];graded:Graded[];cooldowns:Cooldown[];cases:CaseAnswer[];streak:Streak;currency:number;
+export type GardenSave={v:1;wonV?:1/* coins counted in 원 (core/won.ts) */;virtual?:VirtualLot[]/* 가상 종목 밭 (core/virtual.ts) */;grants?:string[]/* one-off coin gifts already given (the tutorial's start money) */;holdings:Holding[];onboarded:boolean;lookedBack:boolean;sound:boolean;seen:Seen;name:string;look:Look;stamps:{id:StampId;day:string}[];wardrobe:string[];tips:string[];settings:Settings;letters:string[];weeksDone:string[];rewinds:RewindRound[];daysDone:string[];rankSeen:number;judgments:Judgment[];graded:Graded[];cooldowns:Cooldown[];cases:CaseAnswer[];streak:Streak;currency:number;
   trust:Record<AnalystId,Relation>;owned:Owned[];gifted:AnalystId[];bought:{itemId:string;day:string}[];
   // 관측소 원정 runs (core/game/run.ts): the 판, its decisions and score; the latest of a 판 is the next run's ghost
   expeditions:RunRecord[];
@@ -62,6 +65,11 @@ export type GardenSave={v:1;holdings:Holding[];onboarded:boolean;lookedBack:bool
   fishing?:Fishing;
   // 지기 J3: study tasks taken from the analysis (on the next journal's checklist), my principles, types I said don't fit
   jigi?:{tasks:StudyTask[];principles:{text:string;at:number}[];typeNo:Record<string,boolean>}};
+// '?restart' (미리보기 처음부터_보기.bat): everything this app keeps on the device is wiped before anything reads it, so
+// the visit starts as a brand-new player: the landing (sign up / log in), my real stocks, the first quiz, 보리's tour
+if(typeof window!=='undefined')try{if(new URLSearchParams(location.search).has('restart')){
+  for(const k of Object.keys(localStorage))if(/^(rethink|little-garden)/.test(k))localStorage.removeItem(k);
+  sessionStorage.clear();history.replaceState(null,'',location.pathname)}}catch{/* storage off: nothing kept anyway */}
 export const SAVE_KEY='rethink-garden-v1';
 
 // Clock: real today, or N days ahead with ?ahead=N
@@ -73,26 +81,29 @@ export function clock(){
 // A new player starts with an empty garden and the onboarding (ui/Onboarding.tsx) asks for their holdings.
 export function blankSave():GardenSave{
   const trust={tori:blankRelation(),moa:blankRelation(),luon:blankRelation()};
-  return {v:1,holdings:[],onboarded:false,lookedBack:false,sound:true,seen:{birth:0,cutaway:0,bury:0},name:'',look:DEFAULT_LOOK,stamps:[],wardrobe:[],tips:[],settings:DEFAULT_SETTINGS,letters:[],weeksDone:[],rewinds:[],daysDone:[],rankSeen:0,judgments:[],graded:[],cooldowns:[],cases:[],streak:blankStreak(),currency:0,trust,owned:[],gifted:[],bought:[],expeditions:[]};
+  return {v:1,wonV:1,holdings:[],onboarded:false,lookedBack:false,sound:true,seen:{birth:0,cutaway:0,bury:0},name:'',look:DEFAULT_LOOK,stamps:[],wardrobe:[],tips:[],settings:DEFAULT_SETTINGS,letters:[],weeksDone:[],rewinds:[],daysDone:[],rankSeen:0,judgments:[],graded:[],cooldowns:[],cases:[],streak:blankStreak(),currency:0,trust,owned:[],gifted:[],bought:[],expeditions:[]};
 }
 // The demo garden opens with two judgments made months ago, so the first visit already has grades to open (the moment
 // the whole loop is built around). Both are on the demo holdings.
 export function demoSave(today:string):GardenSave{
   const j1:Judgment={id:'demo-1',holdingId:7,name:'POSCO홀딩스',day:shiftDay(today,-92),choice:'hold',reason:'수주 잔고 3년치. 일시적 하락.',confidence:4,rate:-6.1,
-    signalId:'ohlson:7:demo',analyst:'tori',model:'ohlson',rebuttal:'kept'};
+    signalId:'ohlson:7:demo',analyst:'moa',model:'ohlson',rebuttal:'kept'};
   const j2:Judgment={id:'demo-2',holdingId:6,name:'삼성전자',day:shiftDay(today,-35),choice:'watch',reason:'임상 발표까지만 본다.',confidence:2,rate:2.3,
     signalId:'crash:6:demo',analyst:'moa',model:'crash',rebuttal:'skipped'};
   // the demo garden is for showing and testing the loop: the first-time pointers are taken as read
-  return {...blankSave(),holdings:DEMO_HOLDINGS,onboarded:true,lookedBack:true,judgments:[j1,j2],currency:4,tips:['map','me','house','lapse'],
+  return {...blankSave(),holdings:DEMO_HOLDINGS,onboarded:true,lookedBack:true,judgments:[j1,j2],currency:300_000,tips:['map','me','house','lapse','tour'],
     journals:demoJournals(Date.parse(today+'T12:00:00Z'),code=>DEMO_HOLDINGS.find(h=>h.code===code)?.id??null)};
 }
 function loadSave(today:string):GardenSave{
   try{
     const q=new URLSearchParams(location.search);
-    if(q.has('demo'))return demoSave(today);
+    // ?demo&tour: the demo garden before the village tour (e2e)
+    if(q.has('demo')){const d=demoSave(today);return q.has('tour')?{...d,tips:d.tips.filter(t=>t!=='tour')}:d}
     if(q.has('reset'))localStorage.removeItem(SAVE_KEY);
     // a save from before the onboarding existed was the demo garden, and stays it
-    const raw=localStorage.getItem(SAVE_KEY);if(raw){const s=JSON.parse(raw);if(s?.v===1)return {...(s.holdings?{...blankSave(),lookedBack:true}:demoSave(today)),...s}}
+    const raw=localStorage.getItem(SAVE_KEY);if(raw){const s=JSON.parse(raw);if(s?.v===1){const m={...(s.holdings?{...blankSave(),lookedBack:true}:demoSave(today)),...s};
+      // an old save counted small coins: converted to 원 once
+      return m.wonV===1?m:{...m,wonV:1,currency:Math.round((Number(m.currency)||0)*WON)}}}
   }catch{}
   return blankSave();
 }
@@ -166,7 +177,7 @@ export function useGarden(){
     skipLookback(){setS(p=>({...p,lookedBack:true}))},
     // today's three all done (core/today.ts): the day closes once, with a small bonus
     closeDay(){let closed=false;setS(p=>{if(p.daysDone.includes(c.today))return p;closed=true;return {...p,daysDone:[...p.daysDone.slice(-60),c.today],currency:p.currency+EARN.dayDone}});
-      if(closed)say(line(UI.dayDone,{n:EARN.dayDone}))},
+      if(closed)say(line(UI.dayDone,{n:won(EARN.dayDone)}))},
     // a new title (core/rank.ts): every title reached since the last one brings its item to the drawer
     rankUp(index:number,name:string){const got:string[]=[];setS(p=>{if(index<=p.rankSeen)return p;let owned=p.owned;
       for(let k=p.rankSeen+1;k<=index;k++){const it=rankItem(k);if(it&&!owned.some(o=>o.itemId===it.id)){owned=[...owned,{uid:`rank-${k}`,itemId:it.id,got:c.today,slot:null}];got.push(it.name)}}
@@ -178,15 +189,26 @@ export function useGarden(){
     setSettings(settings:Settings){setS(p=>({...p,settings}))},
     // start over: the save goes and the page opens on the onboarding
     // the server's copy won on sign-in (core/sync.ts): it replaces this device's garden as it is
-    adopt(save:GardenSave){setS(()=>({...blankSave(),...save}))},
+    adopt(save:GardenSave){setS(()=>{const m={...blankSave(),...save};return save.wonV===1?m:{...m,wonV:1,currency:Math.round((Number(save.currency)||0)*WON)}})},
     wipe(){try{localStorage.removeItem(SAVE_KEY);localStorage.removeItem('rethink-garden-at')}catch{}location.replace(location.pathname+'?reset')},
     // this week's three goals done (core/weekly.ts): paid once a week
     closeWeek(start:string){let paid=false;setS(p=>{if(p.weeksDone.includes(start))return p;paid=true;return {...p,weeksDone:[...p.weeksDone.slice(-30),start],currency:p.currency+EARN.weekDone}});
-      if(paid)say(line(UI.weekDone,{n:EARN.weekDone}))},
+      if(paid)say(line(UI.weekDone,{n:won(EARN.weekDone)}))},
     letterRead(month:string){setS(p=>p.letters.includes(month)?p:{...p,letters:[...p.letters,month]})},
     tipDone(id:string){setS(p=>p.tips.includes(id)?p:{...p,tips:[...p.tips,id]})},
     setLook(look:Look){setS(p=>({...p,look}))},
     // a piece of clothing from the cart's currency (core/wardrobe.ts unlock buy)
+    // 가상 종목 (core/virtual.ts): bought at today's price into a free plot of the 과수원; sold back at today's price
+    buyVirtual(code:string,qty:number){const q=quote(code,c.today);let out:ReturnType<typeof buyVirtual>={ok:false,why:'unknown'};if(!q)return out;
+      setS(p=>{const plots=fieldPlots(p.built?.land??[],'orchard').filter(i=>!p.holdings.some(h=>h.plot===i));
+        out=buyVirtual({currency:p.currency,virtual:p.virtual??[]},code,qty,q.price,plots,c.today);return out.ok?{...p,currency:out.currency,virtual:out.virtual}:p});
+      return out},
+    sellVirtual(id:number,qty:number){let gain:number|null=null;
+      setS(p=>{const l=(p.virtual??[]).find(x=>x.id===id),q=l?quote(l.code,c.today):null;if(!l||!q)return p;
+        const r=sellVirtual({currency:p.currency,virtual:p.virtual??[]},id,qty,q.price);if(!r.ok)return p;gain=r.gain;return {...p,currency:r.currency,virtual:r.virtual}});
+      return gain},
+    // a one-off gift of coins (the tutorial's start money): given once per tag
+    grant(tag:string,amount:number){let given=false;setS(p=>{if((p.grants??[]).includes(tag))return p;given=true;return {...p,currency:p.currency+amount,grants:[...(p.grants??[]),tag]}});return given},
     buyWear(id:string,price:number){let ok=false;setS(p=>{if(p.wardrobe.includes(id)||p.currency<price)return p;ok=true;return {...p,currency:p.currency-price,wardrobe:[...p.wardrobe,id]}});return ok},
     // stamps newly earned (core/stamps.ts newStamps): kept with today's date, said once
     stamp(ids:StampId[]){if(!ids.length)return;setS(p=>({...p,stamps:[...p.stamps,...ids.filter(i=>!p.stamps.some(x=>x.id===i)).map(id=>({id,day:c.today}))]}));say(line(UI.stamped,{name:ids.map(i=>stampById(i).name).join(', ')}))},
@@ -217,19 +239,19 @@ export function useGarden(){
         // coins for the first save of my own journal (not the demo, not practice)
         const pay=r.version===1&&!j.demo&&!j.practice?EARN.journal:0;
         return {...p,currency:p.currency+pay,journals:(p.journals??[]).map(x=>x.id===id?r.journal:x)}});
-      const o=out as ReturnType<typeof saveJournal>|null;if(o?.ok&&o.version===1)say(`일지를 저장했어요 · 코인 +${EARN.journal}`);return o},
+      const o=out as ReturnType<typeof saveJournal>|null;if(o?.ok&&o.version===1)say(`일지를 저장했어요 · 코인 +${won(EARN.journal)}`);return o},
     // J2: a journal's hypotheses (drafts edited in place), confirming one (base close, end date), the review, a verdict opened
     journalHypos(id:string,hypos:Hypo[]){setS(p=>({...p,journals:(p.journals??[]).map(j=>j.id===id?{...j,hypos}:j)}))},
     journalConfirm(id:string,hypoId:string){let say='';let buried=false;
       setS(p=>{let pay=0;const journals=(p.journals??[]).map(j=>{if(j.id!==id)return j;const before=j.hypos.filter(h=>h.status==='confirmed'&&h.auto).length;
         const next={...j,hypos:j.hypos.map(h=>{if(h.id!==hypoId)return h;const r=confirmHypo(j,h,c.today,c.now);say=r.say;buried=r.h.status==='confirmed'&&!!r.h.auto;return r.h})};
         if(buried&&before<3&&!j.demo&&!j.practice)pay=EARN.confirm;return next});
-        if(pay)say+=` · 코인 +${pay}`;return {...p,currency:p.currency+pay,journals}});
+        if(pay)say+=` · 코인 +${won(pay)}`;return {...p,currency:p.currency+pay,journals}});
       return {say,buried}},
     // the review: coins once, when it first gets an answer
     journalReflect(id:string,r:Reflection){let paid=false;setS(p=>{const j=(p.journals??[]).find(x=>x.id===id);if(!j)return p;
       const pay=!j.reflection?.plan&&!!r.plan&&!j.demo?EARN.review:0;paid=pay>0;
-      return {...p,currency:p.currency+pay,journals:(p.journals??[]).map(x=>x.id===id?{...x,reflection:r}:x)}});if(paid)say(`복기를 남겼어요 · 코인 +${EARN.review}`)},
+      return {...p,currency:p.currency+pay,journals:(p.journals??[]).map(x=>x.id===id?{...x,reflection:r}:x)}});if(paid)say(`복기를 남겼어요 · 코인 +${won(EARN.review)}`)},
     // 부지 넓히기·건물 짓기·도시 열기 with coins (core/land.ts spend); says what happened
     // the 꽃집: buy one and plant it here (the scene has already said the spot is open grass)
     plant(item:{id:string;price:number},x:number,z:number):'ok'|'coins'|'close'{let res:ReturnType<typeof buyPlant>|null=null;

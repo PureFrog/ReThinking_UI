@@ -19,11 +19,11 @@ test('no two spots are too close, and everything stays inside the walkable garde
 });
 
 test('spending: enough coins, once; base land cannot be bought; prices rise with size', () => {
-  let r=L.spend(L.BUILT0,10,{kind:'land',id:'farm2'});assert.deepEqual(r,{ok:false,why:'coins',need:10});
-  r=L.spend(L.BUILT0,25,{kind:'land',id:'farm2'});assert.equal(r.ok,true);assert.equal(r.coins,5);assert.deepEqual(r.built.land,['farm2']);
-  assert.equal(L.spend(r.built,99,{kind:'land',id:'farm2'}).why,'have');
-  assert.equal(L.spend(L.BUILT0,99,{kind:'land',id:'farm'}).why,'unknown');
-  assert.equal(L.spend(L.BUILT0,99,{kind:'city',id:'seoul'}).ok,true);
+  let r=L.spend(L.BUILT0,10000,{kind:'land',id:'farm2'});assert.deepEqual(r,{ok:false,why:'coins',need:10000});
+  r=L.spend(L.BUILT0,25000,{kind:'land',id:'farm2'});assert.equal(r.ok,true);assert.equal(r.coins,5000);assert.deepEqual(r.built.land,['farm2']);
+  assert.equal(L.spend(r.built,99000,{kind:'land',id:'farm2'}).why,'have');
+  assert.equal(L.spend(L.BUILT0,99000,{kind:'land',id:'farm'}).why,'unknown');
+  assert.equal(L.spend(L.BUILT0,99000,{kind:'city',id:'seoul'}).ok,true);
   const prices=L.CITIES.map(c=>c.price);assert.deepEqual(prices,[...prices].sort((a,b)=>a-b));
   for(const c of L.CITIES)assert.doesNotMatch(c.blurb,/사라|팔아|매수|매도|오를|떨어질/);
 });

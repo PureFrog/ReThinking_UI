@@ -1,6 +1,7 @@
 'use client';
 // Everything around the loop: the track record (R4), the league and the game door (R5), the cart and the drawer
 // (R6), and an analyst's profile. Rules in app/core, data in app/content, actions in state.ts.
+import {won} from '../../core/won';
 import {rewindTrack} from '../../core/rewind';
 import {nextGrade,type TodayTask,type TaskId} from '../../core/today';
 import {rankOf,xpOf} from '../../core/rank';
@@ -93,12 +94,12 @@ export function GameDoor({runs,week,onEnter,onClose}:{runs:RunRecord[];week:stri
 }
 
 export function CartView({g,onClose}:{g:G;onClose:()=>void}){
-  return <Sheet kicker="상점" title={`${CURRENCY} ${g.s.currency}`} onClose={onClose}>
-    <p className="rt-hint">{CURRENCY}는 판단하고 복기할 때만 쌓여요. 같은 물건은 하루에 하나씩 살 수 있어요</p>
+  return <Sheet kicker="상점" title={`${CURRENCY} ${won(g.s.currency)}`} onClose={onClose}>
+    <p className="rt-hint">코인은 일지를 쓰고 퀘스트를 마치면 쌓여요. 같은 물건은 하루에 하나씩 살 수 있어요</p>
     {CART_STOCK.map(i=>{const sold=g.s.bought.some(b=>b.itemId===i.id&&b.day===g.clock.today);return <div key={i.id} className="rt-row">
       <div><strong>{i.name}</strong><small>{i.desc}</small></div>
       <button type="button" className="rt-btn" disabled={sold||g.s.currency<i.price!} aria-label={`${i.name} 사기`} onClick={()=>{if(g.ops.buy(i))g.say(`${i.name}. 꾸미기에 넣었어요`)}}>
-        {sold?'오늘 구매함':<span className="rt-num">{i.price}</span>}</button></div>})}
+        {sold?'오늘 구매함':<span className="rt-num">{won(i.price!)}</span>}</button></div>})}
   </Sheet>;
 }
 
@@ -132,16 +133,16 @@ export function TodaySheet({g,tasks,onGo,onClose}:{g:G;tasks:TodayTask[];onGo:(t
   const done=tasks.filter(t=>t.done).length,closed=g.s.daysDone.includes(g.clock.today);
   const r=rankOf(xpOf({graded:g.s.graded.length,cases:g.s.cases.length,rewinds:g.s.rewinds.length,work:workOf(g.s)}));
   const nx=nextGrade(g.s.judgments,g.s.graded,g.clock.today);
-  return <Sheet kicker="오늘" title={closed?'오늘 할 일 완료':`오늘 할 일 ${done}/${tasks.length}`} label="오늘 할 일" onClose={onClose}>
+  return <Sheet kicker="오늘 퀘스트" title={closed?'오늘 퀘스트 완료':`오늘 퀘스트 ${done}/${tasks.length}`} label="퀘스트 게시판" onClose={onClose}>
     {tasks.map((t,i)=><div key={t.id+i} className="rt-row rt-task" data-done={t.done}>
       <span className="rt-check" aria-hidden>{t.done?'✓':i+1}</span>
       <div><strong>{UI.today[t.id]}</strong></div>
       {t.done?<span className="rt-tag ok">완료</span>:<button type="button" className="rt-btn" onClick={()=>onGo(t.id)}>하기</button>}</div>)}
-    <p className="rt-hint" style={{marginTop:12}}>{closed?line(UI.dayDone,{n:EARN.dayDone}):`3개 모두 하면 +${EARN.dayDone} ${CURRENCY}`}</p>
+    <p className="rt-hint" style={{marginTop:12}}>{closed?line(UI.dayDone,{n:won(EARN.dayDone)}):`3개 모두 하면 +${won(EARN.dayDone)}`}</p>
     {(()=>{const w=weekGoals(g.clock.today,weekCtx(g));return <><div className="rt-section">이번 주 목표</div>
       {w.goals.map(x=><div key={x.id} className="rt-row rt-task" data-done={x.done}><span className="rt-check" aria-hidden>{x.done?'✓':''}</span>
         <div><strong>{x.text}</strong></div><b className="rt-num">{x.have}/{x.need}</b></div>)}
-      <p className="rt-hint" style={{marginTop:8}}>{w.done?`이번 주 완료 · +${EARN.weekDone} ${CURRENCY}`:`3개 모두 하면 +${EARN.weekDone} ${CURRENCY} · 일요일 자정까지`}</p></>})()}
+      <p className="rt-hint" style={{marginTop:8}}>{w.done?`이번 주 완료 · +${won(EARN.weekDone)}`:`3개 모두 하면 +${won(EARN.weekDone)} · 일요일 자정까지`}</p></>})()}
     <div className="rt-section">다음 일정</div>
     <p className="rt-say-plain">{nx?line(UI.nextGrade,{name:nx.name,mark:nx.mark,d:nx.inDays}):UI.noNext}</p>
     <div className="rt-section">내 등급</div>

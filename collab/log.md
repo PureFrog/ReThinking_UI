@@ -231,3 +231,6 @@
   - 낚시 카메라는 LOOK.camera.fish다. 낚시 중에는 보리가 오지 않는다.
   - 테스트: 단위 fishing 4개, e2e proto3d-fishing 1개(__fishBite, __fishWindow, __fishPick).
 - 2026-11-18 [docs] 팀원 인계 문서 docs/handoff-2026-11-18.md(한 것·Supabase 할 일·남은 것과 방향·작업 방법·정할 것). CLAUDE.md 읽을 목록에 추가. 마이페이지 시안 두 벌(docs/mockups/mypage.html 탈락, mypage-3d.html A/B 결정 대기), 옷 썸네일 docs/mockups/mypage/wear.
+- 2026-11-11 [proto] /app 피드백 8가지: 거실 그림을 집 그림(house9)으로 새로 짬(계단·주방 뺌, 방 전체가 폭에 다 보임, 책상은 창문 아래), 빈 책장(public/assets/proto/shelf_empty.png)에 일지 1권마다 책 1권(shelf_books1~3, 28칸), 벽 달력(이번 달·일지/퀴즈 한 날 표시, 누르면 큰 달력, 저장 quizDays), 문은 '밖으로 나가기'/'집으로 들어가기' 크게 + 누르면 바로 이동(묻는 창 없앰), 농장은 그림 전체가 폭에 보이고 나무 1.45배·가장자리 흐리게. 말풍선은 방 아래로. 커밋 안 함(사용자).
+- 2026-11-11 [proto] /app 추가 피드백: 거실에서 책상·의자·화분 뺌, 농장 그림은 울타리 안 밭만 섬처럼 남기고 주변(창고·우물·집·허수아비·수레) 지움, 두 공간 다 크게(거실 1.35배·농장 1.6배, 옆으로 밀어서 봄, rooms.ts zoom). 커밋 안 함.
+- 2026-11-20 [feature] PM 집·마을 설계(docs/house-village.md) 적용: 매번 집 책상(House3D·ui/House.tsx)에서 시작, 오늘의 퀴즈 종이·퀴즈 Lv.5 잠금 서랍·문 열림(core/house.ts), 사건철 조사대(ui/CaseDesk.tsx·core/casefile.ts, 관측소 판 재사용), 마을 나무는 이름만(TreeTags), 나무→그 종목 수첩, 손절 신호 친구 질문(예시 신호), 4탭·다음할일·채점배지·부지해금 등 제거. 커밋 안 함.

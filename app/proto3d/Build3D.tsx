@@ -10,6 +10,8 @@ import {useMemo,useRef} from 'react';
 import {useFrame,type ThreeEvent} from '@react-three/fiber';
 import * as THREE from 'three';
 import {soft} from './materials';
+import {PATHS} from './places';
+import {LOOK} from './look';
 import {OnGround} from './ground';
 import {LANDS,BUILDINGS,CITIES,BASE_LAND,type Built} from '../core/land';
 
@@ -17,11 +19,13 @@ const S=(c:string)=><primitive object={soft(c)} attach="material"/>;
 const stop=(fn?:()=>void)=>fn?(e:ThreeEvent<MouseEvent>)=>{e.stopPropagation();fn()}:undefined;
 const boundsOf=(plots:[number,number][],pad:number)=>{const xs=plots.map(p=>p[0]),zs=plots.map(p=>p[1]);return {x0:Math.min(...xs)-pad,x1:Math.max(...xs)+pad,z0:Math.min(...zs)-pad,z1:Math.max(...zs)+pad}};
 // posts round a rectangle every ~1.3 units, leaving a gate gap in the middle of the side facing the paths (west)
-function rect(b:{x0:number;x1:number;z0:number;z1:number},step:number,gate=true){
+// gate: the x of an opening in the front (south) fence, where the stepping stones come in (feedback 2026-11-20)
+function rect(b:{x0:number;x1:number;z0:number;z1:number},step:number,gate:number|null=null){
   const pts:[number,number,number][]=[],side=(ax:number,az:number,bx:number,bz:number,g:boolean)=>{const len=Math.hypot(bx-ax,bz-az),n=Math.max(1,Math.round(len/step)),rot=Math.atan2(bx-ax,bz-az);
-    for(let i=0;i<n;i++){const t=(i+0.5)/n;if(g&&Math.abs(t-0.5)<0.5/n+0.01)continue;pts.push([ax+(bx-ax)*t,az+(bz-az)*t,rot])}};
-  side(b.x0,b.z0,b.x1,b.z0,false);side(b.x1,b.z0,b.x1,b.z1,false);side(b.x1,b.z1,b.x0,b.z1,false);side(b.x0,b.z1,b.x0,b.z0,gate);return pts;
+    for(let i=0;i<n;i++){const t=(i+0.5)/n,x=ax+(bx-ax)*t;if(g&&gate!==null&&Math.abs(x-gate)<step*0.75)continue;pts.push([x,az+(bz-az)*t,rot])}};
+  side(b.x0,b.z0,b.x1,b.z0,false);side(b.x1,b.z0,b.x1,b.z1,false);side(b.x1,b.z1,b.x0,b.z1,true);side(b.x0,b.z1,b.x0,b.z0,false);return pts;
 }
+const gateOf=(b:{x0:number;x1:number},kind:'farm'|'orchard')=>b.x0+(b.x1-b.x0)*(kind==='farm'?0.5:0.72);
 
 function Bed({kind}:{kind:'farm'|'orchard'}){
   if(kind==='orchard')return <group>
@@ -40,9 +44,35 @@ function FencePiece({len}:{len:number}){
     <mesh position={[0,0.22,0]}><boxGeometry args={[0.06,0.07,len]}/>{S('#e9dcc2')}</mesh>
   </group>;
 }
-function Sign({color}:{color:string}){
-  return <group><mesh position-y={0.5} castShadow><boxGeometry args={[0.1,1,0.1]}/>{S('#8a6a4c')}</mesh>
-    <mesh position-y={0.98} castShadow><boxGeometry args={[0.95,0.42,0.08]}/>{S(color)}</mesh></group>;
+// the board's words, painted on a canvas (the browser's own Korean font)
+function signTexture(text:string,color:string){
+  const c=document.createElement('canvas');c.width=512;c.height=200;const x=c.getContext('2d')!;
+  x.fillStyle=color;x.fillRect(0,0,512,200);x.strokeStyle='#00000022';x.lineWidth=10;x.strokeRect(5,5,502,190);
+  const font="104px 'Jua','Gowun Dodum','Apple SD Gothic Neo','Malgun Gothic',sans-serif";
+  const paint=()=>{x.fillStyle=color;x.fillRect(0,0,512,200);x.strokeStyle='#ffffffaa';x.lineWidth=8;x.beginPath();x.roundRect(14,14,484,172,26);x.stroke();
+    x.fillStyle='#4a3424';x.font=font;x.textAlign='center';x.textBaseline='middle';x.fillText(text,256,106)};
+  paint();const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;
+  // the round 'Jua' face comes from the web font: paint again once it has loaded
+  document.fonts?.load(font).then(()=>{paint();t.needsUpdate=true}).catch(()=>{});
+  return t;
+}
+function Sign({color,text}:{color:string;text?:string}){
+  const tex=useMemo(()=>text&&typeof document!=='undefined'?signTexture(text,color):null,[text,color]);
+  return <group><mesh position-y={0.55} castShadow><boxGeometry args={[0.1,1.1,0.1]}/>{S('#8a6a4c')}</mesh>
+    {/* the board leans back a little so the words read from the usual camera above */}
+    <group position-y={1.1} rotation-x={text?-0.45:0}><mesh castShadow><boxGeometry args={[1.5,0.6,0.08]}/>{S(color)}</mesh>
+    {tex&&[1,-1].map(k=><mesh key={k} position={[0,0,0.042*k]} rotation-y={k<0?Math.PI:0}><planeGeometry args={[1.46,0.57]}/><meshBasicMaterial map={tex} toneMapped={false}/></mesh>)}</group></group>;
+}
+// beige stepping stones from a field's gate straight down to the village path, then along it if the path ends short
+// (feedback 2026-11-20: one path along the front of both fields, a short branch up to each gate)
+function GatePath({from}:{from:[number,number]}){
+  const stones=useMemo(()=>{let best:[number,number]=from,bd=Infinity;
+    for(const line of PATHS)for(let i=1;i<line.length;i++){const [ax,az]=line[i-1],[bx,bz]=line[i];
+      for(let k=0;k<=40;k++){const t=k/40,x=ax+(bx-ax)*t,z=az+(bz-az)*t;if(z<from[1])continue;const d=Math.hypot(x-from[0],z-from[1]);if(d<bd){bd=d;best=[x,z]}}}
+    const out:[number,number,number][]=[],line=(a:[number,number],b:[number,number],skip0:boolean)=>{const len=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.round(len/0.78));
+      for(let k=skip0?1:0;k<n;k++){const t=k/n;out.push([a[0]+(b[0]-a[0])*t+((out.length*37)%7-3)*0.03,a[1]+(b[1]-a[1])*t+((out.length*53)%7-3)*0.03,out.length*1.7])}};
+    const corner:[number,number]=[from[0],best[1]];line(from,corner,false);if(Math.abs(best[0]-from[0])>0.5)line(corner,best,true);return out},[from[0],from[1]]);// eslint-disable-line react-hooks/exhaustive-deps
+  return <>{stones.map(([x,z,a],i)=><OnGround key={i} x={x} z={z} rot={a} lift={0.02}><mesh scale={[0.36,0.05,0.29]} receiveShadow><cylinderGeometry args={[1,1,1,12]}/>{S(LOOK.map.stone)}</mesh></OnGround>)}</>;
 }
 export function Fields({land,mode,onLot}:{land:string[];mode:boolean;onLot?:(id:string)=>void}){
   const open=LANDS.filter(l=>BASE_LAND.includes(l.id)||land.includes(l.id)),closed=LANDS.filter(l=>!BASE_LAND.includes(l.id)&&!land.includes(l.id));
@@ -52,17 +82,18 @@ export function Fields({land,mode,onLot}:{land:string[];mode:boolean;onLot?:(id:
   return <>
     {open.flatMap(l=>l.plots.map(([x,z],i)=><OnGround key={l.id+i} x={x} z={z} lift={-0.02}><Bed kind={l.kind}/></OnGround>))}
     {groups.map((gr,k)=>{const b=boundsOf(gr.plots,1.35),step=1.3;return <group key={k}>
-      {rect(b,step).map(([x,z,rot],i)=><OnGround key={i} x={x} z={z} rot={rot}><FencePiece len={step}/></OnGround>)}
-      <OnGround x={b.x0-0.25} z={(b.z0+b.z1)/2+1.1} rot={Math.PI/2}><Sign color={gr.kind==='farm'?'#d9b26a':'#9cc47a'}/></OnGround></group>})}
+      {rect(b,step,gateOf(b,gr.kind)).map(([x,z,rot],i)=><OnGround key={i} x={x} z={z} rot={rot}><FencePiece len={step}/></OnGround>)}
+      <OnGround x={gateOf(b,gr.kind)-1.25} z={b.z1+0.55} rot={0}><Sign color={gr.kind==='farm'?'#f2d28c':'#bfe39c'} text={gr.kind==='farm'?'실제 종목':'가상 종목'}/></OnGround>
+      <GatePath from={[gateOf(b,gr.kind),b.z1+0.35]}/></group>})}
     {mode&&closed.map(l=>{const b=boundsOf(l.plots,1.1);return <group key={l.id} onClick={stop(onLot&&(()=>onLot('land:'+l.id)))} name={'lot-land-'+l.id}>
-      {rect(b,0.7,false).map(([x,z,rot],i)=><OnGround key={i} x={x} z={z} rot={rot} lift={0.04}><mesh><boxGeometry args={[0.12,0.06,0.42]}/><meshBasicMaterial color="#ffffff" transparent opacity={0.92}/></mesh></OnGround>)}
+      {rect(b,0.7).map(([x,z,rot],i)=><OnGround key={i} x={x} z={z} rot={rot} lift={0.04}><mesh><boxGeometry args={[0.12,0.06,0.42]}/><meshBasicMaterial color="#ffffff" transparent opacity={0.92}/></mesh></OnGround>)}
       {l.plots.map(([x,z],i)=><OnGround key={'p'+i} x={x} z={z} lift={0.03}><mesh rotation-x={-Math.PI/2}><circleGeometry args={[0.9,24]}/><meshBasicMaterial color="#ffffff" transparent opacity={0.16}/></mesh></OnGround>)}
     </group>})}
   </>;
 }
 export function BuildingLots({built,onLot}:{built:Built;onLot?:(id:string)=>void}){
   return <>{BUILDINGS.filter(b=>!built.buildings.includes(b.id)).map(b=><group key={b.id} onClick={stop(onLot&&(()=>onLot('building:'+b.id)))} name={'lot-building-'+b.id}>
-    {rect({x0:b.at[0]-1.5,x1:b.at[0]+1.5,z0:b.at[1]-1.5,z1:b.at[1]+1.5},0.6,false).map(([x,z,rot],i)=><OnGround key={i} x={x} z={z} rot={rot} lift={0.04}><mesh><boxGeometry args={[0.1,0.06,0.34]}/><meshBasicMaterial color="#ffe2a0" transparent opacity={0.95}/></mesh></OnGround>)}
+    {rect({x0:b.at[0]-1.5,x1:b.at[0]+1.5,z0:b.at[1]-1.5,z1:b.at[1]+1.5},0.6).map(([x,z,rot],i)=><OnGround key={i} x={x} z={z} rot={rot} lift={0.04}><mesh><boxGeometry args={[0.1,0.06,0.34]}/><meshBasicMaterial color="#ffe2a0" transparent opacity={0.95}/></mesh></OnGround>)}
   </group>)}</>;
 }
 

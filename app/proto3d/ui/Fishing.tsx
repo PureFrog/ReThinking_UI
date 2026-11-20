@@ -4,6 +4,7 @@
 // the float dips (Scene3D Bobber), a tap in time lands a fish: a card, then the log. The garden's top bar and tabs step
 // back meanwhile. e2e: window.__fishBite (ms to the dip), __fishWindow (ms the dip lasts) and __fishPick (fish id) fix
 // what happens.
+import {won} from '../../core/won';
 import {useEffect,useRef,useState} from 'react';
 import {FISH,fishById,type Fish} from '../../content/fish';
 import {FISHING,biteAfter,judgeTap,pickFish,type Fishing} from '../../core/fishing';
@@ -23,7 +24,7 @@ export function NaruTalk({left,onFish,onLog,onClose}:{left:number;onFish:()=>voi
     <div className="rt-talk-choices" role="group" aria-label="대답">
       {left>0&&<button type="button" className="rt-talk-choice first" onClick={onFish}>낚시하기</button>}
       <button type="button" className={'rt-talk-choice'+(left>0?'':' first')} onClick={onLog}>물고기 도감</button></div>
-    <div className="rt-talk-box"><span className="rt-talk-name n-naru">나루</span><p className="rt-talk-line">{text}</p></div>
+    <div className="rt-talk-box"><span className="rt-talk-name n-naru" data-who="naru">나루</span><p className="rt-talk-line">{text}</p></div>
   </div>;
 }
 
@@ -59,10 +60,10 @@ export function FishingPlay({left,onCast,onLand,onPhase,onLog,onClose}:{left:num
         <FishIcon color={result.fish.color} size={1.7}/>
         <h2>{result.fish.name}</h2><p className="rt-fish-size">{result.size}cm{result.best&&!result.first?' · 내 기록!':''}</p>
         {result.first&&<p className="rt-fish-new">처음 잡았어요! 도감에 올렸어요</p>}
-        <p className="rt-fish-coins"><span className="rt-coin" aria-hidden>C</span>+{result.coins}</p>
+        <p className="rt-fish-coins"><span className="rt-coin" aria-hidden>C</span>+{won(result.coins)}</p>
         <div className="rt-fish-row">{left>0?<button type="button" className="rt-btn primary" onClick={cast}>한 번 더</button>:<button type="button" className="rt-btn primary" onClick={onLog}>도감 보기</button>}
           <button type="button" className="rt-btn" onClick={onClose}>그만하기</button></div></div>
-      :<div className="rt-talk-box" role="status"><span className="rt-talk-name n-naru">나루</span>
+      :<div className="rt-talk-box" role="status"><span className="rt-talk-name n-naru" data-who="naru">나루</span>
         <p className="rt-talk-line">{result.k==='early'?'아직이야! 물고기가 놀라서 갔어.':'앗, 놓쳤다. 조금 늦었어.'}</p>
         <div className="rt-fish-row">{left>0?<button type="button" className="rt-btn primary" onClick={cast}>다시 던지기</button>:null}
           <button type="button" className="rt-btn" onClick={onClose}>그만하기</button></div></div>)}
@@ -75,6 +76,6 @@ export function FishLog({fishing,onClose}:{fishing:Fishing|undefined;onClose:()=
   return <Sheet kicker="나루의 연못" title={`물고기 도감 ${n} / ${FISH.length}`} label="물고기 도감" onClose={onClose}>
     <div className="rt-fish-grid">{FISH.map(f=>{const c=log[f.id];return <div key={f.id} className={'rt-fish-cell'+(c?'':' no')} aria-label={c?`${f.name} ${c.n}마리, 최고 ${c.best}cm`:'아직 못 잡은 물고기'}>
       <FishIcon color={c?f.color:'#1d1f24'} size={0.62}/><b>{c?f.name:'???'}</b><small>{c?`${c.n}마리 · 최고 ${c.best}cm`:f.rarity}</small></div>})}</div>
-    <p className="rt-hint" style={{marginTop:10}}>하루 {FISHING.perDay}번 낚시할 수 있어요. 처음 잡은 물고기는 코인 +{FISHING.firstBonus}.</p>
+    <p className="rt-hint" style={{marginTop:10}}>하루 {FISHING.perDay}번 낚시할 수 있어요. 처음 잡은 물고기는 코인 +{won(FISHING.firstBonus)}.</p>
   </Sheet>;
 }

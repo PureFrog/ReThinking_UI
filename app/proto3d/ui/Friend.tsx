@@ -11,12 +11,17 @@ import {TIMING} from '../../core/timing';
 import {FRIEND_FACE,type BoriFace} from '../../core/friend';
 type Line={text:string;emotion?:string};
 
-type Choice={label:string;answer?:string;go?:'grades'|'journal'|'case'|null;talk?:boolean;leave?:boolean};
+type Choice={label:string;answer?:string;go?:'grades'|'journal'|'case'|null;talk?:boolean;leave?:boolean;stocks?:boolean;stock?:number};
+// 9-5: 토리·모아·루온 talk too, each in its own voice: small talk or one of my holdings (no free talk)
+export type Speaker={id:string;name:string;smalls:string[];stockLine:(name:string)=>string};
 const LATER='그래, 생각나면 불러.';
 
 // onFace: the face of the line on screen (보리's model wears it, Analyst3D); the server sends one with every line
-export function FriendSheet({opener,topic,seed,onGo,onClose,talk,opening,onFace}:{opener:string;topic:FriendTopic;seed:string;onGo:(to:'grades'|'journal'|'case')=>void;onClose:()=>void;
-  talk?:((history:TalkLine[],message:string)=>Promise<Line>)|null;opening?:(()=>Promise<Line|null>)|null;onFace?:(f:BoriFace)=>void}){
+export function FriendSheet({opener,topic,seed,onGo,onClose,talk,opening,onFace,who,stocks=[],onStock}:{opener:string;topic:FriendTopic;seed:string;onGo:(to:'grades'|'journal'|'case')=>void;onClose:()=>void;
+  talk?:((history:TalkLine[],message:string)=>Promise<Line>)|null;opening?:(()=>Promise<Line|null>)|null;onFace?:(f:BoriFace)=>void;
+  who?:Speaker;stocks?:{id:number;name:string}[];onStock?:(id:number)=>void}){
+  const [picking,setPicking]=useState(false);
+  const name=who?.name??FRIEND.name;
   // what 보리 still has to say (the first is on screen), what was said (for the server), and where the talk is
   const [queue,setQueue]=useState<string[]>(opening?[]:[opener]),[face,setFace]=useState<BoriFace>(FRIEND_FACE.of(opening?'thinking':FRIEND_FACE.topic[topic]));
   useEffect(()=>{onFace?.(face)},[face]);// eslint-disable-line react-hooks/exhaustive-deps
@@ -41,23 +46,29 @@ export function FriendSheet({opener,topic,seed,onGo,onClose,talk,opening,onFace}
   // a tap on the box: the rest of the line at once, then the next line
   const tapBox=()=>{if(!done){setShown(line.length);return}if(queue.length>1)setQueue(q=>q.slice(1))};
   const say=(text:string,emotion?:string)=>{setQueue([text]);setHistory(h=>[...h,{who:'bori',text}]);if(emotion)setFace(FRIEND_FACE.of(emotion))};
+  const mine0=stocks.length&&onStock?[{label:'내 종목 얘기',stocks:true}]:[];
   const choices:Choice[]=stopLoss?[{label:'얘기해 줄게',talk:true},{label:'나중에',leave:true}]
-    :[...friendReplies(topic,seed).map(r=>({label:r.label,answer:r.answer,go:r.go})),...(talk?[{label:'말 걸기',talk:true}]:[])];
+    :picking?[...stocks.slice(0,6).map(x=>({label:x.name,stock:x.id})),{label:'다음에',leave:true}]
+    :who?[{label:'수다 떨자',answer:who.smalls[(seed+who.id).length%who.smalls.length]},...mine0]
+    :[...friendReplies(topic,seed).filter(r=>r.go!=='case').map(r=>({label:r.label,answer:r.answer,go:r.go})),...mine0,...(talk?[{label:'말 걸기',talk:true}]:[])];
   const pick=(c:Choice)=>{setMine(c.label);
+    if(c.stocks){setPicking(true);say(who?'어느 나무 얘기 할래?':'어떤 종목? 골라 봐.','curious');return}
+    if(c.stock!==undefined){const id=c.stock,n=c.label;setMode('leaving');say(who?who.stockLine(n):`${n} 나무로 가자. 수첩 펼쳐 줄게.`,'happy');setTimeout(()=>onStock?.(id),TIMING.talkGo+300);return}
     if(c.leave){setMode('leaving');say(LATER,'happy');setTimeout(onClose,TIMING.talkLeave);return}
+    if(c.talk&&stopLoss&&!talk){setMode('leaving');say('그 종목 수첩 펼쳐 줄게. 거기에 적어 보자.','happy');setTimeout(()=>onGo('journal'),TIMING.talkGo);return}
     if(c.talk){setMode('type');if(!stopLoss)say('응, 뭐든 말해 봐.','curious');return}
     setHistory(h=>[...h,{who:'me',text:c.label}]);if(c.answer)say(c.answer,c.go?'happy':'playful');setMode('leaving');
     const to=c.go;setTimeout(()=>{if(to)onGo(to);else onClose()},to?TIMING.talkGo:TIMING.talkLeave+400)};
   const send=async()=>{const m=draft.trim();if(!m||busy||!talk)return;const before=history;setDraft('');setMine(m);setBusy(true);
     setHistory([...before,{who:'me',text:m}]);setFace('thinking');const a=await talk(before,m);setBusy(false);say(a.text,a.emotion??'neutral')};
   const showChoices=mode==='choose'&&done&&!busy&&queue.length<=1&&!!line;
-  return <div className="rt-talk" role="dialog" aria-label="보리와 대화" data-face={face}>
+  return <div className="rt-talk" role="dialog" aria-label={`${name}와 대화`} data-face={face}>
     {mode!=='leaving'&&<button type="button" className="rt-talk-leave" onClick={onClose}>{mode==='type'?'대화 끝내기':'나중에 얘기할게'}</button>}
     {mine&&mode!=='choose'&&<p className="rt-talk-me">{mine}</p>}
     {showChoices&&<div className="rt-talk-choices" role="group" aria-label="대답">
       {choices.map((c,i)=><button key={c.label} type="button" className={'rt-talk-choice'+(i===0?' first':'')} onClick={()=>pick(c)}>{c.label}</button>)}</div>}
     <div className="rt-talk-box" onClick={tapBox}>
-      <span className="rt-talk-name">{FRIEND.name}</span>
+      <span className={'rt-talk-name n-'+(who?.id??'bori')} data-who={who?.id??'bori'}>{name}</span>
       <p className="rt-talk-line" aria-live="polite">
         {busy?<span className="rt-chat-typing" aria-label="보리가 생각하는 중"><i/><i/><i/></span>:line.slice(0,shown)}
         <span className="rt-sr">{busy?'':line.slice(shown)}</span>
