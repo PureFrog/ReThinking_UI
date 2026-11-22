@@ -151,11 +151,14 @@ test("hypotheses: pull, confirm, buried as a capsule, dug up with the verdict, t
   expect(errors).toEqual([]);
 });
 
-// J3: 분석 in the 일지 tab — the demo stands in (and says so), every rate has its interval, a type brings a task, and a
+// J3: 분석 in the 일지 tab — the demo stands in (and says so), every rate has its interval, 유형 is the style of judging,
+// 보완할 점 bring a task, and a
 // taken task shows on the next journal's last page; the league counts the work, not the hits.
-test("analysis: summary with an interval, a type and its task on the next journal's checklist", async ({ page }, info) => {
+test("analysis: summary with an interval, the style of judging, and a task on the next journal's checklist", async ({ page }, info) => {
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(e.message));
+  // the demo's verdicts follow the mock prices up to "today": pin the day so the numbers (and 보완할 점) hold still
+  await page.clock.setFixedTime(new Date("2026-11-15T10:00:00+09:00"));
   await page.goto("/proto3d?demo&weather=clear");
   await dock(page).getByRole("button", { name: /^일지/ }).click({ timeout: 30_000 });
   await book(page).getByRole("tab", { name: "분석" }).click();
@@ -167,9 +170,15 @@ test("analysis: summary with an interval, a type and its task on the next journa
   const secs = book(page).getByRole("tablist", { name: "분석 항목" });
   await secs.getByRole("tab", { name: "분야·논리" }).click();
   await expect(book(page).locator(".jg-table").first()).toContainText("주가");
+  // 유형 is how I judge, from what I wrote — never a thing to fix
   await secs.getByRole("tab", { name: "유형" }).click();
-  await expect(book(page)).toContainText("기간을 다시 맞출 유형");
+  await expect(book(page)).toContainText("여러 근거를 함께 짧게 보는 확신형");
+  await expect(book(page).getByTestId("jg-style")).toContainText("한쪽 근거로 보는 편");
+  await expect(book(page)).toContainText("맞혔는지는 유형을 정하는 데 쓰지 않아요");
+  await expect(book(page)).not.toContainText(/다시 맞출|보완할 유형|공부할 유형/);
+  // what the numbers say to work on is under 과제
   await secs.getByRole("tab", { name: "과제" }).click();
+  await expect(book(page)).toContainText("보완할 점 · '3개월' 전망의 시점");
   await book(page).getByRole("button", { name: "다음 일지 체크리스트에 추가" }).first().click();
   await expect(book(page).getByRole("button", { name: "체크리스트에 있어요" }).first()).toBeDisabled();
   await secs.getByRole("tab", { name: "학습 후 변화" }).click();

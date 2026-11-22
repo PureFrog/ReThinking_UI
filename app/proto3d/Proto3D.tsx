@@ -27,7 +27,7 @@ const CITY_SPOT=(id:string)=>CITIES.find(c=>c.id===id)?.at;
 import {nextStep} from '../core/next';
 import {Welcome} from './ui/Welcome';
 import {authRepo} from './server';
-import {missingConsents,boriTalk,boriOpen,jigiAI,readCapture,hasInvite,isMaster,type BoriLine} from './supabase';
+import {missingConsents,boriTalk,boriOpen,jigiAI,readCapture,hasInvite,isMaster,observatoryServer,type BoriLine} from './supabase';
 import {searchNames,loadRealBars,fixturePrices,type PriceFixture} from './prices';
 import {RealEntry,type RealPrices} from './ui/RealEntry';
 import {refreshed} from '../core/real';
@@ -63,8 +63,11 @@ import {paidLeft} from '../core/rewind';
 import {todayTasks,dayDone,type TaskId} from '../core/today';
 import {rankOf,xpOf} from '../core/rank';
 import {Expedition} from './game/Expedition';
+import {DailyQuest} from './game/daily/DailyQuest';
+import {ObservatoryDoor} from './game/daily/Door';
+import {localToday} from '../content/daily/request';
 import {weekStart} from '../core/weekly';
-import {Records,League,GameDoor,CartView,Drawer,AnalystCard,TodaySheet,LibrarySheet,weekCtx} from './ui/Panels';
+import {Records,League,CartView,Drawer,AnalystCard,TodaySheet,LibrarySheet,weekCtx} from './ui/Panels';
 import {MapSheet} from './ui/MapSheet';
 import {RoomTags} from './ui/RoomTags';
 import {routineOf,SPOTS} from '../core/routine';
@@ -276,7 +279,11 @@ export default function Proto3D(){
   // G5: in and out through the observatory door (the paper fade, as for the house); the 판's market each day dresses the
   // garden behind on a wide screen, where the 판 is a column and the garden still shows; on a phone the garden stops drawing
   const [gameMarket,setGameMarket]=useState<number|null>(null);
-  const enterGame=(pack:string|null)=>{setPicked(null);setSheet(null);setFading(true);cue('door');setTimeout(()=>{setExpedition({pack});setTimeout(()=>setFading(false),80)},TIMING.roomFade)};
+  // 오늘의 관측소 (game/daily): the door opens a run; ?quest opens the open quest straight away (tests)
+  const [quest,setQuest]=useState<string|null>(null);
+  useEffect(()=>{try{if(new URLSearchParams(location.search).has('quest')){const id=g.ops.questOpen();if(id)setQuest(id)}}catch{}},[]);// eslint-disable-line react-hooks/exhaustive-deps
+  const enterQuest=(id:string)=>{setPicked(null);setSheet(null);setFading(true);cue('door');setTimeout(()=>{setQuest(id);setTimeout(()=>setFading(false),80)},TIMING.roomFade)};
+  const leaveQuest=(back:boolean)=>{setFading(true);cue('door');setTimeout(()=>{setQuest(null);if(back)setSheet({kind:'game'});setTimeout(()=>setFading(false),80)},TIMING.roomFade)};
   const leaveGame=()=>{setFading(true);cue('door');setTimeout(()=>{setExpedition(null);setGameMarket(null);setTimeout(()=>setFading(false),80)},TIMING.roomFade)};
   const [wide,setWide]=useState(false);
   useEffect(()=>{const q=matchMedia('(min-width:760px) and (min-height:521px)'),f=()=>setWide(q.matches);f();q.addEventListener('change',f);return()=>q.removeEventListener('change',f)},[]);
@@ -284,7 +291,7 @@ export default function Proto3D(){
   const [skyOpen,setSkyOpen]=useState<{focus:string|null}|null>(()=>{try{return new URLSearchParams(location.search).has('sky')?{focus:null}:null}catch{return null}});
   const [neighbours,setNeighbours]=useState<{planets:Planet[];sample:boolean}>({planets:[],sample:true});
   useEffect(()=>{if(!skyOpen)return;let on=true;planetRepo.neighbours(weekStart(clock.today)).then(n=>{if(on)setNeighbours(n)});return()=>{on=false}},[!!skyOpen,clock.today]);// eslint-disable-line react-hooks/exhaustive-deps
-  const quiet=calm||!!lapse||me||!!expedition||!!skyOpen;
+  const quiet=calm||!!lapse||me||!!expedition||!!quest||!!skyOpen;
   // W3 time capsules (core/capsule.ts): one marker per tree; burying after a judgment, digging up as a grade opens
   const capsules=useMemo(()=>capsulesOf(s.judgments,s.graded,clock.today,s.holdings.map(x=>x.id)),[s.judgments,s.graded,clock.today,s.holdings]);
   const [capFx,setCapFx]=useState<World['capsuleFx']>(null),[jump,setJump]=useState(false);
@@ -455,7 +462,8 @@ export default function Proto3D(){
   // stamps (core/stamps.ts): whatever newly holds is stamped once, with today's date
   const fresh=ready?newStamps({judgments:s.judgments.length,graded:s.graded.map(x=>({hit:x.hit,confidence:s.judgments.find(j=>j.id===x.judgmentId)?.confidence??3})),
     bestStreak:s.streak.best,rewinds:s.rewinds.length,cases:s.cases.length,daysDone:s.daysDone.length,seen:s.seen,calibration:track.calibration,
-    expeditions:(s.expeditions??[]).map(r=>({week:r.week,sureHit:r.decisions.some((d,i)=>d.chips>=4&&r.results?.[i]==='hit')}))},s.stamps.map(x=>x.id)):[];
+    expeditions:(s.expeditions??[]).map(r=>({week:r.week,sureHit:r.decisions.some((d,i)=>d.chips>=4&&r.results?.[i]==='hit')})),
+    observatoryClears:(s.observatory?.grants??[]).some(x=>x.rule==='first-clear')?1:0},s.stamps.map(x=>x.id)):[];
   useEffect(()=>{if(fresh.length)g.ops.stamp(fresh)},[fresh.join(',')]);// eslint-disable-line react-hooks/exhaustive-deps
   const share:Share=s.settings.share??'hide';
   const myCtx={name:s.name,rank:rank.name,habit:habitOf(s.judgments,s.graded).name,color:(PALETTES.find(p=>p.id===look.palette)??PALETTES[0]).primary,
@@ -673,7 +681,7 @@ export default function Proto3D(){
     pots:holdings.filter(()=>false).map(h=>({holdingId:h.id,open:!!openFor(s.cooldowns,h.id),flowers:flowersOn(s.cooldowns,h.id)})).filter(p=>p.open||p.flowers),
     decor:s.owned.filter(o=>o.slot).map(o=>({slot:o.slot!,shape:itemById(o.itemId)!.shape})),
     burst,focus,birth,enterFrom:calm?DOOR:null,cutaway:cut,onDeep:id=>{if(!calm&&ready)openDeep(id)},
-    capsules:[],capsuleFx:capFx,onCapsule:id=>{if(!calm)onCapsule(id)},hitRate:track.hitRate,cartFlag:CART_FLAGS[Number(clock.today.slice(-2))%CART_FLAGS.length],gameLit:!(s.expeditions??[]).some(r=>r.week===weekStart(clock.today)),
+    capsules:[],capsuleFx:capFx,onCapsule:id=>{if(!calm)onCapsule(id)},hitRate:track.hitRate,cartFlag:CART_FLAGS[Number(clock.today.slice(-2))%CART_FLAGS.length],gameLit:!(s.observatory?.runs??[]).some(r=>r.finishedAt!==null&&r.mode==='ranked'&&r.day===kstDay(clock.now)),
     // 설계 5장: the friends are talked to face to face (the briefing and the grade badges are gone)
     // 9-5: each friend talks in its own voice: small talk or one of my holdings
     onAnalyst:id=>{if(walkOn){walkHint();return}if(id in VILLAGE_SPEAKERS){setPicked(null);setSheet({kind:'talk',id:id as 'tori'|'moa'|'luon'})}else talkFriend()},
@@ -737,8 +745,21 @@ export default function Proto3D(){
     if(t){const dx=(me?.x??t.x)-t.x,dz=(me?.z??t.z+1)-t.z,d=Math.hypot(dx,dz)||1;setGoTo({x:t.x+dx/d*1.3,z:t.z+dz/d*1.3,at:Date.now()})}
     // 유저 워크플로우 3장: a tree opens its stock's status, read only (the journal is the library's)
     setSheet({kind:'tree',id})};
+  // today's request (feedback 2026-11-19): it arrives in the garden; untouched today → a notice above the dock and a 1
+  const qDay=kstDay(clock.now),qToday=localToday(s.observatory?.runs??[],qDay),qWaiting=!qToday.done&&!qToday.open&&!(s.observatory?.runs??[]).some(r=>r.day===qDay&&r.finishedAt!==null&&r.mode==='ranked');
+  const qNotice=qWaiting&&s.onboarded&&s.observatory?.noticed!==qDay;
+  // the notice sits just above the next-task card (its height changes with its text), never on top of it
+  // the same moments as the next-task card: not inside the house, not while building, not over a capsule or a jump
+  const showReq=ready&&!quiet&&qNotice&&!sheet&&!picked&&!inside&&!capFx&&!jump&&!buildMode&&h===undefined,[reqBottom,setReqBottom]=useState<number|null>(null);
+  useEffect(()=>{if(!showReq)return;
+    const f=()=>{const host=document.querySelector('.proto3d'),n=host?.querySelector('.rt-next');
+      if(!host||!n){setReqBottom(null);return}const hr=host.getBoundingClientRect(),r=n.getBoundingClientRect();
+      // landscape: the card sits left of the centre column, so the notice keeps its own place
+      setReqBottom(r.right<hr.left+hr.width/2-40?null:Math.round(hr.bottom-r.top+10))};
+    f();const t=setTimeout(f,450);window.addEventListener('resize',f);return()=>{clearTimeout(t);window.removeEventListener('resize',f)}},[showReq,next.kind]);
+  const openRequest=()=>{g.ops.questNoticed(qDay);if(syncOn){setPicked(null);setSheet({kind:'game'});return}const id=g.ops.questOpen();if(id)enterQuest(id)};
   const dock:['garden'|'journal'|'game'|'more',string,typeof Ledger,number][]=[
-    ['garden','정원',Sprout,0],['journal','일지',Ledger,g.due.length+open.length+toReview],['game','챌린지',Scope,0],['more','더보기',More,caseDone?0:1]];
+    ['garden','정원',Sprout,0],['journal','일지',Ledger,g.due.length+open.length+toReview],['game','관측소',Scope,qWaiting?1:0],['more','더보기',More,caseDone?0:1]];
   const pickMore=(id:MoreId)=>{if(id==='build'){setSheet(null);setPicked(null);setBuildMode(true);return}if(id==='cities'){setSheet({kind:'cities'});return}
     if(id==='me'){setSheet(null);setMe(true)}else if(id==='sky'){setSheet(null);setSkyOpen({focus:null})}
     else setSheet(id==='holdings'?{kind:'onboard'}:id==='shop'?{kind:'cart'}:{kind:id})};
@@ -748,7 +769,7 @@ export default function Proto3D(){
     <div className={`proto3d${ready&&!quiet?"":" no-dock"}`} data-testid="proto3d" data-place={where} data-weather={weather} onPointerDownCapture={unlock} onClickCapture={e=>{if((e.target as HTMLElement).closest('button'))cue('ui-button')}}
       data-night={light.night>0.5} style={{background:`linear-gradient(180deg,${sky('top')} 0%,${sky('mid')} 38%,${sky('bottom')} 100%)`}}>
       {light.night>0.05&&<div className="proto3d-stars" aria-hidden style={{opacity:light.night}}/>}
-      {w&&<Canvas frameloop={(expedition&&!wide)||where==='house'?'never':'always'} shadows="soft" dpr={[1,1.5]} gl={{antialias:false,alpha:true,powerPreference:'high-performance'}}
+      {w&&<Canvas frameloop={((expedition||quest)&&!wide)||where==='house'?'never':'always'} shadows="soft" dpr={[1,1.5]} gl={{antialias:false,alpha:true,powerPreference:'high-performance'}}
         camera={{fov:46,near:0.5,far:120,position:[0,21,14.5]}}>
         <Scene3D holdings={shown} picked={picked} onPick={id=>{if(id===null){setPicked(null);return}openTree(id)}} recenter={recenter} weather={weather} world={world}/>
       </Canvas>}
@@ -759,7 +780,7 @@ export default function Proto3D(){
       <div className="proto3d-top">
         <div className="rt-top-left">
         {/* today's market as weather, top left (restored 2026-11-20: the PM never asked for it to go) */}
-        {w&&where!=='house'&&(!expedition||wide)&&!skyOpen&&!welcome&&!me&&<div className="rt-weather" aria-label="오늘 시장 날씨">
+        {w&&where!=='house'&&(!expedition||wide)&&!quest&&!skyOpen&&!welcome&&!me&&<div className="rt-weather" aria-label="오늘 시장 날씨">
           <span className="rt-weather-k">{lapseMarket||(expedition&&gameMarket!==null)?'그날 시장':'오늘 시장'}</span>
           <strong>{WEATHER_LABEL[weather]}</strong>
           <span className="rt-num">{(()=>{const v=expedition&&gameMarket!==null?gameMarket:lapseMarket?.index??w.index;return (v>0?'+':'')+v.toFixed(2)})()}%</span>
@@ -860,6 +881,9 @@ export default function Proto3D(){
 
       {/* 설계 6·7장: the four tabs are gone; a small notebook button opens my journal where I stand (the stock index first) */}
       {ready&&!quiet&&!inside&&where==='village'&&!sheet&&<button type="button" className="proto3d-locate vl-book" aria-label="수첩 펼치기" onClick={()=>{setPicked(null);setSheet({kind:'journal'})}}><Ledger size={20}/></button>}
+      {showReq&&<div className="rt-request" role="status" data-testid="request-notice" style={reqBottom!=null?{bottom:reqBottom}:undefined}>
+        <button type="button" className="rt-request-go" onClick={openRequest}><Scope size={18}/><span><b>오늘의 관측 의뢰가 도착했어</b><small>눌러서 열기</small></span></button>
+        <button type="button" className="rt-request-x" aria-label="알림 닫기" onClick={()=>g.ops.questNoticed(qDay)}><Cross size={16}/></button></div>}
 
       {h&&st&&!sheet&&(
         <section role="dialog" aria-label={`${h.name} 나무`} className="proto3d-card">
@@ -907,7 +931,8 @@ export default function Proto3D(){
       {sheet?.kind==='league'&&<League g={g} onClose={close}/>}
       {sheet?.kind==='map'&&<MapSheet me={(window as unknown as {__proto3d?:{player?:{x:number;z:number}}}).__proto3d?.player??{x:0,z:0}} onGo={goPlace} onClose={close}/>}
       {sheet?.kind==='library'&&<LibrarySheet caseDone={caseDone} rewindLeft={paidLeft(s.rewinds,clock.today)} onCase={()=>setSheet({kind:'case'})} onRewind={()=>setSheet({kind:'rewind'})} onClose={close}/>}
-      {sheet?.kind==='game'&&<GameDoor runs={s.expeditions??[]} week={weekStart(clock.today)} onEnter={()=>enterGame(null)} onClose={close}/>}
+      {sheet?.kind==='game'&&<ObservatoryDoor g={g} onPlay={enterQuest} onClose={close} server={syncOn?observatoryServer:null}/>}
+      {quest&&<DailyQuest g={g} runId={quest} onClose={()=>leaveQuest(true)} server={syncOn?observatoryServer:null}/>}
       {expedition&&<Expedition packId={expedition.pack} today={clock.today} history={s.expeditions??[]} handle={s.name} onFinish={g.ops.finishExpedition} onClose={()=>leaveGame()}
         garden={open.map(x=>({holdingId:x.holdingId,name:holdings.find(h=>h.id===x.holdingId)?.name??'',model:x.model}))}
         onSimilar={id=>{leaveGame();setSheet({kind:'brief',start:{holdingId:id}})}} onMarket={setGameMarket}/>}

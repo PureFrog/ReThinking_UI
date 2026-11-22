@@ -44,6 +44,11 @@ import {buyVirtual,sellVirtual,quote,type VirtualLot} from '../core/virtual';
 import {loadCart,settleCart,type CartLoad} from '../core/walk';
 import {bars as stockBars} from '../core/jigi/stocks';
 import {fieldPlots} from '../core/land';
+import {activeRun,blankProgress,endPlay,packOfRun,playAfter,playAt,playBefore,type QuestDef,type DailyPack,decide as decideQuest,kstDay,setDraft,setPick,setStage,startRun,type DailyRun,type DecideError,type FieldKey,type Fields,type Fraction,type InvestorProgress,type Stage} from '../core/game/daily/model';
+import {settle} from '../core/game/daily/settle';
+import {completionGrants,newGrants,type Grant} from '../core/game/daily/rewards';
+import {packById,packOfDay} from '../content/daily/packs';
+import {SAMPLE_REQUEST} from '../content/daily/request';
 
 export type Owned={uid:string;itemId:string;got:string;slot:string|null};
 // settings (ui/Settings.tsx): effect volume, keeping still, text size, tilt
@@ -68,7 +73,16 @@ export type GardenSave={v:1;wonV?:1/* coins counted in 원 (core/won.ts) */;virt
   // 유저 워크플로우 4장 (core/walk.ts): the farmer's cart, harvested virtual shares waiting for the next trading day's close
   cart?:CartLoad[];
   // 지기 J3: study tasks taken from the analysis (on the next journal's checklist), my principles, types I said don't fit
-  jigi?:{tasks:StudyTask[];principles:{text:string;at:number}[];typeNo:Record<string,boolean>}};
+  jigi?:{tasks:StudyTask[];principles:{text:string;at:number}[];typeNo:Record<string,boolean>};
+  // 오늘의 관측소 (core/game/daily): its runs (drafts kept, so leaving comes back to the same place) and investor_progress,
+  // the profile v5.0 top-level block kept here until the server's quest-settle owns it. Never mixed into the journals.
+  observatory?:{runs:DailyRun[];progress:InvestorProgress;
+    // signed in: the quests finished on the server (the course order follows it) and when it was read
+    server?:{finished:string[];at:number};
+    // rewards granted (core/game/daily/rewards.ts): each key once; a decoration also lands in `owned`
+    grants?:Grant[];
+    // the KST day the arrival notice was opened or closed (it shows once a day while the request waits)
+    noticed?:string}};
 // '?restart' (미리보기 처음부터_보기.bat): everything this app keeps on the device is wiped before anything reads it, so
 // the visit starts as a brand-new player: the landing (sign up / log in), my real stocks, the first quiz, the first walk.
 // Other address words stay (?restart&hour=10: the merchant is in whatever the time)
@@ -137,10 +151,69 @@ export function useGarden(){
     return {save,note};
   };
 
+  // a reward lands once: the grant is kept, a decoration goes into the inventory, and the player hears about it
+  const scoredRanked=(runs:DailyRun[])=>runs.filter(r=>r.finishedAt!==null&&r.mode==='ranked'&&r.result&&!r.result.pending).map(r=>({day:r.day,dailyId:r.dailyId,runId:r.id}));
+  const grantInto=(p:GardenSave,grants:Grant[]):GardenSave=>{const o=p.observatory;if(!o)return p;const fresh=newGrants(o.grants??[],grants);if(!fresh.length)return p;
+    const owned=[...p.owned,...fresh.filter(g=>g.item&&!p.owned.some(x=>x.uid===`grant-${g.key}`)).map(g=>({uid:`grant-${g.key}`,itemId:g.item!,got:c.today,slot:null}))];
+    setTimeout(()=>say(`관측소 보상 · ${fresh.map(g=>g.label).join(' · ')}${fresh.some(g=>g.item)?' · 꾸미기에 넣었어요':''}`),0);
+    return {...p,owned,observatory:{...o,grants:[...(o.grants??[]),...fresh]}}};
   const ops={
     // lookback: the first visit's judgment, dated {LOOKBACK} days back so its 30-day grade opens now (core/judgment.ts)
     // 관측소 원정: a finished run (game/Expedition.tsx); kept for the ghost and the records (the last 50)
     finishExpedition(r:RunRecord){setS(p=>({...p,expeditions:[...(p.expeditions??[]),r].slice(-50)}))},
+    // 오늘의 관측소: open the run to play (the unfinished one first; else the quest asked for, else the course's current
+    // one), move it along, and settle it when the third decision is in. Returns the run id, or null when nothing is open.
+    // def: the request handed out today (this device's sample, or the server's); the open run of it comes back
+    questOpen(def:QuestDef=SAMPLE_REQUEST):string|null{let id:string|null=null;
+      setS(p=>{const o=p.observatory??{runs:[],progress:blankProgress()},act=activeRun(o.runs);
+        if(act&&act.quest===def.id){id=act.id;return p}
+        const q=def;
+        const day=kstDay(c.now),run=startRun(packOfDay(day,q.level),q,day,c.now,o.runs,'q'+c.now.toString(36)+Math.random().toString(36).slice(2,5));
+        id=run.id;return {...p,observatory:{...o,runs:[...o.runs.filter(r=>r.finishedAt!==null||r.id!==act?.id),run].slice(-60)}}});
+      return id},
+    questEdit(id:string,fn:(r:DailyRun)=>DailyRun){setS(p=>{const o=p.observatory;if(!o)return p;return {...p,observatory:{...o,runs:o.runs.map(r=>r.id===id?fn(r):r)}}})},
+    questStage(id:string,stage:Stage){ops.questEdit(id,r=>setStage(r,stage))},
+    // feedback F4: scene 1 opens after the market has played up to it; the flow keeps the day it shows and ends on a stop
+    questBegin(id:string){setS(p=>{const o=p.observatory,r=o?.runs.find(x=>x.id===id),pack=r&&packOfRun(r,packById);if(!o||!r||!pack)return p;
+      return {...p,observatory:{...o,runs:o.runs.map(x=>x.id===id?{...setStage(x,'scene'),play:playBefore(pack)}:x)}}})},
+    questPlayAt(id:string,at:number){ops.questEdit(id,r=>playAt(r,at))},
+    questPlayEnd(id:string){ops.questEdit(id,r=>endPlay(r))},
+    questNoticed(day:string){setS(p=>{const o=p.observatory??{runs:[],progress:blankProgress()};return o.noticed===day?p:{...p,observatory:{...o,noticed:day}}})},
+    // an official run started on the server (quest-play): its id, its day and the pack cut at scene 1
+    questAdopt(a:{run:string;quest:string;def:QuestDef;day:string;dto:DailyPack;drafts?:Record<string,Partial<Fields>>;draftRev?:number}):string{
+      setS(p=>{const o=p.observatory??{runs:[],progress:blankProgress()};if(o.runs.some(r=>r.id===a.run))return p;
+        let run:DailyRun={...startRun(a.dto,a.def,a.day,c.now,o.runs,a.run),dto:a.dto,draftRev:a.draftRev??0};
+        // another device's drafts for this run come along
+        for(const [sc,f] of Object.entries(a.drafts??{}))run=setDraft(run,sc,f);
+        return {...p,observatory:{...o,runs:[...o.runs.filter(r=>r.finishedAt!==null),run].slice(-60)}}});
+      return a.run},
+    questDto(id:string,dto:DailyPack){ops.questEdit(id,r=>({...r,dto}))},
+    questDraftRev(id:string,rev:number){ops.questEdit(id,r=>({...r,draftRev:rev}))},
+    // a draft conflict resolved by taking the other device's version
+    questTakeDrafts(id:string,drafts:Record<string,Partial<Fields>>,rev:number){ops.questEdit(id,r=>{let x:DailyRun={...r,draftRev:rev};for(const [sc,f] of Object.entries(drafts))x=setDraft(x,sc,f);return x})},
+    questDraft(id:string,scene:string,f:Partial<Fields>){ops.questEdit(id,r=>setDraft(r,scene,f))},
+    questPick(id:string,scene:string,f:Fraction|null){ops.questEdit(id,r=>setPick(r,scene,f))},
+    questDecide(id:string,scene:string):{ok:true;done:boolean}|{ok:false;error:DecideError;missing?:FieldKey[]}{let out:{ok:true;done:boolean}|{ok:false;error:DecideError;missing?:FieldKey[]}={ok:false,error:'order'};
+      setS(p=>{const o=p.observatory,r=o?.runs.find(x=>x.id===id),pack=r&&packOfRun(r,packById);if(!o||!r||!pack)return p;
+        const d=decideQuest(pack,r,scene,c.now);if('error' in d){out={ok:false,error:d.error,missing:d.missing};return p}
+        let run=d.run,progress=o.progress;
+        if(run.stage==='result'){const st=settle(pack,run,progress,kstDay(c.now),c.now);run=st.run;progress=st.progress}
+        // the market plays on to the next moment (or the evaluation day) before it opens
+        const play=playAfter(pack,run);if(play)run={...run,play};
+        out={ok:true,done:run.finishedAt!==null};
+        const runs=o.runs.map(x=>x.id===id?run:x);
+        return grantInto({...p,observatory:{...o,runs,progress}},completionGrants(scoredRanked(runs)))});
+      return out},
+    // grants from the server (its ledger is the truth once signed in), applied once each
+    questGrants(grants:Grant[]){setS(p=>grantInto(p,grants))},
+    // the server's answer to a settled run: its replay replaces the local result and its ledger the local XP; an error
+    // (no invite, a run from before signing in…) keeps the local result as this device's own record
+    questSynced(id:string,res:{run:DailyRun;progress:InvestorProgress;grants?:Grant[]}|{error:string}){setS(p=>{const o=p.observatory;if(!o)return p;
+      if('error' in res)return {...p,observatory:{...o,runs:o.runs.map(r=>r.id===id?{...r,synced:{at:c.now,error:res.error}}:r)}};
+      const fin=[...new Set([...(o.server?.finished??[]),res.run.quest])];
+      return grantInto({...p,observatory:{...o,runs:o.runs.map(r=>r.id===id?{...res.run,stage:'result' as const,synced:{at:c.now},...(r.play?{play:r.play}:{})}:r),progress:res.progress,server:{finished:fin,at:c.now}}},
+        'grants' in res&&Array.isArray(res.grants)?res.grants:[])})},
+    questServerState(progress:InvestorProgress,finished:string[]){setS(p=>{const o=p.observatory??{runs:[],progress:blankProgress()};return {...p,observatory:{...o,progress,server:{finished,at:c.now}}}})},
     recordJudgment(j:Omit<Judgment,'id'|'day'>,lookback=false){
       const full:Judgment=lookback?{...j,id:`look-${j.holdingId}-${c.now}`,day:shiftDay(c.today,-LOOKBACK),lookback:true}:{...j,id:`j-${j.holdingId}-${c.now}`,day:c.today};let note:string|null=null;
       setS(p=>{const r=record(p.judgments,full);let next={...p,judgments:r.list,lookedBack:p.lookedBack||lookback,currency:p.currency+(r.first?EARN.judgment:0)};

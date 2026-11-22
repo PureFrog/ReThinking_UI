@@ -61,5 +61,11 @@
   "interests": null,
   "memory_policy": {
     "blocked_profile_paths": []
+  },
+  "investor_progress": {
+    "total_xp": 0,
+    "rank": "견습 관측원",
+    "level": 1,
+    "awards": []
   }
 }

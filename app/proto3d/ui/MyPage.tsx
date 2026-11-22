@@ -18,6 +18,9 @@ import {formatDay} from '../../core/items';
 import {Cross,Lock} from './Icons';
 import type {useGarden} from '../state';
 import {workOf} from '../state';
+import {titleOf} from '../../core/game/daily/model';
+import {ProgressBar} from '../game/daily/DailyQuest';
+import {Titles} from '../game/daily/Door';
 type G=ReturnType<typeof useGarden>;
 
 function Count({to,suffix=''}:{to:number|null;suffix?:string}){
@@ -61,6 +64,11 @@ export function MyPage({g,onClose,onRecords,onSettings,onLetter,wearOnly}:{wearO
             <span className="rt-me-swatch">{[p.primary,p.secondary,p.accent].map(c=><i key={c} style={{background:c}}/>)}</span><strong>{p.name}</strong>{!open&&<small><Lock size={12}/> {howTo(p.unlock,names)}</small>}</button>})}
         </div></>}
       {tab==='record'&&<div className="rt-me-record">
+        {/* 관측소 숙련도 (game/daily): investor_progress — title, level, the bar to the next, the quests opened */}
+        <div className="rt-section">관측소 숙련도</div>
+        {/* no course list here (feedback 2026-11-19): what comes next stays on the server */}
+        {(()=>{const total=g.s.observatory?.progress.total_xp??0;
+          return <div data-testid="me-observatory" style={{marginBottom:14}}><ProgressBar total={total} t={titleOf(total)}/><Titles g={g}/></div>})()}
         <div className="rt-me-big"><div><span>판단 적중</span><b className="rt-num"><Count to={t.hitRate} suffix="%"/></b></div><div><span>확신 보정</span><b className="rt-num"><Count to={t.calibration}/></b></div>
           <div><span>기록한 판단</span><b className="rt-num"><Count to={t.judged}/></b></div><div><span>최고 연속</span><b className="rt-num"><Count to={g.s.streak.best} suffix="일"/></b></div></div>
         <div className="rt-section">고른 판단</div>

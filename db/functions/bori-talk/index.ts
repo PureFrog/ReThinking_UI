@@ -24,6 +24,7 @@ import {DAILY_SCHEMA,ELICITATION_SCHEMA} from '../../../app/core/llm1/prompt';
 import {FieldRegistry} from '../../../app/core/llm1/registry';
 import {forgetPath} from '../../../app/core/llm1/profile';
 import {chatBody,LLM_DEFAULT} from '../../../app/core/llmModel';
+import {mergeProgress} from '../../../app/core/game/daily/server';
 import {LLM_LIMIT} from '../../../app/core/jigi/llm';
 import persona from '../../../app/content/llm1/persona_bori.json';
 import registry from '../../../app/content/llm1/field_registry.json';
@@ -50,9 +51,13 @@ Deno.serve(async(req:Request)=>{
   const save=(coll:string,doc:unknown)=>fetch(`${url}/rest/v1/llm1_docs?on_conflict=player_id,coll`,{method:'POST',headers:{...svc,prefer:'resolution=merge-duplicates'},body:JSON.stringify({player_id:me.id,coll,doc,updated_at:new Date().toISOString()})});
   const now=Date.now();
   let profile=(await load('profile')) as ProfileDoc|null??newProfile(me.id,structuredClone(userTemplate) as any);
+  // the profile as read now; 오늘의 관측소's quest-settle may write investor_progress while this call works, so every
+  // profile save reads the stored one again and keeps its investor_progress (core/game/daily/server.ts mergeProgress)
+  const readRevision=profile.revision;
+  const saveProfile=async(next:ProfileDoc)=>save('profile',mergeProgress(next,(await load('profile')) as ProfileDoc|null,readRevision));
   if(b.action==='profile')return json({profile:profile.json});
   if(b.action==='forget'){try{const reg=new FieldRegistry(registry as any,()=>Object.keys((profile!.json.company_views as object)??{}));
-    const j=forgetPath(profile.json,reg,String(b.path));profile={...profile,json:j,revision:j.revision as number};await save('profile',profile);return json({ok:true})}
+    const j=forgetPath(profile.json,reg,String(b.path));profile={...profile,json:j,revision:j.revision as number};await saveProfile(profile);return json({ok:true})}
     catch(e){return json({error:(e as Error).message},400)}}
   if(!openai)return json({error:'no-llm'},503);
   let conv=(await load('conversation')) as Conv|null;
@@ -63,7 +68,7 @@ Deno.serve(async(req:Request)=>{
   const holdings=(Array.isArray(b.holdings)?b.holdings:[]).filter(h=>h&&typeof h.company_id==='string').slice(0,30).map(h=>({company_id:h.company_id.slice(0,20),name:String(h.name??'').slice(0,40)||null,status:'holding'}));
   const world:World={persona:persona as any,registry:registry as any,strategyTemplate:strategyTemplate as any,userTemplate:userTemplate as any,examples:(examples as any).examples,holdings,news:[],now:()=>Date.now(),
     companies:companies as any,modelName:Deno.env.get('OPENAI_MODEL')??LLM_DEFAULT};
-  const persist=async(s:Store)=>{await save('conversation',s.conv);if(s.profile!==profile)await save('profile',s.profile);await save('detection',{events:s.events,sessions:s.sessions,jobs:s.jobs})};
+  const persist=async(s:Store)=>{await save('conversation',s.conv);if(s.profile!==profile)await saveProfile(s.profile);await save('detection',{events:s.events,sessions:s.sessions,jobs:s.jobs})};
   const status=(s:Store)=>{const es=s.sessions.find(x=>x.elicitation_id===s.conv.active_elicitation_id);return es?{status:es.status,company_id:es.company_id}:null};
   if(b.action==='pause'){store=pauseElicitation(store,'user_request');await persist(store);return json({detection:status(store)})}
   if(!['message','visit','open','resume','reopen'].includes(b.action??'')){if(stale.expired.length)await persist(store);return json({error:'bad-request'},400)}

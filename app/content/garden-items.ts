@@ -17,6 +17,8 @@ export const GARDEN_ITEMS:GardenItem[]=[
   {id:'memo-board',name:'지난 분기 메모',shape:'board',from:'tori',desc:'토리가 쓰던 분기 메모판.',note:'다 본 거야. 형식은 참고해.'},
   {id:'scope',name:'휴대용 망원경',shape:'scope',from:'moa',desc:'모아의 예비 망원경. 받침대 포함.',note:'예비용. 렌즈는 닦아 놨어.'},
   {id:'dissent-flag',name:'반대 의견 깃발',shape:'flag',from:'luon',desc:'루온이 꽂아 둔 보라색 깃발.',note:'반대할 게 없을 때 꽂아 둬.'},
+  // 오늘의 관측소 weekly reward (core/game/daily/rewards.ts weekly-5): not for sale
+  {id:'obs-week-lamp',name:'관측 주간 등',shape:'lamp',desc:'한 주에 관측소 과제를 5번 끝내면 받아요. 그 주의 기록을 밝혀 두는 등.'},
   // titles (core/rank.ts RANKS index): judging experience, not returns
   {id:'rank-board',name:'메모 보드',shape:'board',rank:1,desc:'주니어 애널리스트가 되면 받아요. 오늘 본 것을 적어 두는 판.'},
   {id:'rank-flag',name:'애널리스트 깃발',shape:'flag',rank:2,desc:'애널리스트가 되면 받아요. 판단을 쌓아 온 표시.'},
