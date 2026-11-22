@@ -20,7 +20,7 @@ export type Point='paper'|'drawer'|'case'|'door'|null;
 // 9-3 where 보리's paws are and what they keep doing there (a place for each state of the day; they never just go back)
 export type Paws='rest'|'push'|'tap-paper'|'hold'|'mark-0'|'mark-1'|'plate'|'door'|'door-turn'|'tap-case'|'case-docs'|'case-compare'|'case-note'|'case-board';
 export type HouseProps={cam:HouseCam;point:Point;paws:Paws;mood:string;
-  paper:'fresh'|'done'|'none';drawer:'locked'|'open';caseFile:'hidden'|'rising'|'closed'|'open'|'done';door:boolean;tidy:boolean;
+  paper:'fresh'|'done'|'none'|'glow';drawer:'locked'|'open';caseFile:'hidden'|'rising'|'closed'|'open'|'done';door:boolean;tidy:boolean;
     onPaper:()=>void;onDrawer:()=>void;onCase:()=>void;onDoor:()=>void;onBori:()=>void};
 
 const H=()=>LOOK.house;
@@ -82,6 +82,9 @@ function Room({door,onDoor}:{door:boolean;onDoor:()=>void}){
   </group>;
 }
 
+function GlowRim(){const m=useRef<THREE.Mesh>(null);
+  useFrame(({clock})=>{if(m.current)(m.current.material as THREE.MeshBasicMaterial).opacity=0.45+0.35*Math.sin(clock.elapsedTime*4)});
+  return <mesh ref={m} rotation-x={-Math.PI/2} position-y={-0.001}><planeGeometry args={[0.42,0.52]}/><meshBasicMaterial color="#ffd66b" transparent opacity={0.6} toneMapped={false}/></mesh>}
 function Desk({paper,drawer,caseFile,tidy,onPaper,onDrawer,onCase}:Pick<HouseProps,'paper'|'drawer'|'caseFile'|'tidy'|'onPaper'|'onDrawer'|'onCase'>){
   const c=H().color;
   const box=useRef<THREE.Group>(null),file=useRef<THREE.Group>(null),cover=useRef<THREE.Mesh>(null),sheet=useRef<THREE.Group>(null);
@@ -100,6 +103,8 @@ function Desk({paper,drawer,caseFile,tidy,onPaper,onDrawer,onCase}:Pick<HousePro
     {paper!=='none'&&<group ref={sheet} position={[-0.18,0.772,-0.5]} rotation-y={0.04}>
       <mesh rotation-x={-Math.PI/2} onClick={tap(onPaper)} name="house-paper" receiveShadow><planeGeometry args={[0.34,0.44]}/>{S(c.paper)}</mesh>
       {[0,1,2,3,4].map(i=><mesh key={i} rotation-x={-Math.PI/2} position={[-0.02,0.001,-0.15+i*0.06]}><planeGeometry args={[i?0.24:0.18,0.012]}/>{S(c.ink)}</mesh>)}
+      {/* 유저 워크플로우 1장: on the first lesson only the quiz paper lights up until it is tapped */}
+      {paper==='glow'&&<GlowRim/>}
       {paper==='done'&&<mesh rotation-x={-Math.PI/2} position={[0.1,0.002,0.14]}><ringGeometry args={[0.035,0.05,24]}/><meshBasicMaterial color={c.stamp}/></mesh>}
     </group>}
     {/* the drawer unit on the right: a lock and the level plate until the case file unlocks */}
@@ -152,6 +157,57 @@ function Bori({point,paws,mood,onBori}:{point:Point;paws:Paws;mood:string;onBori
     blink.current-=dt;const shut=blink.current<0.12;if(blink.current<0)blink.current=2.5+Math.random()*3;for(const e of parts.eyes)e.scale.y=rest.eyeY*(shut?0.15:1)});
   const b=H().bori;
   return <group position={[0,b.y,-1.5]} rotation-y={0} scale={b.scale} onClick={tap(onBori)} name="house-bori"><primitive object={model}/></group>;
+}
+
+
+// 선생님 (피드백 2026-11-21, the team's bear drawing): an orange bear in pink round glasses across the desk, built from
+// simple shapes in the room's soft materials. Looks where the lesson points, nods a little, blinks; smiles (closed arcs)
+// when the day goes well. Replaces 보리 in the room; the paws on the desk (PawsOnDesk) are hers.
+export function Teacher({point,paws,mood,onBori}:{point:Point;paws:Paws;mood:string;onBori:()=>void}){
+  const T=H().teacher,head=useRef<THREE.Group>(null),body=useRef<THREE.Group>(null),eyes=useRef<THREE.Group>(null);
+  const m=useMemo(()=>({fur:soft(T.fur),light:soft(T.light),ear:soft(T.ear),muzzle:soft(T.muzzle),dark:new THREE.MeshStandardMaterial({color:T.dark,roughness:0.45}),
+    pink:new THREE.MeshStandardMaterial({color:T.pink,roughness:0.4}),lens:new THREE.MeshStandardMaterial({color:'#ffe0ea',transparent:true,opacity:0.22,roughness:0.1,depthWrite:false}),
+    blush:new THREE.MeshStandardMaterial({color:'#ff8fa8',transparent:true,opacity:0.5,roughness:1,depthWrite:false}),scarf:soft(T.scarf)}),[T]);
+  const smile=mood==='happy';
+  // the glasses' arms: from the outer rim back to the ear
+  const temple=useMemo(()=>{const q=(sx:number)=>new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(0.28*sx,0.04,-0.57).normalize());return {r:q(1),l:q(-1)}},[]);
+  useEffect(()=>{const w=window as {__proto3d?:{boriFace?:string}};if(w.__proto3d)w.__proto3d.boriFace=mood},[mood]);
+  const blink=useRef(2);
+  useFrame(({clock},dt)=>{const t=clock.elapsedTime,k=1-Math.exp(-Math.min(dt,0.1)*6),aim=point?HOUSE_SPOTS[point]:null;
+    if(body.current){body.current.position.y=Math.sin(t*2)*0.012;body.current.rotation.y=THREE.MathUtils.lerp(body.current.rotation.y,paws==='door-turn'?-0.6:aim?Math.atan2(aim[0],1.4)*0.5:0,k)}
+    const h=head.current;if(h){const down=point==='paper'||point==='case'||point==='drawer'?0.16:point==='door'?-0.05:0.04;
+      h.rotation.x=THREE.MathUtils.lerp(h.rotation.x,down+(still()?0:Math.sin(t*1.2)*0.04),k);h.rotation.z=still()?0:Math.sin(t*0.6)*0.03;
+      h.rotation.y=THREE.MathUtils.lerp(h.rotation.y,point==='door'?-0.9:point==='drawer'?-0.45:point==='case'?0.3:Math.sin(t*0.5)*0.05,k)}
+    blink.current-=dt;const shut=!smile&&blink.current<0.12;if(blink.current<0)blink.current=2.5+Math.random()*3;if(eyes.current)eyes.current.scale.y=shut?0.15:1});
+  const sp=(r:number)=><sphereGeometry args={[r,32,22]}/>;
+  return <group position={[0,T.y,-1.5]} scale={T.scale} onClick={tap(onBori)} name="house-bori">
+    <group ref={body}>
+      {/* body, the little scarf like the garden friends wear, legs tucked under the desk */}
+      <mesh position={[0,1.65,0]} scale={[1,1.05,0.85]} material={m.fur} castShadow>{sp(0.8)}</mesh>
+      <mesh position={[0,1.62,0.5]} scale={[0.75,0.8,0.35]} material={m.light}>{sp(0.6)}</mesh>
+      <mesh position={[0,2.3,0.05]} rotation-x={Math.PI/2} material={m.scarf} castShadow><torusGeometry args={[0.52,0.11,12,32]}/></mesh>
+      <group ref={head} position={[0,2.75,0]}>
+        <mesh scale={[1.08,0.95,1]} material={m.fur} castShadow>{sp(0.85)}</mesh>
+        {[-1,1].map(s=><group key={s}><mesh position={[0.62*s,0.62,-0.05]} scale={[1,1,0.7]} material={m.fur} castShadow>{sp(0.3)}</mesh>
+          <mesh position={[0.62*s,0.62,0.12]} scale={[1,1,0.4]} material={m.ear}>{sp(0.17)}</mesh></group>)}
+        <mesh position={[0,-0.22,0.66]} scale={[1.15,0.75,0.6]} material={m.muzzle}>{sp(0.32)}</mesh>
+        <mesh position={[0,-0.12,0.83]} scale={[1.3,0.85,0.8]} material={m.dark}>{sp(0.09)}</mesh>
+        {[-1,1].map(s=><mesh key={s} position={[0.055*s,-0.28,0.84]} rotation-z={Math.PI} material={m.dark}><torusGeometry args={[0.055,0.018,8,16,Math.PI]}/></mesh>)}
+        <group ref={eyes} position={[0,0.04,0]}>
+          {[-1,1].map(s=>smile?<mesh key={s} position={[0.33*s,0,0.81]} rotation-y={-0.4*s} material={m.dark}><torusGeometry args={[0.1,0.026,10,20,Math.PI]}/></mesh>
+            :<mesh key={s} position={[0.31*s,-0.02,0.8]} scale={[0.8,mood==='curious'?1.25:1.05,0.5]} material={m.dark}>{sp(0.09)}</mesh>)}
+        </group>
+        {[-1,1].map(s=><group key={s}>
+          <mesh position={[0.48*s,-0.2,0.66]} rotation-y={0.6*s} scale={[1.2,0.6,0.3]} material={m.blush}>{sp(0.13)}</mesh>
+          {/* the pink round glasses: rims, lenses, the arms back to the ears */}
+          <mesh position={[0.33*s,0.04,0.9]} rotation-y={-0.3*s} material={m.pink}><torusGeometry args={[0.27,0.05,14,40]}/></mesh>
+          <mesh position={[0.33*s,0.04,0.9]} rotation-y={-0.3*s} material={m.lens}><circleGeometry args={[0.25,32]}/></mesh>
+          <mesh position={[0.72*s,0.08,0.535]} quaternion={s<0?temple.l:temple.r} material={m.pink}><cylinderGeometry args={[0.028,0.028,0.64,10]}/></mesh>
+        </group>)}
+        <mesh position={[0,0.08,0.95]} rotation-z={Math.PI/2} material={m.pink}><cylinderGeometry args={[0.033,0.033,0.14,10]}/></mesh>
+      </group>
+    </group>
+  </group>;
 }
 
 // 9-3 the two front paws on the far end of the desk (the model's arms are too short to show over it). Each state of the
@@ -222,7 +278,7 @@ export function HouseScene(p:HouseProps){
     <Cam cam={p.cam}/>
     <Room door={p.door} onDoor={p.onDoor}/>
     <Desk {...p}/>
-    <Suspense fallback={null}><Bori point={p.point} paws={p.paws} mood={p.mood} onBori={p.onBori}/></Suspense>
+    <Teacher point={p.point} paws={p.paws} mood={p.mood} onBori={p.onBori}/>
     <PawsOnDesk paws={p.paws}/>
   </>;
 }

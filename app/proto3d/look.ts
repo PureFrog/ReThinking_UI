@@ -45,6 +45,8 @@ export const LOOK={
     // down, distance from the point between them, lift = how high over the ground it looks)
     // turn: how far round from straight behind the player the camera swings, so both faces show (radians)
     talk:{pitch:1.18,dist:6.5,lift:0.9,turn:0.55},
+    // 유저 워크플로우 2장: talking face to face, the camera at my eyes (eye, a little behind: back) on the other's face (face)
+    eyeTalk:{eye:1.3,face:1.12,back:0.55,fov:54},
     // the village tour (ui/Tour.tsx): after a moment the camera comes down in front of the friend being introduced
     tour:{pitch:1.3,dist:5.2,lift:0.55,turn:{tori:0,moa:0,luon:0} as Record<string,number>,pitchOf:{} as Record<string,number>},
     // fishing with 나루: higher, looking down on the float past the player
@@ -59,6 +61,8 @@ export const LOOK={
   // how fast a standing analyst (or 보리) turns to face the player or its task (per second, eased)
   analystTurn:5,
   walk:{speed:4,accel:10,turn:12,brake:0.7,keyStep:0.8},
+  // 유저 워크플로우 2장: a tap on someone further than reach walks me up to stand this far in front of them
+  villager:{reach:2.8,stand:2.1},
 
   // the grade reveal reaching the tree (Scene3D Burst): sparks for a hit, autumn leaves for a miss
   burst:{hit:'#fff3a8',miss:'#d39a3a'},
@@ -128,8 +132,10 @@ export const LOOK={
     // 9-5: the vertical view widens on a tall screen until hfov degrees fit across (both desk ends show), up to fovMax
     fov:50,hfov:50,fovMax:92,camEase:3.2,
     bori:{y:0.42,scale:0.62},
+    // 선생님 (피드백 2026-11-21): the orange bear in pink glasses, in the drawing's units (desk at 1.4) scaled to the room's desk
+    teacher:{y:0.13,scale:0.42,fur:'#f7b567',light:'#ffd9a0',ear:'#f2a08a',muzzle:'#fff1c4',dark:'#3b2618',pink:'#f48fb8',scarf:'#3fb5a3'},
     // 9-3 보리's paws on the far end of the desk: shoulder points (the arm runs from there), the paw size, how fast they ease
-    paws:{shoulderR:[0.21,0.98,-1.3],shoulderL:[-0.21,0.98,-1.3],arm:0.055,reach:0.5,size:[0.07,0.042,0.085],ease:5,fur:'#e3b57c',pad:'#fff1de'} as {shoulderR:[number,number,number];shoulderL:[number,number,number];arm:number;reach:number;size:[number,number,number];ease:number;fur:string;pad:string},
+    paws:{shoulderR:[0.21,0.98,-1.3],shoulderL:[-0.21,0.98,-1.3],arm:0.055,reach:0.5,size:[0.07,0.042,0.085],ease:5,fur:'#f7b567',pad:'#ffd9a0'} as {shoulderR:[number,number,number];shoulderL:[number,number,number];arm:number;reach:number;size:[number,number,number];ease:number;fur:string;pad:string},
     color:{floor:'#b48a62',wall:'#efe6d2',wall2:'#e6dac2',trim:'#8a6448',sky:'#bfe3f2',outside:'#9fd18a',door:'#7a5a44',brass:'#c9a24a',rug:'#7b8f5e',pot:'#b4684a',leaf:'#4f9a45',leaf2:'#6db24f',
       desk:'#a77d58',deskEdge:'#6f5040',paper:'#fbf7ec',ink:'#9c9180',stamp:'#b8372b',lock:'#5c5447',file:'#8a6a3f',string:'#d9c7a0'},
   },

@@ -31,10 +31,12 @@ function Bed({kind}:{kind:'farm'|'orchard'}){
   if(kind==='orchard')return <group>
     <mesh position-y={0.02} receiveShadow><cylinderGeometry args={[1.05,1.12,0.08,28]}/>{S('#8b6b52')}</mesh>
     <mesh position-y={0.05} rotation-x={-Math.PI/2}><torusGeometry args={[1.06,0.08,6,32]}/>{S('#b59a74')}</mesh></group>;
+  // 실제 종목 밭 (피드백 2026-11-21 "나무밭 그림 이상함"): a tree pit like the orchard's, not crop rows; a ring of small
+  // stones tells it from the virtual field
   return <group>
-    <mesh position-y={0.03} receiveShadow><boxGeometry args={[1.9,0.12,1.9]}/>{S('#7c5e46')}</mesh>
-    {[-0.6,0,0.6].map(x=><mesh key={x} position={[x,0.11,0]} castShadow receiveShadow><boxGeometry args={[0.34,0.1,1.7]}/>{S('#94704f')}</mesh>)}
-  </group>;
+    <mesh position-y={0.02} receiveShadow><cylinderGeometry args={[1.05,1.12,0.08,28]}/>{S('#7c5e46')}</mesh>
+    {Array.from({length:12},(_,i)=>{const a=i/12*Math.PI*2;return <mesh key={i} position={[Math.cos(a)*1.1,0.07,Math.sin(a)*1.1]} scale={[1,0.6,1]} castShadow>
+      <sphereGeometry args={[0.11,10,8]}/>{S(i%2?'#c9bfae':'#b8ad99')}</mesh>})}</group>;
 }
 // a fence piece: a post with a rail to the next one
 function FencePiece({len}:{len:number}){

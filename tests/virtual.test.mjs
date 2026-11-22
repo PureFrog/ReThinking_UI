@@ -13,7 +13,7 @@ test('coins are 원 at real-money sizes', () => {
 });
 test('the 밭 is for real stocks, the 과수원 for virtual ones', () => {
   const farm=L.fieldPlots([],'farm'),orch=L.fieldPlots([],'orchard');
-  assert.equal(farm.length,7);assert.equal(orch.length,7);assert.ok(farm.every(i=>!orch.includes(i)));
+  assert.equal(farm.length,9);assert.equal(orch.length,9);assert.ok(farm.every(i=>!orch.includes(i)));
 });
 test('buying whole shares with enough coins into a free plot; a second buy averages; selling pays today\'s price', () => {
   const plots=L.fieldPlots([],'orchard');let o={currency:1_000_000,virtual:[]};

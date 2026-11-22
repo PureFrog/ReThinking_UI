@@ -26,8 +26,9 @@ const PLACES0:{id:PlaceId;label:string;x:number;z:number;rot:number;walk:{x:numb
   {id:'library',label:'사례 서고',x:2.571,z:-10.071,rot:0,walk:{x:2.571,z:-8.571}},
   {id:'plaza',label:'리그 광장',x:-2,z:19.6,rot:0,walk:{x:-2,z:17.4}},
   // 2026-11-20: the 관측소 (퀘스트 게시판) is gone; the pond and 나루's fishing spot stand in its place (quests: the HUD)
-  {id:'cart',label:'상점',x:-4.5,z:-1.5,rot:0.5,walk:{x:-3.5,z:-0.8}},
-  {id:'pond',label:'낚시터',x:-9.6,z:0.9,rot:0,walk:{x:-7.2,z:1.7}},// walk: by 나루 the otter (fishing), where the old 관측소 stood
+  // 피드백 2026-11-22: the shop (with the clothes and building clerks) where the pond was, west of the middle
+  {id:'cart',label:'상점',x:-9.0,z:0.2,rot:1.2,walk:{x:-7.8,z:0.7}},
+  {id:'pond',label:'낚시터',x:5.5/1.4,z:13.6/1.4,rot:0,walk:{x:8.1/1.4,z:12.6/1.4}},// walk: by 나루 the otter (fishing), where the old 관측소 stood
 ];
 // each place moves out with its walk point (the spot in front of it keeps its distance)
 export const PLACES=PLACES0.map(p=>{const dx=(SPREAD-1)*p.x,dz=(SPREAD-1)*p.z;return {...p,x:p.x+dx,z:p.z+dz,walk:{x:p.walk.x+dx,z:p.walk.z+dz}}});
@@ -53,8 +54,9 @@ export function pushOut(p:{x:number;z:number},list:Solid[],pad=0.35){let moved=f
 const PATHS0:[number,number][][]=[
   [[0,1.5],[0.4,-3.5],[0.6,-7.5],[1.2,-10.5],[1,-13.6]],
   [[-0.6,3.6],[-1.6,6],[-2.6,9],[-2,11.2],[-2,16],[-2,17.4]],
-  // along the front of the two fields (2026-11-20: no more cut up between them; each field's gate has its own branch)
-  [[1.2,2.6],[3.6,4.3],[8.8,4.1],[12.4,4.1]],
+  // along the front of the two fields (2026-11-20: no more cut up between them; each field's gate has its own branch);
+  // 2026-11-21: further south, past the fields' 4th row (9 → 12 plots)
+  [[1.2,2.6],[3.6,7],[8.8,7],[12.4,7]],
   [[-1.4,1.4],[-4.4,1.6],[-7,1.8]],
 ];
 // the ends meet the places' walk points (moved with them), the stones between spread evenly
@@ -76,5 +78,10 @@ export function route(from:{x:number;z:number},to:{x:number;z:number},inPond:(x:
 // 나루 the otter by the pond (feedback 11-17, docs/mockups/otter-fishing.html): where it stands, where the player stands
 // to fish, and where the float lands (the middle of the big pond piece, Scene3D POND)
 const at=(x:number,z:number)=>{const [a,b]=spread(x,z);return {x:a,z:b}};
-export const NARU=at(-6.9,0.5),FISH_STAND=at(-7.4,1.9),FISH_AT=at(-9.7,1.1);
+// 피드백 2026-11-21: fishing moved to the stream bank east of the bridge (the open lawn right of the square's south side):
+// 나루 and the player on the north bank, the float in the stream. The old pond stays as scenery.
+// 피드백 2026-11-22 (village_layout.jpg "낚시터 연못"): a pond east of the middle path, near the stream; 나루 on its east bank
+export const POND_AT={x:5.5,z:13.6};
+export const NARU={x:POND_AT.x+2.9,z:POND_AT.z+0.4},FISH_STAND={x:POND_AT.x+2.6,z:POND_AT.z-1.0},FISH_AT={x:POND_AT.x+0.6,z:POND_AT.z};
+void at;
 

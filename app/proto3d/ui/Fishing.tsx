@@ -24,7 +24,7 @@ export function NaruTalk({left,onFish,onLog,onClose}:{left:number;onFish:()=>voi
     <div className="rt-talk-choices" role="group" aria-label="대답">
       {left>0&&<button type="button" className="rt-talk-choice first" onClick={onFish}>낚시하기</button>}
       <button type="button" className={'rt-talk-choice'+(left>0?'':' first')} onClick={onLog}>물고기 도감</button></div>
-    <div className="rt-talk-box"><span className="rt-talk-name n-naru" data-who="naru">나루</span><p className="rt-talk-line">{text}</p></div>
+    <div className="rt-talk-box"><span className="rt-talk-name n-naru" data-who="naru">나루<small className="rt-talk-role">낚시터 · 코인 벌기</small></span><p className="rt-talk-line">{text}</p></div>
   </div>;
 }
 

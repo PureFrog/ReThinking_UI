@@ -82,6 +82,9 @@ export function Onboarding({g,onClose,onPlanted,onDemo,reader,onReal,real,pick=f
         <Plus size={20}/><strong>직접 입력</strong><small>종목명과 수익률만 있으면 돼요.</small></button>
       {onReal&&<button type="button" className="rt-pick-card" onClick={onReal}>
         <Plus size={20}/><strong>실제 시세로</strong><small>종목·산 날짜·수량만. 가격은 실제 종가로 채워요.</small></button>}
+      {/* 유저 워크플로우 1장: not investing yet → an empty list into the room (the virtual field has a free tree) */}
+      {first&&<button type="button" className="rt-pick-card" onClick={()=>{g.ops.setHoldings([]);if(onPlanted)onPlanted([],true);else onClose()}}>
+        <Strike size={20}/><strong>아직 투자 안 해요</strong><small>빈 목록으로 시작해요. 가상 밭에서 무료 나무로 연습할 수 있어요.</small></button>}
     </div>
     {readErr&&<p className="rt-err" role="alert">{readErr}</p>}
     <p className="rt-hint" style={{marginTop:14}}>{reader?'올린 캡처는 종목을 읽으려고 OpenAI(미국)로 한 번 보내고 저장하지 않아요. 계좌번호·총액은 읽지 않아요.':'로그인하면 캡처를 실제로 읽어요. 지금은 올리면 예시 4종목이 나와요.'}</p>

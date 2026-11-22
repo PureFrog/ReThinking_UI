@@ -1,6 +1,7 @@
 // 집과 마을 (PM 설계 2026-11-19 8장 플레이 검수): the house desk first, the quiz and the Lv.5 lock, the door, the case file
 // (time stops until a judgment and the order are confirmed; no paper from after the day) and the village's name-only trees.
 import { test, expect, type Page } from "./fixtures";
+import { answerPaper } from "./quiz-answer";
 const btn = (p: Page, n: string) => p.getByRole("button", { name: n }).first();
 const house = (p: Page) => p.evaluate(() => (window as unknown as { __proto3d?: { house?: { door: boolean; drawer: string; caseFile: string } } }).__proto3d?.house ?? null);
 const caseFile = (p: Page) => p.evaluate(() => (window as unknown as { __proto3d?: { caseFile?: { phase: string; pages: number; docs: string[]; lastDay: string } | null } }).__proto3d?.caseFile ?? null);
@@ -8,10 +9,8 @@ const caseFile = (p: Page) => p.evaluate(() => (window as unknown as { __proto3d
 async function doQuiz(page: Page) {
   await btn(page, "문서 받기").click();
   for (let i = 0; i < 12; i++) {
-    const stamp = page.locator(".hs-stamp").first();
-    if (!(await stamp.isVisible())) break;
-    await stamp.click();
-    await expect(page.locator(".hs-quiz[data-side=back] .hs-ink")).toBeVisible();
+    if (!(await page.locator(".hs-quiz[data-side=front]").isVisible())) break;
+    await answerPaper(page);
     await expect(page.locator(".hs-back")).toContainText("정답");
     await page.locator(".hs-acts .rt-btn.primary").click();
   }
@@ -66,13 +65,14 @@ test("Lv.5: the case file — time waits for the judgment, no paper from later, 
 });
 
 test("a paper left alone stamps 시간 초과 and turns over; leaving halfway goes on from the next paper", async ({ page }) => {
-  test.setTimeout(90000);
+  test.setTimeout(180000);
   await page.goto("/?house");
   await expect(page.getByTestId("house")).toHaveAttribute("data-paws", /push|tap-paper/);
   await btn(page, "문서 받기").click();
   await expect(page.getByTestId("house")).toHaveAttribute("data-paws", "hold");
   await expect(page.locator(".hs-type")).toContainText("No.01");
-  await expect(page.locator(".hs-ink[data-c=late]")).toHaveText("시간 초과", { timeout: 32000 });
+  // the clock runs by the kind of question (core/timing.ts QUIZ_SECONDS, up to 75 seconds)
+  await expect(page.locator(".hs-ink[data-c=late]")).toHaveText("시간 초과", { timeout: 80000 });
   await expect(page.locator(".hs-back")).toContainText("시간이 지났어요");
   await btn(page, "잠깐 고개 들기").click();
   await page.reload();
@@ -125,30 +125,7 @@ test("the village: trees carry their names only, no tab dock; a tree opens its s
   await expect(page.locator(".rt-sheet h2").first()).toHaveText(name);
 });
 
-// 게임 구성 2026-11-20: 보리's village tour, the starter coins and a virtual stock bought in the shop
-test("the village tour: 보리 shows the friends, the start money comes, a virtual stock is bought and planted in the orchard", async ({ page }) => {
-  test.setTimeout(150000);
-  await page.goto("/?demo&tutorial&tour");
-  const tour = page.locator(".vl-tour");
-  await expect(tour).toBeVisible({ timeout: 20000 });
-  await expect(tour).toHaveAttribute("data-step", "hello");
-  for (const id of ["tori", "moa", "luon", "farm"]) { await page.locator(".vl-tour .rt-talk-choice").last().click(); await expect(tour).toHaveAttribute("data-step", id) }
-  await page.getByRole("button", { name: "나중에 쓸게" }).click();
-  await expect(tour).toHaveAttribute("data-step", "shop");
-  await expect(page.locator(".vl-tour .rt-talk-line")).toContainText("1,000,000원");
-  await page.getByRole("button", { name: "상점 열어 보기" }).click();
-  await expect(page.locator(".rt-sheet")).toContainText("가상 종목");
-  // the demo's 300,000원 plus the start money
-  await expect(page.locator(".rt-sheet h2").first()).toHaveText("코인 1,300,000원");
-  await page.locator(".vs-buy").first().click();
-  await expect(page.locator(".vs-msg")).toContainText("과수원에 심었어요");
-  await page.getByRole("tab", { name: /내 가상 종목/ }).click();
-  await expect(page.locator(".vs-row.mine")).toHaveCount(1);
-  await page.locator(".rt-sheet .rt-close").first().click();
-  await expect(tour).toHaveAttribute("data-step", "orchard", { timeout: 10000 });
-  await page.getByRole("button", { name: "안내 건너뛰기" }).click();
-  await expect(tour).toHaveCount(0);
-});
+// 게임 구성 2026-11-20의 보리 마을 안내는 PM 유저 워크플로우(2026-11-21)의 첫 산책으로 바뀌었다: tests/e2e/walk.spec.ts
 
 test("hovering a thing in the village shows what it is", async ({ page }) => {
   await page.goto("/?demo");

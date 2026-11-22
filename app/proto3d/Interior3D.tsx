@@ -17,6 +17,10 @@ import {Decor} from './Garden3D';
 import {DECOR_SLOTS,type Shape} from '../content/garden-items';
 import type {AnalystId} from '../content/analysts';
 import {frameFor} from '../core/frame';
+import {Teacher} from './House3D';
+import {Villager} from './Village3D';
+import {VILLAGERS} from '../content/villagers';
+import {surfaceY} from './ground';
 
 const S=(c:string)=><primitive object={soft(c)} attach="material"/>;
 const click=(fn:()=>void)=>(e:ThreeEvent<MouseEvent>)=>{e.stopPropagation();fn()};
@@ -24,6 +28,7 @@ export const ROOM={w:9,d:7,h:3.2};
 const I=()=>LOOK.interior;
 // where things stand (the DOM tags and the e2e test read these as points)
 export const ROOM_SPOTS={desk:{x:-2.5,z:-2.2},shelf:{x:2.9,z:-2.85},board:{x:0.4,z:-3.42},door:{x:-4.42,z:1.4},window:{x:-1.2,z:-3.45}};
+const TEACHER_AT={x:-2.95,z:-3.0,s:1.45},LIB_AT={x:1.5,z:-2.2},LIBRARIAN=VILLAGERS.find(v=>v.id==='librarian');
 const SEATS:Record<AnalystId,{x:number;z:number}>={tori:{x:-2.5,z:-1.0},moa:{x:0.4,z:0.9},luon:{x:3.2,z:-0.6}};
 export type Book={state:'hit'|'miss'|'waiting'};
 export type Note={holdingId:number;due:boolean};
@@ -57,7 +62,7 @@ function RoomCam(){
     minAzimuthAngle={-0.55} maxAzimuthAngle={0.55} minPolarAngle={0.55} maxPolarAngle={1.25} minDistance={dist*0.6} maxDistance={dist*1.15}/>;
 }
 
-export function Interior({books,notes,resting,decor,onDesk,onShelf,onBoard,onDoor,onAnalyst,report,reportAnalyst}:{books:Book[];notes:Note[];resting:AnalystId[];decor:{slot:string;shape:Shape}[];
+export function Interior({books,notes,resting,decor,onDesk,onShelf,onBoard,onDoor,onAnalyst,report,reportAnalyst,people=false}:{people?:boolean;books:Book[];notes:Note[];resting:AnalystId[];decor:{slot:string;shape:Shape}[];
   onDesk:()=>void;onShelf:()=>void;onBoard:()=>void;onDoor:()=>void;onAnalyst:(id:AnalystId)=>void;report:(k:string,v:THREE.Vector3)=>void;reportAnalyst:(id:string,v:THREE.Vector3)=>void}){
   const {w,d,h}=ROOM,face=useRef(new THREE.Vector3(0,0,4)),flat=useMemo(()=>()=>0,[]),still=useMemo(()=>()=>new THREE.Quaternion(),[]);
   const v=useMemo(()=>new THREE.Vector3(),[]);
@@ -65,7 +70,7 @@ export function Interior({books,notes,resting,decor,onDesk,onShelf,onBoard,onDoo
   const planks=useMemo(()=>Array.from({length:Math.round(w/0.6)},(_,i)=>-w/2+0.3+i*0.6),[w]);
   return <group name="interior">
     <hemisphereLight args={['#fff4e2','#8a6448',0.65]}/>
-    <pointLight position={[-2.4,2.1,-1.8]} color="#ffcf87" intensity={7} distance={7} decay={2}/>
+    <pointLight position={people?[-1.2,2.4,-0.6]:[-2.4,2.1,-1.8]} color="#ffcf87" intensity={people?4:7} distance={7} decay={2}/>
     {/* the house round the room: no sky in here, just the dim inside of the walls */}
     <mesh><sphereGeometry args={[34,24,16]}/><meshBasicMaterial color={I().outside} side={THREE.BackSide}/></mesh>
     <mesh position-y={-0.12} rotation-x={-Math.PI/2}><planeGeometry args={[70,70]}/><meshBasicMaterial color={I().under}/></mesh>
@@ -125,6 +130,10 @@ export function Interior({books,notes,resting,decor,onDesk,onShelf,onBoard,onDoo
       {[0,1.2,2.4,3.6,4.8].map(a=><mesh key={a} position={[Math.cos(a)*0.18,0.75,Math.sin(a)*0.18]} rotation={[Math.sin(a)*0.4,0,Math.cos(a)*0.4]} castShadow><capsuleGeometry args={[0.08,0.5,4,8]}/>{S('#4f9a45')}</mesh>)}</group>
     {/* drawer items placed in the room */}
     {decor.map(dc=>{const sl=DECOR_SLOTS.find(x=>x.id===dc.slot&&x.room==='in');return sl&&<group key={dc.slot} position={[sl.x,0,sl.z]} rotation-y={sl.rot}><Decor shape={dc.shape}/></group>})}
+    {/* 피드백 2026-11-22: after the first lesson the house is this room seen from outside (3인칭): the teacher behind the
+        desk (the quiz), the librarian by the bookshelf (the journal); the library left the village for here */}
+    {people&&<group position={[TEACHER_AT.x,0,TEACHER_AT.z+1.5*TEACHER_AT.s]} scale={TEACHER_AT.s}><Teacher point={null} paws="rest" mood="calm" onBori={onDesk}/></group>}
+    {people&&LIBRARIAN&&<group position-y={-surfaceY(LIB_AT.x,LIB_AT.z)}><Villager id="librarian" x={LIB_AT.x} z={LIB_AT.z} face={0.35} look={LIBRARIAN.look} hl={false} talking={false} player={face} onPick={onShelf} report={()=>{}}/></group>}
     {/* analysts with nothing flagged rest in here */}
     <Suspense fallback={null}>{resting.map(id=><Analyst key={id} id={id} to={SEATS[id]} face={face} surface={flat} tilt={still} bubble={null}
       onPick={()=>onAnalyst(id)} report={reportAnalyst}/>)}</Suspense>
