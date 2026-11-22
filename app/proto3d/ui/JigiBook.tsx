@@ -6,7 +6,7 @@ import {useState} from 'react';
 import {Sheet} from './Sheet';
 import {JigiChart} from './JigiChart';
 import {OPTS,byStock,live,ofStock,TRASH_DAYS,type Journal} from '../../core/jigi/journal';
-import {VERDICT_LABEL,needsReview,verdict,verdictCounts,type Verdict} from '../../core/jigi/hypothesis';
+import {VERDICT_LABEL,needsReview,verdict,type Verdict} from '../../core/jigi/hypothesis';
 import {JigiHypos} from './JigiHypos';
 import type {JigiAI} from '../supabase';
 import type {Hypo,Reflection} from '../../core/jigi/journal';
@@ -21,21 +21,22 @@ export const Pill=({s,n}:{s:Verdict['s'];n?:number})=><span className={`jg-pill 
 type View={k:'shelf'}|{k:'stock';code:string}|{k:'list';which:'draft'|'review'|'arch'|'trash'}|{k:'one';id:string;back:View};
 // signals: today's analyst notes (a row opens the note, whose button starts a journal); oldDue: grades of the old judgments still to open
 export type BookSignal={id:string;name:string;who:string;whoName:string;line:string;loss:boolean;written:boolean};
-export function JigiBook({startTab='book',journals,today,now,oldCount,signals=[],oldDue=0,onSignal,onOldGrades,openId,renderStats,ai,onHypos,onConfirm,onReflect,onWrite,onNew,onArchive,onTrash,onPurge,onOld,onClose}:{startTab?:'book'|'stats';journals:Journal[];today:string;now:number;oldCount:number;signals?:BookSignal[];oldDue?:number;onSignal?:(id:string)=>void;onOldGrades?:()=>void;
+export function JigiBook({startStock,stockName,startTab='book',journals,today,now,oldCount,signals=[],oldDue=0,onSignal,onOldGrades,openId,renderStats,ai,onHypos,onConfirm,onReflect,onWrite,onNew,onArchive,onTrash,onPurge,onOld,onClose}:{startStock?:string|null;stockName?:string|null;startTab?:'book'|'stats';journals:Journal[];today:string;now:number;oldCount:number;signals?:BookSignal[];oldDue?:number;onSignal?:(id:string)=>void;onOldGrades?:()=>void;
   // the 분석 half (ui/JigiStats.tsx), given a way to open a journal or a stock's time bar from it
   renderStats?:(open:(id:string)=>void,stock:(code:string)=>void)=>React.ReactNode;
   // the server's LLM (signed in): hypothesis drafts from my words; without it the rule-based split
   ai?:JigiAI|null;
   openId?:string|null;onHypos?:(id:string,h:Hypo[])=>void;onConfirm?:(id:string,hypoId:string)=>string;onReflect?:(id:string,r:Reflection)=>void;
   onWrite:(id:string)=>void;onNew:(code?:string)=>void;onArchive:(id:string,on:boolean)=>void;onTrash:(id:string,on:boolean)=>void;onPurge:(id:string)=>void;onOld:()=>void;onClose:()=>void}){
-  const [tab,setTab]=useState<'book'|'stats'>(startTab),[view,setView]=useState<View>(openId?{k:'one',id:openId,back:{k:'shelf'}}:{k:'shelf'}),[sel,setSel]=useState<string|null>(null),[purge,setPurge]=useState<string|null>(null);
+  const [tab,setTab]=useState<'book'|'stats'>(startTab),[view,setView]=useState<View>(openId?{k:'one',id:openId,back:{k:'shelf'}}:startStock?{k:'stock',code:startStock}:{k:'shelf'}),[sel,setSel]=useState<string|null>(null),[purge,setPurge]=useState<string|null>(null);
   const L=live(journals),drafts=L.filter(j=>j.status==='draft'),saved=L.filter(j=>j.status==='saved'&&!j.archivedAt),arch=L.filter(j=>j.archivedAt),trash=journals.filter(j=>j.deletedAt),rev=saved.filter(j=>needsReview(j,today));
-  const card=(j:Journal,back:View)=>{const c=verdictCounts(j,today);
+  const card=(j:Journal,back:View)=>{
     return <button key={j.id} type="button" className="jg-card" onClick={()=>j.status==='draft'?onWrite(j.id):setView({k:'one',id:j.id,back})}>
       <span className="jg-when rt-num">{ymd(j.createdAt).slice(2).replace(/-/g,'.')}<br/>{hm(j.createdAt)}</span>
       <span className="jg-card-main"><strong>{j.stock?.name??'종목 미정'}</strong> <small>{j.f.action}{j.f.horizon?' · '+j.f.horizon:''}</small>{j.demo&&<span className="jg-pill demo">예시</span>}{j.practice&&<span className="jg-pill demo">연습</span>}
         <span className="jg-hy">{j.f.hypo||'아직 가설을 적지 않았어요'}</span>{j.status==='draft'&&<span className="jg-cont">이어서 쓰기</span>}</span>
-      <span className="jg-card-st">{j.status==='draft'?<span className="jg-pill wait">작성 중</span>:(['hit','fail','wait','data','hold','void'] as const).filter(s=>c[s]).map(s=><Pill key={s} s={s} n={c[s]}/>)}</span>
+      {/* 9-5: no verdict marks in a list; the verdict shows in that day's page only */}
+      <span className="jg-card-st">{j.status==='draft'&&<span className="jg-pill wait">작성 중</span>}</span>
     </button>};
   const back=(to:View,label='← 일기장')=><button type="button" className="jg-back" onClick={()=>setView(to)}>{label}</button>;
 
@@ -62,17 +63,12 @@ export function JigiBook({startTab='book',journals,today,now,oldCount,signals=[]
         {oldCount>0&&<button type="button" onClick={onOld}>이전 판단 <b className="rt-num">{oldCount}</b></button>}
       </div></>}
   else if(view.k==='stock'){const list=ofStock(journals,view.code);
-    const cur=list.find(j=>j.id===sel)??list[list.length-1];
-    if(!cur){body=<>{back({k:'shelf'})}<p className="rt-empty">이 종목의 일지가 없어요</p></>}else{const t0=list[0].createdAt,t1=list[list.length-1].createdAt,span=t1-t0||1;
-    title=list[0].stock!.name;
+    // 9-5 a stock's page: the date on the left, that day on the right, and a blank line at the bottom to write today
+    title=list[0]?.stock?.name??stockName??'종목';
     body=<>{back({k:'shelf'})}
-      <div className="jg-row"><span className="rt-hint">일지 {list.length}편 · {ymd(t0)}{list.length>1?' → '+ymd(t1):''}</span>
-        <button type="button" className="rt-btn primary" onClick={()=>onNew(view.code)}>이 종목 일지 쓰기</button></div>
-      <div className="jg-tl" role="group" aria-label="일지 시간 막대"><div className="jg-tl-bar"/>
-        {list.map((j,i)=>{const x=list.length===1?50:(j.createdAt-t0)/span*100,lane=i%2;
-          return <button key={j.id} type="button" className={`jg-ent${j.id===cur.id?' on':''}${j.status==='draft'?' dr':''}`} style={{left:`calc(${x}% * .86 + 7%)`,bottom:lane?46:18}}
-            aria-pressed={j.id===cur.id} aria-label={`${ymd(j.createdAt)} 일지`} onClick={()=>setSel(j.id)}><span className="rt-num">{ymd(j.createdAt).slice(5).replace('-','.')}</span><i/></button>})}</div>
-      <div className="jg-list">{card(cur,view)}</div></>}}
+      <p className="rt-hint">{list.length?`일지 ${list.length}편 · ${ymd(list[0].createdAt)}${list.length>1?' → '+ymd(list[list.length-1].createdAt):''}`:'아직 이 종목에 쓴 일지가 없어요'}</p>
+      <div className="jg-list jg-page">{list.map(j=>card(j,view))}
+        <button type="button" className="jg-today" onClick={()=>onNew(view.code)}><span className="jg-when rt-num">{today.slice(2).replace(/-/g,'.')}</span><span>여기에 오늘 쓰기</span></button></div></>}
   else if(view.k==='list'){const w=view.which;
     title=w==='draft'?'작성 중':w==='review'?'복기할 일지':w==='arch'?'보관함':'휴지통';
     const list=w==='draft'?drafts:w==='review'?rev:w==='arch'?arch:trash;

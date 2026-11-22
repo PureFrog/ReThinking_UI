@@ -1,14 +1,15 @@
-// 부지·건물·랜드마크 (app/core/land.ts): plots are fixed by index, base land gives the first 14, opening land adds
+// 부지·건물·랜드마크 (app/core/land.ts): plots are fixed by index, base land gives the first 18 (9 + 9), opening land adds
 // its plots, spending needs enough coins and happens once; nothing overlaps the pond, the paths or each other.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {load} from './load-app.mjs';
 const L=await load('core/land');
 
-test('base land gives the first 14 plots; opening land adds its own, indices never move', () => {
-  assert.deepEqual(L.openPlots([]),[...Array(14).keys()]);
-  const more=L.openPlots(['north']);assert.equal(more.length,20);assert.deepEqual(more.slice(14),[18,19,20,21,22,23]);
-  assert.equal(L.ALL_PLOTS.length,30);assert.equal(L.plotLand(15).id,'farm2');assert.equal(L.plotLand(29).id,'pondside');
+test('base land gives the first 18 plots (9 a field); opening land adds its own, indices never move', () => {
+  assert.deepEqual(L.openPlots([]),[...Array(18).keys()]);
+  const more=L.openPlots(['north']);assert.equal(more.length,24);assert.deepEqual(more.slice(18),[24,25,26,27,28,29]);
+  assert.equal(L.fieldPlots(['farm2'],'farm').length,12);assert.equal(L.fieldPlots(['orchard2'],'orchard').length,12);
+  assert.equal(L.ALL_PLOTS.length,36);assert.equal(L.plotLand(18).id,'farm2');assert.equal(L.plotLand(35).id,'pondside');
 });
 
 test('no two spots are too close, and everything stays inside the walkable garden', () => {
@@ -19,11 +20,11 @@ test('no two spots are too close, and everything stays inside the walkable garde
 });
 
 test('spending: enough coins, once; base land cannot be bought; prices rise with size', () => {
-  let r=L.spend(L.BUILT0,10,{kind:'land',id:'farm2'});assert.deepEqual(r,{ok:false,why:'coins',need:10});
-  r=L.spend(L.BUILT0,25,{kind:'land',id:'farm2'});assert.equal(r.ok,true);assert.equal(r.coins,5);assert.deepEqual(r.built.land,['farm2']);
-  assert.equal(L.spend(r.built,99,{kind:'land',id:'farm2'}).why,'have');
-  assert.equal(L.spend(L.BUILT0,99,{kind:'land',id:'farm'}).why,'unknown');
-  assert.equal(L.spend(L.BUILT0,99,{kind:'city',id:'seoul'}).ok,true);
+  let r=L.spend(L.BUILT0,10000,{kind:'land',id:'farm2'});assert.deepEqual(r,{ok:false,why:'coins',need:10000});
+  r=L.spend(L.BUILT0,25000,{kind:'land',id:'farm2'});assert.equal(r.ok,true);assert.equal(r.coins,5000);assert.deepEqual(r.built.land,['farm2']);
+  assert.equal(L.spend(r.built,99000,{kind:'land',id:'farm2'}).why,'have');
+  assert.equal(L.spend(L.BUILT0,99000,{kind:'land',id:'farm'}).why,'unknown');
+  assert.equal(L.spend(L.BUILT0,99000,{kind:'city',id:'seoul'}).ok,true);
   const prices=L.CITIES.map(c=>c.price);assert.deepEqual(prices,[...prices].sort((a,b)=>a-b));
   for(const c of L.CITIES)assert.doesNotMatch(c.blurb,/사라|팔아|매수|매도|오를|떨어질/);
 });

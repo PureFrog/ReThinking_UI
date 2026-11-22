@@ -2,19 +2,20 @@
 // people, each in their own voice; no comfort, no buy/sell, no price calls). What the game itself says (rules, counts,
 // status) is plain UI text in UI below, never put in a character's mouth.
 // Renaming a character or the currency is one line here.
-export const CURRENCY='포인트';
+export const CURRENCY='코인';
 export type AnalystId='tori'|'moa'|'luon';
 export type ModelId='ohlson'|'fscore'|'dupont'|'gradual'|'crash'|'rebuttal';
+// 게임 구성 2026-11-20: each friend keeps one model and one place in the village (보리 is the guide, not a model)
 export const ANALYSTS:{id:AnalystId;name:string;role:string;models:ModelId[];color:string;tagline:string}[]=[
-  {id:'tori',name:'토리',role:'감사관',models:['ohlson','fscore','dupont'],color:'#36557e',tagline:'장부에 적힌 것만 믿어.'},
-  {id:'moa',name:'모아',role:'추적자',models:['gradual','crash'],color:'#d06a2f',tagline:'차트가 먼저 움직여. 난 그걸 봐.'},
-  {id:'luon',name:'루온',role:'반박자',models:['rebuttal'],color:'#6a5aa8',tagline:'다들 맞다고 할 때 반대편에 서는 게 내 일.'},
+  {id:'tori',name:'토리',role:'듀퐁 분석',models:['dupont'],color:'#36557e',tagline:'이익이 어디서 나오는지 쪼개 보는 게 내 일이야.'},
+  {id:'moa',name:'모아',role:'올슨 모델',models:['ohlson'],color:'#d06a2f',tagline:'회사가 버틸 힘이 있는지, 부실 위험부터 봐.'},
+  {id:'luon',name:'루온',role:'F-Score',models:['fscore'],color:'#6a5aa8',tagline:'재무 체력이 작년보다 나아졌는지 아홉 칸으로 따져.'},
 ];
 export const analystById=(id:string)=>ANALYSTS.find(a=>a.id===id)??ANALYSTS[0];
 export const MODEL_INFO:Record<ModelId,{name:string;what:string;analyst:AnalystId}>={
-  ohlson:{name:'올슨',what:'부도 위험',analyst:'tori'},
-  fscore:{name:'F-score',what:'재무 체력 9항목',analyst:'tori'},
-  dupont:{name:'듀퐁',what:'이익의 출처',analyst:'tori'},
+  ohlson:{name:'올슨',what:'부실 위험',analyst:'moa'},
+  fscore:{name:'F-Score',what:'재무 체력 9항목',analyst:'luon'},
+  dupont:{name:'듀퐁',what:'수익성의 출처',analyst:'tori'},
   gradual:{name:'서서히',what:'완만한 하락 추세',analyst:'moa'},
   crash:{name:'급락',what:'급락 패턴',analyst:'moa'},
   rebuttal:{name:'반박',what:'매수 이유의 반대 근거',analyst:'luon'},
@@ -111,12 +112,12 @@ export const UI={
   jump:'30일 뒤',
   // inside the house: the cork board
   stamped:'업적 달성 · {name}',
-  weekDone:'이번 주 목표 완료 · +{n}P',
+  weekDone:'이번 주 목표 완료 · +{n}',
   boardWait:'채점 대기 {n}건',
   boardEmpty:'채점 대기 없음 · 판단을 기록하면 여기 쌓여요',
   // today's three (core/today.ts)
-  today:{judge:'일지 한 편 쓰기',case:'오늘의 케이스 풀기',grade:'채점 결과 확인하기',rewind:'되감기 1판'} as Record<'judge'|'case'|'grade'|'rewind',string>,
-  dayDone:'오늘 할 일 완료 · +{n}P',
+  today:{quiz:'집에서 오늘의 퀴즈 마치기',judge:'내 종목 나무에 일지 한 편 쓰기',fish:'낚시터에서 한 번 낚시하기'} as Record<'quiz'|'judge'|'fish',string>,
+  dayDone:'오늘 할 일 완료 · +{n}',
   nextGrade:'다음 채점 · {name} {mark}일 · D-{d}',
   noNext:'채점 대기 없음 · 판단을 기록하면 30일 뒤에 채점돼요',
   // the player's title (core/rank.ts) and what it brings

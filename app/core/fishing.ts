@@ -1,10 +1,11 @@
+import {WON} from './won';
 // Fishing with 나루 at the pond (feedback 11-17, docs/mockups/otter-fishing.html). A cast waits a while, the float
 // dips, a tap inside the dip's window lands the fish; too early scares it off, too late it has gone. Three casts a day
 // (the master account: no limit). Coins are small and only for catching. All the numbers live here.
 import {FISH,fishById,type Fish,type Rarity} from '../content/fish';
 
 export const FISHING={perDay:3,biteMin:1500,biteMax:5200/* ms after the cast before the dip */,window:650/* ms the dip lasts */,
-  rarity:{'보통':0.78,'희귀':0.19,'전설':0.03} as Record<Rarity,number>,coins:{'보통':1,'희귀':3,'전설':10} as Record<Rarity,number>,firstBonus:2};
+  rarity:{'보통':0.78,'희귀':0.19,'전설':0.03} as Record<Rarity,number>,coins:{'보통':3*WON,'희귀':10*WON,'전설':50*WON} as Record<Rarity,number>,firstBonus:2*WON};
 export type FishLog=Record<string,{n:number;best:number}>;
 export type Fishing={day:string;casts:number;log:FishLog};
 export const blankFishing=():Fishing=>({day:'',casts:0,log:{}});

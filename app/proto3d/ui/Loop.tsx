@@ -1,6 +1,7 @@
 'use client';
 // The core loop on screen (redesign 4장): the research note and the judgment, luon's counter-argument, the grade
 // reveal, and today's case. All rules are in app/core; these only show them and call the actions in state.ts.
+import {won} from '../../core/won';
 import {still} from '../still';
 import {useEffect,useMemo,useState} from 'react';
 import {Bulb} from './Icons';
@@ -276,7 +277,7 @@ export function RewindView({g,onClose}:{g:G;onClose:()=>void}){
       <p className="rt-hint" style={{marginTop:10}}>{left?`오늘 보상 남은 판 ${left} · 가상 회사 · 모의 데이터`:'오늘 보상은 모두 받았어요 · 연습은 계속할 수 있어요'}</p>
     </>}
     {round&&gr&&<Reveal key={rc.id} j={j} mark={REWIND.mark} gr={gr} onStamp={()=>{}} then="그때 너">{done=>done&&<div className="rt-fade">
-      {round.paid&&<p className="rt-hint" style={{marginTop:12}}>+{EARN.rewind+(round.hit?EARN.rewindHit:0)} {CURRENCY}</p>}
+      {round.paid&&<p className="rt-hint" style={{marginTop:12}}>+{won(EARN.rewind+(round.hit?EARN.rewindHit:0))}</p>}
       <div style={{display:'flex',gap:8,marginTop:14}}>
         <button type="button" className="rt-btn primary wide" onClick={next}>다음 판</button>
         <button type="button" className="rt-btn" onClick={onClose}>그만</button></div></div>}</Reveal>}

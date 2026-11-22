@@ -5,6 +5,7 @@
 //   BuildConfirm  the card after tapping a lot: what it gives, the price, 넓히기/짓기
 //   CityBook      세계 증시 도시 수첩: the five cities on a strip map, their landmark, index and one line; 열기
 // Words are 넓히기·짓기·열기 (never "사다"); no line here suggests buying or selling a stock.
+import {won,wonShort} from '../../core/won';
 import {useEffect,useRef} from 'react';
 import {screenPoints} from '../screen';
 import {Sheet} from './Sheet';
@@ -17,9 +18,9 @@ const descOf=(w:Want)=>w.kind==='land'?LANDS.find(l=>l.id===w.id)!.desc:w.kind==
 
 export function BuildBar({coins,onCities,onDone}:{coins:number;onCities:()=>void;onDone:()=>void}){
   return <section className="bd-bar" aria-label="넓히기">
-    <div className="bd-bar-top"><b>넓히기</b><span className="bd-coins rt-num" aria-label={`코인 ${coins}`}><Coin/>{coins}</span>
+    <div className="bd-bar-top"><b>넓히기</b><span className="bd-coins rt-num" aria-label={`코인 ${won(coins)}`}><Coin/>{wonShort(coins)}</span>
       <button type="button" className="bd-chip" onClick={onCities}>도시 수첩</button><button type="button" className="bd-chip strong" onClick={onDone}>끝내기</button></div>
-    <p className="bd-earn">일지 저장 +{EARN.journal} · 가설 확정 +{EARN.confirm} · 복기 +{EARN.review} — 수익률·적중과는 상관없어요</p>
+    <p className="bd-earn">일지 저장 +{won(EARN.journal)} · 가설 확정 +{won(EARN.confirm)} · 복기 +{won(EARN.review)} — 수익률·적중과는 상관없어요</p>
   </section>;
 }
 
@@ -33,8 +34,8 @@ export function BuildTags({built,coins,onPick}:{built:Built;coins:number;onPick:
   const items:Want[]=[...LANDS.filter(l=>!BASE_LAND.includes(l.id)&&!built.land.includes(l.id)).map(l=>({kind:'land' as const,id:l.id})),
     ...BUILDINGS.filter(b=>!built.buildings.includes(b.id)).map(b=>({kind:'building' as const,id:b.id}))];
   return <>{items.map(w=>{const k=`${w.kind}:${w.id}`,price=priceOf(w)!;return <button key={k} type="button" className={`bd-tag${coins>=price?'':' short'}`} style={{visibility:'hidden'}}
-    aria-label={`${nameOf(w)} · 코인 ${price}`} ref={el=>{if(el)refs.current.set(k,el);else refs.current.delete(k)}} onClick={()=>onPick(w)}>
-    <Coin/><b className="rt-num">{price}</b>{nameOf(w)}</button>})}</>;
+    aria-label={`${nameOf(w)} · ${won(price)}`} ref={el=>{if(el)refs.current.set(k,el);else refs.current.delete(k)}} onClick={()=>onPick(w)}>
+    <Coin/><b className="rt-num">{wonShort(price)}</b>{nameOf(w)}</button>})}</>;
 }
 
 export function BuildConfirm({want,coins,onYes,onNo}:{want:Want;coins:number;onYes:()=>void;onNo:()=>void}){
@@ -44,7 +45,7 @@ export function BuildConfirm({want,coins,onYes,onNo}:{want:Want;coins:number;onY
     <h3>{nameOf(want)}</h3><p>{descOf(want)}</p>
     {short>0&&<p className="bd-short">코인이 {short} 모자라요. 일지를 쓰고 복기하면 모여요.</p>}
     <div className="bd-pop-acts"><button type="button" className="rt-btn" onClick={onNo}>닫기</button>
-      <button type="button" className="bd-go" disabled={short>0} onClick={onYes}>{verb}<em><Coin/>{price}</em></button></div>
+      <button type="button" className="bd-go" disabled={short>0} onClick={onYes}>{verb}<em><Coin/>{wonShort(price)}</em></button></div>
   </section>;
 }
 
@@ -53,12 +54,12 @@ const MAP:Record<string,[number,number]>={newyork:[14,48],london:[42,30],paris:[
 export function CityBook({built,coins,onOpen,onClose}:{built:Built;coins:number;onOpen:(id:string)=>void;onClose:()=>void}){
   const got=CITIES.filter(c=>built.cities.includes(c.id)).length,next=CITIES.find(c=>!built.cities.includes(c.id));
   return <Sheet kicker={`랜드마크 · ${got} / ${CITIES.length} 도시`} title="세계 증시 도시" label="도시 수첩" onClose={onClose}>
-    <div className="bd-head"><span className="bd-coins rt-num" aria-label={`코인 ${coins}`}><Coin/>{coins}</span><span className="rt-hint">열면 정원 가장자리에 세워져요</span></div>
+    <div className="bd-head"><span className="bd-coins rt-num" aria-label={`코인 ${won(coins)}`}><Coin/>{wonShort(coins)}</span><span className="rt-hint">열면 정원 가장자리에 세워져요</span></div>
     <div className="bd-map" aria-hidden><svg viewBox="0 0 100 60" preserveAspectRatio="none"><path d="M2 32 Q16 18 30 26 T56 22 T82 30 T98 26 L98 60 L2 60Z" fill="#cfe3c8"/></svg>
       {CITIES.map(c=><span key={c.id} className={`bd-dot${built.cities.includes(c.id)?' got':c.id===next?.id?' next':''}`} style={{left:`${MAP[c.id][0]}%`,top:`${MAP[c.id][1]}%`}}><i>{c.city}</i></span>)}</div>
     <div className="bd-cities">{CITIES.map(c=>{const has=built.cities.includes(c.id);return <article key={c.id} className={`bd-city${has?'':' lock'}`} aria-label={`${c.city} ${c.landmark}`}>
       <strong>{c.city} · {c.landmark}</strong><span className="bd-idx rt-num">{c.index}</span><small>{c.blurb}</small>
-      {has?<span className="bd-done">정원에 있어요</span>:<button type="button" className="bd-go" disabled={coins<c.price} onClick={()=>onOpen(c.id)}>열기<em><Coin/>{c.price}</em></button>}</article>})}</div>
+      {has?<span className="bd-done">정원에 있어요</span>:<button type="button" className="bd-go" disabled={coins<c.price} onClick={()=>onOpen(c.id)}>열기<em><Coin/>{wonShort(c.price)}</em></button>}</article>})}</div>
     <p className="jg-legal">지수 소개는 공부용이에요. 투자 권유가 아니에요.</p>
   </Sheet>;
 }

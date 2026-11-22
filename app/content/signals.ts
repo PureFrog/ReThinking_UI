@@ -14,7 +14,7 @@ export type Signal={id:string;holdingId:number;analyst:AnalystId;model:ModelId;l
   counter:Record<Choice,string>;deep?:{title:string;items:{k:string;ok:boolean}[]}};
 const FSCORE=(ok:number[]):Signal['deep']=>({title:'F-score 9항목',items:['순이익 흑자','영업현금흐름 흑자','ROA 개선','현금흐름 > 순이익','부채비율 하락','유동비율 개선','신주 발행 없음','매출총이익률 개선','자산회전율 개선'].map((k,i)=>({k,ok:ok.includes(i)}))});
 const ALL:(Omit<Signal,'id'|'holdingId'>&{name:string})[]=[
-  {name:'POSCO홀딩스',analyst:'tori',model:'ohlson',loss:true,headline:'부도 위험 2분기째 상승',
+  {name:'POSCO홀딩스',analyst:'moa',model:'ohlson',loss:true,headline:'부도 위험 2분기째 상승',
     evidence:[{k:'부도 확률(O-score)',v:'9% → 17%'},{k:'부채비율',v:'182% → 214%'},{k:'이자보상배율',v:'1.1배'}],
     say:'이자 내고 나면 남는 게 거의 없더라. 두 분기째야.',
     counter:{hold:'이자보상 1.1배야. 금리 한 번 오르면 어떡해?',review:'수주잔고 3년치는? 그건 버틸 체력이잖아.',watch:'좋아. 근데 이자보상 1배 깨지면 그땐?'},
@@ -27,7 +27,7 @@ const ALL:(Omit<Signal,'id'|'holdingId'>&{name:string})[]=[
     evidence:[{k:'당일 등락',v:'-7.8%'},{k:'거래량',v:'20일 평균의 4.1배'},{k:'시가 갭',v:'-5.2%'}],
     say:'잠깐만, 이건 뉴스부터 봐야 돼. 4배는 그냥 안 터져.',
     counter:{hold:'거래량 4배 터진 급락이야. 이유도 모르고 버텨?',review:'원인도 모르고 정하면 나중에 복기는 어떻게 해?',watch:'공시 나올 때까지? 안 나오면 언제까지 볼 건데?'}},
-  {name:'현대차',analyst:'tori',model:'fscore',loss:true,headline:'재무 체력 9점 중 2점',
+  {name:'현대차',analyst:'luon',model:'fscore',loss:true,headline:'재무 체력 9점 중 2점',
     evidence:[{k:'영업현금흐름',v:'3분기 연속 적자'},{k:'유동비율',v:'0.8배'},{k:'신주 발행',v:'최근 1년 2회'}],
     say:'9개 중 7개가 같은 쪽을 가리켜. 흔한 일 아니야.',
     counter:{hold:'손실 90일째야. 산 이유가 아직 남아 있어?',review:'신작 하나에 실적이 뒤집히는 업종인 건 알지?',watch:'얼마나 더 볼지 날짜는 정했어?'},
@@ -41,7 +41,7 @@ const hash=(t:string)=>{let h=2166136261;for(const c of t)h=Math.imul(h^c.charCo
 // a note for a company with no hand-written one: the loss picks the model, the name's hash picks the numbers
 export function madeSignal(h:Holding):Omit<Signal,'id'>|null{
   const r=hash(h.name),n=(lo:number,hi:number)=>lo+r%(hi-lo+1);
-  if(h.rate<=-20)return {holdingId:h.id,analyst:'tori',model:'fscore',loss:true,headline:`재무 체력 9점 중 ${n(1,3)}점`,
+  if(h.rate<=-20)return {holdingId:h.id,analyst:'luon',model:'fscore',loss:true,headline:`재무 체력 9점 중 ${n(1,3)}점`,
     evidence:[{k:'영업현금흐름',v:`${n(2,4)}분기 연속 적자`},{k:'유동비율',v:`0.${n(6,9)}배`},{k:'수익률',v:`${h.rate}%`}],
     say:'현금흐름부터 막혀 있어. 숫자가 다 한쪽으로 가.',
     counter:{hold:'산 이유, 지금도 그대로야? 그것부터 보자.',review:'적자 업종은 한 분기에 뒤집히기도 하는데?',watch:'얼마나 더 볼지 날짜는 정했어?'},

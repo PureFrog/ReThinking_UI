@@ -5,15 +5,13 @@
 // Finishing all three closes the day once (a small bonus, core/ledger.ts EARN.dayDone). Also: when the next grade is
 // due, the reason to come back (the in-app line now; a push from the app shell or server later, docs/server.md).
 import {MARKS,shiftDay,daysBetween,type Judgment,type Graded,type Mark} from './judgment';
-export type TaskId='judge'|'case'|'grade'|'rewind';
+// 퀘스트 게시판 (게임 구성 2026-11-20): the day's three are the day of the game itself: the quiz at the desk, one
+// journal on a real stock, and one cast at the pond. All three done closes the day (core/ledger.ts EARN.dayDone).
+export type TaskId='quiz'|'judge'|'fish';
 export type TodayTask={id:TaskId;done:boolean};
-export type TodayInput={signals:number;judgedToday:number;caseDone:boolean;due:number;gradedToday:number;rewindsToday:number};
+export type TodayInput={quizDone:boolean;judgedToday:number;fishedToday:number};
 export function todayTasks(i:TodayInput):TodayTask[]{
-  const first:TodayTask=i.signals>0||i.judgedToday>0?{id:'judge',done:i.judgedToday>0}:{id:'rewind',done:i.rewindsToday>0};
-  const third:TodayTask=i.due>0||i.gradedToday>0?{id:'grade',done:i.due===0&&i.gradedToday>0}
-    // a rewind in both slots would ask for one round twice; the second asks for another one
-    :{id:'rewind',done:i.rewindsToday>(first.id==='rewind'?1:0)};
-  return [first,{id:'case',done:i.caseDone},third];
+  return [{id:'quiz',done:i.quizDone},{id:'judge',done:i.judgedToday>0},{id:'fish',done:i.fishedToday>0}];
 }
 export const dayDone=(tasks:TodayTask[])=>tasks.every(t=>t.done);
 // the nearest grade still to come (not today's): which judgment, which mark, how many days

@@ -1,0 +1,29 @@
+// 게임 구성 2026-11-20: coins in 원, the 가상 종목 밭 (core/virtual.ts), real stocks only in the 밭 (core/land.ts fieldPlots)
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {load} from './load-app.mjs';
+const V=await load('core/virtual');
+const L=await load('core/land');
+const W=await load('core/won');
+const E=await load('core/ledger');
+
+test('coins are 원 at real-money sizes', () => {
+  assert.equal(W.won(1234567),'1,234,567원');assert.equal(W.wonShort(1030000),'1,030,000');assert.equal(W.wonShort(12000),'12,000');
+  assert.ok(E.EARN.journal>=1000&&E.EARN.journal%1000===0);assert.ok(E.START_GRANT>=500000);
+});
+test('the 밭 is for real stocks, the 과수원 for virtual ones', () => {
+  const farm=L.fieldPlots([],'farm'),orch=L.fieldPlots([],'orchard');
+  assert.equal(farm.length,9);assert.equal(orch.length,9);assert.ok(farm.every(i=>!orch.includes(i)));
+});
+test('buying whole shares with enough coins into a free plot; a second buy averages; selling pays today\'s price', () => {
+  const plots=L.fieldPlots([],'orchard');let o={currency:1_000_000,virtual:[]};
+  assert.equal(V.buyVirtual(o,'005930',0,70000,plots,'d').why,'qty');
+  assert.deepEqual(V.buyVirtual(o,'005930',20,70000,plots,'d'),{ok:false,why:'coins',need:400000});
+  let r=V.buyVirtual(o,'005930',10,70000,plots,'d');assert.equal(r.ok,true);assert.equal(r.currency,300000);assert.equal(r.lot.plot,plots[0]);
+  o={currency:r.currency,virtual:r.virtual};
+  r=V.buyVirtual(o,'005930',2,76000,plots,'d2');assert.equal(r.virtual.length,1);assert.equal(r.lot.qty,12);assert.equal(r.lot.cost,71000);
+  o={currency:r.currency,virtual:r.virtual};
+  const s=V.sellVirtual(o,r.lot.id,12,80000);assert.equal(s.ok,true);assert.equal(s.gain,(80000-71000)*12);assert.equal(s.virtual.length,0);assert.equal(s.currency,o.currency+960000);
+  const t=V.virtualTree(r.lot,80000);assert.equal(t.virtual,true);assert.ok(V.isVirtualTree(t.id));assert.equal(t.rate,12.7);
+  assert.ok(V.quote('005930','2026-11-20').price>0);
+});

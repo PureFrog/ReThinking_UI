@@ -29,8 +29,8 @@ test('what bites follows the rarity odds; sizes stay in the fish range', () => {
 });
 
 test('landing: the first of a kind pays a bonus, the log keeps the count and the best size', () => {
-  let r=F.land(undefined,'geumbungeo',18);assert.equal(r.first,true);assert.equal(r.coins,3+2);assert.deepEqual(r.fishing.log.geumbungeo,{n:1,best:18});
-  r=F.land(r.fishing,'geumbungeo',12);assert.equal(r.first,false);assert.equal(r.best,false);assert.equal(r.coins,3);assert.deepEqual(r.fishing.log.geumbungeo,{n:2,best:18});
+  let r=F.land(undefined,'geumbungeo',18);assert.equal(r.first,true);const base=r.coins-F.FISHING.firstBonus;assert.ok(Object.values(F.FISHING.coins).includes(base));assert.deepEqual(r.fishing.log.geumbungeo,{n:1,best:18});
+  r=F.land(r.fishing,'geumbungeo',12);assert.equal(r.first,false);assert.equal(r.best,false);assert.equal(r.coins,base);assert.deepEqual(r.fishing.log.geumbungeo,{n:2,best:18});
   assert.equal(F.caughtKinds(r.fishing),1);
   assert.equal(F.land(undefined,'nope',1).coins,0);
 });

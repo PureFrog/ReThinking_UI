@@ -9,6 +9,7 @@ import './proto3d/welcome.css';
 import './proto3d/glass.css';
 import './proto3d/jigi.css';
 import './proto3d/build.css';
+import './proto3d/house.css';
 export default function Page(){
   const [mounted,setMounted]=useState(false);
   useEffect(()=>setMounted(true),[]);

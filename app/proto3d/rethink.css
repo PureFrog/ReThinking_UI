@@ -683,6 +683,8 @@ html[data-text="l"] .proto3d :is(.rt-sheet,.rt-me-panel,.rt-dock,.rt-next){zoom:
 @media(min-width:1000px) and (min-height:600px){html[data-text="l"] .proto3d :is(.rt-sheet,.rt-me-panel,.rt-dock,.rt-next){zoom:1.3}}
 /* 나루 and fishing (ui/Fishing.tsx) */
 .rt-talk-name.n-naru{background:#1f6fa8}
+/* 피드백 2026-11-21: who each one is, under the name tag */
+.rt-talk-role{margin-left:8px;padding-left:8px;border-left:1px solid #ffffff70;font:700 12px 'Gowun Dodum',sans-serif;color:#ffffffe0;letter-spacing:.01em}
 .rt-fish-left{position:absolute;top:calc(16px + env(safe-area-inset-top,0px));left:16px;display:flex;gap:6px;align-items:center;font-size:13px;padding:8px 12px;border-radius:999px;background:#ffffffd0}
 .rt-fish-left i{width:9px;height:9px;border-radius:50%;background:#1f86d6;display:inline-block}.rt-fish-left i.off{background:#c9d3c3}
 .rt-fish-hint{position:absolute;left:50%;top:60%;transform:translateX(-50%);color:#fff;font-size:16px;text-shadow:0 1px 6px #000a;text-align:center;white-space:nowrap}
@@ -701,3 +703,41 @@ html[data-text="l"] .proto3d :is(.rt-sheet,.rt-me-panel,.rt-dock,.rt-next){zoom:
 .rt-fish-cell{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border-radius:12px;background:#eef4e6;text-align:center}
 .rt-fish-cell b{font-size:12.5px}.rt-fish-cell small{font-size:10.5px;color:#5e665a}.rt-fish-cell.no b{color:#8a928a}
 @media(min-width:701px){.rt-fish-card{left:50%;right:auto;width:400px;transform:translateX(-50%)}}
+/* 2026-11-20 feedback: the name goes inside the talk box, and the speaker's face sits above it at the top left */
+.rt-talk-box{padding-top:16px}
+.rt-talk-name{position:static;display:block;background:none;box-shadow:none;padding:0;margin:0 0 4px;font-size:16.5px;color:#2f8a3a}
+.rt-talk-name.n-tori{background:none;color:#3d6aa8}.rt-talk-name.n-moa{background:none;color:#b97a12}.rt-talk-name.n-luon{background:none;color:#6a4c93}.rt-talk-name.n-naru{background:none;color:#8a5a2b}
+.rt-talk-name[data-who]::before{content:'';position:absolute;left:16px;top:-64px;width:76px;height:76px;border-radius:50%;background:#fffaf0 center/cover no-repeat;border:3px solid #fff;box-shadow:0 8px 18px -8px #10200d90;animation:rt-talk-in .28s ease-out both}
+.rt-talk-name[data-who=bori]::before{background-image:url(/models/analysts/faces/bori.png)}
+.rt-talk-name[data-who=teacher]::before{background-image:url(/models/analysts/faces/teacher.svg)}
+.rt-talk-name[data-who=tori]::before{background-image:url(/models/analysts/faces/tori.png)}
+.rt-talk-name[data-who=moa]::before{background-image:url(/models/analysts/faces/moa.png)}
+.rt-talk-name[data-who=luon]::before{background-image:url(/models/analysts/faces/luon.png)}
+.rt-talk-name[data-who=naru]::before{background-image:url(/models/analysts/faces/naru.png)}
+/* 오늘 퀘스트 under the weather (feedback 2026-11-20) */
+.rt-quests{pointer-events:auto;display:flex;flex-direction:column;gap:2px;background:var(--rt-glass);border:1px solid #ffffffb0;border-radius:14px;padding:8px 10px 8px;box-shadow:var(--rt-shadow);backdrop-filter:blur(14px);min-width:170px}
+.rt-quests-h{all:unset;cursor:pointer;font-size:12px;color:var(--rt-sub);font-weight:600;padding:2px 4px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.rt-quests-fold{font-style:normal;font-size:11px;color:var(--rt-mute)}
+.rt-quests-h b{color:var(--rt-sub);font-weight:600}
+.rt-quest{all:unset;cursor:pointer;display:flex;align-items:center;gap:7px;font-size:13px;color:var(--rt-ink,#22281f);padding:4px 4px;border-radius:8px}
+.rt-quest:hover:not(:disabled){background:#ffffff80}
+.rt-quest i{width:15px;height:15px;border-radius:50%;border:1.5px solid #b9b2a4;display:grid;place-items:center;font-style:normal;font-size:10px;color:#fff;flex:none}
+.rt-quest[data-done=true]{color:var(--rt-mute);text-decoration:line-through;cursor:default}
+.rt-quest[data-done=true] i{background:#2f8a3a;border-color:#2f8a3a}
+/* the village tour points at the weather and the quests: they stay up while 보리 talks */
+.proto3d:has(.vl-tour) .rt-weather{opacity:1;pointer-events:auto}
+.proto3d .proto3d-top{z-index:12}/* the weather and the quests stay above the tree name tags */
+.proto3d:has(.rt-talk) .rt-quests{opacity:0;pointer-events:none;transition:opacity .25s}
+.proto3d:has(.vl-tour) .rt-quests{opacity:1;pointer-events:auto}
+
+/* 피드백 2026-11-21 (누가 누군지): the role under each name reads as a clear pill on the light talk box */
+.rt-talk .rt-talk-role,.rt-talk-role{display:inline-block;margin-left:8px;padding:2px 10px 1px;border:0;border-radius:999px;background:#2f8a3a1f;color:#24412a;font:700 13.5px 'Gowun Dodum',sans-serif;letter-spacing:0;vertical-align:1px}
+/* 피드백 2026-11-22: the teacher's past quizzes (ui/QuizReview.tsx) */
+.qr-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.qr-item{padding:12px 14px;border-radius:14px;background:#fffaf0;border:1px solid #00000012}
+.qr-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.qr-ok{color:#2f8a3a}.qr-ng{color:#c2463a}.qr-late{color:#8a7a5a}
+.qr-q{margin:6px 0;font-weight:700;line-height:1.5}
+.qr-quote{margin:6px 0;padding:6px 10px;border-left:3px solid #2f8a3a55;background:#2f8a3a0d;font-size:13.5px}
+.qr-dl{margin:6px 0;display:grid;gap:4px}.qr-dl div{display:flex;gap:10px}.qr-dl dt{flex:0 0 42px;color:var(--rt-mute);font-size:12.5px}.qr-dl dd{margin:0;font-size:13.5px}
+.qr-why{margin:8px 0 0;font-size:13px;color:#4a5246;line-height:1.55}

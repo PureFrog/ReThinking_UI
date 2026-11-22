@@ -2,6 +2,7 @@
 // The home screen cut down to one job (docs/mockups/home.html): one next step over four tabs (정원 · 일지 · 원정 ·
 // 더보기), the 일지 that only holds the journal, 더보기 for everything outside the daily loop, and the first-run
 // tutorial: a spotlight on the real screen, one sentence at a time.
+import {won} from '../../core/won';
 import {useEffect,useRef,useState} from 'react';
 import {Sheet,Face} from './Sheet';
 import {screenPoints} from '../screen';
@@ -52,7 +53,7 @@ export function MoreSheet({currency,streak,week,dots,onPick,onClose}:{currency:n
     ['설정',[['holdings','내 종목','캡처 · 직접 입력'],['settings','설정','소리 · 기울이기 · 튜토리얼']]]];
   return <Sheet kicker="더보기" title="더보기" label="더보기" onClose={onClose}>
     <div className="rt-more-nums" aria-label="내 숫자">
-      <span>{CURRENCY} <b className="rt-num" data-testid="currency">{currency}</b></span><span>연속 <b className="rt-num">{streak}일</b></span><span>이번 주 <b className="rt-num">{week}</b></span></div>
+      <span>{CURRENCY} <b className="rt-num" data-testid="currency">{won(currency)}</b></span><span>연속 <b className="rt-num">{streak}일</b></span><span>이번 주 <b className="rt-num">{week}</b></span></div>
     {groups.map(([g,items])=><div key={g}><div className="rt-section">{g}</div>
       <div className="rt-more-grid">{items.map(([id,t,sub])=><button key={id} type="button" className="rt-more-tile" onClick={()=>onPick(id)}>
         <strong>{t}</strong><small>{sub}</small>{dots[id]&&<i aria-label="새 소식"/>}</button>)}</div></div>)}

@@ -5,9 +5,9 @@ const {route, PLOTS, PLACES, inStream, streamZ, BRIDGE, WORLD, southOfStream} = 
 const {GARDEN_PLOTS} = await load('content/demo-garden');
 const noPond = () => false;
 
-test('plots: fourteen open at first (more with land, core/land.ts), all on dry land inside the walkable ground, none on top of another', () => {
-  assert.equal(PLOTS.length, 30);
-  assert.equal(GARDEN_PLOTS, 14);
+test('plots: eighteen open at first (9 a field) (more with land, core/land.ts), all on dry land inside the walkable ground, none on top of another', () => {
+  assert.equal(PLOTS.length, 36);
+  assert.equal(GARDEN_PLOTS, 18);
   for (const [x, z] of PLOTS) {
     assert.ok(Math.hypot(x, z) < WORLD.walk, `${x},${z}`);
     assert.ok(!inStream(x, z, 1), `${x},${z} in the stream`);

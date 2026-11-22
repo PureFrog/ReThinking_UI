@@ -7,21 +7,12 @@ const {recallOf} = await load('core/recall');
 const {rankItem, GARDEN_ITEMS} = await load('content/garden-items');
 const {LINES, say} = await load('content/analysts');
 
-const base = {signals: 3, judgedToday: 0, caseDone: false, due: 0, gradedToday: 0, rewindsToday: 0};
-test("today's three: a signal, the case, then the grades or a rewind", () => {
-  assert.deepEqual(todayTasks(base).map(t => t.id), ['judge', 'case', 'rewind']);
-  assert.deepEqual(todayTasks({...base, due: 2}).map(t => t.id), ['judge', 'case', 'grade']);
-  // nothing flagged today: two rewinds asked, the second needs a second round
-  const quiet = {...base, signals: 0};
-  assert.deepEqual(todayTasks(quiet).map(t => t.id), ['rewind', 'case', 'rewind']);
-  assert.deepEqual(todayTasks({...quiet, rewindsToday: 1}).map(t => t.done), [true, false, false]);
-  assert.deepEqual(todayTasks({...quiet, rewindsToday: 2, caseDone: true}).map(t => t.done), [true, true, true]);
-  // grades: done once every arrived one is open, and stays a grade task after
-  assert.equal(todayTasks({...base, due: 1, gradedToday: 1})[2].done, false);
-  const after = todayTasks({...base, due: 0, gradedToday: 2, judgedToday: 1, caseDone: true});
-  assert.equal(after[2].id, 'grade');
-  assert.equal(dayDone(after), true);
+test('the quest board: the quiz, one journal, one cast; all three close the day', () => {
+  const base = {quizDone: false, judgedToday: 0, fishedToday: 0};
+  assert.deepEqual(todayTasks(base).map(t => t.id), ['quiz', 'judge', 'fish']);
   assert.equal(dayDone(todayTasks(base)), false);
+  assert.deepEqual(todayTasks({quizDone: true, judgedToday: 1, fishedToday: 0}).map(t => t.done), [true, true, false]);
+  assert.equal(dayDone(todayTasks({quizDone: true, judgedToday: 2, fishedToday: 1})), true);
 });
 
 test('the next grade to come back for is the nearest one still ahead', () => {

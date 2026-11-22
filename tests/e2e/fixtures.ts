@@ -19,6 +19,9 @@ export const test = base.extend({
     await page.addInitScript(() => { (window as unknown as { __noLanding?: boolean }).__noLanding = !new URLSearchParams(location.search).has("landing") });
     // the first entry's introductions (app/proto3d/ui/Intro.tsx): tests start past them unless the address has ?intro
     await page.addInitScript(() => { (window as unknown as { __noIntro?: boolean }).__noIntro = !new URLSearchParams(location.search).has("intro") });
+    // every visit starts in the house (app/proto3d/ui/House.tsx, PM 설계 2026-11-19); tests written for the village start
+    // outside unless the address has ?house
+    await page.addInitScript(() => { (window as unknown as { __noHouse?: boolean }).__noHouse = !new URLSearchParams(location.search).has("house") });
     // accounts stay on the device in e2e, even when .env.local points at the Supabase project (app/proto3d/server.ts)
     await page.addInitScript(() => { (window as unknown as { __localAuth?: boolean }).__localAuth = true });
     await use(page);

@@ -21,7 +21,7 @@ import type {Holding} from '../core/model';
 import {WeatherFx} from './Weather3D';
 import {Analyst} from './Analyst3D';
 import {screenPoints,snapshot,tilt} from './screen';
-import {Observatory,Signpost,Cart,Pot,Decor} from './Garden3D';
+import {Signpost,Cart,Pot,Decor} from './Garden3D';
 import {Fields,BuildingLots,Buildings,Landmarks} from './Build3D';
 import {LANDS,BUILDINGS,CITIES,BASE_LAND,ALL_PLOTS,type Built} from '../core/land';
 import {tooClose} from '../core/plants';
@@ -41,13 +41,17 @@ import {mixHex,type Daylight} from '../core/daylight';
 import {Showroom} from './Showroom3D';
 import {SkyScene,type SkyWorld} from './Sky3D';
 import type {Look} from '../core/wardrobe';
+import {treeSize,worthOf} from '../core/walk';
+import {Villager,GuideTrail,NewsBoard,TailorStall,MerchantStall,FarmCart,type Errand} from './Village3D';
+import {NEWS_BOARD,TAILOR_STALL,MERCHANT_STALL,FARM_CART} from '../content/villagers';
+import {POND_AT} from './places';
 
 // The ground (a big sphere's top) is ground.tsx; where everything is, places.ts.
 const SPEED=LOOK.walk.speed;// player walking speed, units per second (look.ts walk)
 const PLAYER_START=new THREE.Vector3(0,0,2.5);
 export {surfaceY};
 
-type Hooks={frames:number;ready:boolean;player:{x:number;z:number};trees:Record<number,{x:number;y:number}>;softMeshes:number;meshes:number;treeModels:number;fruit?:number;weather?:Weather;points:Record<string,{x:number;y:number}>;camera?:{fov:number;dist:number;turn:number;pitch:number;blur:number;lead:number};burst?:{holdingId:number;hit:boolean};births?:{active:boolean;stage:string;long:boolean;n:number;ms:number};cutaway?:{open:boolean;holdingId:number|null;roots:Roots|null};inside?:boolean;stage?:boolean;capsules?:{holdingId:number;due:boolean}[];capsuleFx?:{kind:string;holdingId:number}|null};
+type Hooks={frames:number;ready:boolean;player:{x:number;z:number};trees:Record<number,{x:number;y:number}>;treeAt?:Record<number,{x:number;z:number}>;softMeshes:number;meshes:number;treeModels:number;fruit?:number;weather?:Weather;points:Record<string,{x:number;y:number}>;camera?:{fov:number;dist:number;turn:number;pitch:number;blur:number;lead:number};burst?:{holdingId:number;hit:boolean};births?:{active:boolean;stage:string;long:boolean;n:number;ms:number};cutaway?:{open:boolean;holdingId:number|null;roots:Roots|null};inside?:boolean;stage?:boolean;capsules?:{holdingId:number;due:boolean}[];capsuleFx?:{kind:string;holdingId:number}|null};
 declare global{interface Window{__proto3d?:Hooks&{friendAt?:{x:number;z:number};view?:{fp:boolean;eyeGap:number;follow:number}}}}
 // the overlay may write its own entries (births, lapse) first: fill in whatever the scene needs that is missing
 const testHooks=()=>{const h=(window.__proto3d??={} as Hooks);h.frames??=0;h.ready??=false;h.player??={x:0,z:0};h.trees??={};h.softMeshes??=0;h.meshes??=0;h.treeModels??=0;h.points??={};return h};
@@ -57,14 +61,17 @@ const testHooks=()=>{const h=(window.__proto3d??={} as Hooks);h.frames??=0;h.rea
 const DECO_TREES=([['c',-3,-8.5,1.1],['c',-3.6,-11.2,1],['c',5.5,-8.8,1.2],['c',9.2,-6.2,1],['c',-6.2,-14.5,1.2],['c',5.8,-17,1.1],['c',-4,-18.2,1],['c',-10.6,-3,0.9],
   ['r',5,-10.4,1.1],['r',-7.6,-6.4,1],['r',17.4,-5.2,0.9],['r',16.6,8.2,1.1],['r',-14,-10,1.2],['r',7,-13.5,1],['r',-11,4,0.8]] as ['c'|'r',number,number,number][]).map(([k,x,z,sc])=>[k,...spread(x,z),sc] as ['c'|'r',number,number,number])
   .filter(([,x,z])=>!ALL_PLOTS.some(p=>Math.hypot(p[0]-x,p[1]-z)<2.4)&&!BUILDINGS.some(b=>Math.hypot(b.at[0]-x,b.at[1]-z)<2.8)&&!CITIES.some(c=>Math.hypot(c.at[0]-x,c.at[1]-z)<4));
-const POND:[number,number,number][]=([[0.2,7.6,1.8],[2,8.1,1.4],[-1.6,8.3,1.3],[0.9,9.3,1.3],[-0.5,6.5,1]] as [number,number,number][]).map(([x,z,r])=>[...spread(x,z),r]);
+// 2026-11-20: the pond (나루's fishing spot) moved to where the 관측소 stood, west of the middle
+// 피드백 2026-11-22 (village_layout.jpg): the pond moved east of the middle path, between the fields and the stream
+// (the fishing spot); its old place west of the middle is the shops' corner now. Pieces around POND_AT (places.ts)
+const POND:[number,number,number][]=([[0,0,1.8],[1.12,-2.38,1.3],[-2.24,0.56,1.2],[1.82,1.82,0.9],[-0.84,-3.08,1]] as [number,number,number][]).map(([x,z,r])=>[POND_AT.x+x,POND_AT.z+z,r]);
 const inPond=(x:number,z:number,pad=0)=>POND.some(([px,pz,r])=>Math.hypot(x-px,z-pz)<r+pad);
 const HOUSE=place('home');
 const FIRE=spread(-1.6,-1.2);
-const ROCKS=([[-6.4,3.2,1.1,0.4],[-5,4.4,0.7,0],[-7.2,4.6,0.55,0],[8.4,6,0.9,0],[3.4,5.2,0.5,0]] as number[][]).map(([x,z,sc,rot])=>[...spread(x,z),sc,rot]);
+const ROCKS=([/* (the big rock by the old lookout is gone: it stood in front of the fishing camera, 2026-11-20) */[-5,4.4,0.7,0],[-7.2,4.6,0.55,0],[8.4,6,0.9,0],[3.4,5.2,0.5,0]] as number[][]).map(([x,z,sc,rot])=>[...spread(x,z),sc,rot]);
 const FARM=PLOTS;
 // landmarks (R4–R6, Garden3D.tsx; World3D.tsx) and where grass tufts and flowers keep away from
-const SPOTS={observatory:place('observatory'),signpost:spreadXZ({x:-1.9,z:3.5,rot:0.35}),cart:place('cart')};
+const SPOTS={observatory:place('pond'),signpost:spreadXZ({x:-1.9,z:3.5,rot:0.35}),cart:place('cart')};
 const LIB=place('library'),PLAZA=place('plaza');
 const KEEP_CLEAR:[number,number,number][]=[[SPOTS.observatory.x,SPOTS.observatory.z,2.2],[SPOTS.cart.x,SPOTS.cart.z,1.3],[SPOTS.signpost.x,SPOTS.signpost.z,0.6],[LIB.x,LIB.z,2.6],[HOUSE.x,HOUSE.z,3.6],[PLAZA.x,PLAZA.z,3.8],...DECOR_SLOTS.filter(d=>!d.room).map(d=>[d.x,d.z,0.8] as [number,number,number]),
   // the building lots and the landmarks' places stay clear of forest and flowers, built or not (core/land.ts)
@@ -142,8 +149,8 @@ function Pond({dim=0}:{dim?:number}){
       <mesh rotation-x={-Math.PI/2} position-y={0.12}><circleGeometry args={[r,40]}/><meshBasicMaterial color={mixHex('#2c86d6','#13284a',dim)}/></mesh>
     </OnGround>))}
     {/* stepping stones and lily pads */}
-    {[[0.4,7.9,0.4],[1.3,8.4,0.34],[-0.7,8.6,0.3]].map(([x,z,s],i)=>(
-      <OnGround key={'s'+i} x={x} z={z} lift={0.14}><mesh scale={[s,s*0.35,s]} castShadow><sphereGeometry args={[1,20,12]}/><primitive object={soft(i===2?'#e6d65a':'#b9d86a')} attach="material"/></mesh></OnGround>))}
+    {([[-10.4,1.6,0.4],[-9.4,-0.4,0.34],[-11.4,1.0,0.3]] as number[][]).map(([x0,z0,s],i)=>{const [x,z]=spread(x0,z0);return (
+      <OnGround key={'s'+i} x={x} z={z} lift={0.14}><mesh scale={[s,s*0.35,s]} castShadow><sphereGeometry args={[1,20,12]}/><primitive object={soft(i===2?'#e6d65a':'#b9d86a')} attach="material"/></mesh></OnGround>)})}
   </>;
 }
 
@@ -257,15 +264,17 @@ function Falling({condition,height,wind}:{condition:Condition;height:number;wind
 // with an overshoot; its state (flowers, wilting, lean) goes on as it settles.
 export type Born={t0:number;plan:BirthPlan;i:number};
 // cut: the ground under it is open (W2): its soil mound goes, so the roots show from the trunk down
-function HoldingTree({id,x,z,picked,onPick,onDeep,growth,condition,onTop,wind,born,cut}:{id:number;x:number;z:number;picked:boolean;onPick:(id:number)=>void;onDeep:(id:number)=>void;growth:Growth;condition:Condition;onTop:(y:number)=>void;wind:number;born:Born|null;cut:boolean}){
+// size: 유저 워크플로우 3장, what the holding is worth now (core/walk.ts treeSize); a change eases over a moment
+function HoldingTree({id,x,z,picked,onPick,onDeep,growth,condition,onTop,wind,born,cut,size=1}:{id:number;x:number;z:number;picked:boolean;onPick:(id:number)=>void;onDeep:(id:number)=>void;growth:Growth;condition:Condition;onTop:(y:number)=>void;wind:number;born:Born|null;cut:boolean;size?:number}){
   const group=useRef<THREE.Group>(null),mound=useRef<THREE.Mesh>(null),[h,setH]=useState(2);
   const [dressed,setDressed]=useState(!born);
   useEffect(()=>{if(born)setDressed(false)},[born]);
   const shown:Condition=dressed||condition==='dead'?condition:'well';
   const lean=dressed?CANOPY[condition].droop:0;
-  useFrame(({clock})=>{const g=group.current;if(!g)return;const t=clock.elapsedTime;
+  useFrame(({clock},dt)=>{const g=group.current;if(!g)return;const t=clock.elapsedTime;
+    if(!born){const want=LOOK.holdingTreeScale*size;g.scale.setScalar(g.scale.x+(want-g.scale.x)*Math.min(1,dt*3));g.visible=true}
     if(born){const b=treeAt(born.plan,born.i,performance.now()-born.t0),s=growScale(b.phase,b.k);
-      g.scale.setScalar(LOOK.holdingTreeScale*s);g.visible=s>0;
+      g.scale.setScalar(LOOK.holdingTreeScale*s*size);g.visible=s>0;
       if(mound.current){const m=b.phase==='wait'||b.phase==='card'?0:b.phase==='crack'?b.k:1;mound.current.scale.set(1.1*m,0.22*m,1.1*m);mound.current.visible=m>0}
       if(!dressed&&stateOn(b.phase))setDressed(true)}
     // wind: a slow lean plus faster gusts on stormy days
@@ -283,7 +292,7 @@ function HoldingTree({id,x,z,picked,onPick,onDeep,growth,condition,onTop,wind,bo
     {/* soil mound */}
     <mesh ref={mound} scale={[1.1,0.22,1.1]} visible={!cut} receiveShadow><sphereGeometry args={[1,20,12]}/><primitive object={soft('#8b6b52')} attach="material"/></mesh>
     {picked&&<mesh rotation-x={-Math.PI/2} position-y={0.12}><torusGeometry args={[1.25,0.06,8,40]}/><meshStandardMaterial color="#fff6c8" emissive="#ffe27a" emissiveIntensity={1.4} toneMapped={false}/></mesh>}
-    <group ref={group} onClick={click} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerLeave={up} name={`tree-${id}`} position-y={0.12} scale={LOOK.holdingTreeScale}>
+    <group ref={group} onClick={click} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerLeave={up} name={`tree-${id}`} position-y={0.12} scale={LOOK.holdingTreeScale*size}>
       <Suspense fallback={null}>
         <TreeModel url={condition==='dead'?MODELS.stump:MODELS.tree(growth,id)} condition={shown} onTop={top}/>
       </Suspense>
@@ -350,7 +359,7 @@ function Keys({pos,target,stops,onMove,enabled}:{pos:React.MutableRefObject<THRE
 }
 
 // the player: my observer as I dressed it (Explorer3D.tsx, core/wardrobe.ts), walking where I tap
-function Player({target,stops,pos,hidden,look,walls}:{target:React.MutableRefObject<THREE.Vector3>;stops:React.MutableRefObject<{x:number;z:number}[]>;pos:React.MutableRefObject<THREE.Vector3>;hidden?:boolean;look:Look;walls:Solid[]}){
+function Player({target,stops,pos,hidden,look,walls,onPick,faceTo=null}:{faceTo?:{x:number;z:number}|null;onPick?:()=>void;target:React.MutableRefObject<THREE.Vector3>;stops:React.MutableRefObject<{x:number;z:number}[]>;pos:React.MutableRefObject<THREE.Vector3>;hidden?:boolean;look:Look;walls:Solid[]}){
   const g=useRef<THREE.Group>(null),body=useRef<THREE.Group>(null),moving=useRef(false),speed=useRef(0);
   useFrame((_,dt)=>{const p=pos.current,tg=target.current,gr=g.current,b=body.current;if(!gr||!b)return;const t=Math.min(dt,0.25)/* by time: a slow phone walks as fast */;
     const dx=tg.x-p.x,dz=tg.z-p.z,d=Math.hypot(dx,dz);moving.current=d>0.05;
@@ -361,8 +370,10 @@ function Player({target,stops,pos,hidden,look,walls}:{target:React.MutableRefObj
       if(pushOut(p,walls)){const q={x:tg.x,z:tg.z};if(pushOut(q,walls))tg.set(q.x,0,q.z)}
       const yaw=Math.atan2(dx,dz),diff=Math.atan2(Math.sin(yaw-b.rotation.y),Math.cos(yaw-b.rotation.y));b.rotation.y+=diff*Math.min(1,LOOK.walk.turn*t)}
     else if(stops.current.length){const n=stops.current.shift()!;tg.set(n.x,0,n.z)}
+    // standing in a talk: turned to the one I talk to
+    else if(faceTo){const yaw=Math.atan2(faceTo.x-p.x,faceTo.z-p.z),diff=Math.atan2(Math.sin(yaw-b.rotation.y),Math.cos(yaw-b.rotation.y));b.rotation.y+=diff*Math.min(1,LOOK.walk.turn*t)}
     gr.position.set(p.x,surfaceY(p.x,p.z),p.z);gr.quaternion.copy(tiltAt(p.x,p.z))});
-  return <group ref={g} visible={!hidden}><group ref={body} scale={LOOK.explorer.scale}>
+  return <group ref={g} visible={!hidden} name="player" onClick={onPick?e=>{e.stopPropagation();onPick()}:undefined}><group ref={body} scale={LOOK.explorer.scale}>
     <Suspense fallback={null}><Explorer look={look} moving={moving}/></Suspense>
   </group></group>;
 }
@@ -380,7 +391,7 @@ const easeInOut=(k:number)=>k<0.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
 // low: the root cut-away is open, so the camera comes down to the side of it (keeping the way it faces)
 // near: a capsule is being buried or dug up (W3): the camera comes closer to it
 // aim: a landmark just opened — the camera comes down to a side view from the garden's side, facing it (core/land.ts)
-function FollowCam({pos,recenter,focus,orbit,low,near,aim,fp=false,talk=null}:{pos:React.MutableRefObject<THREE.Vector3>;recenter:number;focus:THREE.Vector3|null;orbit:Orbit|null;low:number|null;near:boolean;aim?:number|null;fp?:boolean;talk?:{az:number;pitch?:number;dist?:number}|null}){
+function FollowCam({pos,recenter,focus,orbit,low,near,aim,fp=false,talk=null,eye=null}:{pos:React.MutableRefObject<THREE.Vector3>;recenter:number;focus:THREE.Vector3|null;orbit:Orbit|null;low:number|null;near:boolean;aim?:number|null;fp?:boolean;talk?:{az:number;pitch?:number;dist?:number}|null;eye?:{x:number;z:number;ax:number;az:number}|null}){
   const shift=useRef({x:0,y:0}),back=useRef(false),lean=useMemo(()=>new THREE.Vector3(),[]),side=useMemo(()=>new THREE.Vector3(),[]),tv=useRef({x:0,y:0});
   const ctl=useRef<OrbitControlsImpl>(null),{camera,size}=useThree(),fpWas=useRef(false);
   const prev=useMemo(()=>new THREE.Vector3(),[]),want=useMemo(()=>new THREE.Vector3(),[]),fwd=useMemo(()=>new THREE.Vector3(),[]);
@@ -389,7 +400,20 @@ function FollowCam({pos,recenter,focus,orbit,low,near,aim,fp=false,talk=null}:{p
     cam.position.copy(c.target).addScaledVector(camDir(fr.turn,fr.pitch),fr.dist);c.update();testHooks().camera=fr},[fr.fov,fr.dist,fr.turn,fr.pitch,camera]);
   useEffect(()=>{const c=ctl.current;if(!c||recenter===0)return;c.target.copy(pos.current);camera.position.copy(pos.current).addScaledVector(camDir(fr.turn,fr.pitch),fr.dist);c.update()},[recenter,camera,pos]);// eslint-disable-line react-hooks/exhaustive-deps
   // eased by time, not by frame: a slow phone gets there as fast as a quick one
+  const eyeWas=useRef(false),eyeFrom=useMemo(()=>new THREE.Vector3(),[]);
   useFrame((_,dt)=>{const c=ctl.current;if(!c)return;const ease=(r:number)=>1-Math.exp(-Math.min(dt,0.5)*r);
+    // 유저 워크플로우 2장: face to face, the camera at my eye height looking at the other's face; afterwards it eases back
+    // out to the usual framing where I stand
+    const pc0=camera as THREE.PerspectiveCamera,E=LOOK.camera.eyeTalk;
+    if(eye){if(!eyeWas.current){eyeWas.current=true;eyeFrom.copy(camera.position)}
+      want.set(eye.ax,surfaceY(eye.ax,eye.az)+E.face,eye.az);c.target.lerp(want,ease(4));
+      const dx=eye.ax-eye.x,dz=eye.az-eye.z,d=Math.hypot(dx,dz)||1;
+      fwd.set(eye.x-dx/d*E.back,surfaceY(eye.x,eye.z)+E.eye,eye.z-dz/d*E.back);camera.position.lerp(fwd,ease(3.2));
+      if(pc0.fov!==E.fov){pc0.fov=E.fov;pc0.updateProjectionMatrix()}c.enableZoom=false;c.enableRotate=false;c.minDistance=0.1;c.maxPolarAngle=Math.PI;
+      c.update();camera.lookAt(c.target);(testHooks() as {view?:unknown}).view={fp:false,eyeTalk:true,eyeGap:+camera.position.distanceTo(c.target).toFixed(2),follow:0};return}
+    if(eyeWas.current){eyeWas.current=false;back.current=true;c.enableRotate=true;c.enableZoom=true;pc0.fov=fr.fov;pc0.updateProjectionMatrix();
+      c.minDistance=LOOK.camera.minDist;want.set(pos.current.x,surfaceY(pos.current.x,pos.current.z)+0.8,pos.current.z);c.target.copy(want);
+      camera.position.copy(want).addScaledVector(camDir(fr.turn,fr.pitch),LOOK.camera.minDist+0.5)}
     // W6: last frame's tilt offset comes off first, so the orbit and the follow work on the real camera
     // first person: only when nothing else wants the camera (a tree, a building, a scene); those still win
     const F=LOOK.camera.fp,fpOn=fp&&!focus&&low===null&&!near&&aim==null&&!orbit;
@@ -501,7 +525,7 @@ function Hooks({pos,treePos,points}:{pos:React.MutableRefObject<THREE.Vector3>;t
     h.frames++;h.ready=h.frames>3;h.player={x:pos.current.x,z:pos.current.z};
     // which lit meshes wear the shared soft material (glowing bits and water are left out on purpose); recount when models arrive
     if(h.frames===2||counted.current!==h.treeModels){counted.current=h.treeModels;let all=0,s=0;scene.traverse(o=>{const m=(o as THREE.Mesh).material as THREE.Material|undefined;if(!(o as THREE.Mesh).isMesh||!m)return;all++;if(m.userData.soft)s++});h.meshes=all;h.softMeshes=s}
-    h.trees={};for(const t of treePos){v.copy(t.v).project(camera);const pt={x:(v.x+1)/2*size.width,y:(1-v.y)/2*size.height};h.trees[t.id]=pt;screenPoints.set('tree-'+t.id,{...pt,visible:v.z<1})}
+    h.trees={};h.treeAt={};for(const t of treePos){h.treeAt[t.id]={x:t.v.x,z:t.v.z};v.copy(t.v).project(camera);const pt={x:(v.x+1)/2*size.width,y:(1-v.y)/2*size.height};h.trees[t.id]=pt;screenPoints.set('tree-'+t.id,{...pt,visible:v.z<1})}
     for(const [k,p] of points){v.copy(p).project(camera);const pt={x:(v.x+1)/2*size.width,y:(1-v.y)/2*size.height};h.points[k]=pt;screenPoints.set(k,{...pt,visible:v.z<1})}});
   return null;
 }
@@ -510,6 +534,8 @@ function Hooks({pos,treePos,points}:{pos:React.MutableRefObject<THREE.Vector3>;t
 // placed items, and what the landmarks show.
 export type Landmark='observatory'|'signpost'|'cart'|'library'|'plaza'|'house';
 export type World={
+  // 마을: a tap on my own character (옷 갈아입기)
+  onPlayer?:()=>void;
   // 보리, the friend who comes over to talk (core/friend.ts): where it waits and what a tap does; null keeps it home
   friend?:{at:{x:number;z:number};onPick:()=>void;face?:string}|null;
   // 나루 the otter by the pond, and the float while fishing (wait: bobbing, bite: pulled under)
@@ -520,7 +546,7 @@ export type World={
   build?:{built:Built;mode:boolean;onLot:(key:string)=>void}|null;
   // at: the tree they stand at (a signal) · near: luon waiting by that tree's capsule marker · spot: where their day has
   // them (core/routine.ts), facing `face`, doing `act` · home: indoors (not drawn out here)
-  analysts:{id:AnalystId;at:number|null;near?:boolean;spot?:{x:number;z:number;face:number;act:string}|null;home?:boolean;bubble:{text:string;alert:boolean}|null}[];
+  analysts:{id:AnalystId;at:number|null;near?:boolean;talking?:boolean;spot?:{x:number;z:number;face:number;act:string}|null;home?:boolean;bubble:{text:string;alert:boolean}|null}[];
   pots:{holdingId:number;open:boolean;flowers:number}[];
   decor:{slot:string;shape:Shape}[];
   hitRate:number|null;cartFlag:string;gameLit:boolean;
@@ -547,7 +573,12 @@ export type World={
   plants?:{id:string;item:string;x:number;z:number;scale:number}[];
   planting?:{item:string}|null;onPlant?:(x:number,z:number,why:string|null)=>void;
   // 보리 came over to talk: the camera frames the point between it and the player (LOOK.camera.talk)
-  talk?:{x:number;z:number;az:number;pitch?:number;dist?:number}|null;
+  // eye: 유저 워크플로우 2장, a talk face to face: the camera at my eyes (x,z), looking at the other's face (ax,az)
+  talk?:{x:number;z:number;az:number;pitch?:number;dist?:number;lift?:number;eye?:{x:number;z:number;ax:number;az:number}|null}|null;
+  // 유저 워크플로우: the village's people (content/villagers.ts), whether each is the one to go to now, who is talking;
+  // the guide's footprints to the next one; the news board, the cart's pile and whether the merchant is at the stall
+  villagers?:{id:string;x:number;z:number;face:number;look:Look;hl:boolean;talking:boolean;away?:boolean;errand?:Errand|null;onErrandDone?:()=>void;onPick:()=>void}[];
+  guide?:{x:number;z:number}|null;onNews?:()=>void;cartPile?:number;merchantOpen?:boolean;
   // inside the house (Interior3D.tsx): the garden is put away and the workroom drawn instead
   // my observer: how it is dressed (core/wardrobe.ts), and whether its stage (ui/MyPage.tsx) is open instead of the garden
   look:Look;stage:boolean;
@@ -555,8 +586,14 @@ export type World={
   sky:SkyWorld|null;
   // the time of day (core/daylight.ts): how light, how warm, how dark
   light:Daylight;
-  inside:boolean;room:{books:Book[];notes:Note[];resting:AnalystId[];onDesk:()=>void;onShelf:()=>void;onBoard:()=>void;onDoor:()=>void};
+  inside:boolean;room:{people?:boolean;books:Book[];notes:Note[];resting:AnalystId[];onDesk:()=>void;onShelf:()=>void;onBoard:()=>void;onDoor:()=>void};
 };
+// 게임 구성 3: a mouse over a thing in the village names it (Proto3D's HoverTip turns the name into words)
+const HOVER_NAMES=/^(house|cart|signpost|signpost-hit|observatory|plaza|library|player|tree-\d+|analyst-\w+|decor-[\w-]+|bridge)$/;
+const hover=(e:ThreeEvent<PointerEvent>)=>{if(e.pointerType!=='mouse')return;let o:THREE.Object3D|null=e.object,name='';
+  while(o){if(HOVER_NAMES.test(o.name)){name=o.name;break}o=o.parent}
+  window.dispatchEvent(new CustomEvent('rt-hover',{detail:name?{name,x:e.nativeEvent.clientX,y:e.nativeEvent.clientY}:null}))};
+const hoverOff=()=>window.dispatchEvent(new CustomEvent('rt-hover',{detail:null}));
 export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:{holdings:Holding[];picked:number|null;onPick:(id:number|null)=>void;recenter:number;weather:Weather;world:World}){
   const wl=LOOK.weather[weather],hemi=useRef<THREE.HemisphereLight>(null);
   const {size,camera}=useThree(),blur=frameFor(LOOK.camera.frames,size.width/Math.max(1,size.height)).blur;
@@ -567,7 +604,13 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
   // the map (ui/MapSheet.tsx) sends the player to a place
   useEffect(()=>{if(!world.goTo)return;const r=route(pos.current,world.goTo,(x,z)=>inPond(x,z,0.2));if(!r)return;const [first,...rest]=r;target.current.set(first.x,0,first.z);stops.current=rest},[world.goTo]);
   // each holding grows on its own plot (app/core/portfolio.ts gives every new tree an empty one)
-  const trees=useMemo(()=>holdings.filter(h=>h.plot>=0&&h.plot<FARM.length).map(h=>({h,st:treeState(h,defaultRules),x:FARM[h.plot][0],z:FARM[h.plot][1]})),[holdings]);
+  // PM 설계 2026-11-19 7장: a tree shows its stock's name only. Leaf colour, size, fruit and lean no longer follow returns,
+  // holding days or signals: every holding tree is the same grown, healthy tree (?treeState=1 brings the old look back)
+  // 유저 워크플로우 3장 (PM 2026-11-21): the size follows what the holding is worth now (continuously, core/walk.ts treeSize),
+  // the leaves and fruit follow the return; the model stays the grown one (?treeState=1: the old age-based look)
+  const neutral=typeof window!=='undefined'&&!new URLSearchParams(location.search).has('treeState');
+  const trees=useMemo(()=>holdings.filter(h=>h.plot>=0&&h.plot<FARM.length).map(h=>{const st=treeState(h,defaultRules);
+    return {h,st:neutral?{...st,growth:'young' as Growth,condition:(st.condition==='dead'?'wilt':st.condition) as Condition}:st,size:neutral?treeSize(worthOf(h)):1,x:FARM[h.plot][0],z:FARM[h.plot][1]}}),[holdings,neutral]);
   const points=useMemo(()=>{const m=new Map<string,THREE.Vector3>();for(const [k,p] of Object.entries(SPOTS))m.set(k,new THREE.Vector3(p.x,surfaceY(p.x,p.z)+1.2,p.z));
     // the house, the library and the square: points to tap (e2e) and to pin tags to
     for(const [k,p,y] of [['house',HOUSE,1.6],['library',LIB,1.6],['plaza',PLAZA,1.3]] as const)m.set(k,new THREE.Vector3(p.x,surfaceY(p.x,p.z)+y,p.z));return m},[]);
@@ -585,7 +628,7 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
     return {c,t,yaw,base,quat:tiltAt(t.x,t.z).multiply(new THREE.Quaternion().setFromAxisAngle(UP,yaw)),look:base.clone().add(new THREE.Vector3(0,-LOOK.roots.camDrop,0))};
   },[world.cutaway?.t0,trees]);// eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{testHooks().cutaway=world.cutaway&&!world.cutaway.closing?{open:true,holdingId:world.cutaway.holdingId,roots:world.cutaway.roots}:{open:false,holdingId:null,roots:null}},[world.cutaway]);
-  const focusPos=useMemo(()=>{if(cut&&!cut.c.closing)return cut.look;if(world.talk)return new THREE.Vector3(world.talk.x,surfaceY(world.talk.x,world.talk.z)+LOOK.camera.talk.lift,world.talk.z);const t=trees.find(x=>x.h.id===world.focus);if(t)return new THREE.Vector3(t.x,surfaceY(t.x,t.z)+1.2,t.z);
+  const focusPos=useMemo(()=>{if(cut&&!cut.c.closing)return cut.look;if(world.talk)return new THREE.Vector3(world.talk.x,surfaceY(world.talk.x,world.talk.z)+(world.talk.lift??LOOK.camera.talk.lift),world.talk.z);const t=trees.find(x=>x.h.id===world.focus);if(t)return new THREE.Vector3(t.x,surfaceY(t.x,t.z)+1.2,t.z);
     const v=world.view;return v?new THREE.Vector3(v.x,surfaceY(v.x,v.z)+(v.y??2.5),v.z):birthFocus},[trees,world.focus,birthFocus,cut,world.view,world.talk]);
   const orbit=useMemo(()=>world.birth&&world.birth.plan.orbit?{t0:world.birth.t0,at:world.birth.plan.orbitAt,len:world.birth.plan.orbit}:null,[world.birth]);
   useEffect(()=>{for(const t of trees)points.set('plot-'+t.h.id,new THREE.Vector3(t.x,surfaceY(t.x,t.z)+0.5,t.z))},[trees]);// eslint-disable-line react-hooks/exhaustive-deps
@@ -598,7 +641,7 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
   const onTops=useMemo(()=>treePos.map(p=>(y:number)=>{p.v.y=surfaceY(p.v.x,p.v.z)+0.12+y*0.75}),[treePos]);
   // each analyst reports its head top: the body point is for tapping it, the bubble point sits above the head
   // the friend reports as friend-<id> (not analyst-), so the analysts' count stays theirs; its bubble point is shared
-  const reportFriend=useCallback((id:string,v:THREE.Vector3)=>{if(id==='bori')(testHooks() as {friendAt?:{x:number;z:number}}).friendAt={x:v.x,z:v.z};for(const [k,dy] of [['friend-'+id,-1.2],['bubble-'+id,0.55]] as const){let p=points.get(k);if(!p){p=new THREE.Vector3();points.set(k,p)}p.copy(v).y+=dy}},[points]);
+  const reportFriend=useCallback((id:string,v:THREE.Vector3)=>{if(id==='bori')(testHooks() as {friendAt?:{x:number;z:number}}).friendAt={x:v.x,z:v.z};for(const [k,dy] of (id==='naru'?[['friend-'+id,-1.2],['bubble-'+id,0.55],['npctag-naru',0.1]]:[['friend-'+id,-1.2],['bubble-'+id,0.55]]) as [string,number][]){let p=points.get(k);if(!p){p=new THREE.Vector3();points.set(k,p)}p.copy(v).y+=dy}},[points]);
   const reportAnalyst=useCallback((id:string,v:THREE.Vector3)=>{for(const [k,dy] of [['analyst-'+id,-1.2],['bubble-'+id,0.55]] as const){let p=points.get(k);if(!p){p=new THREE.Vector3();points.set(k,p)}p.copy(v).y+=dy}},[points]);
   // an analyst with a flag stands in front of that tree, a little to one side (so two on one tree do not overlap)
   const spotFor=(id:AnalystId,at:number|null,near?:boolean,spot?:{x:number;z:number}|null)=>{const t=at===null?null:trees.find(x=>x.h.id===at);
@@ -635,9 +678,9 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
       shadow-mapSize={[LOOK.shadow.mapSize,LOOK.shadow.mapSize]} shadow-radius={LOOK.shadow.radius} shadow-bias={-0.0004} shadow-normalBias={0.04}
       shadow-camera-left={-16} shadow-camera-right={16} shadow-camera-top={16} shadow-camera-bottom={-16} shadow-camera-near={1} shadow-camera-far={50}/>
 
-    {world.sky?<SkyScene sky={world.sky}/>:world.stage?<Showroom look={world.look}/>:world.inside?<Interior books={world.room.books} notes={world.room.notes} resting={world.room.resting} decor={world.decor}
+    {world.sky?<SkyScene sky={world.sky}/>:world.stage?<Showroom look={world.look}/>:world.inside?<Interior people={world.room.people} books={world.room.books} notes={world.room.notes} resting={world.room.resting} decor={world.decor}
       onDesk={world.room.onDesk} onShelf={world.room.onShelf} onBoard={world.room.onBoard} onDoor={world.room.onDoor} onAnalyst={world.onAnalyst}
-      report={reportPoint} reportAnalyst={reportAnalyst}/>:<>
+      report={reportPoint} reportAnalyst={reportAnalyst}/>:<group onPointerMove={hover} onPointerOut={hoverOff}>
     <Ground onWalk={walk}/>
     {(world.plants??[]).map(p=><Suspense key={p.id} fallback={null}><DecorPlant item={p.item} x={p.x} z={p.z} scale={p.scale}/></Suspense>)}
     {/* the starter trees are plain round trees (2026-11-18 user: fruit trees mean stocks, so only the fence has them); the beds stay */}
@@ -650,7 +693,7 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
     <House night={world.light.night} onEnter={()=>world.onLandmark('house')}/>
     <Campfire/>
     {ROCKS.map(([x,z,sc,rot],i)=><Rock key={i} x={x} z={z} s={sc} rot={rot}/>)}
-    {trees.map((t,i)=>{const b=world.birth,k=b?b.ids.indexOf(t.h.id):-1;return <HoldingTree key={t.h.id} id={t.h.id} x={t.x} z={t.z} growth={t.st.growth} condition={t.st.condition} picked={picked===t.h.id} onPick={id=>onPick(id)} onTop={onTops[i]} wind={wl.wind}
+    {trees.map((t,i)=>{const b=world.birth,k=b?b.ids.indexOf(t.h.id):-1;return <HoldingTree key={t.h.id} id={t.h.id} x={t.x} z={t.z} size={t.size} growth={t.st.growth} condition={t.st.condition} picked={picked===t.h.id} onPick={id=>onPick(id)} onTop={onTops[i]} wind={wl.wind}
       born={b&&k>=0?bornOf(b,k):null} onDeep={world.onDeep} cut={!!cut&&cut.t===t}/>})}
     {world.capsules.map(c=>{const t=trees.find(x=>x.h.id===c.holdingId),fx=world.capsuleFx;if(!t||(fx&&fx.kind==='dig'&&fx.holdingId===c.holdingId))return null;const p=capSpot(t);
       return <OnGround key={'cap'+c.holdingId} x={p.x} z={p.z}><Marker due={c.due} pop={fx&&fx.kind==='bury'&&fx.holdingId===c.holdingId?{t0:fx.t0,len:fx.len}:null} onPick={()=>world.onCapsule(c.holdingId)}/></OnGround>})}
@@ -660,31 +703,35 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
     {DECO_TREES.map(([k,x,z,sc],i)=>k==='c'?<Cypress key={i} x={x} z={z} s={sc}/>:<RoundTree key={i} x={x} z={z} s={sc}/>)}
     {weather!=='storm'&&<Butterflies count={weather==='cloudy'?5:14}/>}
     <WeatherFx weather={weather} center={pos} hemi={hemi}/>
-    <OnGround x={SPOTS.observatory.x} z={SPOTS.observatory.z} rot={SPOTS.observatory.rot}><Observatory lit={world.gameLit} onPick={()=>world.onLandmark('observatory')}/></OnGround>
     <OnGround x={SPOTS.signpost.x} z={SPOTS.signpost.z} rot={SPOTS.signpost.rot}><Signpost hitRate={world.hitRate} onPick={()=>world.onLandmark('signpost')}/></OnGround>
     <OnGround x={SPOTS.cart.x} z={SPOTS.cart.z} rot={SPOTS.cart.rot}><Cart flag={world.cartFlag} onPick={()=>world.onLandmark('cart')}/></OnGround>
     <Stream dim={world.light.night*0.85}/><Bridge/><Paths/><Forest/>
-    <Library open={world.caseOpen} onPick={()=>world.onLandmark('library')}/>
+    {/* 피드백 2026-11-22: the library (사서 and the bookshelf) moved into the house */}
+    {false&&<Library open={world.caseOpen} onPick={()=>world.onLandmark('library')}/>}
     <Fields land={world.build?.built.land??[]} mode={!!world.build?.mode} onLot={world.build?.onLot}/>
     {world.build?.mode&&<BuildingLots built={world.build.built} onLot={world.build.onLot}/>}
     {world.build&&<Buildings built={world.build.built}/>}
     {world.build&&<Landmarks built={world.build.built} onPick={id=>world.build!.onLot('city:'+id)}/>}
+    {world.villagers&&<><NewsBoard x={NEWS_BOARD.x} z={NEWS_BOARD.z} rot={NEWS_BOARD.rot} onPick={()=>world.onNews?.()}/><TailorStall x={TAILOR_STALL.x} z={TAILOR_STALL.z} rot={TAILOR_STALL.rot}/>
+      <MerchantStall x={MERCHANT_STALL.x} z={MERCHANT_STALL.z} rot={MERCHANT_STALL.rot} open={!!world.merchantOpen}/><FarmCart x={FARM_CART.x} z={FARM_CART.z} rot={FARM_CART.rot} pile={world.cartPile??0}/></>}
+    {world.guide&&<GuideTrail from={pos} to={world.guide}/>}
     <Plaza flags={world.flags} me={world.myFlag} onPick={()=>world.onLandmark('plaza')}/>
     {world.pots.map(p=>{const t=trees.find(x=>x.h.id===p.holdingId);return t&&<OnGround key={p.holdingId} x={t.x-0.85} z={t.z+0.55}><Pot open={p.open} flowers={p.flowers}/></OnGround>})}
     {world.burst&&(()=>{const b=world.burst,t=trees.find(x=>x.h.id===b.holdingId);return t&&<Burst key={b.stamp} x={t.x} z={t.z} hit={b.hit} stamp={b.stamp}/>})()}
     {world.decor.map(d=>{const sl=DECOR_SLOTS.find(x=>x.id===d.slot&&!x.room);return sl&&<OnGround key={d.slot} x={sl.x} z={sl.z} rot={sl.rot}><Decor shape={d.shape}/></OnGround>})}
     <Suspense fallback={null}>
-      {world.analysts.filter(a=>!a.home).map(a=><Analyst key={a.id} id={a.id} to={spotFor(a.id,a.at,a.near,a.spot)} act={a.at===null&&a.spot?a.spot.act:a.at!==null&&!a.near?'look':undefined} faceTo={a.at===null&&a.spot?a.spot.face:undefined} from={world.enterFrom} face={pos} surface={surfaceY} tilt={tiltAt} bubble={a.bubble}
+      {world.analysts.filter(a=>!a.home).map(a=><Analyst key={a.id} id={a.id} to={spotFor(a.id,a.at,a.near,a.spot)} act={a.talking?undefined:a.at===null&&a.spot?a.spot.act:a.at!==null&&!a.near?'look':undefined} faceTo={a.talking?undefined:a.at===null&&a.spot?a.spot.face:undefined} from={world.enterFrom} face={pos} surface={surfaceY} tilt={tiltAt} bubble={a.bubble}
         onPick={()=>world.onAnalyst(a.id)} report={reportAnalyst}/>)}
       {world.naru&&<Analyst key="naru" id="naru" to={world.naru.at} act="look" from={null} face={pos} surface={surfaceY} tilt={tiltAt} bubble={null} onPick={world.naru.onPick} report={reportFriend}/>}
+      {(world.villagers??[]).map(v=><Villager key={v.id} id={v.id} x={v.x} z={v.z} face={v.face} look={v.look} hl={v.hl} talking={v.talking} away={v.away} errand={v.errand} onErrandDone={v.onErrandDone} player={pos} onPick={v.onPick} report={reportPoint}/>)}
       {world.fishing&&<Bobber x={world.fishing.x} z={world.fishing.z} bite={world.fishing.phase==='bite'}/>}
       {world.friend&&<Analyst key="bori" id="bori" to={world.friend.at} act="look" mood={world.friend.face} from={world.enterFrom} face={pos} surface={surfaceY} tilt={tiltAt} bubble={null} onPick={world.friend.onPick} report={reportFriend}/>}
     </Suspense>
     {/* out of the way while the camera looks into the open ground */}
     <Keys pos={pos} target={target} stops={stops} onMove={()=>onPick(null)} enabled={!world.inside&&!world.stage&&!world.sky&&!cut&&!world.capsuleFx}/>
-    <Player walls={walls} look={world.look} target={target} stops={stops} pos={pos} hidden={(!!cut&&!cut.c.closing)||!!world.capsuleFx||(!!world.fp&&!focusPos)}/>
-    {!world.sky&&<FollowCam pos={pos} recenter={recenter} focus={focusPos} orbit={orbit} near={!!world.capsuleFx} aim={world.view?.az??null} low={cut&&!cut.c.closing?cut.yaw:null} fp={!!world.fp} talk={world.talk?{az:world.talk.az,pitch:world.talk.pitch,dist:world.talk.dist}:null}/>}
-    </>}
+    <Player faceTo={world.talk?.eye?{x:world.talk.eye.ax,z:world.talk.eye.az}:null} onPick={world.onPlayer} walls={walls} look={world.look} target={target} stops={stops} pos={pos} hidden={(!!cut&&!cut.c.closing)||!!world.capsuleFx||(!!world.fp&&!focusPos)||!!world.talk?.eye}/>
+    {!world.sky&&<FollowCam pos={pos} recenter={recenter} focus={focusPos} orbit={orbit} near={!!world.capsuleFx} aim={world.view?.az??null} low={cut&&!cut.c.closing?cut.yaw:null} fp={!!world.fp} talk={world.talk&&!world.talk.eye?{az:world.talk.az,pitch:world.talk.pitch,dist:world.talk.dist}:null} eye={world.talk?.eye??null}/>}
+    </group>}
     <Hooks pos={pos} treePos={treePos} points={points}/>
 
     <EffectComposer multisampling={0}>

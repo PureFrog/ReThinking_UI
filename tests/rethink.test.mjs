@@ -190,8 +190,8 @@ test('a company with no hand-written note still gets a signal that keeps the ton
 });
 
 test('planting fills the empty plots and stops at the garden size', () => {
-  // the farm's seven and the orchard's seven (app/proto3d/places.ts); the rules below are checked on a 7-plot garden
-  assert.equal(GARDEN_PLOTS, 14);
+  // the farm's nine and the orchard's nine (core/land.ts); the rules below are checked on a 7-plot garden
+  assert.equal(GARDEN_PLOTS, 18);
   const have = [mine('a', 1, 1, 0), mine('b', 1, 2, 2)];
   assert.deepEqual(PF.freePlots(have, 7), [1, 3, 4, 5, 6]);
   const rows = ['c', 'd', 'e', 'f', 'g', 'h'].map(n => ({...PF.blankDraft(), name: n, rate: -5}));

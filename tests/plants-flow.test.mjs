@@ -9,11 +9,11 @@ const SHOP=await load('content/flower-shop');
 
 test('planting: coins first, then room; the coins go down by the price', () => {
   const tulips=SHOP.shopPlant('tulips');
-  assert.deepEqual(P.buyPlant({currency:3,plants:[]},tulips,1,1,1000),{ok:false,why:'coins'});
-  const a=P.buyPlant({currency:20,plants:[]},tulips,1,1,1000);
-  assert.equal(a.ok,true);assert.equal(a.currency,20-tulips.price);assert.equal(a.plants.length,1);
-  assert.deepEqual(P.buyPlant({currency:20,plants:a.plants},tulips,1.5,1.2,2000),{ok:false,why:'close'});
-  assert.equal(P.buyPlant({currency:20,plants:a.plants},tulips,4,1,2000).ok,true);
+  assert.deepEqual(P.buyPlant({currency:3000,plants:[]},tulips,1,1,1000),{ok:false,why:'coins'});
+  const a=P.buyPlant({currency:20000,plants:[]},tulips,1,1,1000);
+  assert.equal(a.ok,true);assert.equal(a.currency,20000-tulips.price);assert.equal(a.plants.length,1);
+  assert.deepEqual(P.buyPlant({currency:20000,plants:a.plants},tulips,1.5,1.2,2000),{ok:false,why:'close'});
+  assert.equal(P.buyPlant({currency:20000,plants:a.plants},tulips,4,1,2000).ok,true);
   assert.equal(P.removePlant(a.plants,a.plant.id).length,0);
   assert.ok(SHOP.FLOWER_SHOP.every(p=>p.price>0&&(p.kind==='tree'||p.kind==='flower')));
 });

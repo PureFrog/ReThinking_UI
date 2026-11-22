@@ -2,7 +2,7 @@
 // Real KRX names (지기 prototype list, app/core/jigi/stocks.ts) with mock numbers and mock prices. The capture onboarding (app/core/portfolio.ts) replaces these with the player's own.
 import type {Holding,Condition,Growth} from '../core/model';
 // how many plots the 3D garden has (app/proto3d/Scene3D.tsx FARM)
-export const GARDEN_PLOTS=14;// open at first: the farm's seven and the orchard's seven; more with land (app/core/land.ts openPlots)
+export const GARDEN_PLOTS=18;// open at first: the farm's nine and the orchard's nine; more with land (app/core/land.ts openPlots)
 export const DEMO_HOLDINGS:Holding[]=[
   {id:1,name:'SK하이닉스',code:'000660',kind:0,price:165900,quantity:12,date:'2026-08-01',rate:12.4,plot:0,lossDays:0},
   {id:2,name:'NAVER',code:'035420',kind:2,price:185100,quantity:8,date:'2025-06-01',rate:7.2,plot:1,lossDays:0},
