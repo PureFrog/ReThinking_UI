@@ -62,6 +62,8 @@ export type GardenSave={v:1;wonV?:1/* coins counted in 원 (core/won.ts) */;virt
   trust:Record<AnalystId,Relation>;owned:Owned[];gifted:AnalystId[];bought:{itemId:string;day:string}[];
   // 관측소 원정 runs (core/game/run.ts): the 판, its decisions and score; the latest of a 판 is the next run's ghost
   expeditions:RunRecord[];
+  // 가상 MTS에서 들어온 정원 (core/holdings-in.ts): the buying days the player gave for lines the broker sent without one, by code (asked once)
+  buyDates?:Record<string,string>;
   // 지기 투자일지 (core/jigi, docs/jigi.md): missing in older saves means none yet
   journals?:Journal[];
   // 부지·건물·랜드마크 (core/land.ts): land opened, buildings built, cities opened with coins
@@ -90,6 +92,12 @@ if(typeof window!=='undefined')try{if(new URLSearchParams(location.search).has('
   for(const k of Object.keys(localStorage))if(/^(rethink|little-garden)/.test(k))localStorage.removeItem(k);
   sessionStorage.clear();const q=new URLSearchParams(location.search);q.delete('restart');const rest=q.toString();history.replaceState(null,'',location.pathname+(rest?'?'+rest:''))}}catch{/* storage off: nothing kept anyway */}
 export const SAVE_KEY='rethink-garden-v1';
+// Opened inside a brokerage's web view (/?embed=mts, app/mts/): the balance comes from the broker (core/embed.ts), so this
+// garden is kept apart from the player's own one (its own key, never sent to the server) and starts past the tutorial
+export const isEmbed=()=>{try{return new URLSearchParams(location.search).get('embed')==='mts'}catch{return false}};
+export const EMBED_KEY='rethink-garden-embed';
+export const saveKey=()=>isEmbed()?EMBED_KEY:SAVE_KEY;
+export function embedSave():GardenSave{return {...blankSave(),lookedBack:true,tips:['map','me','house','lapse','tour','room','tutorial']}}
 
 // Clock: real today, or N days ahead with ?ahead=N
 export function clock(){
@@ -118,6 +126,7 @@ function loadSave(today:string):GardenSave{
     const q=new URLSearchParams(location.search);
     // ?demo&tour: the demo garden before the village tour (e2e)
     if(q.has('demo')){const d=demoSave(today);return q.has('tour')?{...d,tips:d.tips.filter(t=>t!=='tour')}:d}
+    if(isEmbed()){const raw=localStorage.getItem(EMBED_KEY);const e=raw?JSON.parse(raw):null;return e?.v===1?{...embedSave(),...e}:embedSave()}
     if(q.has('reset'))localStorage.removeItem(SAVE_KEY);
     // a save from before the onboarding existed was the demo garden, and stays it
     const raw=localStorage.getItem(SAVE_KEY);if(raw){const s=JSON.parse(raw);if(s?.v===1){const m={...(s.holdings?{...blankSave(),lookedBack:true}:demoSave(today)),...s};
@@ -137,7 +146,7 @@ export function useGarden(){
   const [toast,setToast]=useState<Toast|null>(null);
   // when it was last changed goes with it (proto3d/sync.ts compares it with the server's copy); opening is not a change
   const first=useRef(true);
-  useEffect(()=>{try{localStorage.setItem(SAVE_KEY,JSON.stringify(s));if(!first.current)markLocal()}catch{}first.current=false},[s]);
+  useEffect(()=>{try{localStorage.setItem(saveKey(),JSON.stringify(s));if(!first.current&&!isEmbed())markLocal()}catch{}first.current=false},[s]);
   // opening the garden settles the run of days (a missed day opens the rescue or ends the run)
   useEffect(()=>{setS(p=>({...p,streak:checkStreak(p.streak,c.today)}))},[c.today]);
   const say=useCallback((text:string)=>setToast({id:Date.now(),text}),[]);
@@ -251,6 +260,8 @@ export function useGarden(){
     },
     // the onboarding's or a later recapture's confirmed list; demo: swap in the whole demo garden instead
     setHoldings(holdings:Holding[]){setS(p=>({...p,holdings,onboarded:true}))},
+    // 가상 MTS: the buying days answered once (ui/BuyDates.tsx)
+    setBuyDates(days:Record<string,string>){setS(p=>({...p,buyDates:{...p.buyDates,...days}}))},
     // 피드백 2026-11-22: "예시 정원으로 시작" on the first screen is still a new player: the room's first quiz and the first walk
     // (the introductions) come the same as with my own stocks; only ?demo in the address skips them
     useDemo(){setS(()=>{const d=demoSave(c.today);return {...d,tips:d.tips.filter(t=>t!=='tour'&&t!=='house')}})},
@@ -270,7 +281,7 @@ export function useGarden(){
     // start over: the save goes and the page opens on the onboarding
     // the server's copy won on sign-in (core/sync.ts): it replaces this device's garden as it is
     adopt(save:GardenSave){setS(()=>{const m={...blankSave(),...save};return save.wonV===1?m:{...m,wonV:1,currency:Math.round((Number(save.currency)||0)*WON)}})},
-    wipe(){try{localStorage.removeItem(SAVE_KEY);localStorage.removeItem('rethink-garden-at')}catch{}location.replace(location.pathname+'?reset')},
+    wipe(){try{localStorage.removeItem(saveKey());localStorage.removeItem('rethink-garden-at')}catch{}location.replace(location.pathname+'?reset')},
     // this week's three goals done (core/weekly.ts): paid once a week
     closeWeek(start:string){let paid=false;setS(p=>{if(p.weeksDone.includes(start))return p;paid=true;return {...p,weeksDone:[...p.weeksDone.slice(-30),start],currency:p.currency+EARN.weekDone}});
       if(paid)say(line(UI.weekDone,{n:won(EARN.weekDone)}))},

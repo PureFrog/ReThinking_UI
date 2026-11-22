@@ -741,3 +741,29 @@ html[data-text="l"] .proto3d :is(.rt-sheet,.rt-me-panel,.rt-dock,.rt-next){zoom:
 .qr-quote{margin:6px 0;padding:6px 10px;border-left:3px solid #2f8a3a55;background:#2f8a3a0d;font-size:13.5px}
 .qr-dl{margin:6px 0;display:grid;gap:4px}.qr-dl div{display:flex;gap:10px}.qr-dl dt{flex:0 0 42px;color:var(--rt-mute);font-size:12.5px}.qr-dl dd{margin:0;font-size:13.5px}
 .qr-why{margin:8px 0 0;font-size:13px;color:#4a5246;line-height:1.55}
+
+/* 가상 MTS hand-off (ui/EmbedBridge.tsx): the broker's own white list, then it slides away over the garden. MTS palette
+   (app/mts/mts.css): white, slate, red up / blue down */
+.rt-bridge{position:fixed;inset:0;z-index:25;display:flex;align-items:flex-start;justify-content:center;background:#f3f5f8;color:#1b2430;font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+  transition:background-color var(--lift) ease,opacity var(--lift) ease;overflow-y:auto}
+.rt-bridge-in{width:100%;max-width:440px;padding:22px 16px 18px;transition:transform var(--lift) cubic-bezier(.5,0,.75,0),opacity var(--lift) ease}
+.rt-bridge-k{font-size:12px;color:#6b7583;font-weight:600}
+.rt-bridge-t{font-size:20px;font-weight:800;letter-spacing:-.02em;margin:4px 0 14px}
+.rt-bridge-list{list-style:none;margin:0;padding:0;background:#fff;border-radius:12px;border:1px solid #e6e9ee;overflow:hidden}
+.rt-bridge-list li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:11px 14px;border-bottom:1px solid #eef0f3;
+  opacity:0;transform:translateY(8px);animation:rt-bridge-row .32s ease-out forwards;animation-delay:calc(var(--i) * var(--row))}
+.rt-bridge-list li:last-child{border-bottom:0}
+.rt-bridge-list li.focus{background:#eef2f8;box-shadow:inset 3px 0 0 #2a3f5c}
+@keyframes rt-bridge-row{to{opacity:1;transform:none}}
+.rt-bridge-name{display:flex;align-items:baseline;gap:6px;min-width:0}.rt-bridge-name strong{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rt-bridge-name small{font-size:10px;color:#6b7583;border:1px solid #e6e9ee;border-radius:4px;padding:0 4px;flex:none}
+.rt-bridge-badge{font-size:11px;font-weight:700;padding:2px 7px;border-radius:99px;background:#f2f3f6;color:#3a4553;white-space:nowrap}
+.rt-bridge-badge.m-crash{color:#c2410c}.rt-bridge-badge.m-gradual{color:#a16207}.rt-bridge-badge.m-fscore,.rt-bridge-badge.m-ohlson{color:#7c3aed}
+.rt-bridge-rate{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;min-width:62px;text-align:right}
+.rt-bridge-rate.up{color:#d8303a}.rt-bridge-rate.down{color:#1f5fd1}
+.rt-bridge-note{margin:14px 2px 0;font-size:14px;line-height:1.5;opacity:0;animation:rt-bridge-row .32s ease-out forwards;animation-delay:calc(var(--i) * var(--row) + 120ms)}
+.rt-bridge-demo{margin:10px 2px 0;font-size:11px;color:#8a93a0}
+.rt-bridge.lift{background-color:rgba(243,245,248,0);pointer-events:none}
+.rt-bridge.lift .rt-bridge-in{transform:translateY(70vh) scale(.92);opacity:0}
+@media (prefers-reduced-motion:reduce){.rt-bridge-list li,.rt-bridge-note{animation:none;opacity:1;transform:none}.rt-bridge,.rt-bridge-in{transition:none}}
+@media (orientation:landscape) and (max-height:500px){.rt-bridge-in{padding-top:10px}.rt-bridge-t{margin-bottom:8px;font-size:17px}.rt-bridge-list li{padding:7px 14px}}

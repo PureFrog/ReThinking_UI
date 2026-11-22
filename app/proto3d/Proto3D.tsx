@@ -119,6 +119,13 @@ import {hear,deskOf,kstDay} from '../core/house';
 import {House,loadHouse,saveHouse} from './ui/House';
 import {TreeTags} from './ui/TreeTags';
 import {Onboarding} from './ui/Onboarding';
+import {BuyDates} from './ui/BuyDates';
+import {EmbedBridge} from './ui/EmbedBridge';
+import {badgesFor} from '../content/broker/badges';
+import {isEmbed} from './state';
+import {readyMsg,readHoldingsMsg} from '../core/embed';
+import {stdToHoldings,withDates,needsDate,type HoldingsInput} from '../core/holdings-in';
+import {kindOf} from '../content/portfolio';
 import {BirthCards} from './ui/Birth';
 import {DeepSheet} from './ui/Deep';
 import {healthProvider} from '../content/health';
@@ -163,7 +170,7 @@ function useWeather(){
 }
 // the quest lines under the weather, short (the board itself says them in full)
 const QUEST_SHORT:Record<TaskId,string>={quiz:'오늘의 퀴즈 풀기',judge:'일지 한 편 쓰기',fish:'낚시 한 번 하기'};
-type SheetState={kind:'tree';id:number}|{kind:'comm'}|{kind:'harvest';practice?:boolean}|{kind:'news'}|{kind:'journal';openId?:string;stats?:boolean;stock?:string}|{kind:'more'}|{kind:'onboard';pick?:boolean}|{kind:'intro'}|{kind:'quizlog'}|{kind:'goods'}|{kind:'real'}|{kind:'letter';month:string}|{kind:'settings'}|{kind:'map'}|{kind:'library'}|{kind:'grades';start:string}|{kind:'deep';holdingId:number;back:SheetState}|{kind:'lookback'}|{kind:'brief';start:{signalId?:string;holdingId?:number}|null}|{kind:'grades'|'case'|'rewind'|'today'|'records'|'drawer'|'cart'|'league'|'game'}|{kind:'analyst';id:AnalystId}|{kind:'friend'}|{kind:'talk';id:'tori'|'moa'|'luon'}|{kind:'write';id:string}|{kind:'verdict';journalId:string;hypoId:string}|{kind:'cities'}|{kind:'stocks';focus?:number}|null;
+type SheetState={kind:'tree';id:number}|{kind:'comm'}|{kind:'harvest';practice?:boolean}|{kind:'news'}|{kind:'journal';openId?:string;stats?:boolean;stock?:string}|{kind:'more'}|{kind:'onboard';pick?:boolean}|{kind:'intro'}|{kind:'quizlog'}|{kind:'goods'}|{kind:'real'}|{kind:'letter';month:string}|{kind:'settings'}|{kind:'map'}|{kind:'library'}|{kind:'grades';start:string}|{kind:'deep';holdingId:number;back:SheetState}|{kind:'lookback'}|{kind:'brief';start:{signalId?:string;holdingId?:number}|null}|{kind:'grades'|'case'|'rewind'|'today'|'records'|'drawer'|'cart'|'league'|'game'}|{kind:'analyst';id:AnalystId}|{kind:'friend'}|{kind:'talk';id:'tori'|'moa'|'luon'}|{kind:'write';id:string}|{kind:'verdict';journalId:string;hypoId:string}|{kind:'cities'}|{kind:'stocks';focus?:number}|{kind:'dates'}|null;
 // where each pointer points (core/tips.ts)
 const TIP_AT:Record<TipId,{target?:string;point?:string}>={map:{target:'.proto3d-map'},me:{target:'.rt-me-chip'},house:{point:'house'},lapse:{target:'.rt-dock [data-tab="journal"]'}};
 // which tab a sheet belongs to: the journal's sheets light 일지, the rest of the daily loop's extras light 더보기
@@ -189,12 +196,14 @@ export default function Proto3D(){
   // e2e written for the village start there (tests/e2e/fixtures.ts sets __noHouse unless the address has ?house)
   // 게임 구성 2026-11-20: a new player registers the real stocks in the village first (the house's door comes after);
   // e2e can still open a new player in the house with ?house
-  const firstRun=!g.s.onboarded&&typeof window!=='undefined'&&!new URLSearchParams(location.search).has('house');
-  const [where,setWhere]=useState<'house'|'village'>(()=>typeof window!=='undefined'&&((window as {__noHouse?:boolean;__startVillage?:boolean}).__noHouse||(window as {__startVillage?:boolean}).__startVillage||firstRun)?'village':'house');
+  // inside a brokerage's web view (/?embed=mts): the balance comes from the broker, so no landing, onboarding or house start
+  const embed=typeof window!=='undefined'&&isEmbed();
+  const firstRun=!embed&&!g.s.onboarded&&typeof window!=='undefined'&&!new URLSearchParams(location.search).has('house');
+  const [where,setWhere]=useState<'house'|'village'>(()=>typeof window!=='undefined'&&(embed||(window as {__noHouse?:boolean;__startVillage?:boolean}).__noHouse||(window as {__startVillage?:boolean}).__startVillage||firstRun)?'village':'house');
   // 종목 등록 waits for the village (설계 1장): no first-run sheets over the house
   // 피드백 2026-11-22: no introductions at the very start (the teacher in the room is the first to speak; the rest are met
   // outside after the quiz), so a new player goes straight to putting in the stocks. ?intro still shows the old one
-  const [sheet,setSheet]=useState<SheetState>(()=>g.s.onboarded||!(typeof window!=='undefined'&&((window as {__noHouse?:boolean}).__noHouse||firstRun))?null:typeof window!=='undefined'&&!new URLSearchParams(location.search).has('intro')?{kind:'onboard'}:{kind:'intro'});
+  const [sheet,setSheet]=useState<SheetState>(()=>embed||g.s.onboarded||!(typeof window!=='undefined'&&((window as {__noHouse?:boolean}).__noHouse||firstRun))?null:typeof window!=='undefined'&&!new URLSearchParams(location.search).has('intro')?{kind:'onboard'}:{kind:'intro'});
   // the first screens (ui/Welcome.tsx): every visit that is not signed in starts on the landing (sign up / log in /
   // look around), even with a garden kept on this device; "가입 없이 둘러보기" lasts for this visit (sessionStorage).
   // Sign up and log in go through authRepo (server.ts). e2e pages skip it unless the address has ?landing (tests/e2e/fixtures.ts)
@@ -215,7 +224,7 @@ export default function Proto3D(){
   const needInvite=!!account&&!authRepo.local&&!owing&&invited===false;
   // signed in with Supabase: the garden is kept on the server too (proto3d/sync.ts). First the two copies are compared
   // (core/sync.ts), then every change goes up after a quiet moment. Not for guests, device-only accounts or ?demo.
-  const syncOn=!!account&&!authRepo.local&&!!saveRepo&&!owing&&invited!==false&&typeof window!=='undefined'&&!new URLSearchParams(location.search).has('demo');
+  const syncOn=!embed&&!!account&&!authRepo.local&&!!saveRepo&&!owing&&invited!==false&&typeof window!=='undefined'&&!new URLSearchParams(location.search).has('demo');
   const [synced,setSynced]=useState(false);
   useEffect(()=>{if(!syncOn||!saveRepo){setSynced(false);return}let on=true;
     saveRepo.pull().then(remote=>{if(!on||remote==='error')return;
@@ -224,7 +233,7 @@ export default function Proto3D(){
       setSynced(true)});
     return()=>{on=false}},[syncOn,account?.email]);// eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{if(!synced||!saveRepo)return;const repo=saveRepo;const t=setTimeout(()=>{void repo.push(g.s).then(at=>{if(at){markLocal(at);void repo.pushJigi(g.s.journals??[])}})},SYNC.pushAfter);return()=>clearTimeout(t)},[synced,g.s]);
-  const welcome=!!owing||needInvite||(!account&&!guest&&authKnown&&!(typeof window!=='undefined'&&(window as {__noLanding?:boolean}).__noLanding));
+  const welcome=!embed&&(!!owing||needInvite||(!account&&!guest&&authKnown&&!(typeof window!=='undefined'&&(window as {__noLanding?:boolean}).__noLanding)));
   const [early,setEarly]=useState(false);
   // a grade being revealed makes its tree react in the garden (Scene3D Burst)
   const [burst,setBurst]=useState<World['burst']>(null),[focus,setFocus]=useState<number|null>(null);
@@ -233,6 +242,32 @@ export default function Proto3D(){
   const startBirth=(ids:number[],long:boolean,after?:()=>void)=>{if(!ids.length){after?.();return}const plan=birthPlan(ids.length,long);
     const quietNow=still();setBirth({ids,plan,t0:performance.now()-(quietNow?plan.total:0),after});setBStage('trees');if(long)g.ops.saw('birth')};
   const skipBirth=()=>setBirth(b=>b&&{...b,t0:performance.now()-b.plan.total});
+  // 가상 MTS (core/embed.ts): say ready to the broker app that opened this web view; its balance comes back in the
+  // standard lines (core/holdings-in.ts) and becomes the garden as it is, then the notes open (on the tapped stock,
+  // when a badge was tapped). Lines without a buying day are asked once first (ui/BuyDates.tsx).
+  const [mtsIn,setMtsIn]=useState<HoldingsInput|null>(null);
+  const plantMts=(input:HoldingsInput,known:Record<string,string>)=>{
+    const list=withDates(input.holdings,known);
+    const out=stdToHoldings(g.s.holdings,list,fieldPlots(g.s.built?.land??[],'farm'),kindOf,g.clock.today);
+    g.ops.setHoldings(out.holdings);setMtsIn(null);
+    const focusId=input.focus?out.holdings.find(h=>h.code===input.focus)?.id??null:null;
+    const hk=((window as {__proto3d?:{embed?:unknown}}).__proto3d??={} as {embed?:unknown});
+    hk.embed={source:input.source,broker:input.broker,holdings:out.holdings.length,codes:out.holdings.map(h=>h.code),focus:input.focus??null};
+    setSheet(null);startBirth(out.planted.map(h=>h.id),false,()=>setSheet({kind:'brief',start:focusId!=null?{holdingId:focusId}:null}));
+    if(!out.planted.length)setSheet({kind:'brief',start:focusId!=null?{holdingId:focusId}:null})};
+  // the hand-off (ui/EmbedBridge.tsx): the broker's white list first, the garden after it slides away
+  const [bridge,setBridge]=useState<{input:HoldingsInput|null;lift:boolean}|null>(()=>embed?{input:null,lift:false}:null);
+  const bridgeBadges=useMemo(()=>bridge?.input?badgesFor(bridge.input.holdings,g.clock.today):{},[bridge?.input]);// eslint-disable-line react-hooks/exhaustive-deps
+  const goMts=(input:HoldingsInput,known:Record<string,string>)=>{setBridge(b=>b&&{...b,lift:true});plantMts(input,known)};
+  const bridgeShown=()=>{const input=bridge?.input;if(!input)return;const known=g.s.buyDates??{};
+    if(needsDate(input.holdings,known).length){setMtsIn(input);setSheet({kind:'dates'});return}
+    goMts(input,known)};
+  const onMts=useRef<(i:HoldingsInput)=>void>(()=>{});
+  onMts.current=input=>setBridge({input,lift:false});
+  useEffect(()=>{if(!embed||window.parent===window)return;
+    const on=(e:MessageEvent)=>{if(e.source!==window.parent||e.origin!==location.origin)return;const input=readHoldingsMsg(e.data);if(input)onMts.current(input)};
+    window.addEventListener('message',on);window.parent.postMessage(readyMsg(),location.origin);
+    return()=>window.removeEventListener('message',on)},[embed]);
   useEffect(()=>{if(!birth)return;let raf=0,chord=false;const cracked=new Set<number>();let last:BirthStage|null=null;
     const tick=()=>{const ms=performance.now()-birth.t0,st=stageAt(birth.plan,ms);
       // a low thud as each tree breaks the ground (not a pile of them when skipped)
@@ -909,6 +944,11 @@ export default function Proto3D(){
         </section>
       )}
 
+      {/* over the hand-off's white panel (rt-bridge z 25), so the question sits on the broker's list */}
+      {sheet?.kind==='dates'&&mtsIn&&<div style={{position:'relative',zIndex:30}}><BuyDates lines={needsDate(mtsIn.holdings,s.buyDates??{})} today={clock.today} broker={mtsIn.broker}
+        onDone={days=>{g.ops.setBuyDates(days);goMts(mtsIn,{...s.buyDates,...days})}}/></div>}
+      {bridge&&<EmbedBridge lines={bridge.input?.holdings??null} broker={bridge.input?.broker} focus={bridge.input?.focus} badges={bridgeBadges}
+        lift={bridge.lift} onShown={bridgeShown} onGone={()=>setBridge(null)}/>}
       {sheet?.kind==='brief'&&<Briefing key={JSON.stringify(sheet.start)} g={g} signals={signals} holdings={holdings} start={sheet.start} onClose={close}
         onDeep={id=>openDeep(id,{kind:'brief',start:{holdingId:id}})} onBury={id=>bury(id)} onWrite={(id,sig)=>writeNew({holdingId:id,signalId:sig})}/>}
       {sheet?.kind==='deep'&&(()=>{const hh=holdings.find(x=>x.id===sheet.holdingId);const back=sheet.back;

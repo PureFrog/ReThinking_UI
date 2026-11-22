@@ -103,6 +103,17 @@
 | 손절 타이밍 탐지 | `app/content/detection.ts` `detectionProvider` | 주소 `?detect=<나무 id>` |
 | 뉴스 OX 퀴즈 | `app/content/news.ts` `newsProvider` | 모의 뉴스 16건 |
 | 친구 대사 (LLM) | `app/content/content.ts` | `app/content/dialogue/*.json` |
+| 증권사 잔고 자동 전달 (임베딩·마이데이터·증권사 API) | `app/core/holdings-in.ts` 어댑터(입력원 `mts`·`manual`·`capture` → 표준 줄 `StdHolding`), `app/core/embed.ts` 메시지 | 가상 증권사 `/mts`가 `postMessage`로 시드 계좌(`app/content/broker/demo-account.ts`)를 보냄 |
+
+### 가상 MTS 데모 (멘토링 2026-11-22)
+
+- `/mts`: 가상 증권사 "RT증권" 잔고 화면. 하단 탭 홈·관심·현재가·주문(비활성)·잔고, 상승 빨강·하락 파랑, 모든 화면에 "가상 증권사 데모 화면". 실제 증권사 이름·로고·색·아이콘은 없다. 주문 기능 없음.
+- 종목 옆 배지(급락 감지·서서히 악화 등)는 정원이 여는 노트와 같은 신호다(`app/content/broker/badges.ts`가 `signalProvider`를 같은 줄로 돌림). 손실 신호만 배지.
+- "보유종목 점검"이나 배지를 누르면 `/?embed=mts`가 전체 화면 웹뷰(iframe)로 열린다. 앱이 `rethink:ready`를 보내면 MTS가 `rethink:holdings`로 잔고를 보낸다(같은 origin, 그 창에서 온 것만). 캡처·입력 없음.
+- 표준 줄: 종목코드·종목명·시장·수량·평균단가·매수일(+현재가). 매수일이 없는 줄은 한 번만 묻는다(`app/proto3d/ui/BuyDates.tsx`, 저장 `buyDates`). 지금은 자리만: 대략 기간 또는 날짜.
+- 웹뷰 안 정원은 따로 저장(`rethink-garden-embed`), 서버 동기화 안 함, 튜토리얼 건너뜀. 증권사 잔고가 기준이라 잔고에 없는 종목은 정원에서 빠지고, 남은 종목은 나무(id·자리)가 그대로다.
+- 대상 시장(KOSPI/KOSDAQ)은 팀 결정 대기. 지금 시드는 유니버스 12종목에서 코스피 6·코스닥 2.
+- 실제 증권사로 바꿀 때: 웹뷰의 JS 브리지가 같은 두 메시지를 보내게 하거나, 서버에서 받은 잔고를 `cleanInput`에 넣으면 된다. 캡처·직접 입력 화면은 아직 자기 경로(`core/portfolio.ts`)를 쓰고, 어댑터에 `fromCapture`·`fromManual`만 준비돼 있다.
 
 ## 3. 체험·테스트용 주소
 
