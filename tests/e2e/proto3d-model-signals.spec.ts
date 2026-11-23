@@ -101,3 +101,20 @@ test("a stock outside the 120 gets no model notes", async ({ page }) => {
   await expect.poll(() => page.evaluate(() => (window as unknown as { __proto3d?: { modelSignals?: { verdicts: number } } }).__proto3d?.modelSignals?.verdicts), { timeout: 15_000 }).toBe(1);
   expect((await signals(page)).filter(x => ["ohlson", "fscore", "dupont", "rebuttal"].includes(x.model))).toEqual([]);
 });
+
+// 급락 (drop_events, 2026-11-23): a drop event on the stock since the buying day comes from the team's model, as moa's note
+test("a covered stock with a recent drop event: moa's 급락 note from the model", async ({ page }) => {
+  const after = (d: string, n: number) => new Date(Date.parse(d) + n * 864e5).toISOString().slice(0, 10);
+  await plant(page, buy => ({
+    verdicts: [verdict({ buy_date: buy })],
+    drops: [{ code: "344820", drop_date: after(buy, 7), last_hit_date: after(buy, 7), n_hit_days: 1, ret_pct: -12.4,
+      index_ret_pct: -0.8, ar_pct: -11.6, sigma_ar_pct: 3.1, z: -3.74, market_adjusted: true }],
+  }));
+  await expect.poll(async () => (await signals(page)).filter(x => x.model === "crash").map(x => [x.analyst, x.loss, x.headline]),
+    { timeout: 15_000 }).toEqual([["moa", true, expect.stringMatching(/시장 대비 -11\.6%p$/)]]);
+  const b = await brief(page, "crash");
+  const note = b.getByRole("article", { name: "모아 리서치 노트" });
+  await expect(note).toContainText("평소 변동 대비");
+  await expect(note).toContainText("3.7배");
+  await page.screenshot({ path: test.info().outputPath("model-signals-drop.png") });
+});
