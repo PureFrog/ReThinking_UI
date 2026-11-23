@@ -88,8 +88,10 @@ export function verdictFor(h:Holding,rows:ReadonlyMap<string,HoldingVerdict>):Ho
 // analysis_results.result, schema toulmin.1). 루온 brings it back as a note on that holding: the decision (S8 D-1..D-5),
 // each of the player's points with its tag, and the open conditions the data could not settle.
 export type RebuttalDecision='thesis_factually_inconsistent'|'thesis_weakened'|'mixed'|'thesis_supported'|'insufficient_evidence';
-type Mention={span?:string|null;mapping_status?:string|null;evaluation?:{tag?:string|null}|null};
+type Mention={mid?:string;span?:string|null;mapping_status?:string|null;evaluation?:{tag?:string|null}|null};
+type Path={path_id?:string;from_mid?:string|null;to_mid?:string|null};
 export type Toulmin={decision?:string|null;as_of?:string|null;claim?:Mention[];grounds?:Mention[];
+  warrant?:{explicit?:Path[];bridged?:Path[];chain?:Path[]};rebuttal?:{tag?:string;path_id?:string|null;mid?:string|null}[];
   question_candidates?:{text?:string|null}[];unresolved_items?:unknown[]};
 export type AnalysisRow={request_id:string;company_id:string|null;status:'done'|'insufficient_input'|'failed';decision:string|null;
   result:Toulmin|null;alert_date:string|null;as_of:string|null;analyzed_at:string|null};
@@ -107,7 +109,17 @@ export const DECISION:Record<RebuttalDecision,{headline:string;say:string}>={
 export const TAG:Record<string,string>={supported:'숫자와 일치',partial:'방향은 맞음',contradicted:'숫자와 반대',undercut:'지난 숫자가 약화',
   insufficient:'데이터 부족',direction_only:'방향만 확인',unknown:'확인 못 함',investor_claimed:'확인 안 된 주장',out_of_scope:'모델 밖 이야기'};
 const clip=(t:string,max=22)=>{const s=t.replace(/\s+/g,' ').trim();return s.length>max?s.slice(0,max-1)+'…':s};
-const tagOf=(m:Mention)=>{const t=m.evaluation?.tag;return t?TAG[t]??t:'확인 못 함'};
+// a point's own tag; when it has none, the tag of a link the data went against on a path that starts from it (the S9
+// rebuttal list: e.g. "매출이 좋아질 것 같아" undercut on revenue→gross_margin)
+function tagOf(m:Mention,against:ReadonlyMap<string,string>){
+  const t=m.evaluation?.tag??(m.mid?against.get(m.mid):undefined);return t?TAG[t]??t:'확인 못 함'}
+function againstByMid(t:Toulmin):Map<string,string>{
+  const from=new Map<string,string>();
+  for(const p of [...(t.warrant?.explicit??[]),...(t.warrant?.bridged??[]),...(t.warrant?.chain??[])])if(p.path_id&&p.from_mid)from.set(p.path_id,p.from_mid);
+  const out=new Map<string,string>();
+  for(const r of t.rebuttal??[]){const mid=r.mid??(r.path_id?from.get(r.path_id):undefined);if(mid&&r.tag&&!out.has(mid))out.set(mid,r.tag)}
+  return out;
+}
 
 // the newest finished analysis per company code
 export function latestByCompany(rows:readonly AnalysisRow[]):Map<string,AnalysisRow>{
@@ -121,10 +133,14 @@ export function rebuttalNote(h:Holding,r:AnalysisRow):RebuttalNote|null{
   const t=r.result;if(r.status!=='done'||!t)return null;
   const d=(r.decision??t.decision) as RebuttalDecision,words=DECISION[d]??DECISION.insufficient_evidence;
   const points=[...(t.claim??[]),...(t.grounds??[])].filter(m=>typeof m.span==='string'&&m.span.trim());
-  const seen=new Set<string>(),facts:Fact[]=[];
-  for(const m of points){const k=clip(m.span!);if(seen.has(k))continue;seen.add(k);facts.push({k:`“${k}”`,v:tagOf(m)});if(facts.length>=4)break}
-  const open=(t.question_candidates??[]).map(q=>q.text).filter((x):x is string=>!!x&&!!x.trim());
-  if(open.length)facts.push({k:'숫자로 못 가린 조건',v:clip(open[0],26)});
+  const seen=new Set<string>(),facts:Fact[]=[],against=againstByMid(t);
+  // checked points first (a tag the data gave), then the rest, four at most
+  const rows=points.map(m=>({m,v:tagOf(m,against)})).sort((a,b)=>Number(a.v==='확인 못 함')-Number(b.v==='확인 못 함'));
+  for(const {m,v} of rows){const k=clip(m.span!);if(seen.has(k))continue;seen.add(k);facts.push({k:`“${k}”`,v});if(facts.length>=4)break}
+  // the open conditions' own wording comes from machine-drafted cards (S2, review_status draft) and reads badly:
+  // count them here; the words wait until the cards are reviewed
+  const open=(t.question_candidates??[]).filter(q=>!!q.text&&!!q.text.trim()).length;
+  if(open)facts.push({k:'숫자로 못 가린 조건',v:`${open}개`});
   const asOf=r.as_of??t.as_of;if(asOf)facts.push({k:'기업 데이터 기준',v:asOf});
   return {holdingId:h.id,analyst:'luon',model:'rebuttal',loss:false,headline:words.headline,evidence:facts,say:words.say,request:r.request_id,
     counter:{hold:'들고 가는 이유, 숫자로 확인된 것만 남기면 뭐가 남아?',review:'확인 못 한 조건이 풀리면 생각이 바뀔 수도 있지 않아?',
