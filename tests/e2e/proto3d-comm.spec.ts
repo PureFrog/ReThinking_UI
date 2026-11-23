@@ -27,7 +27,8 @@ test("the communicator: balance, an answer in place, today's five, a coin order"
   await btn.click();
   const comm = page.getByRole("dialog", { name: "통신기" });
   await expect(comm).toBeVisible();
-  await expect(comm.getByRole("note")).toContainText("실제 주문 아님");
+  // the phone header drops the pill (max 430px); the foot always says it
+  await expect(comm.locator(".mts-foot")).toContainText("실제 계좌와 연결되지 않습니다");
   const rows = comm.getByRole("list", { name: "보유 종목" }).getByRole("listitem");
   await expect(rows).toHaveCount(7);
   await expect(comm.getByRole("region", { name: "계좌 요약" })).toContainText("코인");
