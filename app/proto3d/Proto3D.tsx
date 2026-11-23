@@ -343,7 +343,7 @@ export default function Proto3D(){
   useEffect(()=>{if(!skyOpen)return;let on=true;planetRepo.neighbours(weekStart(clock.today)).then(n=>{if(on)setNeighbours(n)});return()=>{on=false}},[!!skyOpen,clock.today]);// eslint-disable-line react-hooks/exhaustive-deps
   const quiet=calm||!!lapse||me||!!expedition||!!quest||!!skyOpen;
   // W3 time capsules (core/capsule.ts): one marker per tree; burying after a judgment, digging up as a grade opens
-  const capsules=useMemo(()=>capsulesOf(s.judgments,s.graded,clock.today,s.holdings.map(x=>x.id)),[s.judgments,s.graded,clock.today,s.holdings]);
+  const capsules=useMemo(()=>capsulesOf(s.judgments,s.graded,clock.today,s.holdings.map(x=>x.id),(j,m)=>g.due.some(d=>d.judgment.id===j.id&&d.mark===m)),[s.judgments,s.graded,clock.today,s.holdings,g.due]);// eslint-disable-line react-hooks/exhaustive-deps
   const [capFx,setCapFx]=useState<World['capsuleFx']>(null),[jump,setJump]=useState(false);
   // the first bury plays long (hole, hover, drop, soil, pin: Capsule3D BURY), every one after it short
   const bury=(holdingId:number,then?:()=>void)=>{const t0=performance.now(),long=s.seen.bury===0,len=long?TIMING.capsuleBury:TIMING.capsuleBuryShort;

@@ -43,6 +43,12 @@ const cache=new Map<string,Bar[]>();
 // real daily bars (private test, Supabase price_daily, loaded by app/proto3d/prices.ts): they replace the mock ones
 const REAL=new Map<string,Bar[]>();
 export const isReal=(code:string)=>REAL.has(code);
+// the small print under prices: real closes, mock walks, or both on one screen (no codes: nothing priced, say mock)
+export function priceLegal(codes:(string|null|undefined)[]):string{
+  const cs=codes.filter((c):c is string=>!!c),real=cs.filter(isReal).length;
+  const what=!cs.length||!real?'시세는 모의 데이터예요.':real===cs.length?'시세는 실제 종가 기준이에요.':'실제 종목은 실제 종가, 나머지는 모의 시세예요.';
+  return `${what} 투자 권유가 아니에요.`;
+}
 export function setReal(code:string,name:string,bs:Bar[]){if(!bs.length)return;REAL.set(code,bs);cache.delete(code);
   if(!stockOf(code))STOCKS_EXTRA.push({code,name,mkt:'KOSPI',anchor:bs[bs.length-1].c,vol:.03})}
 export function bars(code:string):Bar[]{
