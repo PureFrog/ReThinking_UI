@@ -60,8 +60,17 @@ type Sig = { id: string; holdingId: number; analyst: string; model: string; loss
 const signals = (page: Page) => page.evaluate(() => (window as unknown as { __proto3d?: { signals?: Sig[] } }).__proto3d?.signals ?? []);
 const brief = async (page: Page, model: string) => {
   const id = (await signals(page)).find(x => x.model === model)!.id;
-  await page.evaluate(i => (window as unknown as { __proto3d: { openBrief: (id: string) => void } }).__proto3d.openBrief(i), id);
-  return page.getByRole("dialog", { name: "브리핑" });
+  const sheet = page.getByRole("dialog", { name: "브리핑" }), bori = page.getByRole("dialog", { name: "보리와 대화" });
+  // a loss signal also opens 보리's talk on its own (any moment after load): put it away and open the note again
+  for (let i = 0; i < 5; i++) {
+    if (await bori.isVisible()) await bori.getByRole("button", { name: "나중에 얘기할게" }).click();
+    await page.evaluate(i => (window as unknown as { __proto3d: { openBrief: (id: string) => void } }).__proto3d.openBrief(i), id);
+    if (await sheet.waitFor({ state: "visible", timeout: 3_000 }).then(() => true, () => false)) {
+      await page.waitForTimeout(500);
+      if (!(await bori.isVisible()) && await sheet.isVisible()) break;
+    }
+  }
+  return sheet;
 };
 
 test("a covered stock: moa and luon speak from the verdict, luon brings back the rebuttal", async ({ page }) => {
@@ -78,6 +87,7 @@ test("a covered stock: moa and luon speak from the verdict, luon brings back the
   await page.screenshot({ path: test.info().outputPath("model-signals-ohlson.png") });
   const luon = await brief(page, "rebuttal");
   const note = luon.getByRole("article", { name: "루온 리서치 노트" });
+  await expect(note.locator(".rt-note-head strong")).toHaveText("루온 · 반박");        // not 루온's own role (F-Score)
   await expect(note).toContainText("숫자와 반대");
   await expect(note).toContainText("숫자로 못 가린 조건");
   await page.screenshot({ path: test.info().outputPath("model-signals-rebuttal.png") });
@@ -88,6 +98,7 @@ test("a covered stock's 재무 체력 shows the verdict's numbers, not the mock 
   await plant(page, buy => ({ verdicts: [verdict({ buy_date: buy })] }));
   await expect.poll(async () => (await signals(page)).length, { timeout: 15_000 }).toBe(2);
   const b = await brief(page, "fscore");
+  await expect(b.getByRole("button", { name: /재무 체력 보기/ })).toContainText("F-Score · 올슨 · 듀퐁");   // a real holding
   await b.getByRole("button", { name: /재무 체력 보기/ }).click();
   const deep = page.getByRole("dialog", { name: "재무 체력" });
   await expect(deep).toContainText("6 → 3점");
@@ -114,6 +125,7 @@ test("a covered stock with a recent drop event: moa's 급락 note from the model
     { timeout: 15_000 }).toEqual([["moa", true, expect.stringMatching(/시장 대비 -11\.6%p$/)]]);
   const b = await brief(page, "crash");
   const note = b.getByRole("article", { name: "모아 리서치 노트" });
+  await expect(note.locator(".rt-note-head strong")).toHaveText("모아 · 급락");         // not 모아's own role (올슨 모델)
   await expect(note).toContainText("평소 변동 대비");
   await expect(note).toContainText("3.7배");
   await page.screenshot({ path: test.info().outputPath("model-signals-drop.png") });

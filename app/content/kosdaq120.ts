@@ -2,6 +2,10 @@
 // 120종목_결측요약.csv): code, name, and whether it is still listed (the last trading day is 2026-11-11). The real field's
 // suggestions and the merchant's candidates come from the listed ones. Prices stay the mock walk (core/jigi/stocks.ts,
 // 모의 시세) until the KRX collector is connected.
+// 2026-11-23: aligned with the models' universe (investment-evidence-system ops/live/stock_coverage.csv, the data
+// team's 12_기업개황_KSIC.csv): the three foreign issuers 900110 이스트아시아홀딩스, 900250 크리스탈신소재,
+// 900310 컬러레이 are not in it (no comparable DART statements), 042600 새로닉스, 123410 코리아에프티,
+// 126600 BGF에코머티리얼즈 are. Every stock here can get a 서서히 verdict and 급락 events.
 export type K120={code:string;name:string;listed:boolean};
 export const KOSDAQ120:K120[]=[
   {code:'095270',name:'웨이브일렉트로',listed:true},
@@ -45,7 +49,7 @@ export const KOSDAQ120:K120[]=[
   {code:'290650',name:'엘앤씨바이오',listed:true},
   {code:'073070',name:'에스모',listed:false},
   {code:'016670',name:'포비스티앤씨',listed:true},
-  {code:'900310',name:'컬러레이',listed:true},
+  {code:'042600',name:'새로닉스',listed:true},
   {code:'009730',name:'코센',listed:true},
   {code:'308100',name:'까스텔바작',listed:true},
   {code:'056730',name:'포스링크',listed:true},
@@ -76,7 +80,7 @@ export const KOSDAQ120:K120[]=[
   {code:'124560',name:'태웅로직스',listed:true},
   {code:'241690',name:'유니테크노',listed:true},
   {code:'062970',name:'피피아이',listed:true},
-  {code:'900250',name:'크리스탈신소재',listed:true},
+  {code:'123410',name:'코리아에프티',listed:true},
   {code:'056700',name:'신화인터텍',listed:true},
   {code:'238200',name:'비피도',listed:true},
   {code:'052860',name:'아이앤씨',listed:true},
@@ -90,7 +94,7 @@ export const KOSDAQ120:K120[]=[
   {code:'141020',name:'포티스',listed:false},
   {code:'226440',name:'한송네오텍',listed:false},
   {code:'094190',name:'이엘케이',listed:false},
-  {code:'900110',name:'이스트아시아홀딩스',listed:true},
+  {code:'126600',name:'BGF에코머티리얼즈',listed:true},
   {code:'060300',name:'레드로버',listed:false},
   {code:'001000',name:'신라섬유',listed:true},
   {code:'096610',name:'알에프세미',listed:false},
