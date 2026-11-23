@@ -52,8 +52,9 @@ test("the first walk: entry → room lesson → the village's people one by one"
   // 피드백 2026-11-22 (튜토리얼 느낌): nobody walks me. The one to meet is lit (light, ring, a bold trail, the rest dimmed),
   // I go there myself (here: a tap on them), and the talk opens when I am there, from my eyes
   const SHOPS = ["librarian", "builder", "tailor"];
-  const MEET_IDS = ["tori", "moa", "luon", "farmer", "merchant", "paperboy", "librarian", "naru", "builder", "tailor"];
-  for (const [i, who] of ["토리", "모아", "루온", "농부", "상인", "신문 배달", "사서", "나루", "건물 점원", "옷 점원"].entries()) {
+  // 유저 워크플로우 (2026-11-23): only its people, in its order (no analysts)
+  const MEET_IDS = ["farmer", "merchant", "librarian", "paperboy", "naru", "builder", "tailor"];
+  for (const [i, who] of ["농부", "상인", "사서", "신문 배달", "나루", "건물 점원", "옷 점원"].entries()) {
     await expect.poll(async () => (await hk(page) as { walk?: { lead?: unknown } }).walk?.lead, { timeout: 20_000 }).toBeTruthy();
     await expect(page.locator(".vl-guide")).toContainText(who);
     if (i === 0) {
@@ -70,9 +71,9 @@ test("the first walk: entry → room lesson → the village's people one by one"
     // 27장: the shops and the librarian are met inside their own building (3인칭), the rest from my eyes
     if (SHOPS.includes(MEET_IDS[i])) await expect.poll(async () => (await hk(page) as { shop?: string | null }).shop, { timeout: 15_000 }).toBe(MEET_IDS[i]);
     else await expect.poll(async () => (await hk(page)).view?.eyeTalk, { timeout: 15_000 }).toBe(true);
-    if (i === 6) await page.screenshot({ path: info.outputPath("1d-meet-librarian.png") });
-    if (i === 0 || i === 3) await page.screenshot({ path: info.outputPath(i === 0 ? "1b-meet-tori.png" : "1c-meet-farmer.png") });
-    await say(page, i === 9 ? "산책 시작" : "다음 사람");
+    if (i === 2) await page.screenshot({ path: info.outputPath("1d-meet-librarian.png") });
+    if (i === 0) await page.screenshot({ path: info.outputPath("1c-meet-farmer.png") });
+    await say(page, i === 6 ? "산책 시작" : "다음 사람");
   }
   await expect(page.locator(".vl-guide")).toContainText("농부");
   await expect(page.locator(".vl-npc-tag[data-hl=true]")).toHaveText(/농부/);
@@ -118,7 +119,10 @@ test("the first walk: entry → room lesson → the village's people one by one"
   await page.screenshot({ path: info.outputPath("3b-farmer-picks.png") });
   await expect(talk(page)).toContainText("수레에 실었어", { timeout: 60_000 });
   await expect.poll(async () => (await hk(page)).walk?.pile).toBe(1);
-  await say(page, "광장으로");
+  await say(page, "도서관으로");
+  // the library (유저 워크플로우 2026-11-23: after selling, before the news)
+  await expect.poll(async () => (await hk(page)).walk?.step).toBe("librarian");
+  await page.evaluate(() => (window as unknown as { __proto3d: { walkPass: (s: string) => void } }).__proto3d.walkPass("librarian"));
   // the news board
   await go(page, "신문 배달");
   await expect(talk(page)).toContainText("오늘 신문", { timeout: 40_000 });

@@ -595,8 +595,9 @@ export default function Proto3D(){
   // to the eye in front of each (3인칭 → 1인칭), each says who they are, then it eases back out before the next
   // 피드백 2026-11-22: I walk up to each one myself (3인칭, the camera behind me), and only the talk is seen from my eyes (1인칭);
   // the three analysts first, then the village's people
-  const MEET=['tori','moa','luon','farmer','merchant','paperboy','librarian','naru','builder','tailor'] as const;
-  const meetSpot=(id:typeof MEET[number])=>isShop(id)?SHOP_DOOR[id]:id==='naru'?{x:NARU.x,z:NARU.z}:id==='tori'||id==='moa'||id==='luon'?{x:FIXED_SPOT[id].x,z:FIXED_SPOT[id].z}:villager(id as VillagerId);
+  // 유저 워크플로우 (2026-11-23 "문서에 없는 캐릭터는 빼"): only the people of the workflow, in its order
+  const MEET=['farmer','merchant','librarian','paperboy','naru','builder','tailor'] as const;
+  const meetSpot=(id:typeof MEET[number])=>isShop(id)?SHOP_DOOR[id]:id==='naru'?{x:NARU.x,z:NARU.z}:villager(id as VillagerId);
   const [meet,setMeet]=useState<number|null>(null);
   const meetName=(id:string)=>id==='naru'?'나루':id==='tori'||id==='moa'||id==='luon'?INTRO_NAME[id]:VILLAGERS.find(v=>v.id===id)?.name??'';
   // where the light falls for each: in front of them (나루: the fishing stand, the pond lies between)
@@ -663,8 +664,8 @@ export default function Proto3D(){
       if(walkStep==='sell'){const lots=s.virtual??[];
         if(st==='loaded'){const c=(s.cart??[]).filter(x=>x.paid==null&&!x.practice).slice(-1)[0];
           return {name:'농부',line:`수레에 실었어.${c?` ${c.name} ${c.qty}주는 다음 거래일(${c.settleDay.slice(5).replace('-','월 ')}일) 종가로 팔리고, 그때 코인이 들어와.`:' 다음 거래일 종가로 팔리고, 그때 코인이 들어와.'} 그 전까진 코인이 그대로야. 이제 광장 신문 배달한테 가 봐. 일지는 나중에 집 안 사서한테 쓰면 돼.`,
-            choices:[{label:'광장으로',go:()=>{talkOver();pass('sell')}}]}}
-        if(!lots.length)return {name:'농부',line:'팔 가상 나무가 아직 없네. 상인한테 사 오면 그때 따 줄게. 먼저 광장 신문 배달한테 가 볼까?',choices:[{label:'광장으로',go:()=>{talkOver();pass('sell')}}]};
+            choices:[{label:'도서관으로',go:()=>{talkOver();pass('sell')}}]}}
+        if(!lots.length)return {name:'농부',line:'팔 가상 나무가 아직 없네. 상인한테 사 오면 그때 따 줄게. 먼저 도서관 사서한테 가 볼까?',choices:[{label:'도서관으로',go:()=>{talkOver();pass('sell')}}]};
         return {name:'농부',line:'아까 산 가상 나무 열매를 팔아 볼까? 몇 주 팔지 정해 주면 내가 가서 따서 수레에 실어 줄게. 수레는 다음 거래일 종가로 팔려.',
           choices:[{label:'매도할 수량 정하기',go:()=>setSheet({kind:'harvest'})}]};
       }
@@ -682,7 +683,8 @@ export default function Proto3D(){
         choices:[{label:first?'코인 받고 통신기 보기':'통신기 받기',go:()=>{if(first)g.ops.grant('tour',START_GRANT);setSheet({kind:'comm'})}},...(walkStep?[]:[leave])]};
     }
     if(t.id==='librarian'){const fs=freeLot?{code:freeLot.code,name:freeLot.name}:holdings[0]?{code:codeOf(holdings[0]),name:holdings[0].name}:null;
-      return {name:'사서',line:'어서 와. 네 일지 책은 여기 있어. 종목 색인부터 펴 볼까?',choices:[{label:'일지 펼치기',go:()=>setSheet({kind:'journal'})},leave]};
+      return {name:'사서',line:walkStep==='librarian'?`어서 와. 아까 심은 나무${fs?` ${fs.name}`:''} 이름을 찾아볼까? 왜 심었는지 한 줄 써 보자.`:'어서 와. 네 일지 책은 여기 있어. 종목 색인부터 펴 볼까?',
+        choices:[{label:'일지 펼치기',go:()=>{if(walkStep==='librarian')afterSheet.current='librarian';setSheet({kind:'journal'})}},...(walkStep==='librarian'?[]:[leave])]};
     }
     if(t.id==='paperboy'){
       if(walkStep==='news')return {name:'신문 배달',line:'오늘 신문이야! 네가 가진 종목 소식을 모아 왔어. 표지판에 꽂아 둘게. 궁금한 주제를 하나 짚어 볼래?',
@@ -716,14 +718,15 @@ export default function Proto3D(){
   const world:World={
     // the three come in with the first trees
     // 게임 구성 2026-11-20: each friend keeps its own place (토리 by the real field, 모아 by the virtual field, 루온 by the bridge)
-    analysts:!ready||lapse||(calm&&(bStage==='trees'||bStage==='orbit'))?[]:ANALYSTS.map(a=>({id:a.id,at:null,spot:FIXED_SPOT[a.id],bubble:null,talking:vt?.id===a.id})),
+    // 유저 워크플로우 (2026-11-23): the three analysts are not in the village (signals come with 보리)
+    analysts:[],
     pots:holdings.filter(()=>false).map(h=>({holdingId:h.id,open:!!openFor(s.cooldowns,h.id),flowers:flowersOn(s.cooldowns,h.id)})).filter(p=>p.open||p.flowers),
     decor:s.owned.filter(o=>o.slot).map(o=>({slot:o.slot!,shape:itemById(o.itemId)!.shape})),
     burst,focus,birth,enterFrom:calm?DOOR:null,cutaway:cut,onDeep:id=>{if(!calm&&ready)openDeep(id)},
     capsules:[],capsuleFx:capFx,onCapsule:id=>{if(!calm)onCapsule(id)},hitRate:track.hitRate,cartFlag:CART_FLAGS[Number(clock.today.slice(-2))%CART_FLAGS.length],gameLit:!(s.expeditions??[]).some(r=>r.week===weekStart(clock.today)),
     // 설계 5장: the friends are talked to face to face (the briefing and the grade badges are gone)
     // 9-5: each friend talks in its own voice: small talk or one of my holdings
-    onAnalyst:id=>{if(walkOn){if(meet!==null&&id===MEET[meet]){goMeet();return}walkHint();return}if(id in VILLAGE_SPEAKERS){setPicked(null);setSheet({kind:'talk',id:id as 'tori'|'moa'|'luon'})}else talkFriend()},
+    onAnalyst:id=>{if(walkOn){if(meet!==null&&(id as string)===MEET[meet]){goMeet();return}walkHint();return}if(id in VILLAGE_SPEAKERS){setPicked(null);setSheet({kind:'talk',id:id as 'tori'|'moa'|'luon'})}else talkFriend()},
     // 피드백 2026-11-22: during the first walk a tap that lands on my own figure (it stands mid-screen) no longer opens the
     // wardrobe; the tailor's stop opens it, and afterwards a tap on me does
     onPlayer:()=>{if(walkOn&&!walkDone(walk))return;setPicked(null);setSheet(null);setMe(true)},
@@ -752,7 +755,7 @@ export default function Proto3D(){
       az:Math.atan2(talkSpot.me.x-talkSpot.at.x,talkSpot.me.z-talkSpot.at.z)+LOOK.camera.talk.turn}:null,
     room:{books:s.judgments.slice(-36).map(j=>{const gr=s.graded.filter(x=>x.judgmentId===j.id).at(-1);return {state:gr?(gr.hit?'hit':'miss'):'waiting'} as const}),
       notes:capsules.map(c=>({holdingId:c.holdingId,due:c.due})),
-      resting:ANALYSTS.filter(a=>day[a.id].kind==='home'||day[a.id].kind==='spot').map(a=>a.id),
+      resting:[],
       // 피드백 2026-11-22: the teacher's desk keeps the quizzes I did; the librarian's shelf is the journal
       people:true,onDesk:()=>setSheet({kind:'quizlog'}),onShelf:()=>setSheet({kind:'journal'}),
       onBoard:()=>{if(g.due.length)setSheet({kind:'grades'});else g.say(capsules.length?line(UI.boardWait,{n:capsules.length}):UI.boardEmpty)},onDoor:()=>swapRoom(false)},

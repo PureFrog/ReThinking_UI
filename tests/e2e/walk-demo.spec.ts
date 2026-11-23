@@ -39,8 +39,9 @@ test("the sample garden still has the first quiz, the walk-up introductions and 
   await choose(page, ".hs-talk", "밖으로 나가기");
   await expect(page.locator(".vl-villager")).toContainText("보리야", { timeout: 20_000 });
   // nobody walks me: 토리 is lit and I go there myself (a tap on 토리), then the talk from my eyes
-  const MEET_IDS = ["tori", "moa", "luon", "farmer", "merchant", "paperboy", "librarian", "naru", "builder", "tailor"];
-  for (const [i, who] of ["토리", "모아", "루온", "농부", "상인", "신문 배달", "사서", "나루", "건물 점원", "옷 점원"].entries()) {
+  // 유저 워크플로우 (2026-11-23): only its people, in its order (no analysts)
+  const MEET_IDS = ["farmer", "merchant", "librarian", "paperboy", "naru", "builder", "tailor"];
+  for (const [i, who] of ["농부", "상인", "사서", "신문 배달", "나루", "건물 점원", "옷 점원"].entries()) {
     await expect.poll(async () => (await h(page)).walk?.lead, { timeout: 20_000 }).toBeTruthy();
     await expect(page.locator(".vl-guide")).toContainText(who);
     if (i === 0) await page.screenshot({ path: info.outputPath("demo-lead-tori.png") });
@@ -52,7 +53,7 @@ test("the sample garden still has the first quiz, the walk-up introductions and 
     expect(line.split(/(?<=[.!?…~])\s+/).length).toBeLessThanOrEqual(2);
     // the wardrobe never comes up from a tap on me during the walk
     expect(await page.locator(".rt-me-panel").count()).toBe(0);
-    await choose(page, ".vl-villager", i === 9 ? "산책 시작" : "다음 사람");
+    await choose(page, ".vl-villager", i === 6 ? "산책 시작" : "다음 사람");
   }
   // then the first walk's first stop is lit the same way
   await expect(page.locator(".vl-guide")).toContainText("농부", { timeout: 20_000 });

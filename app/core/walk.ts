@@ -7,7 +7,8 @@
 //   3장  a tree's size follows what the holding is worth now (continuously), its leaves follow the return.
 
 // 피드백 2026-11-22: the librarian moved into the house (the room after the first lesson), so the first walk has no library stop
-export const WALK_STEPS=['square','farmer','merchant','sell','news','fisher','shop-build','shop-wear'] as const;
+// 유저 워크플로우 (2026-11-23): 실제 밭 → 가상 밭 → 도서관 → 뉴스 표지판 → 낚시 → 상점
+export const WALK_STEPS=['square','farmer','merchant','sell','librarian','news','fisher','shop-build','shop-wear'] as const;
 export type WalkStep=typeof WALK_STEPS[number];
 export type WalkSave={v:1;
   // how far the first walk has come (WALK_STEPS.length = done: everything is open)
@@ -32,7 +33,7 @@ export const stepOf=(w:WalkSave):WalkStep|null=>walkDone(w)?null:WALK_STEPS[w.st
 export function passStep(w:WalkSave,id:WalkStep):WalkSave{return stepOf(w)===id?{...w,step:w.step+1,merchantWait:id==='merchant'?false:w.merchantWait}:w}
 // who may be talked to now: during the first walk only the current station's person (and the next one after a
 // station whose person is the same, the farmer for selling); afterwards everyone
-export const PERSON_OF:Record<WalkStep,string|null>={square:null,farmer:'farmer',merchant:'merchant',sell:'farmer',news:'paperboy',fisher:'naru','shop-build':'builder','shop-wear':'tailor'};
+export const PERSON_OF:Record<WalkStep,string|null>={square:null,farmer:'farmer',merchant:'merchant',sell:'farmer',librarian:'librarian',news:'paperboy',fisher:'naru','shop-build':'builder','shop-wear':'tailor'};
 export function mayTalk(w:WalkSave,person:string):boolean{const s=stepOf(w);return s===null||PERSON_OF[s]===person}
 
 // 4장 the merchant's hours, by the minutes of the day in Korea (KST)
