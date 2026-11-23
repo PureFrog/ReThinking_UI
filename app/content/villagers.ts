@@ -60,11 +60,11 @@ export const STEP_GOAL:Record<string,{who:string;what:string}>={
 // 피드백 2026-11-21 "각 캐릭터 역할도 소개": who each one is, under the name in every talk, and what each says the first
 // time I come out to the village (보리 introduces them one by one on the square, the camera in front of each)
 export const ROLE:Record<string,string>={
-  teacher:'퀴즈 선생님 · 방',tori:'분석가 · 돈 버는 힘',moa:'분석가 · 쓰러질 위험',luon:'분석가 · 건강검진 9칸 · 채점',bori:'마을 안내',farmer:'실제 종목 밭 · 매도 담당',merchant:'가상 종목 밭 · 매수 담당',librarian:'도서관 · 투자일지',
+  teacher:'퀴즈 선생님 · 방',tori:'분석가 · 돈 버는 힘',moa:'분석가 · 쓰러질 위험',luon:'토론 · 내 종목 반대 근거',bori:'마을 안내',farmer:'실제 종목 밭 · 매도 담당',merchant:'가상 종목 밭 · 매수 담당',librarian:'도서관 · 투자일지',
   paperboy:'뉴스 표지판 · 내 종목 소식',naru:'낚시터 · 코인 벌기',builder:'건물 상점 · 마을 꾸미기',tailor:'옷 상점 · 옷장',
 };
 // 피드백 2026-11-22 "역할이 드러나게": what each one does, in a word with its sign, on the name tag over them
-export const ROLE_TAG:Record<string,string>={farmer:'🌾 내 종목 심기·팔기',merchant:'📟 가상 종목 사기',paperboy:'📰 내 종목 소식',builder:'🏠 건물 상점 · 꾸미기',tailor:'👕 옷 가게',naru:'🎣 낚시로 코인',librarian:'📖 도서관 · 투자일지'};
+export const ROLE_TAG:Record<string,string>={luon:'💬 종목 토론',farmer:'🌾 내 종목 심기·팔기',merchant:'📟 가상 종목 사기',paperboy:'📰 내 종목 소식',builder:'🏠 건물 상점 · 꾸미기',tailor:'👕 옷 가게',naru:'🎣 낚시로 코인',librarian:'📖 도서관 · 투자일지'};
 export const INTRO:Record<string,string>={
   // 피드백 2026-11-22: the three analysts are met first, the same way (their lines from content/intro.ts)
   tori:'안녕, 나는 토리야. 나는 회사가 돈을 어떻게 버는지 봐. 물건을 많이 팔아서 버는지, 하나 팔 때 많이 남겨서 버는지, 빚을 내서 크게 굴려서 버는지 나눠서 살펴. 네 나무 중에 돈 버는 힘이 약해진 회사가 보이면, 내가 그 나무 옆에서 말풍선으로 알려 줄게.',

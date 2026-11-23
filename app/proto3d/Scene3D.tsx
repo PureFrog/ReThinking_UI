@@ -657,7 +657,7 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
   // each analyst reports its head top: the body point is for tapping it, the bubble point sits above the head
   // the friend reports as friend-<id> (not analyst-), so the analysts' count stays theirs; its bubble point is shared
   const reportFriend=useCallback((id:string,v:THREE.Vector3)=>{if(id==='bori')(testHooks() as {friendAt?:{x:number;z:number}}).friendAt={x:v.x,z:v.z};for(const [k,dy] of (id==='naru'?[['friend-'+id,-1.2],['bubble-'+id,0.55],['npctag-naru',0.1]]:[['friend-'+id,-1.2],['bubble-'+id,0.55]]) as [string,number][]){let p=points.get(k);if(!p){p=new THREE.Vector3();points.set(k,p)}p.copy(v).y+=dy}},[points]);
-  const reportAnalyst=useCallback((id:string,v:THREE.Vector3)=>{for(const [k,dy] of [['analyst-'+id,-1.2],['bubble-'+id,0.55]] as const){let p=points.get(k);if(!p){p=new THREE.Vector3();points.set(k,p)}p.copy(v).y+=dy}},[points]);
+  const reportAnalyst=useCallback((id:string,v:THREE.Vector3)=>{for(const [k,dy] of [['analyst-'+id,-1.2],['bubble-'+id,0.55],['npctag-'+id,0.1]] as const){let p=points.get(k);if(!p){p=new THREE.Vector3();points.set(k,p)}p.copy(v).y+=dy}},[points]);
   // an analyst with a flag stands in front of that tree, a little to one side (so two on one tree do not overlap)
   const spotFor=(id:AnalystId,at:number|null,near?:boolean,spot?:{x:number;z:number}|null)=>{const t=at===null?null:trees.find(x=>x.h.id===at);
     if(!t)return spot??IDLE[id];const side=id==='moa'?-1:1;

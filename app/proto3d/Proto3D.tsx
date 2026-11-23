@@ -27,6 +27,8 @@ const CITY_SPOT=(id:string)=>CITIES.find(c=>c.id===id)?.at;
 import {nextStep} from '../core/next';
 import {Welcome} from './ui/Welcome';
 import {authRepo} from './server';
+import {boriChat} from '../core/bori-chat';
+import {debateChat} from '../core/debate-chat';
 import {missingConsents,boriTalk,boriOpen,jigiAI,readCapture,hasInvite,isMaster,type BoriLine} from './supabase';
 import {searchNames,loadRealBars,fixturePrices,type PriceFixture} from './prices';
 import {RealEntry,type RealPrices} from './ui/RealEntry';
@@ -577,6 +579,11 @@ export default function Proto3D(){
       if((went&&still>8)||still>25)setVt(v=>v&&v.stage==='meet'?{...v,phase:'talk',stand:{x:p.x,z:p.z}}:null)},120);
     return()=>clearInterval(t)},[vt?.phase,vt?.id,vt?.stand.x]);// eslint-disable-line react-hooks/exhaustive-deps
   const talkOver=()=>setVt(null);
+  // 유저 워크플로우 (2026-11-23) 토론 캐릭터: tapped, I walk up to 루온; face to face, from my eyes, then a stock to talk over
+  const debate=()=>{if(walkOn){walkHint();return}const v=FIXED_SPOT.luon,me=meNow(),d=Math.hypot(me.x-v.x,me.z-v.z);setPicked(null);setSheet(null);setFocus(null);
+    if(d<=LOOK.villager.reach&&d>0.5){setVt({id:'luon',phase:'talk',stand:me,at:{x:v.x,z:v.z}});return}
+    const k=d>0.01?1/d:0,stand={x:v.x+(me.x-v.x)*k*LOOK.villager.stand+(d>0.01?0:LOOK.villager.stand),z:v.z+(me.z-v.z)*k*LOOK.villager.stand};
+    setGoTo({...stand,at:Date.now()});setVt({id:'luon',phase:'walk',stand,at:{x:v.x,z:v.z}})};
   // there: in through the door
   useEffect(()=>{if(vt&&vt.phase==='talk'&&isShop(vt.id)&&shop!==vt.id&&where==='village')swapShop(vt.id)},[vt?.phase,vt?.id]);// eslint-disable-line react-hooks/exhaustive-deps
   const say=(stage:string)=>setVt(v=>v&&{...v,stage});
@@ -649,6 +656,8 @@ export default function Proto3D(){
   const talkOf=(t:Talk):{name:string;line:string;choices:Choice[]}=>{const st=t.stage,leave={label:'그만 이야기하기',go:talkOver};
     if(t.id==='bori'){if(st==='end')return {name:'보리',line:WALK_LINES.done,choices:[{label:'좋아',go:()=>{talkOver();g.ops.tipDone('tour')}}]};
       return {name:'보리',line:WALK_LINES.square,choices:[{label:'소개해 줘',go:()=>meetNext()}]}}
+    if(t.id==='luon')return {name:'루온',line:'…토론하러 왔어? 네 종목 하나 골라. 왜 갖고 있는지 들려주면, 반대로 볼 근거랑 다시 확인할 조건을 같이 찾아볼게.',
+      choices:[{label:'종목 골라 토론하기',go:()=>{talkOver();setSheet({kind:'talk',id:'luon'})}},leave]};
     if(t.id==='farmer'){
       if(walkStep==='farmer'){
         if(st==='planted')return {name:'농부',line:'다 심었어. 나무 크기는 지금 들고 있는 금액만큼, 잎과 열매는 수익률만큼 달라져. 나무를 누르면 종목 상태를 볼 수 있어.',choices:[{label:'알겠어',go:()=>say('edit')}]};
@@ -719,14 +728,15 @@ export default function Proto3D(){
     // the three come in with the first trees
     // 게임 구성 2026-11-20: each friend keeps its own place (토리 by the real field, 모아 by the virtual field, 루온 by the bridge)
     // 유저 워크플로우 (2026-11-23): the three analysts are not in the village (signals come with 보리)
-    analysts:[],
+    // 피드백 2026-11-23 "없앤 캐릭터 모습 중 하나를 토론 캐릭터로": 루온 (the skeptic's look and voice) stays as the debate partner
+    analysts:!ready||lapse||(calm&&(bStage==='trees'||bStage==='orbit'))?[]:[{id:'luon' as AnalystId,at:null,spot:FIXED_SPOT.luon,bubble:null,talking:vt?.id==='luon'}],
     pots:holdings.filter(()=>false).map(h=>({holdingId:h.id,open:!!openFor(s.cooldowns,h.id),flowers:flowersOn(s.cooldowns,h.id)})).filter(p=>p.open||p.flowers),
     decor:s.owned.filter(o=>o.slot).map(o=>({slot:o.slot!,shape:itemById(o.itemId)!.shape})),
     burst,focus,birth,enterFrom:calm?DOOR:null,cutaway:cut,onDeep:id=>{if(!calm&&ready)openDeep(id)},
     capsules:[],capsuleFx:capFx,onCapsule:id=>{if(!calm)onCapsule(id)},hitRate:track.hitRate,cartFlag:CART_FLAGS[Number(clock.today.slice(-2))%CART_FLAGS.length],gameLit:!(s.expeditions??[]).some(r=>r.week===weekStart(clock.today)),
     // 설계 5장: the friends are talked to face to face (the briefing and the grade badges are gone)
     // 9-5: each friend talks in its own voice: small talk or one of my holdings
-    onAnalyst:id=>{if(walkOn){if(meet!==null&&(id as string)===MEET[meet]){goMeet();return}walkHint();return}if(id in VILLAGE_SPEAKERS){setPicked(null);setSheet({kind:'talk',id:id as 'tori'|'moa'|'luon'})}else talkFriend()},
+    onAnalyst:id=>{if(walkOn){if(meet!==null&&(id as string)===MEET[meet]){goMeet();return}walkHint();return}if(id==='luon'){debate();return}if(id in VILLAGE_SPEAKERS){setPicked(null);setSheet({kind:'talk',id:id as 'tori'|'moa'|'luon'})}else talkFriend()},
     // 피드백 2026-11-22: during the first walk a tap that lands on my own figure (it stands mid-screen) no longer opens the
     // wardrobe; the tailor's stop opens it, and afterwards a tap on me does
     onPlayer:()=>{if(walkOn&&!walkDone(walk))return;setPicked(null);setSheet(null);setMe(true)},
@@ -844,7 +854,7 @@ export default function Proto3D(){
       
       {walkOn&&where==='village'&&meet!==null&&!vt&&!sheet&&!calm&&!me&&<WalkGuide who={meetName(MEET[meet])} what="빛이 비치는 길을 따라 걸어가 봐. 가까이 가면 인사해." n={meet+1} total={MEET.length}/>}
       {walkOn&&where==='village'&&walkStep&&walkStep!=='square'&&!vt&&!sheet&&!calm&&!me&&STEP_GOAL[walkStep]&&<WalkGuide who={STEP_GOAL[walkStep].who} what={STEP_GOAL[walkStep].what} n={walk.step} total={WALK_STEPS.length-1}/>}
-      {where==='village'&&ready&&!quiet&&!inside&&!shop&&!sheet&&!vtTalk&&!planting&&<VillagerTags items={[...[...OUTSIDE,...VILLAGERS.filter(v=>isShop(v.id))].map(v=>({id:v.id,name:v.name,hl:meet!==null?MEET[meet]===v.id:!!walkStep&&PERSON_OF[walkStep]===v.id,note:v.id==='merchant'&&!merchantOpen?nextOpenLabel(minutes)+'에 와요':null})),{id:'naru',name:'나루',hl:meet!==null?MEET[meet]==='naru':walkStep==='fisher',note:null}]} onPick={id=>id==='naru'?naruPick():onVillager(id as VillagerId)}/>}
+      {where==='village'&&ready&&!quiet&&!inside&&!shop&&!sheet&&!vtTalk&&!planting&&<VillagerTags items={[...[...OUTSIDE,...VILLAGERS.filter(v=>isShop(v.id))].map(v=>({id:v.id,name:v.name,hl:meet!==null?MEET[meet]===v.id:!!walkStep&&PERSON_OF[walkStep]===v.id,note:v.id==='merchant'&&!merchantOpen?nextOpenLabel(minutes)+'에 와요':null})),{id:'naru',name:'나루',hl:meet!==null?MEET[meet]==='naru':walkStep==='fisher',note:null},{id:'luon',name:'루온',hl:false,note:null}]} onPick={id=>id==='naru'?naruPick():id==='luon'?debate():onVillager(id as VillagerId)}/>}
       {/* 피드백 2026-11-23: in a shop with no talk open: talk to the keeper again, or go back out */}
       {shop&&!vtTalk&&!sheet&&!me&&!fading&&<div className="vl-shop-acts">
         <button type="button" className="rt-btn primary" onClick={()=>onVillager(shop)}>{VILLAGERS.find(v=>v.id===shop)?.name}에게 말 걸기</button>
@@ -984,9 +994,10 @@ export default function Proto3D(){
       {planting&&!sheet&&<div className="rt-plant-bar" role="status"><span>{shopPlant(planting.item)?.name} 심을 풀밭을 눌러요</span>
         <button type="button" onClick={()=>setPlanting(null)}>취소</button></div>}
       {sheet?.kind==='friend'&&<FriendSheet opener={opener.text} topic={opener.topic} seed={clock.today} onClose={close}
-        talk={syncOn?(_history,m)=>boriTalk(boriHoldings,m):null} opening={boriTalks?boriOpening:null} onFace={setBoriFace}
+        talk={(history,m)=>boriChat(history,m,syncOn?(_h,msg)=>boriTalk(boriHoldings,msg):null)} opening={boriTalks?boriOpening:null} onFace={setBoriFace}
         onGo={()=>setSheet({kind:'journal',stock:askedAbout??undefined})} stocks={holdings.map(x=>({id:x.id,name:x.name}))} onStock={openTree}/>}
-      {sheet?.kind==='talk'&&(()=>{const w=VILLAGE_SPEAKERS[sheet.id];return <FriendSheet key={sheet.id} who={w} opener={w.greet[clock.today.length%w.greet.length]} topic="chat" seed={clock.today}
+      {sheet?.kind==='talk'&&(()=>{const w=VILLAGE_SPEAKERS[sheet.id];return <FriendSheet key={sheet.id} who={w} opener={sheet.id==='luon'?'…어느 종목 얘기할래? 고르면 네 이유부터 들어 볼게.':w.greet[clock.today.length%w.greet.length]} topic="chat" seed={clock.today}
+        talk={sheet.id==='luon'?(history,m)=>debateChat(history,m,null):null}
         onClose={close} onGo={()=>setSheet({kind:'journal'})} stocks={holdings.map(x=>({id:x.id,name:x.name}))} onStock={openTree}/>})()}
       {sheet?.kind==='drawer'&&<Drawer g={g} onClose={close} onCart={()=>setSheet({kind:'cart'})}/>}
       {sheet?.kind==='analyst'&&<AnalystCard g={g} id={sheet.id} signal={open.find(x=>x.analyst===sheet.id)??null} onClose={close}
