@@ -11,6 +11,7 @@ import {bars,type Bar} from '../core/jigi/stocks';
 import {booksOf} from './books';
 import {readBooks} from '../core/views';
 import {readBars,priceFlag,fmtPct} from '../core/real';
+import {verdicts,verdictFor,verdictNotes,analysisFor,rebuttalNote} from '../core/model-signals';
 export type Fact={k:string;v:string};
 export type Signal={id:string;holdingId:number;analyst:AnalystId;model:ModelId;loss:boolean;headline:string;evidence:Fact[];say:string;
   counter:Record<Choice,string>;deep?:{title:string;items:{k:string;ok:boolean}[]}};
@@ -100,8 +101,23 @@ export function mockSignals(holdings:Holding[],day:string):Signal[]{
     else if(hand){const {name:_n,...rest}=hand;s={...rest,holdingId:h.id}}else s=madeSignal(h);
     return s?[{...s,id:`${s.model}:${h.id}:${day}`}]:[]});
 }
+// a real holding the team's models cover (core/model-signals.ts, loaded from holding_signals): the three friends'
+// notes from the 서서히 verdict, plus moa's price note when the chart flags something too. Anything else: as before.
+// A finished 반박 analysis on the holding's company adds luon's note (참고, not a loss signal).
+export function modelSignals(holdings:Holding[],day:string):Signal[]{
+  const rows=verdicts();
+  return holdings.flatMap(h=>{
+    const v=verdictFor(h,rows),out:Omit<Signal,'id'>[]=[];
+    if(!v)return [...mockSignals([h],day),...rebuttal(h)];
+    out.push(...verdictNotes(h,v));const price=realSignal(h);if(price)out.push(price);
+    return [...out.map(s=>({...s,id:`${s.model}:${h.id}:${day}`})),...rebuttal(h)]});
+}
+function rebuttal(h:Holding):Signal[]{
+  const r=h.real?analysisFor(h.code):null,n=r?rebuttalNote(h,r):null;if(!n)return [];
+  const {request:_q,...note}=n;return [{...note,id:`rebuttal:${h.id}:${n.request}`}];
+}
 export type SignalProvider={today(holdings:Holding[],day:string):Signal[]};
-export const signalProvider:SignalProvider={today:mockSignals};
+export const signalProvider:SignalProvider={today:modelSignals};
 
 // 되돌아보기 needs a note even when nothing in the garden is flagged (stocks typed in that are up, or barely down):
 // moa's plain chart note on the tree that moved most, not a loss signal. Only the first visit uses it.

@@ -31,6 +31,8 @@ import {boriChat} from '../core/bori-chat';
 import {debateChat} from '../core/debate-chat';
 import {missingConsents,boriTalk,boriOpen,jigiAI,readCapture,hasInvite,isMaster,observatoryServer,type BoriLine} from './supabase';
 import {searchNames,loadRealBars,fixturePrices,type PriceFixture} from './prices';
+import {rowFor} from '../core/model-signals';
+import {loadModelSignals,fixtureModelSignals,type ModelSignalFixture} from './model-signals';
 import {RealEntry,type RealPrices} from './ui/RealEntry';
 import {refreshed} from '../core/real';
 import {codeOf,bars,isReal,KOSDAQ_STOCKS} from '../core/jigi/stocks';
@@ -386,6 +388,13 @@ export default function Proto3D(){
       const cur=g.s.holdings,next=cur.map(h=>h.real&&h.code&&isReal(h.code)?refreshed(h,bars(h.code)):h);
       if(next.some((h,i)=>h!==cur[i]))g.ops.setHoldings(next);setPricesAt(Date.now())});
     return()=>{on=false}},[realPrices,realKey]);// eslint-disable-line react-hooks/exhaustive-deps
+  // the team's verdicts and 반박 results (model-signals.ts): once per sign-in and whenever the real holdings change
+  const modelFixture=typeof window!=='undefined'?(window as unknown as {__modelSignalFixture?:ModelSignalFixture}).__modelSignalFixture:undefined;
+  const [modelAt,setModelAt]=useState(0);
+  const realDates=holdings.filter(h=>h.real&&h.code).map(h=>`${h.code}|${h.date}`).join(',');
+  useEffect(()=>{const load=modelFixture?fixtureModelSignals(modelFixture):syncOn?loadModelSignals:null;if(!load)return;let on=true;
+    void load().then(n=>{if(!on)return;setModelAt(Date.now());((window as {__proto3d?:{modelSignals?:unknown}}).__proto3d??={} as {modelSignals?:unknown}).modelSignals=n}).catch(()=>{});
+    return()=>{on=false}},[modelFixture,syncOn,realDates]);// eslint-disable-line react-hooks/exhaustive-deps
   // what the garden draws: the holdings now, or as they stood in the timelapse week (absent before they were bought)
   // the first screens stand on the world itself: an example garden grows behind them (shown only, never saved)
   const hoverTree=useCallback((id:number)=>shownRef.current.find(x=>x.id===id)??null,[]);
@@ -402,9 +411,13 @@ export default function Proto3D(){
   const shown=useMemo(()=>welcome?DEMO_HOLDINGS:lapse?holdings.flatMap(x=>{const p=holdingAt(x,lapseBack);return p?[p]:[]}):[...realShown,...vtrees],[realShown,vtrees,lapse?.i,welcome]);// eslint-disable-line react-hooks/exhaustive-deps
   const shownRef=useRef(shown);shownRef.current=shown;
   useEffect(()=>{const hk=((window as {__proto3d?:{lapse?:unknown}}).__proto3d??={} as {lapse?:unknown});hk.lapse=lapse?{day:lapseDay,back:lapseBack,trees:shown.length,weather}:null},[lapse,shown]);// eslint-disable-line react-hooks/exhaustive-deps
-  const signals=useMemo(()=>signalProvider.today(holdings,clock.today),[holdings,clock.today,pricesAt]);// eslint-disable-line react-hooks/exhaustive-deps
+  const signals=useMemo(()=>signalProvider.today(holdings,clock.today),[holdings,clock.today,pricesAt,modelAt]);// eslint-disable-line react-hooks/exhaustive-deps
   // a signal is answered by a journal saved today on its stock (or, before 지기, a judgment)
   const wroteToday=(holdingId:number)=>judgedToday(s.judgments,holdingId,clock.today)||(s.journals??[]).some(j=>j.holdingId===holdingId&&j.status==='saved'&&!j.demo&&!j.practice&&j.savedAt!=null&&isoDay(new Date(j.savedAt))===clock.today);
+  // e2e hooks: today's notes, and a way to open one (or a holding's 재무 체력) without walking to it
+  useEffect(()=>{const w=window as unknown as {__proto3d?:Record<string,unknown>};const h=(w.__proto3d??={});
+    h.signals=signals.map(x=>({id:x.id,holdingId:x.holdingId,analyst:x.analyst,model:x.model,loss:x.loss,headline:x.headline}));
+    h.openBrief=(signalId:string)=>{setPicked(null);setSheet({kind:'brief',start:{signalId}})}},[signals]);
   const open=signals.filter(x=>!wroteToday(x.holdingId));
   // 보리's stop-loss talk (db/functions/bori-talk): today's loss signals by company code
   const boriHoldings=useMemo(()=>holdings.map(x=>({company_id:codeOf(x),name:x.name})),[holdings]);
@@ -1042,7 +1055,7 @@ export default function Proto3D(){
       {sheet?.kind==='brief'&&<Briefing key={JSON.stringify(sheet.start)} g={g} signals={signals} holdings={holdings} start={sheet.start} onClose={close}
         onDeep={id=>openDeep(id,{kind:'brief',start:{holdingId:id}})} onBury={id=>bury(id)} onWrite={(id,sig)=>writeNew({holdingId:id,signalId:sig})}/>}
       {sheet?.kind==='deep'&&(()=>{const hh=holdings.find(x=>x.id===sheet.holdingId);const back=sheet.back;
-        return hh&&<DeepSheet holding={hh} health={healthProvider.of(hh,signals.find(x=>x.holdingId===hh.id)??null)} onClose={()=>closeDeep(back)}/>})()}
+        return hh&&<DeepSheet holding={hh} health={healthProvider.of(hh,signals.find(x=>x.holdingId===hh.id)??null)} row={rowFor(hh)} onClose={()=>closeDeep(back)}/>})()}
       {sheet?.kind==='grades'&&<Grades g={g} onClose={close} start={'start' in sheet?sheet.start:undefined} onDig={dig} onStamp={(holdingId,hit)=>setBurst({holdingId,hit,stamp:Date.now()})} onFocus={setFocus} onRewind={()=>setSheet({kind:'rewind'})}/>}
       {sheet?.kind==='rewind'&&<RewindView g={g} onClose={close}/>}
       {sheet?.kind==='today'&&<TodaySheet g={g} tasks={tasks} onGo={goTask} onClose={close}/>}
