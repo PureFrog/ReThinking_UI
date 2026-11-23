@@ -27,11 +27,13 @@ const CITY_SPOT=(id:string)=>CITIES.find(c=>c.id===id)?.at;
 import {nextStep} from '../core/next';
 import {Welcome} from './ui/Welcome';
 import {authRepo} from './server';
+import {boriChat} from '../core/bori-chat';
+import {debateChat} from '../core/debate-chat';
 import {missingConsents,boriTalk,boriOpen,jigiAI,readCapture,hasInvite,isMaster,observatoryServer,type BoriLine} from './supabase';
 import {searchNames,loadRealBars,fixturePrices,type PriceFixture} from './prices';
 import {RealEntry,type RealPrices} from './ui/RealEntry';
 import {refreshed} from '../core/real';
-import {codeOf,bars,isReal} from '../core/jigi/stocks';
+import {codeOf,bars,isReal,KOSDAQ_STOCKS} from '../core/jigi/stocks';
 import {saveRepo,openedAt,markLocal} from './sync';
 import {syncPlan,SYNC} from '../core/sync';
 import type {GardenSave} from './state';
@@ -96,7 +98,7 @@ import {Bubbles} from './ui/Bubbles';
 import {FriendSheet} from './ui/Friend';
 import {VirtualShop} from './ui/VirtualShop';
 import {HoverTip} from './ui/HoverTip';
-import {quote,virtualTree,VIRTUAL_ID,VIRTUAL_STOCKS} from '../core/virtual';
+import {quote,virtualTree,VIRTUAL_ID} from '../core/virtual';
 import {VILLAGE_SPEAKERS} from '../content/village-talk';
 import {FRIEND,friendOpener,type BoriFace} from '../core/friend';
 import {NaruTalk,FishingPlay,FishLog} from './ui/Fishing';
@@ -105,15 +107,19 @@ import {FlowerShop} from './ui/FlowerShop';
 import {shopPlant} from '../content/flower-shop';
 import {Intro} from './ui/Intro';
 import {WALK0,readWalk,walkDone,stepOf,passStep,mayTalk,merchantHere,nextOpenLabel,candidates,waiting,WALK_STEPS,PERSON_OF,type WalkSave,type WalkStep} from '../core/walk';
-import {VILLAGERS,villager,WALK_LINES,STEP_GOAL,MERCHANT_STALL,FARM_CART,ROLE,INTRO,type VillagerId} from '../content/villagers';
+import {VILLAGERS,villager,WALK_LINES,STEP_GOAL,MERCHANT_STALL,TAILOR_STALL,FARM_CART,ROLE,INTRO,type VillagerId} from '../content/villagers';
 import {INTRO_NAME} from '../content/intro';
 import {QuizReview} from './ui/QuizReview';
 // 피드백 2026-11-22: the librarian lives in the house now (Interior3D); the village shows the others
-const OUTSIDE=VILLAGERS.filter(v=>v.id!=='librarian');
+// 피드백 2026-11-23: the shop keepers (and the 사서) are inside their buildings (Shop3D.tsx); the rest stand outside
+const OUTSIDE=VILLAGERS.filter(v=>!(SHOP_IDS as string[]).includes(v.id));
+const isShop=(id:string):id is ShopId=>(SHOP_IDS as string[]).includes(id);
+
 const ROOM_TOUR=['다시 왔구나! 첫 퀴즈 다음부터 집은 이렇게 방으로 보여. 나는 책상 뒤에 있을게. 나를 누르면 지금까지 푼 퀴즈랑 해설을 다시 볼 수 있고, 오늘 퀴즈도 거기서 풀러 가.',
-  '나는 사서야. 도서관은 이제 이 방 책장이야. 나나 책장을 누르면 투자일지를 쓸 수 있고, 쓴 일지는 종목마다 책으로 여기 꽂아 둘게.'];
+  '옆 책장엔 네 투자일지가 종목마다 책으로 꽂혀. 일지는 마을 도서관 사서한테 쓰고, 여기서도 책장을 누르면 펼쳐 볼 수 있어.'];
 // the first lesson done (ui/House.tsx keeps its day): from then on the house is the room seen from outside (3인칭)
 const lessonDone=()=>{try{return !!localStorage.getItem('rethink-lesson-v1')}catch{return false}};
+import {SHOP_IDS,SHOP_DOOR,type ShopId} from './Shop3D';
 import {Comm,type CommTab} from './ui/Comm';
 import {commAccount} from '../content/comm';
 import {VillagerTalk,WalkGuide,Harvest,NewsBoard,TreeStatus,VillagerTags,type Choice} from './ui/Walk';
@@ -295,6 +301,9 @@ export default function Proto3D(){
   // the house is the room (3인칭) once the first lesson is behind me: its day kept by the room, or the first walk done
   const roomMode=()=>walkAllowed&&(lessonDone()||g.s.tips.includes('tour'));
   useEffect(()=>{if(inside&&!fading&&roomMode()&&!g.s.tips.includes('room'))setRoomTour(n=>n||1)},[inside,fading]);// eslint-disable-line react-hooks/exhaustive-deps
+  // 피드백 2026-11-23: inside a shop (Shop3D.tsx ShopRoom): the same paper fade as the house
+  const [shop,setShop]=useState<ShopId|null>(null);
+  const swapShop=(id:ShopId|null)=>{setFading(true);cue('door');setTimeout(()=>{setShop(id);setTimeout(()=>setFading(false),80)},TIMING.roomFade)};
   const swapRoom=(into:boolean)=>{setPicked(null);setSheet(null);setFading(true);cue('door');setTimeout(()=>{setInside(into);setTimeout(()=>setFading(false),80)},TIMING.roomFade)};
   const enterHouse=()=>{setPicked(null);setSheet(null);setMe(false);setFading(true);cue('door');setTimeout(()=>{setWhere('house');setTimeout(()=>setFading(false),80)},TIMING.roomFade)};
   // the map (ui/MapSheet.tsx) sends the player walking to a place
@@ -578,7 +587,9 @@ export default function Proto3D(){
   // the first trees in: into the house for the first quiz (its door opens on the village tour); e2e without the tour as before
   const afterFirst=()=>{if(tutAllowed&&!s.tips.includes('tour'))enterHouse();else setSheet({kind:'lookback'})};
   // 유저 워크플로우 1장: the list confirmed at the account's entry goes with me into the room; the farmer plants it later
-  const firstIn=(ids:number[],first:boolean)=>{setSheet(null);if(first&&walkAllowed&&!s.tips.includes('tour')){enterHouse();return}startBirth(ids,first&&s.seen.birth===0,first?afterFirst:undefined)};
+  const firstIn=(ids:number[],first:boolean)=>{setSheet(null);if(first&&walkAllowed&&!s.tips.includes('tour')){enterHouse();return}
+    // the farmer's stop: my own stocks put in there go back to him, and he plants them
+    if(walkStep==='farmer'&&!walk.planted){setVt({id:'farmer',phase:'talk',stand:meNow(),at:villager('farmer')});return}startBirth(ids,first&&s.seen.birth===0,first?afterFirst:undefined)};
   const tourNext=()=>{if(tourN>=tour.length-1){g.ops.tipDone('tour');setTourN(0);return}setTourN(n=>n+1)};
   const tourAct=(go:'journal'|'shop'|'quests')=>{tourNext();if(go==='journal'){const t=holdings[0];if(t)openTree(t.id);else setSheet({kind:'journal'})}
     else if(go==='shop')setSheet({kind:'stocks'});else setSheet({kind:'today'})};
@@ -591,16 +602,21 @@ export default function Proto3D(){
   const [vt,setVt]=useState<Talk|null>(null);
   const meNow=()=>(window as unknown as {__proto3d?:{player?:{x:number;z:number}}}).__proto3d?.player??{x:0,z:0};
   const merchantOpen=merchantHere(minutes);
-  const goalOf=(st:WalkStep|null)=>st==='fisher'?{x:NARU.x,z:NARU.z}:st&&PERSON_OF[st]?villager(PERSON_OF[st] as VillagerId):null;
+  const goalOf=(st:WalkStep|null)=>{const who=st?PERSON_OF[st]:null;return st==='fisher'?{x:NARU.x,z:NARU.z}:who&&isShop(who)?SHOP_DOOR[who]:who?villager(who as VillagerId):null};
   const approach=(id:VillagerId,stage?:string)=>{const v=villager(id),me=meNow(),d=Math.hypot(me.x-v.x,me.z-v.z);
     setPicked(null);setSheet(null);setFocus(null);setView(null);
+    // a shop keeper: I walk to the shop's door, and go in when I am there (below)
+    if(isShop(id)){if(shop===id){setVt({id,phase:'talk',stand:me,at:v,stage});return}const dr=SHOP_DOOR[id];
+      if(Math.hypot(me.x-dr.x,me.z-dr.z)<1.3){setVt({id,phase:'talk',stand:me,at:v,stage});return}
+      setGoTo({...dr,at:Date.now()});setVt({id,phase:'walk',stand:dr,at:v,stage});return}
     if(d<=LOOK.villager.reach&&d>0.5){setVt({id,phase:'talk',stand:me,at:v,stage});return}
     const k=d>0.01?1/d:0,stand={x:v.x+(me.x-v.x)*k*LOOK.villager.stand+(d>0.01?0:LOOK.villager.stand),z:v.z+(me.z-v.z)*k*LOOK.villager.stand};
     setGoTo({...stand,at:Date.now()});setVt({id,phase:'walk',stand,at:v,stage})};
   // 보리's hint on the first walk: who to go to now; then I walk on to them
-  const walkHint=()=>{if(!walkStep)return;const goal=STEP_GOAL[walkStep];if(goal)g.say('보리 · '+WALK_LINES.hint(goal.who,goal.what));
-    const p=PERSON_OF[walkStep];if(p&&p!=='naru')approach(p as VillagerId);else if(p==='naru'){setGoTo({...FISH_STAND,at:Date.now()})}};
-  const onVillager=(id:VillagerId)=>{if(walkOn&&!mayTalk(walk,id)){walkHint();return}approach(id)};
+  // 피드백 2026-11-22 (튜토리얼 느낌): nobody is walked anywhere. 보리 says where, the way there is lit (world.lead), and a
+  // step off it, or a tap on someone else, only brings this line back
+  const walkHint=()=>{if(meet!==null){meetHint();return}if(!walkStep)return;const goal=STEP_GOAL[walkStep];if(goal)g.say('보리 · '+WALK_LINES.hint(goal.who,goal.what)+' 빛이 비치는 길을 따라가 봐.')};
+  const onVillager=(id:VillagerId)=>{if(meet!==null){if(id===MEET[meet])goMeet();else meetHint();return}if(walkOn&&!mayTalk(walk,id)){walkHint();return}approach(id)};
   // arriving: in front of them and stopped → the talk opens; stopped somewhere else → it is called off
   useEffect(()=>{if(!vt||vt.phase!=='walk')return;let last={...meNow()},still=0,went=false;
     const t=setInterval(()=>{const p=meNow();if(Math.hypot(p.x-vt.stand.x,p.z-vt.stand.z)<0.35){setVt(v=>v&&{...v,phase:'talk',stand:{x:p.x,z:p.z}});return}
@@ -610,12 +626,19 @@ export default function Proto3D(){
       if((went&&still>8)||still>25)setVt(v=>v&&v.stage==='meet'?{...v,phase:'talk',stand:{x:p.x,z:p.z}}:null)},120);
     return()=>clearInterval(t)},[vt?.phase,vt?.id,vt?.stand.x]);// eslint-disable-line react-hooks/exhaustive-deps
   const talkOver=()=>setVt(null);
+  // 유저 워크플로우 (2026-11-23) 토론 캐릭터: tapped, I walk up to 루온; face to face, from my eyes, then a stock to talk over
+  const debate=()=>{if(walkOn){walkHint();return}const v=FIXED_SPOT.luon,me=meNow(),d=Math.hypot(me.x-v.x,me.z-v.z);setPicked(null);setSheet(null);setFocus(null);
+    if(d<=LOOK.villager.reach&&d>0.5){setVt({id:'luon',phase:'talk',stand:me,at:{x:v.x,z:v.z}});return}
+    const k=d>0.01?1/d:0,stand={x:v.x+(me.x-v.x)*k*LOOK.villager.stand+(d>0.01?0:LOOK.villager.stand),z:v.z+(me.z-v.z)*k*LOOK.villager.stand};
+    setGoTo({...stand,at:Date.now()});setVt({id:'luon',phase:'walk',stand,at:{x:v.x,z:v.z}})};
+  // there: in through the door
+  useEffect(()=>{if(vt&&vt.phase==='talk'&&isShop(vt.id)&&shop!==vt.id&&where==='village')swapShop(vt.id)},[vt?.phase,vt?.id]);// eslint-disable-line react-hooks/exhaustive-deps
   const say=(stage:string)=>setVt(v=>v&&{...v,stage});
   // 피드백 2026-11-21: selling is the farmer's errand. He walks to the virtual tree, picks, and carries the fruit to the cart
   // (Village3D Villager errand); the talk goes on when he is back
   const errandLoad=useRef<(()=>void)|null>(null);
   const [errand,setErrand]=useState<{lotId:number;to:{x:number;z:number};key:number;after:string|null}|null>(null);
-  const todays=useMemo(()=>candidates(VIRTUAL_STOCKS,clock.today).map(st=>{const q=quote(st.code,clock.today);return {code:st.code,name:st.name,mkt:st.mkt,price:q?.price??null,real:!!q?.real}}),[clock.today]);
+  const todays=useMemo(()=>candidates(KOSDAQ_STOCKS,clock.today).map(st=>{const q=quote(st.code,clock.today);return {code:st.code,name:st.name,mkt:st.mkt,price:q?.price??null,real:!!q?.real}}),[clock.today]);
   // 통신기 (ui/Comm.tsx) and the merchant/farmer share these: a coin buy plants a virtual tree, a sell goes on the farmer's cart
   const commRoom=fieldPlots(s.built?.land??[],'orchard').filter(i=>!holdings.some(h=>h.plot===i)&&!(s.virtual??[]).some(l=>l.plot===i)).length;
   const commBuy=(code:string,n:number):string|null=>{const name=todays.find(c=>c.code===code)?.name??'';
@@ -641,24 +664,51 @@ export default function Proto3D(){
   // to the eye in front of each (3인칭 → 1인칭), each says who they are, then it eases back out before the next
   // 피드백 2026-11-22: I walk up to each one myself (3인칭, the camera behind me), and only the talk is seen from my eyes (1인칭);
   // the three analysts first, then the village's people
-  const MEET=['tori','moa','luon','farmer','merchant','paperboy','naru','builder','tailor'] as const;
-  const meetSpot=(id:typeof MEET[number])=>id==='naru'?{x:NARU.x,z:NARU.z}:id==='tori'||id==='moa'||id==='luon'?{x:FIXED_SPOT[id].x,z:FIXED_SPOT[id].z}:villager(id as VillagerId);
+  // 유저 워크플로우 (2026-11-23 "문서에 없는 캐릭터는 빼"): only the people of the workflow, in its order
+  const MEET=['farmer','merchant','librarian','paperboy','naru','builder','tailor'] as const;
+  const meetSpot=(id:typeof MEET[number])=>isShop(id)?SHOP_DOOR[id]:id==='naru'?{x:NARU.x,z:NARU.z}:villager(id as VillagerId);
   const [meet,setMeet]=useState<number|null>(null);
-  const meetAt=(i:number)=>{const id=MEET[i],at=meetSpot(id),me0=meNow();
-    const dx=me0.x-at.x,dz=me0.z-at.z,d=Math.hypot(dx,dz)||1,R=LOOK.villager.stand,stand=id==='naru'?{x:FISH_STAND.x,z:FISH_STAND.z}:{x:at.x+dx/d*R,z:at.z+dz/d*R};// 나루: the fishing stand (the pond lies between)
-    setFocus(null);setView(null);setGoTo({...stand,at:Date.now()});
-    setVt({id:id as Talk['id'],phase:'walk',stand,at:{x:at.x,z:at.z},stage:'meet'})};
-  const meetNext=()=>{const n=(meet??-1)+1;setVt(null);
+  const meetName=(id:string)=>id==='naru'?'나루':id==='tori'||id==='moa'||id==='luon'?INTRO_NAME[id]:VILLAGERS.find(v=>v.id===id)?.name??'';
+  // where the light falls for each: in front of them (나루: the fishing stand, the pond lies between)
+  const meetLead=(id:typeof MEET[number])=>id==='naru'?{x:FISH_STAND.x,z:FISH_STAND.z}:meetSpot(id);
+  const meetHint=()=>{if(meet!==null)g.say(`보리 · 그쪽 말고! 빛이 비치는 ${meetName(MEET[meet])}한테 먼저 가 보자.`)};
+  // a tap on the one to meet: I walk over myself (my own tap), and the talk opens when I am there (below)
+  const goMeet=()=>{if(meet===null)return;const at=meetLead(MEET[meet]),me0=meNow(),dx=me0.x-at.x,dz=me0.z-at.z,d=Math.hypot(dx,dz)||1,R=MEET[meet]==='naru'?0:LOOK.villager.stand;
+    setGoTo({x:at.x+dx/d*R,z:at.z+dz/d*R,at:Date.now()})};
+  // 피드백 2026-11-22: the merchant is there 08:00–20:00 only, so at night the introductions pass him by (보리 says when he comes)
+  const meetNext=()=>{let n=(meet??-1)+1;setVt(null);if(shop)swapShop(null);const away=MEET[n]==='merchant'&&!merchantOpen;if(away)n++;
     if(n>=MEET.length){setMeet(null);pass('square');return}
-    setMeet(n);setTimeout(()=>meetAt(n),still()?0:TIMING.meetGap)};
+    setMeet(n);g.say(`보리 · ${away?`상인은 ${nextOpenLabel(minutes)}에 와서 지금은 없어. 대신 `:n?'이번엔 ':'먼저 '}${meetName(MEET[n])}! 빛이 비치는 길을 따라 걸어가 봐.`)};
   const squareOn=walkStep==='square'&&where==='village'&&!sheet&&!vt&&meet===null&&!calm&&!fading;
+  // the tutorial's lead (Scene3D world.lead): the one place to go now, from where I stood when it was set
+  const leadOn=walkOn&&where==='village'&&!sheet&&!vt&&!calm&&!fading&&!fish&&!me&&!shop;
+  const leadTo=leadOn?(meet!==null?meetLead(MEET[meet]):walkStep&&walkStep!=='square'?(walkStep==='fisher'?{x:FISH_STAND.x,z:FISH_STAND.z}:goalOf(walkStep)):null):null;
+  const leadKey=leadTo?`${meet}:${walkStep}`:'';
+  const leadFrom=useRef<{k:string;p:{x:number;z:number}}>({k:'',p:{x:0,z:0}});
+  if(leadFrom.current.k!==leadKey)leadFrom.current={k:leadKey,p:{...meNow()}};
+  // there: the talk opens by itself (the eye camera comes down only now)
+  const leadNow=useRef('');leadNow.current=leadOn?leadKey:'';
+  // 피드백 2026-11-23 "대화하고 X 눌렀는데 처음부터 다시 대화": a talk this lead already opened and I closed does not open
+  // again where I stand; I step away first (out of reach), and coming back opens it
+  const leadOpened=useRef('');
+  useEffect(()=>{if(!leadTo)return;const to=leadTo,key=leadKey;let armed=leadOpened.current!==key;
+    const t=setInterval(()=>{if(leadNow.current!==key)return;const p=meNow(),d=Math.hypot(p.x-to.x,p.z-to.z);if(!armed){if(d>LOOK.villager.reach+0.6)armed=true;return}
+      if(d>LOOK.villager.reach)return;clearInterval(t);leadOpened.current=key;
+      if(meet!==null){const id=MEET[meet],at=meetSpot(id);setGoTo({x:p.x,z:p.z,at:Date.now()});setVt({id:id as Talk['id'],phase:'talk',stand:{x:p.x,z:p.z},at:{x:at.x,z:at.z},stage:'meet'});return}
+      const who=walkStep?PERSON_OF[walkStep]:null;if(who==='naru')naruPick();else if(who)approach(who as VillagerId)},200);
+    return()=>clearInterval(t)},[leadKey,leadOn]);// eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{if(!squareOn)return;const t=setInterval(()=>setLookAt(n=>n+1),TIMING.walkLook);return()=>clearInterval(t)},[squareOn]);
   const squareView=squareOn?(()=>{const p=[place('farm'),place('orchard'),place('pond')][lookAt%3];return {x:p.x,z:p.z,y:1.6}})():null;
   const endWalk=()=>setVt({id:'bori',phase:'talk',stand:meNow(),at:meNow(),stage:'end'});
-  const pass=(id:WalkStep)=>{putWalk(w=>passStep(w,id));if(id===WALK_STEPS[WALK_STEPS.length-1])endWalk()};
+  const pass=(id:WalkStep)=>{if(shop)swapShop(null);putWalk(w=>passStep(w,id));if(id===WALK_STEPS[WALK_STEPS.length-1])endWalk()};
   // the first walk's step after a sheet closes (the board, the shop, the wardrobe)
   const afterSheet=useRef<WalkStep|null>(null);
   useEffect(()=>{if(!sheet&&!me&&afterSheet.current){const id=afterSheet.current;afterSheet.current=null;pass(id)}},[sheet,me]);// eslint-disable-line react-hooks/exhaustive-deps
+  // 피드백 2026-11-22 "밤에 만날 수 없는 상인에게 가라고 안내됨": outside his hours the first walk skips the merchant (and the
+  // selling after him) instead of lighting the way to an empty stall; he waits for the next opening (merchantWait)
+  useEffect(()=>{if(walkStep==='merchant'&&!merchantOpen&&where==='village'&&!vt&&!sheet){
+    putWalk(w=>({...passStep(passStep(w,'merchant'),'sell'),merchantWait:true}));
+    g.say(`보리 · 상인은 아침 8시부터 저녁 8시까지만 와. 지금은 없으니까 ${nextOpenLabel(minutes)}에 만나자. 먼저 신문 배달한테 가 보자.`)}},[walkStep,merchantOpen,where,vt,sheet]);// eslint-disable-line react-hooks/exhaustive-deps
   // fishing once with 나루 passes the pond station
   const fished=useRef(false);
   useEffect(()=>{if(fish==='play')fished.current=true;if(fish===null&&fished.current&&walkStep==='fisher'){fished.current=false;pass('fisher')}},[fish]);// eslint-disable-line react-hooks/exhaustive-deps
@@ -668,11 +718,16 @@ export default function Proto3D(){
   const talkOf=(t:Talk):{name:string;line:string;choices:Choice[]}=>{const st=t.stage,leave={label:'그만 이야기하기',go:talkOver};
     if(t.id==='bori'){if(st==='end')return {name:'보리',line:WALK_LINES.done,choices:[{label:'좋아',go:()=>{talkOver();g.ops.tipDone('tour')}}]};
       return {name:'보리',line:WALK_LINES.square,choices:[{label:'소개해 줘',go:()=>meetNext()}]}}
+    if(t.id==='luon')return {name:'루온',line:'…토론하러 왔어? 네 종목 하나 골라. 왜 갖고 있는지 들려주면, 반대로 볼 근거랑 다시 확인할 조건을 같이 찾아볼게.',
+      choices:[{label:'종목 골라 토론하기',go:()=>{talkOver();setSheet({kind:'talk',id:'luon'})}},leave]};
     if(t.id==='farmer'){
       if(walkStep==='farmer'){
         if(st==='planted')return {name:'농부',line:'다 심었어. 나무 크기는 지금 들고 있는 금액만큼, 잎과 열매는 수익률만큼 달라져. 나무를 누르면 종목 상태를 볼 수 있어.',choices:[{label:'알겠어',go:()=>say('edit')}]};
         if(st==='edit')return {name:'농부',line:'실제로 더 사거나 팔면 나한테 "종목 수정"을 말해 줘. 이 밭은 기록만 해서 여기선 사고팔 수 없어. 사고팔기는 가상 밭에서 코인으로 해 봐.',choices:[{label:'가상 밭으로',go:()=>{talkOver();pass('farmer')}}]};
-        if(holdings.length&&!walk.planted)return {name:'농부',line:`어서 와! 네가 확인한 종목 ${holdings.length}개 받아 왔어. 내가 직접 심어 줄게.`,choices:[{label:'심어 줘',go:()=>{
+        // 피드백 2026-11-22 "입력 안 했는데 알아서 채운다": the example garden's stocks are not mine, so he asks first
+        if(holdings.length&&!walk.planted&&s.example&&st!=='ok')return {name:'농부',line:`여기는 네 실제 종목 밭이야. 지금 있는 ${holdings.length}개는 예시 정원의 코스닥 예시 종목이야. 네가 산 종목이 아니니까, 심을지 네가 정해 줘.`,
+          choices:[{label:'내 종목 넣기',go:()=>{talkOver();g.ops.setHoldings([]);setSheet({kind:'onboard'})}},{label:'예시로 심어 보기',go:()=>say('ok')},{label:'비워 두기',go:()=>{g.ops.setHoldings([]);putWalk(w=>({...w,planted:true}));say('edit')}}]};
+        if(holdings.length&&!walk.planted)return {name:'농부',line:s.example?`좋아, 예시 종목 ${holdings.length}개를 심어 볼게. 나중에 "종목 수정"으로 네 종목으로 바꾸면 돼.`:`어서 와! 네가 넣은 종목 ${holdings.length}개 받아 왔어. 내가 직접 심어 줄게.`,choices:[{label:'심어 줘',go:()=>{
           putWalk(w=>({...w,planted:true}));talkOver();
           startBirth(holdings.map(x=>x.id),s.seen.birth===0,()=>setVt({id:'farmer',phase:'talk',stand:meNow(),at:villager('farmer'),stage:'planted'}))}}]};
         return {name:'농부',line:'여기가 네 실제 종목 밭이야. 아직 비어 있네. 실제로 가진 종목이 생기면 나한테 알려 줘, 그때 심어 줄게. 없는 종목을 꾸며 넣지는 않아.',choices:[{label:'알겠어',go:()=>say('edit')}]};
@@ -680,8 +735,8 @@ export default function Proto3D(){
       if(walkStep==='sell'){const lots=s.virtual??[];
         if(st==='loaded'){const c=(s.cart??[]).filter(x=>x.paid==null&&!x.practice).slice(-1)[0];
           return {name:'농부',line:`수레에 실었어.${c?` ${c.name} ${c.qty}주는 다음 거래일(${c.settleDay.slice(5).replace('-','월 ')}일) 종가로 팔리고, 그때 코인이 들어와.`:' 다음 거래일 종가로 팔리고, 그때 코인이 들어와.'} 그 전까진 코인이 그대로야. 이제 광장 신문 배달한테 가 봐. 일지는 나중에 집 안 사서한테 쓰면 돼.`,
-            choices:[{label:'광장으로',go:()=>{talkOver();pass('sell')}}]}}
-        if(!lots.length)return {name:'농부',line:'팔 가상 나무가 아직 없네. 상인한테 사 오면 그때 따 줄게. 먼저 광장 신문 배달한테 가 볼까?',choices:[{label:'광장으로',go:()=>{talkOver();pass('sell')}}]};
+            choices:[{label:'도서관으로',go:()=>{talkOver();pass('sell')}}]}}
+        if(!lots.length)return {name:'농부',line:'팔 가상 나무가 아직 없네. 상인한테 사 오면 그때 따 줄게. 먼저 도서관 사서한테 가 볼까?',choices:[{label:'도서관으로',go:()=>{talkOver();pass('sell')}}]};
         return {name:'농부',line:'아까 산 가상 나무 열매를 팔아 볼까? 몇 주 팔지 정해 주면 내가 가서 따서 수레에 실어 줄게. 수레는 다음 거래일 종가로 팔려.',
           choices:[{label:'매도할 수량 정하기',go:()=>setSheet({kind:'harvest'})}]};
       }
@@ -690,8 +745,8 @@ export default function Proto3D(){
         choices:[{label:'종목 수정',go:()=>{talkOver();setSheet({kind:'onboard'})}},{label:'가상 종목 매도',go:()=>setSheet({kind:'harvest'})},leave]};
     }
     if(t.id==='merchant'){
-      if(!merchantOpen)return {name:'보리',line:`상인은 ${nextOpenLabel(minutes)}에 와. 그때 다시 오자.${walkStep==='merchant'?' 그동안 도서관부터 가 볼까?':''}`,
-        choices:walkStep==='merchant'?[{label:'도서관 먼저',go:()=>{talkOver();putWalk(w=>({...passStep(passStep(w,'merchant'),'sell'),merchantWait:true}))}}]:[{label:'알겠어',go:talkOver}]};
+      if(!merchantOpen)return {name:'보리',line:`상인은 ${nextOpenLabel(minutes)}에 와. 그때 다시 오자.${walkStep==='merchant'?' 그동안 신문 배달부터 만나 볼까?':''}`,
+        choices:walkStep==='merchant'?[{label:'신문 배달 먼저',go:()=>{talkOver();putWalk(w=>({...passStep(passStep(w,'merchant'),'sell'),merchantWait:true}))}}]:[{label:'알겠어',go:talkOver}]};
       if(st==='planted')return {name:'상인',line:'심었어! 가상 나무 값은 실제 종목 등락률을 따라 움직여. 팔고 싶을 땐 농부한테 말하면 농부가 열매를 따서 수레에 실어 줘.',
         choices:[{label:walkStep==='merchant'?'농부한테 가기':'고마워',go:()=>{talkOver();if(walkStep==='merchant')pass('merchant');else putWalk(w=>({...w,merchantWait:false}))}}]};
       const first=!(s.grants??[]).includes('tour');
@@ -699,7 +754,8 @@ export default function Proto3D(){
         choices:[{label:first?'코인 받고 통신기 보기':'통신기 받기',go:()=>{if(first)g.ops.grant('tour',START_GRANT);setVt(null);setSheet({kind:'comm',tab:'order'})}},...(walkStep?[]:[leave])]};
     }
     if(t.id==='librarian'){const fs=freeLot?{code:freeLot.code,name:freeLot.name}:holdings[0]?{code:codeOf(holdings[0]),name:holdings[0].name}:null;
-      return {name:'사서',line:'어서 와. 네 일지 책은 여기 있어. 종목 색인부터 펴 볼까?',choices:[{label:'일지 펼치기',go:()=>setSheet({kind:'journal'})},leave]};
+      return {name:'사서',line:walkStep==='librarian'?`어서 와. 아까 심은 나무${fs?` ${fs.name}`:''} 이름을 찾아볼까? 왜 심었는지 한 줄 써 보자.`:'어서 와. 네 일지 책은 여기 있어. 종목 색인부터 펴 볼까?',
+        choices:[{label:'일지 펼치기',go:()=>{if(walkStep==='librarian')afterSheet.current='librarian';setSheet({kind:'journal'})}},...(walkStep==='librarian'?[]:[leave])]};
     }
     if(t.id==='paperboy'){
       if(walkStep==='news')return {name:'신문 배달',line:'오늘 신문이야! 네가 가진 종목 소식을 모아 왔어. 표지판에 꽂아 둘게. 궁금한 주제를 하나 짚어 볼래?',
@@ -707,9 +763,11 @@ export default function Proto3D(){
       return {name:'신문 배달',line:'오늘 소식 표지판에 꽂아 놨어!',choices:[{label:'표지판 보기',go:()=>setSheet({kind:'news'})},leave]};
     }
     if(t.id==='builder'){const line='어서 와. 마을에 놓을 꽃이랑 나무, 건물을 코인으로 팔아. 사면 마을 꾸미기에서 자리를 정해서 설치해.';
-      return {name:'건물 점원',line,choices:[{label:'물건 보기',go:()=>{if(walkStep==='shop-build')afterSheet.current='shop-build';setSheet({kind:'cart'})}},...(walkStep?[]:[leave])]}}
+      return {name:'건물 점원',line,choices:[{label:'물건 보기',go:()=>{if(walkStep==='shop-build')afterSheet.current='shop-build';setSheet({kind:'cart'})}},
+        // 피드백 2026-11-22 "튜토리얼 중에 이 화면에서 벗어날 수가 없다": a way out on the first walk too (the stop counts as seen)
+        walkStep==='shop-build'?{label:'다음에 볼게',go:()=>{talkOver();pass('shop-build')}}:leave]}}
     if(t.id==='tailor')return {name:'옷 점원',line:'옷 구경해 볼래? 사면 바로 옷장으로 가서 입어 볼 수 있어. 너를 누르면 언제든 갈아입을 수 있어.',
-      choices:[{label:'옷 보기',go:()=>{if(walkStep==='shop-wear')afterSheet.current='shop-wear';talkOver();setMe(true)}},...(walkStep?[]:[leave])]};
+      choices:[{label:'옷 보기',go:()=>{if(walkStep==='shop-wear')afterSheet.current='shop-wear';talkOver();setMe(true)}},walkStep==='shop-wear'?{label:'다음에 볼게',go:()=>{talkOver();pass('shop-wear')}}:leave]};
     return {name:'',line:'',choices:[leave]};
   };
   // every station done but 보리's last line not answered yet (a reload in between): it is said again
@@ -719,34 +777,40 @@ export default function Proto3D(){
   // the introductions on the square (above): who each is and what they do here
   // 피드백 2026-11-21: right after the room (the teacher's lesson), the introductions start by themselves after 보리's line
   useEffect(()=>{if(!(walkStep==='square'&&where==='village'&&meet===null&&vt?.id==='bori'&&vt.stage!=='end'))return;const t=setTimeout(()=>meetNext(),TIMING.meetLead);return()=>clearTimeout(t)},[walkStep,where,meet,vt]);// eslint-disable-line react-hooks/exhaustive-deps
-  const naruPick=()=>{if(fish)return;if(walkOn&&!mayTalk(walk,'naru')){walkHint();return}setPicked(null);setSheet(null);setGoTo({...FISH_STAND,at:Date.now()});setFish('talk')};
-  const meetOf=(t:Talk)=>t.stage!=='meet'?null:{name:t.id==='naru'?'나루':t.id==='tori'||t.id==='moa'||t.id==='luon'?INTRO_NAME[t.id]:VILLAGERS.find(v=>v.id===t.id)?.name??'',
+  const naruPick=()=>{if(fish)return;if(meet!==null){if(MEET[meet]==='naru')goMeet();else meetHint();return}if(walkOn&&!mayTalk(walk,'naru')){walkHint();return}setPicked(null);setSheet(null);setGoTo({...FISH_STAND,at:Date.now()});setFish('talk')};
+  const meetOf=(t:Talk)=>t.stage!=='meet'?null:{name:meetName(t.id),
     line:INTRO[t.id]+(t.id==='merchant'&&!merchantOpen?` 지금은 자리에 없어. ${nextOpenLabel(minutes)}에 와.`:''),
     choices:[{label:meet!==null&&meet>=MEET.length-1?'산책 시작':'다음 사람',go:meetNext}]};
   const vtTalk=vt&&vt.phase==='talk'&&!sheet&&!me?meetOf(vt)??talkOf(vt):null;
   // a sheet opened from a talk goes back to the talk when it closes (unless the talk moved on)
   // e2e: pass the current station as its own last step would (the journal's nine blanks are tested elsewhere)
-  useEffect(()=>{const h=(window as unknown as {__proto3d?:Record<string,unknown>});(h.__proto3d??={}).walkPass=(id:WalkStep)=>{setSheet(null);setVt(null);pass(id)};(h.__proto3d as Record<string,unknown>).meet=(id:VillagerId)=>onVillager(id);(h.__proto3d as Record<string,unknown>).landmark=(k:string)=>world.onLandmark(k as never)});
-  useEffect(()=>{const h=(window as unknown as {__proto3d?:Record<string,unknown>});(h.__proto3d??={}).walk={on:walkOn,step:walkStep,n:walk.step,planted:walk.planted,talk:vt?{id:vt.id,phase:vt.phase,stage:vt.stage??null}:null,merchant:merchantOpen,pile,errand:!!errand}},[walkOn,walkStep,walk,vt,merchantOpen,pile,errand]);
+  useEffect(()=>{const h=(window as unknown as {__proto3d?:Record<string,unknown>});(h.__proto3d??={}).walkPass=(id:WalkStep)=>{setSheet(null);setVt(null);pass(id)};(h.__proto3d as Record<string,unknown>).meet=(id:VillagerId)=>onVillager(id);(h.__proto3d as Record<string,unknown>).landmark=(k:string)=>world.onLandmark(k as never);(h.__proto3d as Record<string,unknown>).goTo=(x:number,z:number)=>setGoTo({x,z,at:Date.now()})});
+  useEffect(()=>{const h=(window as unknown as {__proto3d?:Record<string,unknown>});(h.__proto3d??={}).walk={on:walkOn,step:walkStep,n:walk.step,planted:walk.planted,talk:vt?{id:vt.id,phase:vt.phase,stage:vt.stage??null}:null,merchant:merchantOpen,pile,errand:!!errand,lead:leadTo,meet}},[walkOn,walkStep,walk,vt,merchantOpen,pile,errand,leadKey,meet]);
   const world:World={
     // the three come in with the first trees
     // 게임 구성 2026-11-20: each friend keeps its own place (토리 by the real field, 모아 by the virtual field, 루온 by the bridge)
-    analysts:!ready||lapse||(calm&&(bStage==='trees'||bStage==='orbit'))?[]:ANALYSTS.map(a=>({id:a.id,at:null,spot:FIXED_SPOT[a.id],bubble:null,talking:vt?.id===a.id})),
+    // 유저 워크플로우 (2026-11-23): the three analysts are not in the village (signals come with 보리)
+    // 피드백 2026-11-23 "없앤 캐릭터 모습 중 하나를 토론 캐릭터로": 루온 (the skeptic's look and voice) stays as the debate partner
+    analysts:!ready||lapse||(calm&&(bStage==='trees'||bStage==='orbit'))?[]:[{id:'luon' as AnalystId,at:null,spot:FIXED_SPOT.luon,bubble:null,talking:vt?.id==='luon'}],
     pots:holdings.filter(()=>false).map(h=>({holdingId:h.id,open:!!openFor(s.cooldowns,h.id),flowers:flowersOn(s.cooldowns,h.id)})).filter(p=>p.open||p.flowers),
     decor:s.owned.filter(o=>o.slot).map(o=>({slot:o.slot!,shape:itemById(o.itemId)!.shape})),
     burst,focus,birth,enterFrom:calm?DOOR:null,cutaway:cut,onDeep:id=>{if(!calm&&ready)openDeep(id)},
     capsules:[],capsuleFx:capFx,onCapsule:id=>{if(!calm)onCapsule(id)},hitRate:track.hitRate,cartFlag:CART_FLAGS[Number(clock.today.slice(-2))%CART_FLAGS.length],gameLit:!(s.observatory?.runs??[]).some(r=>r.finishedAt!==null&&r.mode==='ranked'&&r.day===kstDay(clock.now)),
     // 설계 5장: the friends are talked to face to face (the briefing and the grade badges are gone)
     // 9-5: each friend talks in its own voice: small talk or one of my holdings
-    onAnalyst:id=>{if(walkOn){walkHint();return}if(id in VILLAGE_SPEAKERS){setPicked(null);setSheet({kind:'talk',id:id as 'tori'|'moa'|'luon'})}else talkFriend()},
-    onPlayer:()=>{setPicked(null);setSheet(null);setMe(true)},
+    onAnalyst:id=>{if(walkOn){if(meet!==null&&(id as string)===MEET[meet]){goMeet();return}walkHint();return}if(id==='luon'){debate();return}if(id in VILLAGE_SPEAKERS){setPicked(null);setSheet({kind:'talk',id:id as 'tori'|'moa'|'luon'})}else talkFriend()},
+    // 피드백 2026-11-22: during the first walk a tap that lands on my own figure (it stands mid-screen) no longer opens the
+    // wardrobe; the tailor's stop opens it, and afterwards a tap on me does
+    onPlayer:()=>{if(walkOn&&!walkDone(walk))return;setPicked(null);setSheet(null);setMe(true)},
     // 유저 워크플로우: the village's people, the guide to the next one, the board, the cart and the merchant's stall
     villagers:ready&&!lapse&&!inside&&!me&&!skyOpen&&!(calm&&bStage==='trees')?OUTSIDE.map(v=>({id:v.id,x:v.x,z:v.z,face:v.face,look:v.look,hl:!!walkStep&&PERSON_OF[walkStep]===v.id&&!vtTalk,
       talking:vt?.id===v.id,away:v.id==='merchant'&&!merchantOpen,onPick:()=>onVillager(v.id),
       ...(v.id==='farmer'&&errand?{errand:{to:errand.to,cart:{x:FARM_CART.x,z:FARM_CART.z},key:errand.key},onErrandDone:()=>{setErrand(null);const f=errandLoad.current;errandLoad.current=null;f?.()}}:{})})):undefined,
     guide:walkStep&&walkStep!=='square'&&!vt&&!sheet&&!calm&&!fish?goalOf(walkStep):null,
+    // the light falls on 나루 himself, not on the spot I fish from (피드백 2026-11-23)
+    lead:leadTo?{from:leadFrom.current.p,to:leadTo,mark:(meet!==null?MEET[meet]==='naru':walkStep==='fisher')?NARU:undefined,off:walkHint}:null,
     onNews:()=>{if(walkOn&&walkStep!=='news'&&walk.step<=WALK_STEPS.indexOf('news')){walkHint();return}onVillager('paperboy')},
-    cartPile:pile,merchantOpen,
+    cartPile:pile,merchantOpen,shop,onShop:id=>onVillager(id),
     flags:LEAGUE_FLAGS,myFlag:0,caseOpen:!caseDone,goTo,inside,look,stage:me,light,sky:skyWorld,fp:fp&&!inside,
     plants:(s.plants??[]).map(p=>({...p,scale:shopPlant(p.item)?.scale??1})),planting:planting&&!sheet?planting:null,
     onPlant:(x,z,why)=>{if(!planting)return;const it=shopPlant(planting.item);if(!it)return;if(why){g.say(why);return}
@@ -754,7 +818,7 @@ export default function Proto3D(){
       else g.say(r==='coins'?'코인이 모자라요':'다른 꽃·나무랑 너무 가까워요')},
     // 보리 came over and is talking: the camera comes close on the two of them until the talk opens or is answered
     // with 나루: the camera on the two of them while talking, over the player's shoulder onto the water while fishing
-    talk:vtTalk&&vt&&vt.id!=='bori'?{x:vt.at.x,z:vt.at.z,az:0,eye:{x:vt.stand.x,z:vt.stand.z,ax:vt.at.x,az:vt.at.z}}
+    talk:vtTalk&&vt&&vt.id!=='bori'&&!shop?{x:vt.at.x,z:vt.at.z,az:0,eye:{x:vt.stand.x,z:vt.stand.z,ax:vt.at.x,az:vt.at.z}}
       :tourShow&&tourNear&&(tourStep.at==='tori'||tourStep.at==='moa'||tourStep.at==='luon')?(()=>{const sp=FIXED_SPOT[tourStep.at];const T=LOOK.camera.tour;return {x:sp.x,z:sp.z,az:sp.face+(T.turn[tourStep.at]??0),pitch:T.pitchOf[tourStep.at]??T.pitch,dist:T.dist,lift:T.lift}})()
       :fish==='talk'?{x:(NARU.x+FISH_STAND.x)/2,z:(NARU.z+FISH_STAND.z)/2,az:Math.atan2(FISH_STAND.x-NARU.x,FISH_STAND.z-NARU.z)+LOOK.camera.talk.turn}
       :fish==='play'?{x:FISH_AT.x*0.8+FISH_STAND.x*0.2,z:FISH_AT.z*0.8+FISH_STAND.z*0.2,az:Math.atan2(FISH_STAND.x-FISH_AT.x,FISH_STAND.z-FISH_AT.z)+0.35,pitch:LOOK.camera.fish.pitch,dist:LOOK.camera.fish.dist}
@@ -763,7 +827,7 @@ export default function Proto3D(){
       az:Math.atan2(talkSpot.me.x-talkSpot.at.x,talkSpot.me.z-talkSpot.at.z)+LOOK.camera.talk.turn}:null,
     room:{books:s.judgments.slice(-36).map(j=>{const gr=s.graded.filter(x=>x.judgmentId===j.id).at(-1);return {state:gr?(gr.hit?'hit':'miss'):'waiting'} as const}),
       notes:capsules.map(c=>({holdingId:c.holdingId,due:c.due})),
-      resting:ANALYSTS.filter(a=>day[a.id].kind==='home'||day[a.id].kind==='spot').map(a=>a.id),
+      resting:[],
       // 피드백 2026-11-22: the teacher's desk keeps the quizzes I did; the librarian's shelf is the journal
       people:true,onDesk:()=>setSheet({kind:'quizlog'}),onShelf:()=>setSheet({kind:'journal'}),
       onBoard:()=>{if(g.due.length)setSheet({kind:'grades'});else g.say(capsules.length?line(UI.boardWait,{n:capsules.length}):UI.boardEmpty)},onDoor:()=>swapRoom(false)},
@@ -774,14 +838,14 @@ export default function Proto3D(){
     build:ready?{built,mode:false,onLot:key=>{const [k,id]=key.split(':');if(k==='city'){setPicked(null);setSheet({kind:'cities'});return}setWant({kind:k as 'land'|'building',id})}}:null,
     // 게임 구성 2026-11-20: 집 (the quiz), 상점, 표지판 (the map), 퀘스트 게시판 (the old 관측소), 광장 (other people's villages)
     onLandmark:k=>{if(walkOn&&k!=='signpost'&&!(k==='cart'&&walkStep==='shop-build')){walkHint();return}
-      if(k==='house'){if(roomMode()){setMe(false);swapRoom(true)}else enterHouse();return}setPicked(null);if(k==='cart'){if(walkStep==='shop-build'){onVillager('builder');return}setSheet({kind:'cart'});return}
+      if(k==='house'){if(roomMode()){setMe(false);swapRoom(true)}else enterHouse();return}setPicked(null);if(k==='cart'){onVillager('builder');return}if(k==='library'){onVillager('librarian');return}
       if(k==='signpost'){setSheet({kind:'map'});return}if(k==='observatory'){setSheet({kind:'today'});return}if(k==='plaza'){setSheet(null);setSkyOpen({focus:null});return}
       g.say('여기는 지금 문을 닫았어. 사건 조사는 집 책상에서 해')},
   };
 
   // 보리 came over to talk: its line is the only bubble until it is answered
-  const boriLine=friendHere&&friendDay!==clock.today&&boriCame?.text?{id:FRIEND.id,text:'보리 · '+boriCame.text,alert:true}:null;
-  const bubbles:{id:string;text:string;alert:boolean}[]=boriLine?[boriLine]:[...(friendHere&&friendDay!==clock.today?[{id:FRIEND.id,text:'보리 · '+opener.short,alert:false}]:[]),
+  const boriLine=friendHere&&friendDay!==clock.today&&boriCame?.text?{id:FRIEND.id,text:boriCame.text,alert:true}:null;
+  const bubbles:{id:string;text:string;alert:boolean}[]=boriLine?[boriLine]:[...(friendHere&&friendDay!==clock.today?[{id:FRIEND.id,text:opener.short,alert:false}]:[]),
     ...world.analysts.flatMap(a=>a.bubble?[{id:a.id,...a.bubble}]:[])].filter(b=>b.id===FRIEND.id);
   // the bubbles hold still while the tutorial points at one
   const heldTurn=useRef(0);if(!tutOn)heldTurn.current=turn;
@@ -823,7 +887,7 @@ export default function Proto3D(){
   const decideCooldown=()=>{if(!cd||!h)return;const waited=g.ops.finishCooldown(cd.id);if(waited)g.say(UI.cooldownBloom);setEarly(false);setPicked(null);setSheet({kind:'brief',start:{holdingId:h.id}})};
 
   return (
-    <div className={`proto3d${ready&&!quiet?"":" no-dock"}`} data-testid="proto3d" data-place={where} data-weather={weather} onPointerDownCapture={unlock} onClickCapture={e=>{if((e.target as HTMLElement).closest('button'))cue('ui-button')}}
+    <div className={`proto3d${ready&&!quiet?"":" no-dock"}`} data-testid="proto3d" data-place={where} data-shop={shop??undefined} data-weather={weather} onPointerDownCapture={unlock} onClickCapture={e=>{if((e.target as HTMLElement).closest('button'))cue('ui-button')}}
       data-night={light.night>0.5} style={{background:`linear-gradient(180deg,${sky('top')} 0%,${sky('mid')} 38%,${sky('bottom')} 100%)`}}>
       {light.night>0.05&&<div className="proto3d-stars" aria-hidden style={{opacity:light.night}}/>}
       {w&&<Canvas frameloop={((expedition||quest)&&!wide)||where==='house'?'never':'always'} shadows="soft" dpr={[1,1.5]} gl={{antialias:false,alpha:true,powerPreference:'high-performance'}}
@@ -866,8 +930,13 @@ export default function Proto3D(){
       {!h&&!quiet&&!inside&&!tourShow&&!buildMode&&!me&&!skyOpen&&!planting&&<Bubbles items={bubbleNow} onPick={id=>id===FRIEND.id?talkFriend():world.onAnalyst(id as AnalystId)}/>}
       {!ready&&!sheet&&<button type="button" className="rt-banner" onClick={()=>setSheet({kind:'onboard'})}><span>정원이 비어 있어</span><b>내 종목 넣기</b></button>}
       
+      {walkOn&&where==='village'&&meet!==null&&!vt&&!sheet&&!calm&&!me&&<WalkGuide who={meetName(MEET[meet])} what="빛이 비치는 길을 따라 걸어가 봐. 가까이 가면 인사해." n={meet+1} total={MEET.length}/>}
       {walkOn&&where==='village'&&walkStep&&walkStep!=='square'&&!vt&&!sheet&&!calm&&!me&&STEP_GOAL[walkStep]&&<WalkGuide who={STEP_GOAL[walkStep].who} what={STEP_GOAL[walkStep].what} n={walk.step} total={WALK_STEPS.length-1}/>}
-      {where==='village'&&ready&&!quiet&&!inside&&!sheet&&!vtTalk&&!planting&&<VillagerTags items={[...OUTSIDE.map(v=>({id:v.id,name:v.name,hl:!!walkStep&&PERSON_OF[walkStep]===v.id,note:v.id==='merchant'&&!merchantOpen?nextOpenLabel(minutes)+'에 와요':null})),{id:'naru',name:'나루 · 낚시',hl:walkStep==='fisher',note:null}]} onPick={id=>id==='naru'?naruPick():onVillager(id as VillagerId)}/>}
+      {where==='village'&&ready&&!quiet&&!inside&&!shop&&!sheet&&!vtTalk&&!planting&&<VillagerTags items={[...[...OUTSIDE,...VILLAGERS.filter(v=>isShop(v.id))].map(v=>({id:v.id,name:v.name,hl:meet!==null?MEET[meet]===v.id:!!walkStep&&PERSON_OF[walkStep]===v.id,note:v.id==='merchant'&&!merchantOpen?nextOpenLabel(minutes)+'에 와요':null})),{id:'naru',name:'나루',hl:meet!==null?MEET[meet]==='naru':walkStep==='fisher',note:null},{id:'luon',name:'루온',hl:false,note:null}]} onPick={id=>id==='naru'?naruPick():id==='luon'?debate():onVillager(id as VillagerId)}/>}
+      {/* 피드백 2026-11-23: in a shop with no talk open: talk to the keeper again, or go back out */}
+      {shop&&!vtTalk&&!sheet&&!me&&!fading&&<div className="vl-shop-acts">
+        <button type="button" className="rt-btn primary" onClick={()=>onVillager(shop)}>{VILLAGERS.find(v=>v.id===shop)?.name}에게 말 걸기</button>
+        <button type="button" className="rt-btn" onClick={()=>{setVt(null);swapShop(null)}}>밖으로 나가기</button></div>}
       {vtTalk&&where==='village'&&<VillagerTalk key={(vt?.id??'')+(vt?.stage??'')} name={vtTalk.name} who={vt?.id==='bori'||!merchantOpen&&vt?.id==='merchant'&&vt?.stage!=='meet'?'bori':vt?.id} role={ROLE[vt?.id==='bori'||!merchantOpen&&vt?.id==='merchant'&&vt?.stage!=='meet'?'bori':vt?.id??'']} line={vtTalk.line} choices={vtTalk.choices}/>}
       {sheet?.kind==='tree'&&(()=>{const hh=[...holdings,...vtrees].find(x=>x.id===sheet.id);if(!hh)return null;const q=hh.code?quote(hh.code,clock.today):null;
         return <TreeStatus h={hh} price={q?.price??null} onClose={close}/>})()}
@@ -981,7 +1050,7 @@ export default function Proto3D(){
       {sheet?.kind==='real'&&!welcome&&realPrices&&<RealEntry g={g} prices={realPrices} onClose={close}
         onPlanted={(ids,first)=>{setPricesAt(Date.now());firstIn(ids,first)}}/>}
       {sheet?.kind==='intro'&&!welcome&&<Intro onCapture={()=>setSheet({kind:'onboard',pick:true})} onOther={()=>setSheet({kind:'onboard'})}/>}
-      {sheet?.kind==='onboard'&&!welcome&&<Onboarding g={g} pick={!!sheet.pick} onClose={close} reader={syncOn?readCapture:null} real={realPrices} onReal={realPrices?()=>setSheet({kind:'real'}):null}
+      {sheet?.kind==='onboard'&&!welcome&&<Onboarding g={g} pick={!!sheet.pick} onClose={close} reader={syncOn?readCapture:null} real={realPrices} onReal={null}
         onPlanted={firstIn}
         onDemo={()=>{setSheet(null);if(walkAllowed){enterHouse();return}startBirth(DEMO_HOLDINGS.map(x=>x.id),s.seen.birth===0,afterFirst)}}/>}
       {birth&&<BirthCards birth={birth} holdings={[...holdings,...vtrees]} onSkip={skipBirth}/>}
@@ -1001,7 +1070,7 @@ export default function Proto3D(){
         room={fieldPlots(s.built?.land??[],'orchard').filter(i=>!holdings.some(h=>h.plot===i)&&!(s.virtual??[]).some(l=>l.plot===i)).length}
         onBuy={(code,n)=>{const r=g.ops.buyVirtual(code,n);if(r.ok){cue('capsule-mark');return null}return r.why==='coins'?`코인이 ${won(r.need??0)} 모자라요`:r.why==='room'?'과수원에 빈 자리가 없어요':'지금은 살 수 없어요'}}
         onSell={(id,n)=>{const gain=g.ops.sellVirtual(id,n);if(gain!==null)cue(gain>=0?'grade-hit':'grade-miss')}}/>}
-      {sheet?.kind==='cart'&&<FlowerShop onStocks={()=>setSheet({kind:'stocks'})} coins={s.currency} plants={s.plants??[]} onClose={close} onGoods={()=>setSheet({kind:'goods'})}
+      {sheet?.kind==='cart'&&<FlowerShop coins={s.currency} plants={s.plants??[]} onClose={close} onGoods={()=>setSheet({kind:'goods'})}
         onRemove={id=>g.ops.unplant(id)} onPick={id=>{setSheet(null);setPicked(null);setPlanting({item:id})}}/>}
       {sheet?.kind==='goods'&&<CartView g={g} onClose={()=>setSheet({kind:'cart'})}/>}
       {fish==='talk'&&!sheet&&<NaruTalk left={castsLeft(s.fishing,clock.today,master)} onFish={()=>setFish('play')} onLog={()=>setFish('log')} onClose={()=>setFish(null)}/>}
@@ -1011,9 +1080,10 @@ export default function Proto3D(){
       {planting&&!sheet&&<div className="rt-plant-bar" role="status"><span>{shopPlant(planting.item)?.name} 심을 풀밭을 눌러요</span>
         <button type="button" onClick={()=>setPlanting(null)}>취소</button></div>}
       {sheet?.kind==='friend'&&<FriendSheet opener={opener.text} topic={opener.topic} seed={clock.today} onClose={close}
-        talk={syncOn?(_history,m)=>boriTalk(boriHoldings,m):null} opening={boriTalks?boriOpening:null} onFace={setBoriFace}
+        talk={(history,m)=>boriChat(history,m,syncOn?(_h,msg)=>boriTalk(boriHoldings,msg):null)} opening={boriTalks?boriOpening:null} onFace={setBoriFace}
         onGo={()=>setSheet({kind:'journal',stock:askedAbout??undefined})} stocks={holdings.map(x=>({id:x.id,name:x.name}))} onStock={openTree}/>}
-      {sheet?.kind==='talk'&&(()=>{const w=VILLAGE_SPEAKERS[sheet.id];return <FriendSheet key={sheet.id} who={w} opener={w.greet[clock.today.length%w.greet.length]} topic="chat" seed={clock.today}
+      {sheet?.kind==='talk'&&(()=>{const w=VILLAGE_SPEAKERS[sheet.id];return <FriendSheet key={sheet.id} who={w} opener={sheet.id==='luon'?'…어느 종목 얘기할래? 고르면 네 이유부터 들어 볼게.':w.greet[clock.today.length%w.greet.length]} topic="chat" seed={clock.today}
+        talk={sheet.id==='luon'?(history,m)=>debateChat(history,m,null):null}
         onClose={close} onGo={()=>setSheet({kind:'journal'})} stocks={holdings.map(x=>({id:x.id,name:x.name}))} onStock={openTree}/>})()}
       {sheet?.kind==='drawer'&&<Drawer g={g} onClose={close} onCart={()=>setSheet({kind:'cart'})}/>}
       {sheet?.kind==='analyst'&&<AnalystCard g={g} id={sheet.id} signal={open.find(x=>x.analyst===sheet.id)??null} onClose={close}

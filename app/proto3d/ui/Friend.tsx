@@ -50,10 +50,13 @@ export function FriendSheet({opener,topic,seed,onGo,onClose,talk,opening,onFace,
   const mine0=stocks.length&&onStock?[{label:'내 종목 얘기',stocks:true}]:[];
   const choices:Choice[]=stopLoss?[{label:'얘기해 줄게',talk:true},{label:'나중에',leave:true}]
     :picking?[...stocks.slice(0,6).map(x=>({label:x.name,stock:x.id})),{label:'다음에',leave:true}]
+    :who&&talk?[...mine0,{label:'말 걸기',talk:true}]
     :who?[{label:'수다 떨자',answer:who.smalls[(seed+who.id).length%who.smalls.length]},...mine0]
     :[...friendReplies(topic,seed).filter(r=>r.go!=='case').map(r=>({label:r.label,answer:r.answer,go:r.go})),...mine0,...(talk?[{label:'말 걸기',talk:true}]:[])];
   const pick=(c:Choice)=>{setMine(c.label);
     if(c.stocks){setPicking(true);say(who?'어느 나무 얘기 할래?':'어떤 종목? 골라 봐.','curious');return}
+    // 토론 캐릭터: the stock picked opens the talk box about it (no tree walk)
+    if(c.stock!==undefined&&who&&talk){const n=c.label;setPicking(false);setMode('type');say(`${n}? 좋아. 왜 갖고 있는지 한 줄로 말해 줘. 반대로 볼 근거를 같이 찾아볼게.`,'curious');setHistory(h=>[...h,{who:'me',text:n}]);return}
     if(c.stock!==undefined){const id=c.stock,n=c.label;setMode('leaving');say(who?who.stockLine(n):`${n} 나무로 가자. 수첩 펼쳐 줄게.`,'happy');setTimeout(()=>onStock?.(id),TIMING.talkGo+300);return}
     if(c.leave){setMode('leaving');say(LATER,'happy');setTimeout(onClose,TIMING.talkLeave);return}
     if(c.talk&&stopLoss&&!talk){setMode('leaving');say('그 종목 수첩 펼쳐 줄게. 거기에 적어 보자.','happy');setTimeout(()=>onGo('journal'),TIMING.talkGo);return}
@@ -77,10 +80,10 @@ export function FriendSheet({opener,topic,seed,onGo,onClose,talk,opening,onFace,
       {done&&!busy&&queue.length>1&&<i className="rt-talk-more" aria-hidden/>}
       {mode==='type'&&<form className="rt-talk-type" onClick={e=>e.stopPropagation()} onSubmit={e=>{e.preventDefault();void send()}}>
         <input ref={input} className="rt-input" disabled={!talk} value={draft} maxLength={FRIEND_TALK.maxIn} onChange={e=>setDraft(e.target.value)}
-          placeholder={talk?'보리한테 말하기':'자유 대화는 로그인하면 열려요'} aria-label="보리에게 말하기"/>
+          placeholder={talk?`${name}한테 말하기`:'자유 대화는 로그인하면 열려요'} aria-label={`${name}에게 말하기`}/>
         <button type="submit" className="rt-btn rt-btn-ink" disabled={!talk||busy||!draft.trim()}>보내기</button>
       </form>}
-      {mode==='type'&&<p className="rt-talk-note">보리의 말은 AI가 만든 대화예요. 투자 권유가 아니에요.</p>}
+      {mode==='type'&&<p className="rt-talk-note">{name}의 말은 AI가 만든 대화예요. 투자 권유가 아니에요.</p>}
     </div>
   </div>;
 }

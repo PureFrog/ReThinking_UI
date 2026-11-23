@@ -5,8 +5,11 @@
 // The save: core/house.ts HouseSave under 'rethink-house-v1' (account level: the quiz experience, the unlock, the day's
 // bundle and its stamps), the case file's bookmark in 'rethink-casefile-v1'.
 import {useEffect,useMemo,useRef,useState} from 'react';
+import {TalkBox} from './Walk';
 import {House3D,type HouseCam,type Point,type Paws} from '../House3D';
-import {CaseDesk,type CaseFocus} from './CaseDesk';
+import {type CaseFocus} from './CaseDesk';
+import {ScenarioQuest} from './ScenarioQuest';
+import {sqTutorialOn} from './SpotCoach';
 import {useGamePacks} from '../game/Expedition';
 import {DESK_PAPERS} from '../../content/desk-papers';
 import {bookPapers,quizPapers,bundleOfDay,newDay,nextPaper,stampPaper,finishDay,levelOf,xpFor,stampMark,type Paper,type DeskDay,type Stamp} from '../../core/desk';
@@ -70,6 +73,10 @@ export function House({g,master,onOut,onSettings,lesson=false}:{g:G;master:boole
   // ?quest: straight to today's file once it is there
   const quest=useRef(param('quest')!==null);
   useEffect(()=>{if(quest.current&&h.unlocked&&today){quest.current=false;openCase()}},[h.unlocked,today]);// eslint-disable-line react-hooks/exhaustive-deps
+  // 시나리오 튜토리얼 (2026-11-23): the first time the drawer is open (Lv.5) and the day's quiz is done, the room goes straight into the scenario and the
+  // tutorial runs inside it; once a visit, so closing it midway leaves the desk as it is
+  const auto=useRef(false);
+  useEffect(()=>{if(auto.current||view!=='desk'||!h.unlocked||!quizDone||!today||today.status==='done'||les||!sqTutorialOn())return;auto.current=true;openCase()},[view,h.unlocked,quizDone,today,les]);// eslint-disable-line react-hooks/exhaustive-deps
   const lookUp=()=>{if(les==='solve'&&deskOf(loadHouse(),day)?.stamps.length){setLes('door');setView('desk');return}setView('desk');if(state==='unlocked'&&!still()){setRising(true);setTimeout(()=>setRising(false),TIMING.houseRise)}};
   const drawerTap=()=>{if(h.unlocked){if(today)openCase();return}const p=lockPlate(level);setSay({text:`손잡이에 적혀 있지? ${p.title.replace('시나리오 · ','')}. 지금은 Lv.${level}이야.`,at:'plate'})};
   const goOut=()=>{if(les){lessonDone();setLes(null)}onOut()};
@@ -106,15 +113,13 @@ export function House({g,master,onOut,onSettings,lesson=false}:{g:G;master:boole
       <span className="hs-chip hs-day">{day.slice(5).replace('-','월 ')}일</span>
       <button type="button" className="hs-corner" aria-label="설정" onClick={onSettings}>설정</button>
     </div>
-    {view==='desk'&&<div className="rt-talk hs-talk" role="dialog" aria-label="선생님">
-      <div className="rt-talk-choices" role="group" aria-label="대답">{line.choices.map((c,i)=><button key={c.label} type="button" className={'rt-talk-choice'+(i===0?' first':'')} onClick={c.go}>{c.label}</button>)}</div>
-      <div className="rt-talk-box"><span className="rt-talk-name" data-who="teacher">선생님<small className="rt-talk-role">퀴즈 선생님 · 방</small></span><p className="rt-talk-line" aria-live="polite">{line.text}</p></div>
-    </div>}
+    {view==='desk'&&<TalkBox className="hs-talk" name="선생님" nameWho="teacher" role="퀴즈 선생님 · 방" line={line.text} choices={line.choices}/>}
     {view==='paper'&&desk&&<QuizDesk first={les==='solve'} d={desk} level={level}
       onStamp={(p,choice,resp)=>put(x=>{const cur=deskOf(x,day);if(!cur)return x;const n=finishDay(stampPaper(cur,p,choice,resp));
         if(n===cur)return x;const y=putDesk(x,n);return afterQuiz(y,Math.max(levelOf(y.xp).lv,master?HOUSE.unlockLevel:0),day)})}
       onPaw={setQuizPaw} onUp={lookUp}/>}
-    {view==='case'&&today&&<CaseDesk packId={today.packId} day={today.day} mastery={masteryOf(h.solved)} solved={h.solved} onFocus={setFocus}
+    {/* 시나리오 퀘스트 (PM 설계 2026-11-22): starts at 오늘의 거장 as soon as the file is picked */}
+    {view==='case'&&today&&<ScenarioQuest day={today.day} onFocus={setFocus}
       onEnd={()=>put(x=>setCaseStatus(x,today.day,'done'))} onClose={()=>setView('desk')}/>}
   </div>;
 }
@@ -151,7 +156,10 @@ function QuizDesk({d,level,onStamp,onPaw,onUp,first=false}:{first?:boolean;d:Des
   useEffect(()=>{t0.current=Date.now();setLeft(total);setResp(null);onPaw('hold')},[id]);// eslint-disable-line react-hooks/exhaustive-deps
   const press=(c:0|1|null,r?:Resp|null)=>{if(!p||stamp||back)return;cue('game-stamp');onStamp(p,c,r);setBack(p.id);
     if(c!==null){onPaw(c===0?'mark-0':'mark-1');setTimeout(()=>onPaw('hold'),still()?0:TIMING.quizMark)}};
-  useEffect(()=>{if(!p||stamp||back)return;if(left<=0){press(null,null);return}const t=setTimeout(()=>setLeft(Math.max(0,total-Math.floor((Date.now()-t0.current)/1000))),250);return()=>clearTimeout(t)});// eslint-disable-line react-hooks/exhaustive-deps
+  // 피드백 2026-11-23 "5초에 한 번씩 초가 내려가": a one-shot timeout stopped whenever the second had not turned yet (the
+  // same value renders nothing, so nothing set the next one); a steady tick keeps counting every second
+  useEffect(()=>{if(!p||stamp||back)return;const t=setInterval(()=>setLeft(Math.max(0,total-Math.floor((Date.now()-t0.current)/1000))),200);return()=>clearInterval(t)},[id,!!stamp,!!back,total]);// eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{if(!p||stamp||back)return;if(left<=0)press(null,null)},[left]);// eslint-disable-line react-hooks/exhaustive-deps
   const n=d.ids.length,done=d.stamps.length;
   if(!p||(d.done&&!back)){const right=d.stamps.filter(s=>s.right).length;
     return <section className="hs-quiz" data-side="results" aria-label="오늘의 결과표">

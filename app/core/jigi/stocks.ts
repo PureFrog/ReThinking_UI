@@ -1,6 +1,7 @@
 // 지기 (docs/jigi.md): the stocks a journal can be about and their daily bars. Until the KRX collector is connected
 // (price_daily on the server) these are MOCK bars: the prototype's synthetic walk, anchored so each stock's close on
 // 2026-11-13 is near its real level. Every screen that shows them says "모의 시세". Same code, same bars, every time.
+import {KOSDAQ_LISTED} from '../../content/kosdaq120';
 export type Stock={code:string;name:string;mkt:'KOSPI'|'KOSDAQ';anchor:number;vol:number;listed?:string};
 export const STOCKS:Stock[]=[
   {code:'005930',name:'삼성전자',mkt:'KOSPI',anchor:71200,vol:.030},
@@ -23,11 +24,15 @@ export const STOCKS:Stock[]=[
   {code:'214150',name:'클래시스',mkt:'KOSDAQ',anchor:52300,vol:.035},
   {code:'145020',name:'휴젤',mkt:'KOSDAQ',anchor:268000,vol:.035},
 ];
+// 피드백 2026-11-22: the KOSDAQ120 list (content/kosdaq120.ts), still-listed ones, on the same mock walk: each anchored
+// at a made-up level from its code (모의 시세 on every screen) until real closes replace them (setReal)
+export const KOSDAQ_STOCKS:Stock[]=KOSDAQ_LISTED.map(k=>{const n=parseInt(k.code.replace(/\D/g,''),10)||1;
+  const anchor=Math.round((2000+(n*7919)%58000)/50)*50;return {code:k.code,name:k.name,mkt:'KOSDAQ',anchor,vol:.045}});
 // mock stocks for trees outside the twelve (registerMock below)
 const STOCKS_EXTRA:Stock[]=[];
-export const stockOf=(code:string)=>STOCKS.find(s=>s.code===code)??STOCKS_EXTRA.find(s=>s.code===code)??null;
-export const stockByName=(name:string)=>STOCKS.find(s=>s.name===name)??null;
-export function searchStocks(q:string){const t=q.trim().toLowerCase();if(!t)return [];return STOCKS.filter(s=>s.name.toLowerCase().includes(t)||s.code.includes(t))}
+export const stockOf=(code:string)=>STOCKS.find(s=>s.code===code)??KOSDAQ_STOCKS.find(s=>s.code===code)??STOCKS_EXTRA.find(s=>s.code===code)??null;
+export const stockByName=(name:string)=>STOCKS.find(s=>s.name===name)??KOSDAQ_STOCKS.find(s=>s.name===name)??null;
+export function searchStocks(q:string){const t=q.trim().toLowerCase();if(!t)return [];return [...KOSDAQ_STOCKS,...STOCKS].filter(s=>s.name.toLowerCase().includes(t)||s.code.includes(t))}
 
 // v: volume (real bars only)
 export type Bar={d:string;o:number;h:number;l:number;c:number;v?:number};

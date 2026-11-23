@@ -4,11 +4,11 @@
 import {useMemo} from 'react';
 import {Sheet} from './Sheet';
 import {loadHouse} from './House';
-import {QUIZ100,say,KIND_LABEL} from '../../core/quiz100';
+import {quizById,say,KIND_LABEL} from '../../core/quiz100';
 
 export function QuizReview({onClose,onQuiz}:{onClose:()=>void;onQuiz:()=>void}){
   const rows=useMemo(()=>loadHouse().desk.slice().reverse().flatMap(d=>d.stamps.slice().reverse().map(s=>{
-    const q=s.id.startsWith('q100:')?QUIZ100.find(x=>x.id===s.id.slice(5)):undefined;return q?{day:d.day,q,s}:null}).filter(x=>x!==null)),[]);
+    const q=s.id.startsWith('q100:')?quizById(s.id.slice(5)):undefined;return q?{day:d.day,q,s}:null}).filter(x=>x!==null)),[]);
   return <Sheet kicker="선생님 · 지난 퀴즈" title="풀었던 퀴즈 다시 보기" label="지난 퀴즈" onClose={onClose}
     foot={<button type="button" className="rt-btn primary" onClick={onQuiz}>오늘 퀴즈 풀기</button>}>
     {!rows.length&&<p className="rt-hint">아직 푼 퀴즈가 없어요. 오늘 퀴즈부터 풀어 봐요.</p>}

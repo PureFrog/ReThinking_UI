@@ -133,7 +133,7 @@ export function Interior({books,notes,resting,decor,onDesk,onShelf,onBoard,onDoo
     {/* 피드백 2026-11-22: after the first lesson the house is this room seen from outside (3인칭): the teacher behind the
         desk (the quiz), the librarian by the bookshelf (the journal); the library left the village for here */}
     {people&&<group position={[TEACHER_AT.x,0,TEACHER_AT.z+1.5*TEACHER_AT.s]} scale={TEACHER_AT.s}><Teacher point={null} paws="rest" mood="calm" onBori={onDesk}/></group>}
-    {people&&LIBRARIAN&&<group position-y={-surfaceY(LIB_AT.x,LIB_AT.z)}><Villager id="librarian" x={LIB_AT.x} z={LIB_AT.z} face={0.35} look={LIBRARIAN.look} hl={false} talking={false} player={face} onPick={onShelf} report={()=>{}}/></group>}
+    {/* 피드백 2026-11-23: the 사서 works in the village library now (Shop3D.tsx); the shelf stays */}
     {/* analysts with nothing flagged rest in here */}
     <Suspense fallback={null}>{resting.map(id=><Analyst key={id} id={id} to={SEATS[id]} face={face} surface={flat} tilt={still} bubble={null}
       onPick={()=>onAnalyst(id)} report={reportAnalyst}/>)}</Suspense>

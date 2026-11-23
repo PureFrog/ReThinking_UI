@@ -23,12 +23,12 @@ const PATH_CHIP={down:['내려가는 중','warn'],flat:['옆걸음','calm'],up:[
 
 export function bookCard(k:BookRead):Card{
   const [chip,tone]=BOOK_CHIP[k.state];
-  return {label:'기업 체력',who:k.model==='ohlson'?'모아 · 올슨 모델':'루온 · F-score',chip,tone,foot:`${k.asOf} · 모의 재무`,
+  return {label:'기업 체력',who:k.model==='ohlson'?'올슨 모델 · 부도 확률':'F-score · 재무 9항목',chip,tone,foot:`${k.asOf} · 모의 재무`,
     facts:[{k:'F-score',v:`9점 중 ${k.fscore}점`},{k:'부도 확률',v:`${k.oscore[0]}% → ${k.oscore[1]}%`},{k:'ROE',v:`${k.roe[0]}% → ${k.roe[1]}%`}]};
 }
 export function pathCard(p:PathRead):Card{
   const [chip,tone]=PATH_CHIP[p.state],vsMa=Math.round((p.close/p.ma60-1)*1000)/10;
-  return {label:'주가 흐름',who:'모아 · 추세',chip,tone,foot:`${p.asOf} 종가 · 모의 시세`,
+  return {label:'주가 흐름',who:'추세 · 60일 평균',chip,tone,foot:`${p.asOf} 종가 · 모의 시세`,
     facts:[{k:'60거래일',v:pct(p.r60)},{k:'60일 평균 대비',v:pct(vsMa)},{k:'20일선 아래',v:p.below20?`${p.below20}거래일째`:'아님'}]};
 }
 export function twoViews(code:string,today:string):TwoViews{
