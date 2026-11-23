@@ -109,3 +109,47 @@ test('a point with no tag of its own takes the tag of the link the data went aga
   assert.equal(n.evidence[1].k,'“매출이 좋아질 것 같아”');
   assert.ok(n.evidence.some(e=>e.k==='숫자로 못 가린 조건'&&e.v==='2개'));
 });
+
+// ── 급락 (drop_events, 2026-11-23): the model's drop event replaces the app's own crash read for a covered stock
+const drop=(p)=>({code:'344820',drop_date:'2026-11-10',last_hit_date:'2026-11-10',n_hit_days:1,ret_pct:-12.4,index_ret_pct:-0.8,
+  ar_pct:-11.6,sigma_ar_pct:3.1,z:-3.74,market_adjusted:true,...p});
+
+test('the newest drop since the buying day, while it is recent', () => {
+  const h=holding();
+  assert.equal(V.dropFor(h,'2026-11-23',[drop()]).drop_date,'2026-11-10');
+  assert.equal(V.dropFor(h,'2026-11-23',[drop({drop_date:'2025-11-10',last_hit_date:'2025-11-10'})]),null);   // before buying
+  assert.equal(V.dropFor(h,'2026-12-20',[drop()]),null);                                                     // > 30 days ago
+  assert.equal(V.dropFor(h,'2026-11-05',[drop()]),null);                                                     // not yet
+  assert.equal(V.dropFor(holding({code:'095270'}),'2026-11-23',[drop()]),null);
+  assert.equal(V.dropFor(h,'2026-11-23',[drop(),drop({drop_date:'2026-10-30',last_hit_date:'2026-11-02'})]).drop_date,'2026-11-10');
+  assert.equal(V.dropFor(h,'2026-11-23',null),null);
+});
+
+test('moa says the drop in the event’s own numbers', () => {
+  const n=V.dropNote(holding(),drop({n_hit_days:2,last_hit_date:'2026-11-12'}));
+  assert.equal(n.analyst,'moa');assert.equal(n.model,'crash');assert.equal(n.loss,true);
+  assert.equal(n.headline,'11/10 시장 대비 -11.6%p');
+  assert.equal(n.say,'어, 시장보다 훨씬 크게 빠졌어. 이유부터 찾자.');
+  assert.equal(V.dropNote(holding(),drop({ret_pct:0.8,ar_pct:-4.8})).say,'시장이 크게 오른 날 혼자 제자리였어. 이유부터 찾자.');
+  assert.deepEqual(n.evidence.map(e=>e.v),['-12.4%','-0.8%','-11.6%','3.7배','2번 (마지막 2026-11-12)','2026-11-10 장 마감 기준']);
+  const plain=V.dropNote(holding(),drop({market_adjusted:false}));
+  assert.ok(!plain.evidence.some(e=>e.k==='시장 대비'));
+});
+
+test('a covered stock: the model drop replaces the app crash; not loaded or not covered: as before', () => {
+  V.setVerdicts([row()]);V.setAnalyses([]);V.setDrops([drop()]);
+  let sigs=S.signalProvider.today([holding()],'2026-11-23');
+  assert.deepEqual(sigs.filter(s=>s.model==='crash').map(s=>s.id),['crash:7:2026-11-10']);
+  V.setDrops([]);                                   // loaded, no drop: no crash note at all from the app
+  sigs=S.signalProvider.today([holding()],'2026-11-23');
+  assert.equal(sigs.filter(s=>s.model==='crash').length,0);
+  V.setVerdicts([row({status:'not_covered'})]);V.setDrops([drop()]);
+  sigs=S.signalProvider.today([holding()],'2026-11-23');
+  assert.equal(sigs.filter(s=>s.id==='crash:7:2026-11-10').length,0);
+  V.setVerdicts([]);V.setDrops(null);
+});
+
+test('drop lines ask nothing and predict nothing', () => {
+  const n=V.dropNote(holding(),drop());
+  for(const t of [n.headline,n.say,...Object.values(n.counter)])assert.doesNotMatch(t,/팔아|사라|매수해|매도해|오를 거|내릴 거|떨어질 거/,t);
+});

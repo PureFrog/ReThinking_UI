@@ -156,6 +156,41 @@ export const verdicts=():ReadonlyMap<string,HoldingVerdict>=>VERDICTS;
 export const analysisFor=(code:string|undefined)=>code?ANALYSES.get(code)??null:null;
 // the row for a real holding, whatever its status (the deep sheet says not_covered / no_signal in words)
 export const rowFor=(h:Holding)=>h.real&&h.code&&!h.virtual?VERDICTS.get(verdictKey(h.code,h.date))??null:null;
+// ── 급락 (models/sudden/events.py, daily: investment-evidence-system ops/ui/push_drops.py → drop_events). A drop day is
+// one whose return against the market index (AR) is at or below -1.96 times its usual spread (σ over the 120 sessions
+// before). Drops within 10 sessions are one event. 모아 brings the newest event since the buying day, while it is recent.
+export type DropEvent={code:string;drop_date:string;last_hit_date:string;n_hit_days:number;ret_pct:number|null;
+  index_ret_pct:number|null;ar_pct:number|null;sigma_ar_pct:number|null;z:number|null;market_adjusted:boolean};
+export type DropNote={holdingId:number;analyst:'moa';model:'crash';loss:true;headline:string;evidence:Fact[];say:string;
+  counter:{hold:string;review:string;watch:string};drop:string};
+export const DROP_RECENT_DAYS=30;     // calendar days from the event's last drop day to today: after that it is history
+let DROPS:DropEvent[]|null=null;      // null: not loaded this visit (the app's own chart note stays)
+export function setDrops(rows:readonly DropEvent[]|null){DROPS=rows?[...rows]:null}
+export const dropsLoaded=()=>DROPS!==null;
+const daysBetween=(a:string,b:string)=>Math.round((Date.parse(b)-Date.parse(a))/86400000);
+// the newest event on this holding's stock that started after the buying day and is still recent
+export function dropFor(h:Holding,day:string,rows:readonly DropEvent[]|null=DROPS):DropEvent|null{
+  if(!rows||!h.code)return null;
+  const hits=rows.filter(r=>r.code===h.code&&r.drop_date>h.date&&r.last_hit_date<=day&&daysBetween(r.last_hit_date,day)<=DROP_RECENT_DAYS);
+  return hits.sort((a,b)=>b.drop_date.localeCompare(a.drop_date))[0]??null;
+}
+const pct=(v:number|null,d=1)=>v==null?'-':`${v>0?'+':''}${v.toFixed(d)}%`;
+export function dropNote(h:Holding,r:DropEvent):DropNote{
+  const times=r.z!=null?Math.abs(r.z).toFixed(1):null;
+  return {holdingId:h.id,analyst:'moa',model:'crash',loss:true,drop:`${r.code}:${r.drop_date}`,
+    // AR is the drop; the stock itself can be flat or even up on a day the market jumped (2026-11-11: KOSDAQ +5.6%)
+    headline:r.ar_pct!=null?`${r.drop_date.slice(5).replace('-','/')} 시장 대비 ${r.ar_pct.toFixed(1)}%p`:`${r.drop_date} 급락`,
+    evidence:[{k:'그날 등락',v:pct(r.ret_pct)},
+      ...(r.market_adjusted?[{k:'코스닥 지수',v:pct(r.index_ret_pct)},{k:'시장 대비',v:pct(r.ar_pct)}]:[]),
+      ...(times?[{k:'평소 변동 대비',v:`${times}배`}]:[]),
+      ...(r.n_hit_days>1?[{k:'10거래일 안 급락',v:`${r.n_hit_days}번 (마지막 ${r.last_hit_date})`}]:[]),
+      {k:'급락일',v:`${r.drop_date} 장 마감 기준`}],
+    say:r.ret_pct!=null&&r.ret_pct>=0?'시장이 크게 오른 날 혼자 제자리였어. 이유부터 찾자.':'어, 시장보다 훨씬 크게 빠졌어. 이유부터 찾자.',
+    counter:{hold:'평소보다 훨씬 큰 하락이야. 이유도 모르고 버텨?',review:'원인도 모르고 정하면 나중에 복기는 어떻게 해?',watch:'공시 나올 때까지? 안 나오면 언제까지 볼 건데?'}};
+}
+// a real holding whose stock the team's models cover (its verdict row says so): the model's 급락 replaces the app's chart note
+export const coveredBy=(h:Holding)=>{const r=rowFor(h);return !!r&&r.status!=='not_covered'};
+
 export const NOT_COVERED='우리 재무 모델은 아직 120개 종목만 봐. 이 종목은 그 밖이라 가격 신호만 볼 수 있어.';
 export const NO_SIGNAL='이 날짜 기준으로 계산된 재무 신호가 아직 없어.';
 

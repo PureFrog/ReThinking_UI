@@ -11,7 +11,7 @@ import {bars,type Bar} from '../core/jigi/stocks';
 import {booksOf} from './books';
 import {readBooks} from '../core/views';
 import {readBars,priceFlag,fmtPct} from '../core/real';
-import {verdicts,verdictFor,verdictNotes,analysisFor,rebuttalNote} from '../core/model-signals';
+import {verdicts,verdictFor,verdictNotes,analysisFor,rebuttalNote,dropsLoaded,dropFor,dropNote,coveredBy} from '../core/model-signals';
 export type Fact={k:string;v:string};
 export type Signal={id:string;holdingId:number;analyst:AnalystId;model:ModelId;loss:boolean;headline:string;evidence:Fact[];say:string;
   counter:Record<Choice,string>;deep?:{title:string;items:{k:string;ok:boolean}[]}};
@@ -108,9 +108,13 @@ export function modelSignals(holdings:Holding[],day:string):Signal[]{
   const rows=verdicts();
   return holdings.flatMap(h=>{
     const v=verdictFor(h,rows),out:Omit<Signal,'id'>[]=[];
-    if(!v)return [...mockSignals([h],day),...rebuttal(h)];
-    out.push(...verdictNotes(h,v));const price=realSignal(h);if(price)out.push(price);
-    return [...out.map(s=>({...s,id:`${s.model}:${h.id}:${day}`})),...rebuttal(h)]});
+    // the team's 급락 model (drop_events) speaks for a covered stock once loaded; the app's own crash read steps aside
+    const modelDrops=h.real&&dropsLoaded()&&coveredBy(h),drop=modelDrops?dropFor(h,day):null;
+    const fromModel=drop?[{...dropNote(h,drop),id:`crash:${h.id}:${drop.drop_date}`}]:[];
+    const noAppCrash=(s:Signal)=>!(modelDrops&&s.model==='crash');
+    if(!v)return [...mockSignals([h],day).filter(noAppCrash),...fromModel.map(({drop:_d,...n})=>n),...rebuttal(h)];
+    out.push(...verdictNotes(h,v));const price=realSignal(h);if(price&&!(modelDrops&&price.model==='crash'))out.push(price);
+    return [...out.map(s=>({...s,id:`${s.model}:${h.id}:${day}`})),...fromModel.map(({drop:_d,...n})=>n),...rebuttal(h)]});
 }
 function rebuttal(h:Holding):Signal[]{
   const r=h.real?analysisFor(h.code):null,n=r?rebuttalNote(h,r):null;if(!n)return [];
