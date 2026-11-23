@@ -223,7 +223,9 @@ export function useGarden(){
       return grantInto({...p,observatory:{...o,runs:o.runs.map(r=>r.id===id?{...res.run,stage:'result' as const,synced:{at:c.now},...(r.play?{play:r.play}:{})}:r),progress:res.progress,server:{finished:fin,at:c.now}}},
         'grants' in res&&Array.isArray(res.grants)?res.grants:[])})},
     questServerState(progress:InvestorProgress,finished:string[]){setS(p=>{const o=p.observatory??{runs:[],progress:blankProgress()};return {...p,observatory:{...o,progress,server:{finished,at:c.now}}}})},
-    recordJudgment(j:Omit<Judgment,'id'|'day'>,lookback=false){
+    recordJudgment(j0:Omit<Judgment,'id'|'day'>,lookback=false){
+      // the stock and whether it is on real prices, so the grade uses real closes even if the tree is gone by then
+      const h=cur.current.holdings.find(x=>x.id===j0.holdingId),j={...j0,...(h?.code?{code:h.code,real:!!h.real&&!h.virtual}:{})};
       const full:Judgment=lookback?{...j,id:`look-${j.holdingId}-${c.now}`,day:shiftDay(c.today,-LOOKBACK),lookback:true}:{...j,id:`j-${j.holdingId}-${c.now}`,day:c.today};let note:string|null=null;
       setS(p=>{const r=record(p.judgments,full);let next={...p,judgments:r.list,lookedBack:p.lookedBack||lookback,currency:p.currency+(r.first?EARN.judgment:0)};
         if(j.analyst&&j.signalId){const t=trusted(next,j.analyst as AnalystId,TRUST.briefing);next=t.save;note=t.note}
@@ -236,8 +238,10 @@ export function useGarden(){
         next={...next,currency:next.currency+EARN.rebuttal};const t=trusted(next,'luon',TRUST.rebuttal);if(t.note)say(t.note);return t.save});
     },
     reviseReason(id:string,reason:string){setS(p=>({...p,judgments:p.judgments.map(j=>j.id===id?{...j,reason}:j)}))},
-    openGrade(j:Judgment,mark:Mark):Graded{
-      const g=grade(j,mark,outcomeProvider.after(j.holdingId,j.day,mark),c.today);
+    openGrade(j:Judgment,mark:Mark):Graded|null{
+      const after=outcomeProvider.after(j,mark,cur.current.holdings.find(x=>x.id===j.holdingId));
+      if(after===null)return null;                  // a real stock whose mark-day close is not in yet (dueGrades hides it)
+      const g=grade(j,mark,after,c.today);
       setS(p=>{if(p.graded.some(x=>x.judgmentId===g.judgmentId&&x.mark===g.mark))return p;let next={...p,graded:[...p.graded,g],currency:p.currency+EARN.grade};
         if(g.signalRight&&j.analyst){const t=trusted(next,j.analyst as AnalystId,TRUST.signalRight);next=t.save;if(t.note)say(t.note)}
         return next});
@@ -383,6 +387,8 @@ export function useGarden(){
     journalPurge(id:string){setS(p=>({...p,journals:(p.journals??[]).filter(j=>j.id!==id)}))},
     place(uid:string,slot:string|null){setS(p=>({...p,owned:p.owned.map(o=>o.uid===uid?{...o,slot}:o.slot&&o.slot===slot?{...o,slot:null}:o)}))},
   };
-  const due=useMemo(()=>dueGrades(s.judgments,s.graded,c.today),[s.judgments,s.graded,c.today]);
+  // a grade is due once its outcome is known: real stocks wait for the mark day's close (holdings change when bars arrive)
+  const gradeReady=useCallback((j:Judgment,m:Mark)=>outcomeProvider.after(j,m,s.holdings.find(x=>x.id===j.holdingId))!==null,[s.holdings]);
+  const due=useMemo(()=>dueGrades(s.judgments,s.graded,c.today,gradeReady),[s.judgments,s.graded,c.today,gradeReady]);
   return {s,ops,due,clock:c,toast,say,itemById};
 }

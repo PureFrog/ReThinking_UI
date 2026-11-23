@@ -11,8 +11,9 @@ export type Choice=typeof CHOICES[number]['id'];
 export const CHOICE_LABEL:Record<Choice,string>={hold:'홀드',review:'손절 검토',watch:'더 지켜봄'};
 export type Confidence=1|2|3|4|5;
 // rebuttal: what the player did with luon's counter-argument
+// code/real: the stock and whether it was on real prices when the judgment was written (graded on real closes then)
 export type Judgment={id:string;holdingId:number;name:string;day:string;choice:Choice;reason:string;confidence:Confidence;
-  rate:number;signalId?:string;analyst?:string;model?:string;rebuttal?:'accepted'|'kept'|'skipped';lookback?:boolean};
+  rate:number;signalId?:string;analyst?:string;model?:string;rebuttal?:'accepted'|'kept'|'skipped';lookback?:boolean;code?:string;real?:boolean};
 export const MARKS=[30,90] as const;
 export type Mark=typeof MARKS[number];
 // after: the stock's move (%) from the judgment day to the mark
@@ -45,11 +46,12 @@ export function record(list:Judgment[],j:Judgment){
 export const judgedToday=(list:Judgment[],holdingId:number,day:string)=>list.some(j=>j.holdingId===holdingId&&j.day===day);
 
 // Marks reached and not graded yet, oldest judgment first. A 90-day mark waits until its 30-day one is shown.
-export function dueGrades(list:Judgment[],graded:Graded[],today:string){
+// ready: whether the outcome is known yet (a stock on real prices waits for the close of the mark day)
+export function dueGrades(list:Judgment[],graded:Graded[],today:string,ready:(j:Judgment,m:Mark)=>boolean=()=>true){
   const done=new Set(graded.map(g=>g.judgmentId+'@'+g.mark));
   const out:{judgment:Judgment;mark:Mark}[]=[];
   for(const j of [...list].sort((a,b)=>a.day.localeCompare(b.day))){const d=daysBetween(j.day,today);
-    const m=MARKS.find(m=>d>=m&&!done.has(j.id+'@'+m));if(m)out.push({judgment:j,mark:m})}
+    const m=MARKS.find(m=>d>=m&&!done.has(j.id+'@'+m));if(m&&ready(j,m))out.push({judgment:j,mark:m})}
   return out;
 }
 export function grade(j:Judgment,mark:Mark,after:number,day:string):Graded{

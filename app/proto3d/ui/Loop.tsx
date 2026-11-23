@@ -179,7 +179,7 @@ export function Grades({g,onClose,onStamp,onFocus,onRewind,start,onDig}:{g:G;onC
   if(!shown){const d=next;return <Sheet kicker={`채점 결과 ${g.due.length}건`} title={`${d.mark}일 전 내 판단`} onClose={onClose}>
     <div key={d.judgment.id+d.mark} className={`rt-note${buried?' rt-capsule-memo':''}`}><div className="rt-note-head"><div><strong>{d.judgment.name}</strong><small>{buried?line(UI.capsuleMemo,{when:formatDay(d.judgment.day,g.clock.today)}):`${formatDay(d.judgment.day,g.clock.today)} 기록`}</small></div></div>
       <p className="rt-headline">{CHOICE_LABEL[d.judgment.choice]} · 확신 {d.judgment.confidence}</p><p className="rt-say">{d.judgment.reason}</p></div>
-    <button type="button" className="rt-btn primary" style={{width:'100%',marginTop:16}} onClick={()=>setShown({j:d.judgment,mark:d.mark,gr:g.ops.openGrade(d.judgment,d.mark)})}>결과 보기</button>
+    <button type="button" className="rt-btn primary" style={{width:'100%',marginTop:16}} onClick={()=>{const gr=g.ops.openGrade(d.judgment,d.mark);if(gr)setShown({j:d.judgment,mark:d.mark,gr})}}>결과 보기</button>
   </Sheet>}
   const {j,mark,gr}=shown;
   // W4: the grade as a picture to show someone (ui/Share.tsx)
