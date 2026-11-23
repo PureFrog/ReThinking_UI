@@ -30,7 +30,7 @@ import {authRepo} from './server';
 import {boriChat} from '../core/bori-chat';
 import {debateChat} from '../core/debate-chat';
 import {missingConsents,boriTalk,boriOpen,jigiAI,readCapture,hasInvite,isMaster,observatoryServer,type BoriLine} from './supabase';
-import {searchNames,loadRealBars,fixturePrices,type PriceFixture} from './prices';
+import {searchNames,loadRealBars,loadMarket,fixturePrices,type PriceFixture} from './prices';
 import {rowFor} from '../core/model-signals';
 import {loadModelSignals,fixtureModelSignals,type ModelSignalFixture} from './model-signals';
 import {RealEntry,type RealPrices} from './ui/RealEntry';
@@ -172,10 +172,12 @@ function useTilt(allowed:boolean){
   const ask=()=>{const D=(window as unknown as {DeviceOrientationEvent:DOE}).DeviceOrientationEvent;D.requestPermission?.().then(r=>{if(r==='granted'){setNeed(false);start()}}).catch(()=>{})};
   return {need,ask};
 }
-function useWeather(){
-  const [w,setW]=useState<{weather:Weather;index:number}|null>(null);
+// asOf: the real KOSDAQ bar's date once the index is loaded (prices.ts loadMarket); none while the weather is a mock
+function useWeather(prices:RealPrices|null){
+  const [w,setW]=useState<{weather:Weather;index:number;asOf?:string}|null>(null),[loaded,setLoaded]=useState(0);
+  useEffect(()=>{if(!prices?.market)return;let on=true;void prices.market().then(n=>{if(on&&n)setLoaded(n)});return()=>{on=false}},[prices]);
   useEffect(()=>{const m=marketProvider.today(isoDay());const q=new URLSearchParams(location.search).get('weather');
-    setW({weather:isWeather(q)?q:weatherOf(m)/* the village's weather is today's market (restored 2026-11-20) */,index:m.index})},[]);
+    setW({weather:isWeather(q)?q:weatherOf(m)/* the village's weather is today's market (restored 2026-11-20) */,index:m.index,asOf:m.asOf})},[loaded]);
   return w;
 }
 // the quest lines under the weather, short (the board itself says them in full)
@@ -372,14 +374,14 @@ export default function Proto3D(){
     // the ground no longer opens under the tree (feedback 11-17: the roots looked odd): just the numbers sheet
     void health;setPicked(null);setSheet({kind:'deep',holdingId,back});g.ops.saw('cutaway')};
   const closeDeep=(back:SheetState)=>{setSheet(back)};
-  const w=useWeather(),tiltCtl=useTilt(g.s.settings.tilt);
+  // real prices (private test, prices.ts): for a signed-in player with an invite code, or an e2e page with a fixture
+  const fixture=typeof window!=='undefined'?(window as unknown as {__priceFixture?:PriceFixture}).__priceFixture:undefined;
+  const realPrices=useMemo<RealPrices|null>(()=>fixture?fixturePrices(fixture):syncOn?{search:searchNames,load:loadRealBars,market:loadMarket}:null,[fixture,syncOn]);
+  const w=useWeather(realPrices),tiltCtl=useTilt(g.s.settings.tilt);
   const lapseBack=lapse?frames[lapse.i]:0,lapseDay=dayBack(clock.today,lapseBack);
   const lapseMarket=lapse&&lapseBack>0?marketProvider.today(lapseDay):null;
   const weather=expedition&&gameMarket!==null?weatherOf({index:gameMarket,swing:Math.abs(gameMarket)*1.6}):lapseMarket?weatherOf(lapseMarket):w?.weather??'clear',wl=LOOK.weather[weather];
   const holdings=g.s.holdings,ready=g.s.onboarded;
-  // real prices (private test, prices.ts): for a signed-in player with an invite code, or an e2e page with a fixture
-  const fixture=typeof window!=='undefined'?(window as unknown as {__priceFixture?:PriceFixture}).__priceFixture:undefined;
-  const realPrices=useMemo<RealPrices|null>(()=>fixture?fixturePrices(fixture):syncOn?{search:searchNames,load:loadRealBars}:null,[fixture,syncOn]);
   const [pricesAt,setPricesAt]=useState(0);
   const realKey=holdings.filter(h=>h.real&&h.code).map(h=>h.code).join(',');
   // load the bars of the trees on real prices, then bring their return up to the latest close
@@ -915,7 +917,7 @@ export default function Proto3D(){
         <div className="rt-top-left">
         {/* today's market as weather, top left (restored 2026-11-20: the PM never asked for it to go) */}
         {w&&where!=='house'&&(!expedition||wide)&&!quest&&!skyOpen&&!welcome&&!me&&<div className="rt-weather" aria-label="오늘 시장 날씨">
-          <span className="rt-weather-k">{lapseMarket||(expedition&&gameMarket!==null)?'그날 시장':'오늘 시장'}</span>
+          <span className="rt-weather-k">{expedition&&gameMarket!==null?'그날 시장':lapseMarket?(lapseMarket.asOf?`코스닥 ${lapseMarket.asOf.slice(5)}`:'그날 시장 · 예시'):w.asOf?`코스닥 ${w.asOf.slice(5)}`:'오늘 시장 · 예시'}</span>
           <strong>{WEATHER_LABEL[weather]}</strong>
           <span className="rt-num">{(()=>{const v=expedition&&gameMarket!==null?gameMarket:lapseMarket?.index??w.index;return (v>0?'+':'')+v.toFixed(2)})()}%</span>
           <small>{WEATHER_NOTE[weather]}</small>

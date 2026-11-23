@@ -12,7 +12,8 @@ export const WEATHER_NOTE:Record<Weather,string>={
   heat:'너무 뜨거워. 추격 매수 버릇 있으면 오늘 조심.',
 };
 // index: the day's index change in %, swing: the intraday range in % (how jumpy it was)
-export type Market={day:string;index:number;swing:number};
+// asOf: the real index bar's date (absent on a mock day)
+export type Market={day:string;index:number;swing:number;asOf?:string};
 export const WEATHER_RULES={stormDrop:-1.5,stormSwing:3,heatRise:1.5,cloudyBelow:0.2};
 export function weatherOf(m:Pick<Market,'index'|'swing'>):Weather{
   const r=WEATHER_RULES;
