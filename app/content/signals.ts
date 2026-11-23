@@ -7,7 +7,7 @@
 import type {AnalystId,ModelId} from './analysts';
 import type {Choice} from '../core/judgment';
 import type {Holding} from '../core/model';
-import {bars,type Bar} from '../core/jigi/stocks';
+import {bars,isReal,type Bar} from '../core/jigi/stocks';
 import {booksOf} from './books';
 import {readBooks} from '../core/views';
 import {readBars,priceFlag,fmtPct} from '../core/real';
@@ -64,7 +64,8 @@ export function madeSignal(h:Holding):Omit<Signal,'id'>|null{
   return null;
 }
 // a tree on real prices (core/real.ts): only moa, only what the real bars show (as of the latest close)
-export function realSignal(h:Holding):Omit<Signal,'id'>|null{return h.code?priceSignal(h,bars(h.code)):null}
+// (a code whose real bars are not loaded gets nothing: the mock walk is never read as a real holding's chart)
+export function realSignal(h:Holding):Omit<Signal,'id'>|null{return h.code&&isReal(h.code)?priceSignal(h,bars(h.code)):null}
 // moa's note from the bars alone (real ones, or the mock ones cut at today for a stock with books)
 function priceSignal(h:Holding,bs:Bar[]):Omit<Signal,'id'>|null{
   const r=readBars(h,bs);if(!r)return null;const flag=priceFlag(r);
@@ -125,9 +126,24 @@ export const signalProvider:SignalProvider={today:modelSignals};
 
 // 되돌아보기 needs a note even when nothing in the garden is flagged (stocks typed in that are up, or barely down):
 // moa's plain chart note on the tree that moved most, not a loss signal. Only the first visit uses it.
+// A tree on real prices gets only what its real bars show (core/real.ts readBars), or no note when they are not loaded;
+// a made-up tree keeps the name-hash numbers.
+const LOOK_SAY={up:'차트는 조용히 위쪽이야. 이럴 때 뭘 근거로 들고 있었는지 적어 두면 좋아.',side:'방향이 아직 안 정해졌어. 그때 너라면 어느 쪽으로 봤을까?'};
+const LOOK_COUNTER={hold:'계속 들고 있을 이유, 한 줄로 말할 수 있어?',review:'흔들리는 구간에서 정리하면 나중에 아쉽지 않을까?',watch:'언제까지 볼지 날짜는 정했어?'};
+function realLook(h:Holding):Signal|null{
+  const r=h.code&&isReal(h.code)?readBars(h,bars(h.code)):null;if(!r)return null;
+  return {id:`look:${h.id}`,holdingId:h.id,analyst:'moa',model:'gradual',loss:false,
+    headline:r.below20?`20일선 아래 ${r.below20}거래일째`:`종가가 20일선 위, 고점 대비 ${fmtPct(r.fromHigh)}`,
+    evidence:[{k:'20일선',v:r.below20?`아래 ${r.below20}거래일째`:'위'},{k:'거래량',v:r.volX!=null?`20일 평균의 ${r.volX}배`:'자료 없음'},{k:'수익률',v:fmtPct(r.rate)},{k:'기준일',v:r.asOf}],
+    say:r.rate>=0&&!r.below20?LOOK_SAY.up:LOOK_SAY.side,counter:LOOK_COUNTER};
+}
 export function lookbackNote(holdings:Holding[]):Signal|null{
-  if(!holdings.length)return null;
-  const h=[...holdings].sort((a,b)=>Math.abs(b.rate)-Math.abs(a.rate))[0],r=hash(h.name),n=(lo:number,hi:number)=>lo+r%(hi-lo+1),up=h.rate>=0;
+  const sorted=[...holdings].sort((a,b)=>Math.abs(b.rate)-Math.abs(a.rate));
+  for(const x of sorted){const s=x.real?realLook(x):mockLook(x);if(s)return s}
+  return null;
+}
+function mockLook(h:Holding):Signal{
+  const r=hash(h.name),n=(lo:number,hi:number)=>lo+r%(hi-lo+1),up=h.rate>=0;
   return {id:`look:${h.id}`,holdingId:h.id,analyst:'moa',model:'gradual',loss:false,headline:up?`20일선 위에서 ${n(2,4)}주째`:`20일선 근처에서 ${n(2,4)}주째 옆걸음`,
     evidence:[{k:'20일선',v:up?`위 ${n(8,18)}거래일`:`위아래 ${n(6,12)}번`},{k:'거래량',v:`평균의 ${n(8,12)/10}배`},{k:'수익률',v:`${h.rate}%`}],
     say:up?'차트는 조용히 위쪽이야. 이럴 때 뭘 근거로 들고 있었는지 적어 두면 좋아.':'방향이 아직 안 정해졌어. 그때 너라면 어느 쪽으로 봤을까?',

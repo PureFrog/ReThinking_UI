@@ -8,6 +8,7 @@ import {JigiChart} from './JigiChart';
 import {OPTS,byStock,live,ofStock,TRASH_DAYS,type Journal} from '../../core/jigi/journal';
 import {VERDICT_LABEL,needsReview,verdict,type Verdict} from '../../core/jigi/hypothesis';
 import {JigiHypos} from './JigiHypos';
+import {priceLegal} from '../../core/jigi/stocks';
 import type {JigiAI} from '../supabase';
 import type {Hypo,Reflection} from '../../core/jigi/journal';
 
@@ -106,6 +107,6 @@ export function JigiBook({startStock,stockName,startTab='book',journals,today,no
       <button type="button" role="tab" aria-selected={tab==='book'} aria-pressed={tab==='book'} onClick={()=>{setTab('book')}}>일기장</button>
       <button type="button" role="tab" aria-selected={tab==='stats'} aria-pressed={tab==='stats'} onClick={()=>setTab('stats')}>분석</button></div>
     {body}
-    <p className="jg-legal">시세는 모의 데이터예요. 투자 권유가 아니에요.</p>
+    <p className="jg-legal">{priceLegal(startStock?[startStock]:journals.map(x=>x.stock?.code))}</p>
   </Sheet>;
 }
