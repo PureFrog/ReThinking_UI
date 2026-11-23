@@ -5,6 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {load} from './load-app.mjs';
 const I=await load('core/holdings-in'),E=await load('core/embed'),A=await load('content/broker/demo-account'),B=await load('content/broker/badges'),S=await load('content/signals');
+const St=await load('core/jigi/stocks');
 const TODAY='2026-11-20',kind=()=>0;
 
 test('cleanStd keeps well-formed lines only, one per code', () => {
@@ -26,33 +27,33 @@ test('cleanInput needs a known source; focus only on a stock that came', () => {
   assert.equal(I.cleanInput({source:'email',holdings:[]}),null);
   const ok=I.cleanInput({source:'mts',broker:'RT증권',focus:'999999',holdings:A.DEMO_ACCOUNT.holdings.map(A.toStd)});
   assert.equal(ok.holdings.length,8);assert.equal(ok.focus,null);
-  assert.equal(I.cleanInput({source:'mts',focus:'035720',holdings:A.DEMO_ACCOUNT.holdings.map(A.toStd)}).focus,'035720');
+  assert.equal(I.cleanInput({source:'mts',focus:'263750',holdings:A.DEMO_ACCOUNT.holdings.map(A.toStd)}).focus,'263750');
 });
 
 test('the buying day is asked once: answered codes are not asked again', () => {
   const list=A.DEMO_ACCOUNT.holdings.map(A.toStd);
-  assert.deepEqual(I.needsDate(list).map(h=>h.code),['105560','196170']);
-  const known={'105560':I.heldBack('quarter',TODAY)};
-  assert.equal(known['105560'],'2026-08-22');
-  assert.deepEqual(I.needsDate(list,known).map(h=>h.code),['196170']);
-  assert.equal(I.withDates(list,known).find(h=>h.code==='105560').buyDate,'2026-08-22');
+  assert.deepEqual(I.needsDate(list).map(h=>h.code),['196170','214150']);
+  const known={'196170':I.heldBack('quarter',TODAY)};
+  assert.equal(known['196170'],'2026-08-22');
+  assert.deepEqual(I.needsDate(list,known).map(h=>h.code),['214150']);
+  assert.equal(I.withDates(list,known).find(h=>h.code==='196170').buyDate,'2026-08-22');
   // a day the broker sent is never replaced
-  assert.equal(I.withDates(list,{'005930':'2020-01-01'}).find(h=>h.code==='005930').buyDate,'2026-06-10');
+  assert.equal(I.withDates(list,{'247540':'2020-01-01'}).find(h=>h.code==='247540').buyDate,'2026-08-27');
 });
 
 test('stdToHoldings: the account is the source of truth, a kept stock keeps its tree', () => {
   const list=A.DEMO_ACCOUNT.holdings.map(A.toStd);
   const a=I.stdToHoldings([],list,[0,1,2,3,4,5,6,7,8],kind,TODAY,1000);
   assert.equal(a.holdings.length,8);assert.equal(a.planted.length,8);
-  const sam=a.holdings.find(h=>h.code==='005930');
-  assert.equal(sam.rate,-6.8);assert.equal(sam.price,76400);assert.equal(sam.date,'2026-06-10');assert.equal(sam.real,undefined);
-  assert.equal(a.holdings.find(h=>h.code==='035720').lossDays,60);
-  // next open: 카카오 sold in the account, a new stock bought
-  const next=[...list.filter(h=>h.code!=='035720'),{code:'068270',name:'셀트리온',market:'KOSPI',quantity:2,avgPrice:170000,buyDate:'2026-11-01',lastPrice:178300}];
+  const sam=a.holdings.find(h=>h.code==='247540');
+  assert.equal(sam.rate,-22.4);assert.equal(sam.price,181000);assert.equal(sam.date,'2026-08-27');assert.equal(sam.real,undefined);
+  assert.equal(a.holdings.find(h=>h.code==='086520').lossDays,60);
+  // next open: 펄어비스 sold in the account, a new stock bought
+  const next=[...list.filter(h=>h.code!=='263750'),{code:'068270',name:'셀트리온',market:'KOSPI',quantity:2,avgPrice:170000,buyDate:'2026-11-01',lastPrice:178300}];
   const b=I.stdToHoldings(a.holdings,next,[0,1,2,3,4,5,6,7,8],kind,TODAY,2000);
-  assert.equal(b.holdings.some(h=>h.code==='035720'),false);
-  assert.equal(b.holdings.find(h=>h.code==='005930').id,sam.id);
-  assert.equal(b.holdings.find(h=>h.code==='005930').plot,sam.plot);
+  assert.equal(b.holdings.some(h=>h.code==='263750'),false);
+  assert.equal(b.holdings.find(h=>h.code==='247540').id,sam.id);
+  assert.equal(b.holdings.find(h=>h.code==='247540').plot,sam.plot);
   const cel=b.planted.find(h=>h.code==='068270');assert.ok(cel);
   assert.equal(new Set(b.holdings.map(h=>h.plot)).size,b.holdings.length);
   // no plot left: the line waits
@@ -68,8 +69,8 @@ test('other sources come through the same adapter', () => {
 
 test('MTS badges are the notes the garden opens with', () => {
   const list=A.DEMO_ACCOUNT.holdings.map(A.toStd),b=B.badgesFor(list,TODAY);
-  assert.equal(b['005930'].label,'급락 감지');assert.equal(b['035720'].label,'서서히 악화');
-  assert.equal(b['000660'],undefined);
+  assert.equal(b['247540'].label,'재무 체력 낮음');assert.equal(b['086520'].label,'부실 위험');assert.equal(b['263750'].label,'서서히 악화');
+  assert.equal(b['214150'],undefined);
   const {holdings}=I.stdToHoldings([],list,list.map((_,i)=>i),kind,TODAY,1);
   const garden=S.signalProvider.today(holdings,TODAY).filter(s=>s.loss);
   for(const s of garden){const code=holdings.find(h=>h.id===s.holdingId).code;assert.equal(b[code].model,s.model);assert.equal(b[code].headline,s.headline)}
@@ -85,6 +86,10 @@ test('embed handshake: only a well-formed holdings message is read', () => {
   assert.equal(E.readHoldingsMsg({...msg,v:2}),null);
   assert.equal(E.readHoldingsMsg({type:'other'}),null);
   assert.equal(E.readHoldingsMsg('x'),null);
+});
+
+test('the demo account keeps to KOSDAQ, priced from the same bars the models read', () => {
+  for(const l of A.DEMO_ACCOUNT.holdings){assert.equal(l.market,'KOSDAQ');const b=St.bars(l.code).filter(x=>x.d<=A.DEMO_ACCOUNT.asOf);assert.equal(l.lastPrice,b[b.length-1].c);assert.equal(l.prev,b[b.length-2].c)}
 });
 
 test('the demo account names no real brokerage', () => {

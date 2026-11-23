@@ -48,3 +48,43 @@
 .mts-web-t{display:flex;flex-direction:column;min-width:0}.mts-web-t strong{font-size:15px}.mts-web-t small{font-size:11px;color:var(--mts-sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mts-web-frame{flex:1;width:100%;border:0;display:block}
 @media (orientation:landscape) and (max-height:500px){.mts-sum-v{font-size:20px;margin-bottom:6px}.mts-top{padding-top:6px;padding-bottom:6px}.mts-web-bar{padding-top:2px;padding-bottom:2px}}
+
+/* practice account (/mts): ReThink's own mark, the same quiet palette */
+.mts-mark.rt i{background:#2f6b4f}.mts-mark.rt i:last-child{background:#9cc3ad}
+.mts-pill{font-size:11px;font-weight:700;color:#2f6b4f;background:#e8f2ec;border-radius:99px;padding:2px 8px;letter-spacing:0}
+.mts-hint{margin:6px 16px 0;font-size:12px;color:var(--mts-sub)}
+.mts-row-btn{display:block;width:100%;padding:0;border:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.mts-row-btn:active{opacity:.7}
+
+/* the answer in place (StockSheet.tsx): a bottom sheet over the balance */
+.mts-sheet-back{position:absolute;inset:0;z-index:8;background:rgba(17,24,33,.38);display:flex;align-items:flex-end;animation:mts-fade var(--open) ease-out}
+@keyframes mts-fade{from{background:rgba(17,24,33,0)}}
+.mts-sheet{width:100%;max-height:88%;overflow-y:auto;background:#fff;border-radius:16px 16px 0 0;padding:6px 16px calc(14px + env(safe-area-inset-bottom));animation:mts-up var(--open) ease-out}
+@keyframes mts-up{from{transform:translateY(40px);opacity:.4}}
+.mts-sheet-grab{width:36px;height:4px;border-radius:2px;background:#d6dbe1;margin:2px auto 10px}
+.mts-sheet-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.mts-sheet-top .mts-name strong{font-size:18px}
+.mts-sheet-px{display:flex;gap:8px;font-variant-numeric:tabular-nums;font-weight:700;font-size:15px;white-space:nowrap}
+.mts-sum-line{margin:12px 0 10px;padding:11px 12px;border-radius:10px;background:#f3f5f8}
+.mts-sum-line.split{background:#fff6e5;box-shadow:inset 3px 0 0 #d08a00}
+.mts-sum-line strong{font-size:15px}.mts-sum-line p{margin:4px 0 0;font-size:13px;line-height:1.5;color:#3a4553}
+.mts-split{display:inline-block;margin-right:6px;font-size:11px;font-weight:800;color:#8a5a00;background:#ffe3a8;border-radius:4px;padding:1px 6px;vertical-align:2px}
+.mts-views{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mts-view{border:1px solid var(--mts-line);border-radius:10px;padding:10px;min-width:0}
+.mts-view-h{display:flex;justify-content:space-between;align-items:center;gap:6px}.mts-view-h strong{font-size:14px}
+.mts-chip{font-size:11px;font-weight:800;border-radius:99px;padding:2px 7px;white-space:nowrap;background:#eef0f3;color:#3a4553}
+.mts-view.t-warn .mts-chip{background:#fde8e8;color:#b42318}.mts-view.t-good .mts-chip{background:#e6f4ea;color:#1f7a3a}
+.mts-view-who{font-size:11px;color:var(--mts-sub);margin:2px 0 6px}
+.mts-view dl{margin:0;display:grid;gap:4px}.mts-view dl div{display:flex;justify-content:space-between;gap:6px;font-size:12px}
+.mts-view dt{color:var(--mts-sub);white-space:nowrap}.mts-view dd{margin:0;font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+.mts-view-foot{margin-top:6px;font-size:10px;color:#8a93a0}
+.mts-spark{display:block;width:100%;height:44px;margin:0 0 6px}
+.mts-spark polyline{fill:none;stroke-width:1.6;vector-effect:non-scaling-stroke}.mts-spark polyline.up{stroke:var(--mts-up)}.mts-spark polyline.down{stroke:var(--mts-down)}
+.mts-spark .avg{stroke:#9aa3ae;stroke-width:1;stroke-dasharray:3 3;vector-effect:non-scaling-stroke}
+.mts-blind{margin:10px 0 0;font-size:11px;line-height:1.5;color:#7b8592}
+.mts-sheet-act{display:flex;gap:8px;margin-top:12px}
+.mts-sheet-more{flex:1;display:flex;justify-content:center;gap:6px;padding:12px;border:0;border-radius:10px;background:var(--mts-brand);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+.mts-sheet-close{padding:12px 16px;border:1px solid var(--mts-line);border-radius:10px;background:#fff;font:inherit;cursor:pointer}
+@media (max-width:340px){.mts-views{grid-template-columns:1fr}}
+@media (orientation:landscape) and (max-height:500px){.mts-sheet{max-height:100%}.mts-sum-line{margin:8px 0}.mts-spark{height:30px}}
+@media (prefers-reduced-motion:reduce){.mts-sheet,.mts-sheet-back{animation:none}}

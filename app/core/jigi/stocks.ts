@@ -15,6 +15,13 @@ export const STOCKS:Stock[]=[
   {code:'005490',name:'POSCO홀딩스',mkt:'KOSPI',anchor:318000,vol:.034},
   {code:'247540',name:'에코프로비엠',mkt:'KOSDAQ',anchor:152700,vol:.050},
   {code:'196170',name:'알테오젠',mkt:'KOSDAQ',anchor:327500,vol:.050},
+  // 코스닥 (멘토링 2026-11-22: the models read KOSDAQ, so the practice account and the MTS demo keep to it)
+  {code:'086520',name:'에코프로',mkt:'KOSDAQ',anchor:98400,vol:.050},
+  {code:'028300',name:'HLB',mkt:'KOSDAQ',anchor:61200,vol:.055},
+  {code:'263750',name:'펄어비스',mkt:'KOSDAQ',anchor:41550,vol:.040},
+  {code:'277810',name:'레인보우로보틱스',mkt:'KOSDAQ',anchor:214000,vol:.050},
+  {code:'214150',name:'클래시스',mkt:'KOSDAQ',anchor:52300,vol:.035},
+  {code:'145020',name:'휴젤',mkt:'KOSDAQ',anchor:268000,vol:.035},
 ];
 // mock stocks for trees outside the twelve (registerMock below)
 const STOCKS_EXTRA:Stock[]=[];
