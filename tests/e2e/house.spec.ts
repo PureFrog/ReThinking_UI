@@ -4,7 +4,6 @@ import { test, expect, type Page } from "./fixtures";
 import { answerPaper } from "./quiz-answer";
 const btn = (p: Page, n: string) => p.getByRole("button", { name: n }).first();
 const house = (p: Page) => p.evaluate(() => (window as unknown as { __proto3d?: { house?: { door: boolean; drawer: string; caseFile: string } } }).__proto3d?.house ?? null);
-const caseFile = (p: Page) => p.evaluate(() => (window as unknown as { __proto3d?: { caseFile?: { phase: string; pages: number; docs: string[]; lastDay: string } | null } }).__proto3d?.caseFile ?? null);
 // 9-2: today's papers, stamped one by one; the back of each, then the results sheet
 async function doQuiz(page: Page) {
   await btn(page, "문서 받기").click();
@@ -36,32 +35,133 @@ test("a new account sits at the desk: 보리, the sheet and the locked drawer wi
   await expect(page.getByTestId("proto3d")).toHaveAttribute("data-place", "village");
 });
 
-test("Lv.5: the case file — time waits for the judgment, no paper from later, earlier pages kept", async ({ page }) => {
-  test.setTimeout(150000);
-  await page.goto("/?house&quizlv=5");
+// 시나리오 퀘스트 (PM 설계 2026-11-22): it starts at 오늘의 거장 as the file is picked; the portfolio only with 넘기기;
+// nothing on the desk before 시작하기; reading does not move the turn on; the notebook opens only when tapped and the
+// device only after 작성 완료; the results come before the reveal; a bookmark brings back the notebook draft.
+const sq = (p: Page) => p.evaluate(() => (window as unknown as { __proto3d?: { scenario?: { step: string; turn: number; sub: string; notes: number; orders: number; beat: string; qty: number } | null } }).__proto3d?.scenario ?? null);
+test("Lv.5: the scenario quest — 거장, portfolio, three turns of paper · notebook · device, results, then the reveal", async ({ page }) => {
+  test.setTimeout(300000);
+  await page.goto("/?house&quizlv=5&gameSpeed=8");
   await expect(page.getByTestId("house")).toHaveAttribute("data-state", "quiz-first");
   await doQuiz(page);
   await expect(page.getByTestId("house")).toHaveAttribute("data-state", "unlocked");
   await btn(page, "사건철 펼치기").click();
-  await btn(page, "표지 젖히기").click();
-  await btn(page, "다음 결정일로").click();
-  await expect.poll(async () => (await caseFile(page))?.phase).toBe("moment");
-  const c = (await caseFile(page))!;
-  expect(c.docs.every(d => d <= c.lastDay)).toBe(true);
-  // two steps: reading the papers, then writing the judgment
-  await expect(page.locator(".cd-tabs button")).toHaveCount(2);
-  await btn(page, "판단 쓰러 가기").click();
-  await expect(page.getByRole("button", { name: "판단 확정" })).toBeDisabled();
-  await page.getByRole("radio", { name: "비슷할 것 같다" }).click();
-  await page.locator(".cd-field textarea").first().fill("시장보다 덜 빠졌다");
-  await page.getByRole("radio", { name: "1/8 매도" }).click();
-  await page.getByRole("button", { name: "판단 확정" }).click();
-  await expect.poll(async () => (await caseFile(page))?.pages).toBe(1);
-  // closed midway: the bookmark brings it back
-  await btn(page, "책갈피 끼우고 덮기").click();
+  // ① the portrait in the middle first, then left with the principle; waiting alone does not bring the portfolio
+  await expect.poll(async () => (await sq(page))?.step).toBe("mentor");
+  await expect.poll(async () => (await sq(page))?.beat).toBe("left");
+  await page.waitForTimeout(1500);
+  expect((await sq(page))?.step).toBe("mentor");
+  await expect(page.locator(".sq-philo")).toContainText("가격 결정력");
+  await btn(page, "넘기기").click();
+  // ② the portfolio; no paper on the desk before 시작하기
+  await expect(page.locator(".sq-portfolio")).toContainText("단풍식품");
+  await expect(page.locator(".sq-roll")).toHaveCount(0);
+  await btn(page, "시작하기").click();
+  for (let t = 0; t < 3; t++) {
+    await expect.poll(async () => (await sq(page))?.step, { timeout: 30000 }).toBe("turn");
+    expect((await sq(page))?.turn).toBe(t);
+    // ③ the paper unrolls, its pages turn; closing it stays on the same turn
+    await page.locator(".sq-roll").click();
+    await btn(page, "다음 면").click();
+    await btn(page, "신문 접기").click();
+    await page.locator(".sq-docs button").first().click();
+    await btn(page, "내려놓기").click();
+    expect((await sq(page))?.sub).toBe("desk");
+    await expect(page.locator(".sq-device")).toHaveCount(0);
+    // ④ the notebook when tapped; 작성 완료 needs a direction and a reason
+    await page.getByRole("button", { name: "수첩 펼치기" }).click();
+    await expect(page.getByRole("button", { name: "작성 완료" })).toBeDisabled();
+    await page.getByRole("radio", { name: "비슷할 것이다" }).click();
+    await page.locator(".sq-field textarea").fill("납품가 5% 인상에도 단골이 찾아서 주문은 비슷할 것이다");
+    if (t === 0) {
+      // a bookmark keeps the draft
+      await btn(page, "책갈피 끼우고 덮기").click();
+      await page.reload();
+      await btn(page, "책갈피부터 이어 보기").click();
+      await expect.poll(async () => (await sq(page))?.sub).toBe("note");
+      await expect(page.locator(".sq-field textarea")).toHaveValue(/단골/);
+    }
+    await btn(page, "작성 완료").click();
+    // ⑤ the device, then 확정 runs the market on
+    await expect(page.locator(".sq-device")).toBeVisible();
+    await expect(page.getByRole("button", { name: "확정" })).toBeDisabled();
+    await page.getByRole("radio", { name: t === 1 ? "1/4 매도" : "유지" }).click();
+    if (t === 1) await expect(page.locator(".sq-left")).toContainText("750주");
+    await btn(page, "확정").click();
+  }
+  // ⑥ the results first (the alias still), ⑦ the reveal only with the button
+  await expect.poll(async () => (await sq(page))?.step, { timeout: 30000 }).toBe("result");
+  expect((await sq(page))?.qty).toBe(750);
+  await expect(page.locator(".sq-result")).toContainText("투자일지 점수");
+  await expect(page.locator(".sq-result")).not.toContainText("가상 종목 (연습판)");
+  await btn(page, "거장은 어떻게 했을까?").click();
+  await expect(page.locator(".sq-reveal")).toContainText("가상 종목 (연습판)");
+  await expect(page.locator(".sq-reveal")).toContainText("분기 말 신고 수량 유지");
+  await btn(page, "내 일지 피드백").click();
+  await expect(page.locator(".sq-fb")).toContainText("예측 결과");
+  await btn(page, "책상으로").click();
+  await expect(page.locator(".sq")).toHaveCount(0);
+});
+
+// 시나리오 튜토리얼 (30장): reaching Lv.5 goes straight into the scenario, and the first run is walked through — one lit
+// thing at a time, the rest dimmed and not pressable; the first scene fully, the other two alone, then the results.
+test("Lv.5 first time: straight into the scenario with the spotlight tutorial, once", async ({ page }) => {
+  test.setTimeout(300000);
+  // the first-visit lesson of the house was long done by Lv.5
+  await page.addInitScript(() => localStorage.setItem("rethink-lesson-v1", "done"));
+  await page.goto("/?house&quizlv=5&tutorial&gameSpeed=8");
+  await doQuiz(page);
+  // no 사건철 button to press: the quest opens by itself
+  await expect.poll(async () => (await sq(page))?.step).toBe("mentor");
+  const target = () => page.locator(".sc").getAttribute("data-target");
+  const lit = async (sel: string) => { await expect.poll(target).toBe(sel); await page.locator(sel).first().click() };
+  // what lies under the dim is not pressable
+  const blocked = (sel: string) => page.evaluate((s) => { const b = document.querySelector(s)!.getBoundingClientRect(); return document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2)?.classList.contains("sc-dim") }, sel);
+  await expect.poll(target).toBe(".sq-philo");
+  expect(await blocked(".sq-close")).toBe(true);
+  await page.locator(".sq-next").click();
+  await expect.poll(target).toBe(".sq-portfolio");
+  await page.locator(".sq-start").click();
+  await expect.poll(async () => (await sq(page))?.step, { timeout: 30000 }).toBe("turn");
+  await expect.poll(target).toBe(".sq-roll");
+  expect(await blocked(".sq-notebook")).toBe(true);
+  await page.locator(".sq-roll").click();
+  await lit(".sq-pg-next");
+  await lit(".sq-fold");
+  await lit(".sq-docs button");
+  await lit(".sq-put");
+  await lit(".sq-notebook");
+  await expect.poll(target).toBe(".sq-dir");
+  await page.getByRole("radio", { name: "비슷할 것이다" }).click();
+  await expect.poll(target).toBe(".sq-compose");
+  await page.locator(".sq-field textarea").fill("납품가 5% 인상에도 단골이 찾아서 주문은 비슷할 것이다");
+  await expect(page.locator(".sc-bubble")).toContainText("작성 완료");
+  await page.locator(".sq-write").click();
+  await expect.poll(target).toBe(".sq-order");
+  await page.getByRole("radio", { name: "유지" }).click();
+  await page.locator(".sq-confirm").click();
+  // the next two scenes alone: nothing lit, nothing dimmed
+  for (let t = 1; t < 3; t++) {
+    await expect.poll(async () => (await sq(page))?.step, { timeout: 30000 }).toBe("turn");
+    await expect(page.locator(".sc")).toHaveCount(0);
+    await page.getByRole("button", { name: "수첩 펼치기" }).click();
+    await page.getByRole("radio", { name: "비슷할 것이다" }).click();
+    await page.locator(".sq-field textarea").fill("판촉비가 18% 늘어서 주문은 비슷할 것이다");
+    await btn(page, "작성 완료").click();
+    await page.getByRole("radio", { name: "유지" }).click();
+    await btn(page, "확정").click();
+  }
+  await expect.poll(async () => (await sq(page))?.step, { timeout: 30000 }).toBe("result");
+  await lit(".sq-ask-master");
+  await lit(".sq-to-fb");
+  await expect.poll(target).toBe(".sq-feedback");
+  await page.locator(".sq-to-desk").click();
+  await expect(page.locator(".sq")).toHaveCount(0);
+  // once: back in the house it does not open again, nor light anything
   await page.reload();
-  await btn(page, "책갈피부터 이어 보기").click();
-  await expect.poll(async () => (await caseFile(page))?.pages).toBe(1);
+  await expect(page.getByTestId("house")).toBeVisible();
+  await page.waitForTimeout(1500);
+  await expect(page.locator(".sq")).toHaveCount(0);
 });
 
 test("a paper left alone stamps 시간 초과 and turns over; leaving halfway goes on from the next paper", async ({ page }) => {
@@ -90,7 +190,7 @@ test("보리's paws stay where the day is: the plate, the case file, the place I
   const a = await at(); await page.waitForTimeout(300); const b = await at();
   expect(Math.abs(a - b)).toBeGreaterThan(0.0005);
   await page.goto("/?house&quizlv=5&quest");
-  await expect(page.locator(".cd")).toBeVisible({ timeout: 15000 });
+  await expect(page.locator(".sq")).toBeVisible({ timeout: 15000 });
   await expect(page.getByTestId("house")).toHaveAttribute("data-paws", /case-/);
 });
 

@@ -6,22 +6,35 @@
 //   Harvest        4장 the farmer's 가상 종목 매도: a stock, a quantity bar from 0 to all, and the cart's labels
 //   NewsBoard      6장 the board on the square: today's articles on my holdings by theme
 //   TreeStatus     3장 a tree's status, read only: bought when, average price, return, worth now, the company
-import {useEffect,useRef,useState} from 'react';
+import {useEffect,useMemo,useRef,useState} from 'react';
+import {pagesOf} from '../../core/talk';
 import {screenPoints} from '../screen';
 import {Sheet} from './Sheet';
 import {won} from '../../core/won';
 import {THEMES,articlesFor,dayBeforeArticle,overviewOf,type Theme} from '../../content/village-news';
 import type {CartLoad} from '../../core/walk';
+import {ROLE_TAG} from '../../content/villagers';
 
 export type Choice={label:string;go:()=>void};
-export function VillagerTalk({name,who,role,line,choices,onLeave}:{name:string;who?:string;role?:string;line:string;choices:Choice[];onLeave?:()=>void}){
-  return <div className="rt-talk vl-villager" role="dialog" aria-label={name} data-villager={who}>
+// 피드백 2026-11-22 (UI 피드백): one or two sentences a bubble (core/talk.ts); "계속" (or a tap on the bubble) shows the
+// next, and the answers come with the last. The buttons sit on the bubble itself. e2e: window.__talkAll shows it whole.
+export function TalkBox({name,who,role,line,choices,className,nameWho,onLeave}:{name:string;who?:string;role?:string;line:string;choices:Choice[];className?:string;nameWho?:string;onLeave?:()=>void}){
+  const pages=useMemo(()=>(window as unknown as {__talkAll?:boolean}).__talkAll?[line]:pagesOf(line),[line]);
+  const [n,setN]=useState(0);useEffect(()=>setN(0),[line]);
+  const i=Math.min(n,pages.length-1),more=i<pages.length-1;
+  return <div className={'rt-talk '+(className??'')} role="dialog" aria-label={name} data-villager={who}>
     {onLeave&&<button type="button" className="rt-talk-leave" onClick={onLeave}>그만 이야기하기</button>}
-    <div className="rt-talk-choices" role="group" aria-label="대답">{choices.map((c,i)=>
-      <button key={c.label} type="button" className={'rt-talk-choice'+(i===0?' first':'')} onClick={c.go}>{c.label}</button>)}</div>
-    <div className="rt-talk-box"><span className="rt-talk-name" data-who={who==='bori'||who==='naru'?who:undefined}>{name}{role&&<small className="rt-talk-role">{role}</small>}</span>
-      <p className="rt-talk-line" aria-live="polite">{line}</p></div>
+    <div className="rt-talk-box" data-more={more} onClick={e=>{if(more&&e.target===e.currentTarget)setN(i+1)}}>
+      <span className="rt-talk-name" data-who={nameWho}>{name}{role&&<small className="rt-talk-role">{role}</small>}</span>
+      <p className="rt-talk-line" aria-live="polite" onClick={()=>{if(more)setN(i+1)}}>{pages[i]}</p>
+      <div className="rt-talk-choices on-box" role="group" aria-label="대답">
+        {pages.length>1&&<span className="rt-talk-page rt-num" aria-hidden>{i+1}/{pages.length}</span>}
+        {more?<button type="button" className="rt-talk-choice first rt-talk-next" onClick={()=>setN(i+1)}>계속</button>
+          :choices.map((c,k)=><button key={c.label} type="button" className={'rt-talk-choice'+(k===0?' first':'')} onClick={c.go}>{c.label}</button>)}</div></div>
   </div>;
+}
+export function VillagerTalk({name,who,role,line,choices,onLeave}:{name:string;who?:string;role?:string;line:string;choices:Choice[];onLeave?:()=>void}){
+  return <TalkBox className="vl-villager" name={name} who={who} role={role} line={line} choices={choices} onLeave={onLeave} nameWho={who==='bori'||who==='naru'?who:undefined}/>;
 }
 
 export function WalkGuide({who,what,n,total}:{who:string;what:string;n:number;total:number}){
@@ -125,5 +138,5 @@ export function VillagerTags({items,onPick}:{items:{id:string;name:string;hl:boo
       if(!p||!p.visible||p.y<60){el.style.visibility='hidden';continue}el.style.visibility='visible';el.style.transform=`translate(${p.x}px,${p.y}px) translate(-50%,-100%)`}
     raf=requestAnimationFrame(tick)};tick();return()=>cancelAnimationFrame(raf)},[]);
   return <>{items.map(t=><button key={t.id} type="button" className="vl-npc-tag" data-npc={t.id} data-hl={t.hl} style={{visibility:'hidden'}} aria-label={`${t.name}에게 말 걸기`}
-    ref={el=>{if(el)refs.current.set(t.id,el);else refs.current.delete(t.id)}} onClick={()=>onPick(t.id)}>{t.name}{t.note&&<small>{t.note}</small>}</button>)}</>;
+    ref={el=>{if(el)refs.current.set(t.id,el);else refs.current.delete(t.id)}} onClick={()=>onPick(t.id)}>{t.name}{(t.note??ROLE_TAG[t.id])&&<small>{t.note??ROLE_TAG[t.id]}</small>}</button>)}</>;
 }

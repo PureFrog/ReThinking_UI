@@ -62,6 +62,10 @@ export const LOOK={
   analystTurn:5,
   walk:{speed:4,accel:10,turn:12,brake:0.7,keyStep:0.8},
   // 유저 워크플로우 2장: a tap on someone further than reach walks me up to stand this far in front of them
+  // 피드백 2026-11-22: the tutorial's lead (Scene3D world.lead): how far off the way I may step, the light elsewhere
+  lead:{width:3.2,near:3.0,dim:0.42},
+  // 피드백 2026-11-22 (나무 이름표): a tree's name is a small plant marker at its foot, shown only near me (the closest few)
+  treeTag:{near:4.2,most:3},
   villager:{reach:2.8,stand:2.1},
 
   // the grade reveal reaching the tree (Scene3D Burst): sparks for a hit, autumn leaves for a miss

@@ -47,7 +47,7 @@ function FencePiece({len}:{len:number}){
   </group>;
 }
 // the board's words, painted on a canvas (the browser's own Korean font)
-function signTexture(text:string,color:string){
+export function signTexture(text:string,color:string){
   const c=document.createElement('canvas');c.width=512;c.height=200;const x=c.getContext('2d')!;
   x.fillStyle=color;x.fillRect(0,0,512,200);x.strokeStyle='#00000022';x.lineWidth=10;x.strokeRect(5,5,502,190);
   const font="104px 'Jua','Gowun Dodum','Apple SD Gothic Neo','Malgun Gothic',sans-serif";

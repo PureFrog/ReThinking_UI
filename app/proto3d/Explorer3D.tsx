@@ -4,7 +4,8 @@
 // colour set by material name (primary, secondary, accent) and drawn with the shared soft material. Animation is code
 // on the named pivots: walking bob and arm swing, breathing, blinking, and an act for the stage (a twirl, a look).
 import {useEffect,useMemo,useRef} from 'react';
-import {useFrame} from '@react-three/fiber';
+import {useFrame,createPortal} from '@react-three/fiber';
+import type {Kit} from './RoleKit';
 import {useGLTF} from '@react-three/drei';
 import * as THREE from 'three';
 import {soft} from './materials';
@@ -16,7 +17,8 @@ const glow=new THREE.MeshStandardMaterial({color:'#fff1c4',emissive:'#ffc867',em
 const glass=new THREE.MeshStandardMaterial({color:'#dff3ff',transparent:true,opacity:0.55,roughness:0.05});
 // the soft material for a model's material, with the colour set applied to the tintable ones
 function dress(root:THREE.Object3D,pal:{primary:string;secondary:string;accent:string},coat?:THREE.Object3D|null){
-  root.traverse(o=>{const m=o as THREE.Mesh;if(!m.isMesh)return;m.castShadow=true;m.receiveShadow=true;
+  // no shadows received on the figure (2026-11-23): the wide hat brim under a high sun darkened the whole face and body
+  root.traverse(o=>{const m=o as THREE.Mesh;if(!m.isMesh)return;m.castShadow=true;m.receiveShadow=false;
     const src=m.material as THREE.MeshStandardMaterial,n=src.name.replace(/\.\d+$/,'');
     m.material=n==='eye'?eyeMat:n==='lamp'?glow:n==='glass'?glass:
       n==='primary'?soft(coat?coatColor(coat,pal):pal.primary):n==='secondary'?soft(pal.secondary):n==='accent'?soft(pal.accent):soft('#'+src.color.getHexString(THREE.SRGBColorSpace))});
@@ -26,8 +28,9 @@ const coatColors=new WeakMap<THREE.Object3D,string>();
 function coatColor(coat:THREE.Object3D,pal:{primary:string}){return coatColors.get(coat)??pal.primary}
 
 export type ExplorerAct='idle'|'walk'|'look'|'twirl';
-export function Explorer({look,act='idle',moving}:{look:Look;act?:ExplorerAct;moving?:React.MutableRefObject<boolean>}){
-  const pal=PALETTES.find(p=>p.id===look.palette)??PALETTES[0];
+// kit (RoleKit.tsx): a villager's own colours and the things put on the sockets (hat, head, body, both hands)
+export function Explorer({look,act='idle',moving,kit}:{look:Look;act?:ExplorerAct;moving?:React.MutableRefObject<boolean>;kit?:Kit}){
+  const pal0=PALETTES.find(p=>p.id===look.palette)??PALETTES[0],pal=kit?.tint?{...pal0,id:pal0.id+':'+kit.tint.primary,...kit.tint}:pal0;
   const files=[look.coat,look.hat,look.bag,look.tool].filter(Boolean) as string[];
   const {scene}=useGLTF(MODELS.explorer);
   const items=useGLTF(files.map(f=>MODELS.wear(f)));
@@ -40,6 +43,8 @@ export function Explorer({look,act='idle',moving}:{look:Look;act?:ExplorerAct;mo
       if(i===coatFile){coat=part;coatColors.set(part,f==='coat_lab'?'#f4f1e8':f==='coat_rain'?'#e6b93a':pal.primary)}
       dress(part,pal);at.add(part)});
     dress(root,pal,coat);
+    // the left hand has no socket of its own: one where the right one is, mirrored
+    const al=get('arm_l');if(al&&!al.getObjectByName('hand_lk')){const o=new THREE.Object3D();o.name='hand_lk';o.position.set(-0.1,-0.3,0.1);al.add(o)}
     return root},[scene,items,files.join(','),pal.id]);// eslint-disable-line react-hooks/exhaustive-deps
   const parts=useMemo(()=>{const g=(n:string)=>model.getObjectByName(n)??null;
     return {body:g('body'),head:g('head'),armL:g('arm_l'),armR:g('arm_r'),eyes:[g('eye_l'),g('eye_r')].filter(Boolean) as THREE.Object3D[],
@@ -57,6 +62,8 @@ export function Explorer({look,act='idle',moving}:{look:Look;act?:ExplorerAct;mo
     if(spin.current)spin.current.rotation.y=act==='twirl'?spin.current.rotation.y+Math.min(dt,0.05)*9:THREE.MathUtils.lerp(spin.current.rotation.y,0,0.08);
     blink.current-=Math.min(dt,0.05);const shut=blink.current<0.12;if(blink.current<0)blink.current=2.5+Math.random()*3;
     for(const e of eyes)e.scale.y=rest.eye*(shut?0.15:1)});
-  return <group ref={spin}><primitive object={model}/></group>;
+  const sock=(n:string)=>model.getObjectByName(n)??null;
+  const put=(node:React.ReactNode,n:string)=>{const at=node?sock(n):null;return at?createPortal(<>{node}</>,at):null};
+  return <group ref={spin}><primitive object={model}/>{kit&&<>{put(kit.hat,'hat')}{put(kit.head,'head')}{put(kit.body,'body')}{put(kit.handR,'hand')}{put(kit.handL,'hand_lk')}</>}</group>;
 }
 useGLTF.preload(MODELS.explorer);

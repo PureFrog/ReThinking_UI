@@ -741,3 +741,10 @@ html[data-text="l"] .proto3d :is(.rt-sheet,.rt-me-panel,.rt-dock,.rt-next){zoom:
 .qr-quote{margin:6px 0;padding:6px 10px;border-left:3px solid #2f8a3a55;background:#2f8a3a0d;font-size:13.5px}
 .qr-dl{margin:6px 0;display:grid;gap:4px}.qr-dl div{display:flex;gap:10px}.qr-dl dt{flex:0 0 42px;color:var(--rt-mute);font-size:12.5px}.qr-dl dd{margin:0;font-size:13.5px}
 .qr-why{margin:8px 0 0;font-size:13px;color:#4a5246;line-height:1.55}
+/* 피드백 2026-11-22 (UI 피드백): the answers sit on the bubble itself, under the line (ui/Walk.tsx TalkBox) */
+.rt-talk-choices.on-box{position:static;flex-direction:row;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:8px;margin-top:12px}
+.rt-talk-choices.on-box .rt-talk-choice{min-width:0;padding:9px 16px;font-size:15px;backdrop-filter:none;-webkit-backdrop-filter:none;background:#f4f1e8;border-color:#e2dccb;box-shadow:none}
+.rt-talk-choices.on-box .rt-talk-choice.first{background:#22281f;color:#fff;border-color:#22281f}
+.rt-talk-page{margin-right:auto;font-size:12px;color:#8a8273}
+.rt-talk-box[data-more=true] .rt-talk-line{cursor:pointer}
+.rt-talk-line{min-height:0}

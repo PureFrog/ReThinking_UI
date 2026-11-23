@@ -41,7 +41,7 @@ export function JigiWrite({j,today,marks,edit,onSave,onClose,onSaved,tasks=[],ai
     if(slot==='stock')return <div className="jg-pick"><input className="rt-input" type="search" value={q} onChange={e=>setQ(e.target.value)} placeholder="종목명 또는 종목코드" aria-label="종목 검색" autoFocus/>
       <div className="jg-results">{searchStocks(q).map(s=><button key={s.code} type="button" className="rt-row" onClick={()=>{edit(x=>{const y={...x};setStock(y,s.code,today);return y});setSlot(null);setQ('');arm()}}>
         <div><strong>{s.name}</strong><small>{s.code} · {s.mkt}</small></div></button>)}
-        {q&&!searchStocks(q).length&&<p className="rt-hint">찾는 종목이 없어요. 지금은 12개 종목만 돼요. 예: 삼성전자, 000660</p>}</div></div>;
+        {q&&!searchStocks(q).length&&<p className="rt-hint">찾는 종목이 없어요. 코스닥120 종목으로 찾아 봐요. 예: 하림, 095660</p>}</div></div>;
     const k=slot;return <div className="jg-pick rt-seg" role="group" aria-label={PICK_LABEL[k]}>{PICKS[k].map(v=><button key={v} type="button" aria-pressed={f[k]===v}
       onClick={()=>{set({[k]:f[k]===v&&(k==='mood'||k==='conf')?'':v} as Partial<Journal['f']>);setSlot(null);arm()}}>{v}</button>)}</div>};
   const save=()=>{const r=onSave();if('missing' in r){const m=r.missing[0];setPage(m.page-1);setMiss(m.key);return}setSaved(`저장했어요 · 버전 ${r.version}`);setTimeout(onSaved??onClose,700)};

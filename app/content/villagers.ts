@@ -21,23 +21,29 @@ const V:Villager[]=[
 ];
 // 피드백 2026-11-21 "농부가 한가운데": the farmer stands between the real field and the virtual field, with the cart
 // beside him (placed in the spread layout directly)
-const PLACED:Partial<Record<VillagerId,{x:number;z:number}>>={farmer:{x:11.3,z:3.5}};
-export const VILLAGERS:Villager[]=V.map(v=>PLACED[v.id]?{...v,...PLACED[v.id]!,face:0}:spreadXZ(v));
+// 피드백 2026-11-23 "맵을 넓게, 너무 옹기종기": each station has its own corner of the village (places.ts PLACE_AT): the
+// building shop far west, the clothes stall south-west by the stream, the news board north-west of the middle, the
+// library (with the 사서) north-east (spread coordinates, written directly)
+const PLACED:Partial<Record<VillagerId,{x:number;z:number;face?:number}>>={farmer:{x:11.3,z:3.5,face:0},
+  builder:{x:-18.1,z:2.3,face:1.4},tailor:{x:-14.4,z:11.2,face:1.2},paperboy:{x:-7.6,z:-4.4,face:0.6},librarian:{x:9.9,z:-10.0,face:-0.74}};
+export const VILLAGERS:Villager[]=V.map(v=>{const p=PLACED[v.id];return p?{...v,x:p.x,z:p.z,face:p.face??v.face}:spreadXZ(v)});
 export const villager=(id:VillagerId)=>VILLAGERS.find(v=>v.id===id)!;
 // the things that stand by them (compact layout, spread): the news board, the clothes stall, the merchant's stall,
 // the farmer's cart
 // 피드백 2026-11-21 "위치를 잘 이쁘게": the board by the north path, the clothes stall up the west side, the builder
 // beside the shop cart: each with its own patch of lawn
-export const NEWS_BOARD=spreadXZ({x:-3.3,z:-4.0,rot:0.6});
-export const TAILOR_STALL=spreadXZ({x:-10.4,z:1.9,rot:1.3});
+export const NEWS_BOARD={x:-9.0,z:-5.2,rot:0.6};
+// 피드백 2026-11-23 "건물점원 옆에 옷 점원": the clothes shop right beside the building shop (place('cart', -19,0.8),
+// facing the same way), a step south of it
+export const TAILOR_STALL={x:-21.4,z:7.2,rot:1.2};
 export const MERCHANT_STALL=spreadXZ({x:18.4,z:2.0,rot:-1.9});
 export const FARM_CART={x:12.5,z:4.5,rot:0.3};
 
 // what each says when the first walk is not at their station yet (보리 points back to the current one)
 export const WALK_LINES={
-  square:'나는 보리야. 첫 산책 동안 길을 알려 줄게. 여기가 우리 마을이야. 저기 두 밭이랑 도서관 보이지? 다니기 전에 내가 마을 친구들한테 한 명씩 데려다줄게. 너는 그냥 보면서 각자 무슨 일을 하는지 들어 봐.',
+  square:'나는 보리야. 첫 산책 동안 길을 알려 줄게. 여기가 우리 마을이야. 저기 두 밭이랑 도서관 보이지? 다니기 전에 마을 친구들을 한 명씩 만나 보자. 만날 친구한테 빛을 비춰 줄게. 빛나는 길을 따라 직접 걸어가 봐.',
   hint:(who:string,what:string)=>`지금은 ${who}한테 가 보자. ${what}`,
-  done:'이제 마을 어디든 마음대로 다녀. 아, 집에 한 번 다시 들어가 봐. 선생님이랑 사서가 집 안에서 기다리고 있어.',
+  done:'이제 마을 어디든 마음대로 다녀. 아, 집에 한 번 다시 들어가 봐. 선생님이 집 안에서 기다리고 있어.',
 };
 // the station's goal in a few words (the guide at the top of the screen and 보리's hint)
 export const STEP_GOAL:Record<string,{who:string;what:string}>={
@@ -54,9 +60,11 @@ export const STEP_GOAL:Record<string,{who:string;what:string}>={
 // 피드백 2026-11-21 "각 캐릭터 역할도 소개": who each one is, under the name in every talk, and what each says the first
 // time I come out to the village (보리 introduces them one by one on the square, the camera in front of each)
 export const ROLE:Record<string,string>={
-  teacher:'퀴즈 선생님 · 방',tori:'분석가 · 돈 버는 힘',moa:'분석가 · 쓰러질 위험',luon:'분석가 · 건강검진 9칸 · 채점',bori:'마을 안내',farmer:'실제 종목 밭 · 매도 담당',merchant:'가상 종목 밭 · 매수 담당',librarian:'집 안 책장 · 투자일지',
+  teacher:'퀴즈 선생님 · 방',tori:'분석가 · 돈 버는 힘',moa:'분석가 · 쓰러질 위험',luon:'분석가 · 건강검진 9칸 · 채점',bori:'마을 안내',farmer:'실제 종목 밭 · 매도 담당',merchant:'가상 종목 밭 · 매수 담당',librarian:'도서관 · 투자일지',
   paperboy:'뉴스 표지판 · 내 종목 소식',naru:'낚시터 · 코인 벌기',builder:'건물 상점 · 마을 꾸미기',tailor:'옷 상점 · 옷장',
 };
+// 피드백 2026-11-22 "역할이 드러나게": what each one does, in a word with its sign, on the name tag over them
+export const ROLE_TAG:Record<string,string>={farmer:'🌾 내 종목 심기·팔기',merchant:'📟 가상 종목 사기',paperboy:'📰 내 종목 소식',builder:'🏠 건물 상점 · 꾸미기',tailor:'👕 옷 가게',naru:'🎣 낚시로 코인',librarian:'📖 도서관 · 투자일지'};
 export const INTRO:Record<string,string>={
   // 피드백 2026-11-22: the three analysts are met first, the same way (their lines from content/intro.ts)
   tori:'안녕, 나는 토리야. 나는 회사가 돈을 어떻게 버는지 봐. 물건을 많이 팔아서 버는지, 하나 팔 때 많이 남겨서 버는지, 빚을 내서 크게 굴려서 버는지 나눠서 살펴. 네 나무 중에 돈 버는 힘이 약해진 회사가 보이면, 내가 그 나무 옆에서 말풍선으로 알려 줄게.',

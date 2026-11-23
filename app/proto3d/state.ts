@@ -34,7 +34,7 @@ import {isoDay} from '../core/items';
 import {outcomeProvider} from '../content/outcomes';
 import {giftOf,itemById,rankItem,type GardenItem} from '../content/garden-items';
 import {analystById,UI,line,type AnalystId} from '../content/analysts';
-import {DEMO_HOLDINGS} from '../content/demo-garden';
+import {DEMO_HOLDINGS,DEMO_KOSDAQ} from '../content/demo-garden';
 import type {Holding} from '../core/model';
 import {DEFAULT_LOOK,type Look} from '../core/wardrobe';
 import type {RunRecord} from '../core/game/run';
@@ -53,7 +53,7 @@ export const DEFAULT_SETTINGS:Settings={sfx:0.7,still:false,text:'m',tilt:true,s
 // seen: how many times each long scene was played (docs/brief-wow.md: long the first time, short after)
 export type Seen={birth:number;cutaway:number;bury:number};
 // name, look: the player's observer (ui/MyPage.tsx) · stamps: achievements and the day each was earned · wardrobe: pieces bought
-export type GardenSave={v:1;wonV?:1/* coins counted in 원 (core/won.ts) */;virtual?:VirtualLot[]/* 가상 종목 밭 (core/virtual.ts) */;grants?:string[]/* one-off coin gifts already given (the tutorial's start money) */;holdings:Holding[];onboarded:boolean;lookedBack:boolean;sound:boolean;seen:Seen;name:string;look:Look;stamps:{id:StampId;day:string}[];wardrobe:string[];tips:string[];settings:Settings;letters:string[];weeksDone:string[];rewinds:RewindRound[];daysDone:string[];rankSeen:number;judgments:Judgment[];graded:Graded[];cooldowns:Cooldown[];cases:CaseAnswer[];streak:Streak;currency:number;
+export type GardenSave={v:1;example?:boolean/* the example garden (예시 정원으로 시작): its real field holds example stocks until I put in my own */;wonV?:1/* coins counted in 원 (core/won.ts) */;virtual?:VirtualLot[]/* 가상 종목 밭 (core/virtual.ts) */;grants?:string[]/* one-off coin gifts already given (the tutorial's start money) */;holdings:Holding[];onboarded:boolean;lookedBack:boolean;sound:boolean;seen:Seen;name:string;look:Look;stamps:{id:StampId;day:string}[];wardrobe:string[];tips:string[];settings:Settings;letters:string[];weeksDone:string[];rewinds:RewindRound[];daysDone:string[];rankSeen:number;judgments:Judgment[];graded:Graded[];cooldowns:Cooldown[];cases:CaseAnswer[];streak:Streak;currency:number;
   trust:Record<AnalystId,Relation>;owned:Owned[];gifted:AnalystId[];bought:{itemId:string;day:string}[];
   // 관측소 원정 runs (core/game/run.ts): the 판, its decisions and score; the latest of a 판 is the next run's ghost
   expeditions:RunRecord[];
@@ -177,10 +177,13 @@ export function useGarden(){
       return ok;
     },
     // the onboarding's or a later recapture's confirmed list; demo: swap in the whole demo garden instead
-    setHoldings(holdings:Holding[]){setS(p=>({...p,holdings,onboarded:true}))},
+    setHoldings(holdings:Holding[]){setS(p=>({...p,holdings,onboarded:true,example:false}))},
     // 피드백 2026-11-22: "예시 정원으로 시작" on the first screen is still a new player: the room's first quiz and the first walk
     // (the introductions) come the same as with my own stocks; only ?demo in the address skips them
-    useDemo(){setS(()=>{const d=demoSave(c.today);return {...d,tips:d.tips.filter(t=>t!=='tour'&&t!=='house')}})},
+    // 피드백 2026-11-22: the example garden from the first screen: KOSDAQ example stocks, marked as an example (the farmer
+    // asks before planting them), no journals written on stocks I never chose
+    useDemo(){setS(()=>{const d=demoSave(c.today),nm=(id:number)=>DEMO_KOSDAQ.find(h=>h.id===id)?.name??'';
+      return {...d,example:true,holdings:DEMO_KOSDAQ,journals:[],judgments:d.judgments.map(j=>({...j,name:nm(j.holdingId)})),tips:d.tips.filter(t=>t!=='tour'&&t!=='house')}})},
     skipLookback(){setS(p=>({...p,lookedBack:true}))},
     // today's three all done (core/today.ts): the day closes once, with a small bonus
     closeDay(){let closed=false;setS(p=>{if(p.daysDone.includes(c.today))return p;closed=true;return {...p,daysDone:[...p.daysDone.slice(-60),c.today],currency:p.currency+EARN.dayDone}});

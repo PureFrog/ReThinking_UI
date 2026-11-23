@@ -6,7 +6,8 @@
 //   Cart         the peddler's cart, sells garden items for the currency (R6)
 //   Pot          a cooldown seed beside a tree: a sprout while it waits, a flower once waited out (R4)
 //   Decor        items placed on the garden's slots (R6, app/content/garden-items.ts)
-import {useRef} from 'react';
+import {useMemo,useRef} from 'react';
+import {signTexture} from './Build3D';
 import {useFrame,type ThreeEvent} from '@react-three/fiber';
 import * as THREE from 'three';
 import {soft} from './materials';
@@ -37,6 +38,7 @@ export function Observatory({onPick,lit}:{onPick:()=>void;lit:boolean}){
 export function Signpost({onPick,hitRate}:{onPick:()=>void;hitRate:number|null}){
   // the board's stripe fills with the hit rate: an at-a-glance read of the track record
   const k=hitRate===null?0:hitRate/100;
+  const tex=useMemo(()=>typeof document!=='undefined'?signTexture('마을 지도','#f2ede2'):null,[]);
   return <group onClick={click(onPick)} name="signpost">
     {/* a wider, invisible tap area: from an upright phone the camera looks down on the thin post */}
     <mesh position-y={1} name="signpost-hit"><cylinderGeometry args={[0.9,0.9,2,16]}/><meshBasicMaterial transparent opacity={0} depthWrite={false}/></mesh>
@@ -44,7 +46,8 @@ export function Signpost({onPick,hitRate}:{onPick:()=>void;hitRate:number|null})
     <mesh position={[0,1.45,0.06]} castShadow><boxGeometry args={[1.3,0.6,0.08]}/>{S('#f2ede2')}</mesh>
     <mesh position={[-0.55+0.55*k,1.3,0.105]} scale={[Math.max(0.001,k),1,1]}><boxGeometry args={[1.1,0.08,0.01]}/>{S('#1e6b4a')}</mesh>
     <mesh position={[0,1.3,0.1]}><boxGeometry args={[1.1,0.08,0.005]}/>{S('#d8d2c4')}</mesh>
-    {[[-0.35,1.55],[-0.05,1.55],[0.25,1.55]].map(([x,y],i)=><mesh key={i} position={[x,y,0.105]}><boxGeometry args={[0.22,0.05,0.01]}/>{S('#9aa39c')}</mesh>)}
+    {/* the board's words (2026-11-23: the grey stripes read as a blank, broken sign) */}
+    {tex&&<mesh position={[0,1.56,0.102]}><planeGeometry args={[0.96,0.375]}/><meshBasicMaterial map={tex} toneMapped={false}/></mesh>}
   </group>;
 }
 
