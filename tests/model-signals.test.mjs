@@ -153,3 +153,11 @@ test('drop lines ask nothing and predict nothing', () => {
   const n=V.dropNote(holding(),drop());
   for(const t of [n.headline,n.say,...Object.values(n.counter)])assert.doesNotMatch(t,/팔아|사라|매수해|매도해|오를 거|내릴 거|떨어질 거/,t);
 });
+
+test('the KOSDAQ120 list is the models\' universe (stock_coverage.csv, 2026-11-23)', async () => {
+  const {KOSDAQ120}=await load('content/kosdaq120');
+  const codes=new Set(KOSDAQ120.map(k=>k.code));
+  assert.equal(codes.size,120);
+  for(const c of ['900110','900250','900310'])assert.ok(!codes.has(c),c);
+  for(const c of ['042600','123410','126600'])assert.ok(codes.has(c),c);
+});
