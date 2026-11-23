@@ -767,3 +767,41 @@ html[data-text="l"] .proto3d :is(.rt-sheet,.rt-me-panel,.rt-dock,.rt-next){zoom:
 .rt-bridge.lift .rt-bridge-in{transform:translateY(70vh) scale(.92);opacity:0}
 @media (prefers-reduced-motion:reduce){.rt-bridge-list li,.rt-bridge-note{animation:none;opacity:1;transform:none}.rt-bridge,.rt-bridge-in{transition:none}}
 @media (orientation:landscape) and (max-height:500px){.rt-bridge-in{padding-top:10px}.rt-bridge-t{margin-bottom:8px;font-size:17px}.rt-bridge-list li{padding:7px 14px}}
+/* 처분효과 (멘토링 1.7): the same question on every tree card, a gain or a loss (content/recheck.ts) */
+.proto3d-card .rt-recheck{flex-basis:100%;margin:10px 10px 0 0;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.55)}
+.proto3d-card .rt-recheck p{font-size:13.5px;font-weight:600;color:var(--rt-ink);line-height:1.45}
+.proto3d-card .rt-recheck .rt-recheck-views{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:6px;font-size:12.5px;font-weight:500;color:var(--rt-sub)}
+.proto3d-card .rt-recheck .rt-recheck-views b{color:var(--rt-ink)}
+.proto3d-card .rt-recheck .rt-recheck-views em{font-style:normal;font-weight:700;font-size:11.5px;padding:1px 7px;border-radius:999px;background:#fde7c8;color:#8a4b00}
+.proto3d-card .rt-recheck p.rt-recheck-note{margin-top:6px;font-size:12px;font-weight:400;line-height:1.5;color:var(--rt-sub)}
+/* 탐지 모드 대사의 서버 시각 (ui/Friend.tsx, core/llm1/engine.ts stamp) */
+.rt-talk-name .rt-talk-at{margin-left:8px;font-size:11px;font-weight:500;opacity:.7}
+/* 통신기 (ui/Comm.tsx): the practice-account MTS over the garden, in the /mts look (app/mts/mts.css) */
+.rt-comm{position:fixed;inset:0;z-index:32;background:rgba(20,26,34,.38);animation:rt-comm-in .22s ease-out}
+.rt-comm .mts-shell{position:absolute;background:transparent}
+@media(min-width:700px){.rt-comm .mts-shell{padding:24px 0}.rt-comm .mts-phone{border-radius:22px}}
+@keyframes rt-comm-in{from{opacity:0}to{opacity:1}}
+.rt-comm .mts-top-r{display:flex;align-items:center;gap:8px}
+.rt-comm-x{width:32px;height:32px;border:0;border-radius:99px;background:#eef0f3;color:#3a4553;font-size:14px;cursor:pointer}
+.rt-comm-kind.k-virtual{color:#8a4b00;border-color:#f3d3a8;background:#fff6ea}
+.rt-comm-order{padding-top:10px}
+.rt-comm-side{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 16px 10px}
+.rt-comm-side button{min-height:40px;border:1px solid var(--mts-line);border-radius:10px;background:#fff;font-weight:700;color:var(--mts-sub);cursor:pointer}
+.rt-comm-side button[aria-selected=true].s-buy{background:var(--mts-up);border-color:var(--mts-up);color:#fff}
+.rt-comm-side button[aria-selected=true].s-sell{background:var(--mts-down);border-color:var(--mts-down);color:#fff}
+.rt-comm-msg{margin:0 16px 10px;padding:9px 12px;border-radius:10px;background:#eef2f8;font-size:13px}
+.rt-comm-form{margin:0 16px;padding:14px;background:#fff;border:1px solid var(--mts-line);border-radius:14px;display:grid;gap:10px}
+.rt-comm-form h3{margin:0;font-size:17px}.rt-comm-form h3 small{font-size:13px;color:var(--mts-sub);font-weight:600;margin-left:4px}
+.rt-comm-news{display:grid;gap:4px;padding:10px 12px;border-radius:10px;background:var(--mts-bg);font-size:13px}
+.rt-comm-news span{font-size:11px;color:var(--mts-sub)}.rt-comm-news p{margin:0;color:var(--mts-sub)}
+.rt-comm-dl{margin:0;display:grid;gap:8px}.rt-comm-dl div{display:flex;justify-content:space-between;align-items:center;font-size:14px}
+.rt-comm-dl dt{color:var(--mts-sub)}.rt-comm-dl dd{margin:0;font-weight:700;font-variant-numeric:tabular-nums}
+.rt-comm-go{min-height:46px;border:0;border-radius:12px;font-weight:800;font-size:15px;color:#fff;cursor:pointer}
+.rt-comm-go.buy{background:var(--mts-up)}.rt-comm-go.sell{background:var(--mts-down)}.rt-comm-go:disabled{background:#c9ced6;cursor:default}
+.rt-comm-bar{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--mts-sub)}.rt-comm-bar input{flex:1}
+.rt-comm-now{margin:0;font-weight:700;font-variant-numeric:tabular-nums}
+/* the communicator's button on the screen, above the notebook */
+.vl-comm{bottom:calc(140px + env(safe-area-inset-bottom));right:16px}
+.rt-comm .mts-tabs{grid-template-columns:repeat(3,1fr)}
+.rt-comm .mts-brand span{white-space:nowrap}
+@media(max-width:430px){.rt-comm .mts-demo{display:none}}

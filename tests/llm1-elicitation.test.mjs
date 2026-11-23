@@ -189,3 +189,16 @@ test('each turn gives an ops line without any message text; the company file goe
   assert.equal(line.mode,'elicitation');assert.equal(line.llm,'scripted');assert.equal(typeof line.llm_ms,'number');assert.equal(line.format_or_network_errors,0);
   assert.equal(line.elicitation_status,'collecting');assert.doesNotMatch(JSON.stringify(line),/삼성전자 어떻게/);
 });
+
+// 사용자 요청 2026-11-23: 탐지 모드 출력에는 서버가 처리한 시각이 찍히고, 평상시 모드에는 없다
+test('detection-mode output carries the time (KST); daily talk does not', async () => {
+  const h=harness();h.signal(['005930']);
+  const o=await h.open(elic('삼성전자 손절 신호가 떴더라. 왜 샀는지 얘기해줄래?'));
+  assert.equal(o.mode,'elicitation');assert.equal(o.at,'2026-11-16T10:00:00+09:00');
+  h.advance(90);
+  const r=await h.say('실적이 좋아질 것 같았어',elic('어떤 실적을 봤어?'));
+  assert.equal(r.mode,'elicitation');assert.equal(r.at,'2026-11-16T10:01:30+09:00');
+  await h.say('이 얘기 그만하자',elic('응, 알았어.'));
+  const d=await h.say('오늘 날씨 좋다',JSON.stringify({reply:{text:'그러게.',emotion:'happy',mentioned_news_ids:[]},conversation_state_update:null,profile_update:{base_revision:null,changes:[],strategy_proposals:[]},elicitation:null}));
+  assert.equal(d.mode,'daily');assert.equal('at' in d,false);
+});

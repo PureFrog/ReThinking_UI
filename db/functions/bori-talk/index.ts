@@ -107,5 +107,6 @@ Deno.serve(async(req:Request)=>{
   if(store.jobs.some(j=>j.status==='ready'||j.status==='queued'))store=(await runDeliveryWorker(store,receive,Date.now())).store;
   await persist(store);
   if(result)await fetch(`${url}/rest/v1/llm1_ops`,{method:'POST',headers:svc,body:JSON.stringify({player_id:me.id,entry:opsEntry(result,world)})}).catch(()=>null);
-  return json({reply:result?.reply??null,learned:result?.profile_applied.length??0,detection:status(store)});
+  // at: 탐지 모드 턴에만 (core/llm1/engine.ts stamp), 평상시 모드는 null
+  return json({reply:result?.reply??null,at:result?.at??null,learned:result?.profile_applied.length??0,detection:status(store)});
 });

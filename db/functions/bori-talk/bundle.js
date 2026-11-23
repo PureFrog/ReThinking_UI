@@ -871,6 +871,7 @@ var LLM1 = {
 };
 var FALLBACK_REPLY = { text: "\uC5B4\u2026 \uC7A0\uAE50 \uB9D0\uC774 \uAF2C\uC600\uB124. \uBC29\uAE08 \uAC70 \uB2E4\uC2DC \uD55C \uBC88 \uB9D0\uD574\uC904\uB798?", emotion: "thinking" };
 var iso = (ms) => new Date(ms + 9 * 36e5).toISOString().replace(/\.\d{3}Z$/, "+09:00");
+var stamp = (mode, ms) => mode === "elicitation" ? { at: iso(ms) } : {};
 var plus = (ms, h) => iso(ms + h * 36e5);
 var clone2 = (x) => JSON.parse(JSON.stringify(x));
 var nextId = (conv, kind, prefix) => {
@@ -1010,7 +1011,7 @@ function investorBackground(uj, es, w) {
 }
 async function runTurn(storeIn, w, model, o) {
   const store = clone2(storeIn), conv = store.conv, now = w.now(), spontaneous = !!o.spontaneous, notes = [];
-  const empty = (mode2, n) => ({ session_id: conv.session_id, mode: mode2, reply: null, profile_applied: [], profile_rejected: [], notes: n });
+  const empty = (mode2, n) => ({ session_id: conv.session_id, mode: mode2, reply: null, profile_applied: [], profile_rejected: [], notes: n, ...stamp(mode2, now) });
   if (o.clientMessageId && conv.processed_client_ids[o.clientMessageId]) {
     const r = conv.processed_client_ids[o.clientMessageId];
     return { store, result: { ...r, notes: [...r.notes, "\uC911\uBCF5 client_message_id \u2014 \uC774\uC804 \uACB0\uACFC \uC7AC\uC0AC\uC6A9(\uB300\uC0AC \uC7AC\uC0DD\uC131\xB7\uC7AC\uC804\uC1A1 \uC5C6\uC74C)"] }, skipped: true };
@@ -1053,7 +1054,7 @@ async function runTurn(storeIn, w, model, o) {
 }
 async function turn(store, w, model, mode, current, es, o) {
   const conv = store.conv, now = w.now(), notes = o.notes, turnSeq = conv.turn_seq;
-  const result = { session_id: conv.session_id, mode, reply: null, profile_applied: [], profile_rejected: [], notes };
+  const result = { session_id: conv.session_id, mode, reply: null, profile_applied: [], profile_rejected: [], notes, ...stamp(mode, now) };
   const uj = store.profile.json, allowed = w.persona.json.system_state.allowed_emotions.filter((e) => LLM1.clientEmotions.includes(e));
   const company = companyContext(current?.text ?? null, w, es), news = newsContext(conv, mode, o.spontaneous, company, w);
   const merged = new Map(conv.recent_messages.map((m) => [m.message_id, m]));
@@ -2857,5 +2858,5 @@ Deno.serve(async (req) => {
   if (store.jobs.some((j2) => j2.status === "ready" || j2.status === "queued")) store = (await runDeliveryWorker(store, receive, Date.now())).store;
   await persist(store);
   if (result) await fetch(`${url}/rest/v1/llm1_ops`, { method: "POST", headers: svc, body: JSON.stringify({ player_id: me.id, entry: opsEntry(result, world) }) }).catch(() => null);
-  return json({ reply: result?.reply ?? null, learned: result?.profile_applied.length ?? 0, detection: status(store) });
+  return json({ reply: result?.reply ?? null, at: result?.at ?? null, learned: result?.profile_applied.length ?? 0, detection: status(store) });
 });

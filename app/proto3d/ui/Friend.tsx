@@ -9,7 +9,8 @@ import {useEffect,useRef,useState} from 'react';
 import {FRIEND,FRIEND_TALK,friendReplies,type FriendTopic,type TalkLine} from '../../core/friend';
 import {TIMING} from '../../core/timing';
 import {FRIEND_FACE,type BoriFace} from '../../core/friend';
-type Line={text:string;emotion?:string};
+// at: the server's time on a detection-mode line (core/llm1/engine.ts stamp), shown beside the name
+type Line={text:string;emotion?:string;at?:string};
 
 type Choice={label:string;answer?:string;go?:'grades'|'journal'|'case'|null;talk?:boolean;leave?:boolean;stocks?:boolean;stock?:number};
 // 9-5: 토리·모아·루온 talk too, each in its own voice: small talk or one of my holdings (no free talk)
@@ -27,13 +28,13 @@ export function FriendSheet({opener,topic,seed,onGo,onClose,talk,opening,onFace,
   useEffect(()=>{onFace?.(face)},[face]);// eslint-disable-line react-hooks/exhaustive-deps
   const [history,setHistory]=useState<TalkLine[]>(opening?[]:[{who:'bori',text:opener}]);
   const [shown,setShown]=useState(0),[busy,setBusy]=useState(!!opening),[mode,setMode]=useState<'choose'|'type'|'leaving'>('choose');
-  const [stopLoss,setStopLoss]=useState(false),[mine,setMine]=useState<string|null>(null),[draft,setDraft]=useState('');
+  const [at,setAt]=useState<string|null>(null),[stopLoss,setStopLoss]=useState(false),[mine,setMine]=useState<string|null>(null),[draft,setDraft]=useState('');
   const input=useRef<HTMLInputElement>(null);
   const line=queue[0]??'',done=shown>=line.length;
   // the opening: the stop-loss talk's first line, or the small talk when there is none
   useEffect(()=>{if(!opening)return;let live=true;
     void opening().then(t=>{if(!live)return;setBusy(false);
-      if(t){setStopLoss(true);setQueue([t.text]);setHistory([{who:'bori',text:t.text}]);setFace(FRIEND_FACE.of(t.emotion??'curious'))}
+      if(t){setStopLoss(true);setAt(t.at??null);setQueue([t.text]);setHistory([{who:'bori',text:t.text}]);setFace(FRIEND_FACE.of(t.emotion??'curious'))}
       else{setQueue([opener]);setHistory([{who:'bori',text:opener}]);setFace(FRIEND_FACE.of(FRIEND_FACE.topic[topic]))}});
     return ()=>{live=false}},[opening]);// eslint-disable-line react-hooks/exhaustive-deps
   // typing out, a character at a time
@@ -45,7 +46,7 @@ export function FriendSheet({opener,topic,seed,onGo,onClose,talk,opening,onFace,
   useEffect(()=>{if(mode==='type'&&done)input.current?.focus()},[mode,done]);
   // a tap on the box: the rest of the line at once, then the next line
   const tapBox=()=>{if(!done){setShown(line.length);return}if(queue.length>1)setQueue(q=>q.slice(1))};
-  const say=(text:string,emotion?:string)=>{setQueue([text]);setHistory(h=>[...h,{who:'bori',text}]);if(emotion)setFace(FRIEND_FACE.of(emotion))};
+  const say=(text:string,emotion?:string,stamp:string|null=null)=>{setAt(stamp);setQueue([text]);setHistory(h=>[...h,{who:'bori',text}]);if(emotion)setFace(FRIEND_FACE.of(emotion))};
   const mine0=stocks.length&&onStock?[{label:'내 종목 얘기',stocks:true}]:[];
   const choices:Choice[]=stopLoss?[{label:'얘기해 줄게',talk:true},{label:'나중에',leave:true}]
     :picking?[...stocks.slice(0,6).map(x=>({label:x.name,stock:x.id})),{label:'다음에',leave:true}]
@@ -60,7 +61,7 @@ export function FriendSheet({opener,topic,seed,onGo,onClose,talk,opening,onFace,
     setHistory(h=>[...h,{who:'me',text:c.label}]);if(c.answer)say(c.answer,c.go?'happy':'playful');setMode('leaving');
     const to=c.go;setTimeout(()=>{if(to)onGo(to);else onClose()},to?TIMING.talkGo:TIMING.talkLeave+400)};
   const send=async()=>{const m=draft.trim();if(!m||busy||!talk)return;const before=history;setDraft('');setMine(m);setBusy(true);
-    setHistory([...before,{who:'me',text:m}]);setFace('thinking');const a=await talk(before,m);setBusy(false);say(a.text,a.emotion??'neutral')};
+    setHistory([...before,{who:'me',text:m}]);setFace('thinking');const a=await talk(before,m);setBusy(false);say(a.text,a.emotion??'neutral',a.at??null)};
   const showChoices=mode==='choose'&&done&&!busy&&queue.length<=1&&!!line;
   return <div className="rt-talk" role="dialog" aria-label={`${name}와 대화`} data-face={face}>
     {mode!=='leaving'&&<button type="button" className="rt-talk-leave" onClick={onClose}>{mode==='type'?'대화 끝내기':'나중에 얘기할게'}</button>}
@@ -68,7 +69,7 @@ export function FriendSheet({opener,topic,seed,onGo,onClose,talk,opening,onFace,
     {showChoices&&<div className="rt-talk-choices" role="group" aria-label="대답">
       {choices.map((c,i)=><button key={c.label} type="button" className={'rt-talk-choice'+(i===0?' first':'')} onClick={()=>pick(c)}>{c.label}</button>)}</div>}
     <div className="rt-talk-box" onClick={tapBox}>
-      <span className={'rt-talk-name n-'+(who?.id??'bori')} data-who={who?.id??'bori'}>{name}</span>
+      <span className={'rt-talk-name n-'+(who?.id??'bori')} data-who={who?.id??'bori'}>{name}{at&&!busy&&<time className="rt-talk-at rt-num" dateTime={at}>{at.slice(11,16)}</time>}</span>
       <p className="rt-talk-line" aria-live="polite">
         {busy?<span className="rt-chat-typing" aria-label="보리가 생각하는 중"><i/><i/><i/></span>:line.slice(0,shown)}
         <span className="rt-sr">{busy?'':line.slice(shown)}</span>

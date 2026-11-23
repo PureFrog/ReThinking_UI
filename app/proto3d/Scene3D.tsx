@@ -41,7 +41,7 @@ import {mixHex,type Daylight} from '../core/daylight';
 import {Showroom} from './Showroom3D';
 import {SkyScene,type SkyWorld} from './Sky3D';
 import type {Look} from '../core/wardrobe';
-import {treeSize,worthOf} from '../core/walk';
+import {gardenTree} from '../core/recheck';
 import {Villager,GuideTrail,NewsBoard,TailorStall,MerchantStall,FarmCart,type Errand} from './Village3D';
 import {NEWS_BOARD,TAILOR_STALL,MERCHANT_STALL,FARM_CART} from '../content/villagers';
 import {POND_AT} from './places';
@@ -610,7 +610,8 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
   // the leaves and fruit follow the return; the model stays the grown one (?treeState=1: the old age-based look)
   const neutral=typeof window!=='undefined'&&!new URLSearchParams(location.search).has('treeState');
   const trees=useMemo(()=>holdings.filter(h=>h.plot>=0&&h.plot<FARM.length).map(h=>{const st=treeState(h,defaultRules);
-    return {h,st:neutral?{...st,growth:'young' as Growth,condition:(st.condition==='dead'?'wilt':st.condition) as Condition}:st,size:neutral?treeSize(worthOf(h)):1,x:FARM[h.plot][0],z:FARM[h.plot][1]}}),[holdings,neutral]);
+    const gt=neutral?gardenTree(h):null;// 처분효과 (core/recheck.ts): nothing here reads the days held
+    return {h,st:gt?{...st,growth:gt.growth,condition:gt.condition}:st,size:gt?gt.size:1,x:FARM[h.plot][0],z:FARM[h.plot][1]}}),[holdings,neutral]);
   const points=useMemo(()=>{const m=new Map<string,THREE.Vector3>();for(const [k,p] of Object.entries(SPOTS))m.set(k,new THREE.Vector3(p.x,surfaceY(p.x,p.z)+1.2,p.z));
     // the house, the library and the square: points to tap (e2e) and to pin tags to
     for(const [k,p,y] of [['house',HOUSE,1.6],['library',LIB,1.6],['plaza',PLAZA,1.3]] as const)m.set(k,new THREE.Vector3(p.x,surfaceY(p.x,p.z)+y,p.z));return m},[]);

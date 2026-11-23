@@ -39,7 +39,9 @@ export type Mode='daily'|'elicitation';
 export type TurnResult={session_id:string;mode:Mode;reply:({message_id:string}&Reply)|null;profile_applied:Applied[];profile_rejected:Applied[];notes:string[];
   evidence_applied?:EvApplied[];evidence_rejected?:EvApplied[];elicitation_status?:string|null;finish_check?:string|null;delivery_request_id?:string|null;
   // for the ops log (source _log_turn): how long the model took and how many format/network errors there were
-  llm_ms?:number;errors?:number};
+  llm_ms?:number;errors?:number;
+  // 탐지 모드(elicitation) 출력에만: 서버가 이 턴을 처리한 시각 (KST, 2026-11-23T14:05:12+09:00). 평상시 모드에는 없음
+  at?:string};
 export type Model=(messages:{role:'system'|'user'|'assistant';content:string}[],mode:Mode)=>Promise<string>;
 export type World={persona:Persona;registry:RegistryData;strategyTemplate:Record<string,unknown>;userTemplate:Record<string,unknown>;
   holdings:Holding[];news:News[];examples:Example[];now:()=>number;
@@ -50,6 +52,8 @@ export type World={persona:Persona;registry:RegistryData;strategyTemplate:Record
 export type Company={company_id:string;name:string;industry:string;context_version:string|null}&Record<string,unknown>;
 
 const iso=(ms:number)=>new Date(ms+9*3600e3).toISOString().replace(/\.\d{3}Z$/,'+09:00');
+// 탐지 모드 출력에 찍는 시각 (사용자 요청 2026-11-23): elicitation 턴 결과에만 at
+const stamp=(mode:Mode,ms:number):{at?:string}=>mode==='elicitation'?{at:iso(ms)}:{};
 const plus=(ms:number,h:number)=>iso(ms+h*3600e3);
 const clone=<T,>(x:T):T=>JSON.parse(JSON.stringify(x));
 const nextId=(conv:Conv,kind:string,prefix:string)=>{const c=(conv.counters??={});c[kind]=(c[kind]??0)+1;return prefix+String(c[kind]).padStart(3,'0')};
@@ -127,7 +131,7 @@ function investorBackground(uj:Record<string,any>,es:Session|null,w:World){
 export async function runTurn(storeIn:Store,w:World,model:Model,o:{text:string|null;spontaneous?:boolean;clientMessageId?:string|null}):
   Promise<{store:Store;result:TurnResult;skipped?:boolean}>{
   const store=clone(storeIn),conv=store.conv,now=w.now(),spontaneous=!!o.spontaneous,notes:string[]=[];
-  const empty=(mode:Mode,n:string[]):TurnResult=>({session_id:conv.session_id,mode,reply:null,profile_applied:[],profile_rejected:[],notes:n});
+  const empty=(mode:Mode,n:string[]):TurnResult=>({session_id:conv.session_id,mode,reply:null,profile_applied:[],profile_rejected:[],notes:n,...stamp(mode,now)});
   if(o.clientMessageId&&conv.processed_client_ids[o.clientMessageId]){const r=conv.processed_client_ids[o.clientMessageId];
     return {store,result:{...r,notes:[...r.notes,'중복 client_message_id — 이전 결과 재사용(대사 재생성·재전송 없음)']},skipped:true}}
   if(conv.persona_version!==w.persona.persona_version)throw new Error(`세션에 고정된 persona_version(${conv.persona_version})과 저장소 버전(${w.persona.persona_version})이 다름 — 새 세션 필요`);
@@ -157,7 +161,7 @@ export async function runTurn(storeIn:Store,w:World,model:Model,o:{text:string|n
 async function turn(store:Store,w:World,model:Model,mode:Mode,current:Msg|null,es:Session|null,o:{spontaneous:boolean;clientMessageId?:string|null;notes:string[]}):
   Promise<{store:Store;result:TurnResult}>{
   const conv=store.conv,now=w.now(),notes=o.notes,turnSeq=conv.turn_seq;
-  const result:TurnResult={session_id:conv.session_id,mode,reply:null,profile_applied:[],profile_rejected:[],notes};
+  const result:TurnResult={session_id:conv.session_id,mode,reply:null,profile_applied:[],profile_rejected:[],notes,...stamp(mode,now)};
   // (2) 입력 준비
   const uj=store.profile.json,allowed=w.persona.json.system_state.allowed_emotions.filter(e=>LLM1.clientEmotions.includes(e));
   const company=companyContext(current?.text??null,w,es),news=newsContext(conv,mode,o.spontaneous,company,w);

@@ -11,7 +11,7 @@ import {CONSENTS,NICK_MAX,checkSignUp,type Account,type ConsentId} from '../../c
 type View='land'|'login'|'signup';
 // owing: an account signed in with Kakao or Google that has not agreed to the terms yet — it only sees that step
 // invite: signed in but no invite code yet (private test, db/migrations/007) — it only sees the code step
-// onGuest: null when looking around without an account is closed (the private test on the real server)
+// onGuest: null hides looking around without an account (open everywhere since 2026-11-23, B2C 기본)
 export function Welcome({onAccount,onGuest,owing,invite,onInvited,shot='/brand/shot-home.webp'}:{onAccount:(a:Account,isNew:boolean)=>void;onGuest:(()=>void)|null;owing?:Account|null;invite?:boolean;onInvited?:()=>void;shot?:string}){
   const [view,setView]=useState<View>(()=>{try{const v=new URLSearchParams(location.search).get('welcome');return v==='login'||v==='signup'?v:'land'}catch{return 'land'}});
   if(owing)return <div className="rt-wel" data-testid="welcome" data-view="signup"><ConsentStep account={owing} onDone={a=>onAccount(a,true)}/></div>;
