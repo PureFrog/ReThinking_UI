@@ -77,7 +77,7 @@ test('luon brings back the newest finished rebuttal for the company', () => {
   assert.equal(n.analyst,'luon');assert.equal(n.model,'rebuttal');assert.equal(n.loss,false);
   assert.equal(n.headline,'네 근거 하나가 숫자와 반대야');
   assert.deepEqual(n.evidence.slice(0,3).map(e=>e.v),['지난 숫자가 약화','숫자와 반대','확인 못 함']);
-  assert.ok(n.evidence.some(e=>e.k==='숫자로 못 가린 조건'));
+  assert.ok(n.evidence.some(e=>e.k==='숫자로 못 가린 조건'&&e.v==='1개'));
   assert.ok(n.evidence.some(e=>e.k==='기업 데이터 기준'&&e.v==='2026-06-30'));
   V.setVerdicts([]);V.setAnalyses([result()]);
   const sigs=S.signalProvider.today([holding()],'2026-11-23');
@@ -94,4 +94,18 @@ test('no line asks to buy or sell or predicts a price', () => {
 test('the deep sheet rows read the verdict', () => {
   const rows=V.verdictRows(row());
   assert.deepEqual(rows.map(r=>[r.id,r.value,r.tone]),[['fscore','6 → 3점','weak'],['ohlson','-3.2%','weak'],['dupont','-1.2%p','mid'],['sum','손실 신호','weak']]);
+});
+
+test('a point with no tag of its own takes the tag of the link the data went against from it', () => {
+  // shaped like the first real run (2026-11-23, 095270 → mixed, D-3): 매출 has no evaluation, its path P2 was undercut
+  const t={decision:'mixed',as_of:'2026-09-01',
+    claim:[{mid:'m2',span:'영업이익률이 다시 올라갈 거라고 봐',evaluation:{tag:'supported'}},{mid:'m4',span:'매출이 좋아질 것 같아',evaluation:null},
+      {mid:'m6',span:'버틸 수 있다고 생각해',evaluation:null}],
+    grounds:[{mid:'m1',span:'원자재 가격이 안정되면',evaluation:null}],
+    warrant:{chain:[{path_id:'P2',from_mid:'m4',to_mid:'m2'}],bridged:[{path_id:'P1',from_mid:'m1',to_mid:'m2'}],explicit:[]},
+    rebuttal:[{tag:'undercut',path_id:'P2'}],question_candidates:[{text:'a'},{text:'b'}]};
+  const n=V.rebuttalNote(holding(),result({decision:'mixed',result:t}));
+  assert.deepEqual(n.evidence.slice(0,4).map(e=>e.v),['숫자와 일치','지난 숫자가 약화','확인 못 함','확인 못 함']);
+  assert.equal(n.evidence[1].k,'“매출이 좋아질 것 같아”');
+  assert.ok(n.evidence.some(e=>e.k==='숫자로 못 가린 조건'&&e.v==='2개'));
 });
