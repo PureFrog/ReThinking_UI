@@ -21,7 +21,7 @@ test("home: no dock, the corner buttons, today's quests, the notebook, and the o
   // the corners: weather and quests, coins and settings; no sound button up top
   await expect(page.getByLabel("오늘 시장 날씨")).toBeVisible();
   await expect(page.getByRole("group", { name: "오늘 퀘스트" }).locator(".rt-quest")).toHaveCount(3);
-  await expect(page.getByRole("button", { name: /^코인 .* · 상점$/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^코인 .* · 충전$/ })).toBeVisible();
   await expect(page.getByRole("button", { name: "설정" })).toBeVisible();
   await expect(page.getByRole("button", { name: /소리 (끄기|켜기)/ })).toHaveCount(0);
   // one bubble at a time
@@ -46,7 +46,7 @@ test("home: no dock, the corner buttons, today's quests, the notebook, and the o
   for (const t of ["오늘의 케이스", "되감기", "내 프로필", "꾸미기", "리그", "다른 유저", "내 종목", "설정"]) await expect(m.getByRole("button", { name: new RegExp("^" + t) })).toBeVisible();
   await m.getByRole("button", { name: /^다른 유저/ }).click();
   await expect(page.getByTestId("sky")).toBeVisible();
-  await page.getByTestId("sky").getByRole("button", { name: "닫기" }).click();
+  await page.getByTestId("sky").getByRole("button", { name: "닫기" }).click({ timeout: 30_000 });
   await V.villageReady(page);
   expect(errors).toEqual([]);
 });

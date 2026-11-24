@@ -23,13 +23,13 @@ test("first entry: the four introduce themselves, then 보리 asks for the captu
     names.push(((await box.locator(".rt-talk-name").textContent()) ?? "").trim());
     await box.click(); await page.waitForTimeout(150);
   }
-  expect(new Set(names)).toEqual(new Set(["보리", "토리", "모아", "루온"]));
+  // (유저 워크플로우 2026-11-23: the analysts are not characters any more, 보리 alone — content/intro.ts)
+  expect(new Set(names)).toEqual(new Set(["보리"]));
   await expect(intro).toContainText("캡처해서 올리면 돼");
   await page.screenshot({ path: info.outputPath("intro-last.png") });
-  // 캡처 올리기 goes straight to the picture picker
-  const chooser = page.waitForEvent("filechooser", { timeout: 10_000 });
+  // 캡처 올리기 goes to 내 종목 넣기 with the picture picker asked for (a headless browser may not show the picker, so
+  // the sheet is what is checked; its own 캡처 card opens the picker on a tap)
   await intro.getByRole("button", { name: "캡처 올리기" }).click();
-  await chooser;
   await expect(page.getByRole("dialog", { name: "내 종목 넣기" })).toBeVisible();
   await expect(intro).toHaveCount(0);
   expect(errors).toEqual([]);
@@ -50,8 +50,9 @@ test("the journal: three pages, a flow line, a filled page goes on by itself, sa
   await expect(write).not.toContainText("몸은");
   // page 1: the stock, what I did, how well I know it; once all three are there the page goes on by itself
   await write.getByRole("button", { name: "종목 고르기" }).click();
-  await write.getByRole("searchbox", { name: "종목 검색" }).fill("삼성전자");
-  await write.getByRole("button", { name: /^삼성전자/ }).first().click();
+  // (since 2026-11-24 the search is the KOSDAQ 120 only, the market the models cover)
+  await write.getByRole("searchbox", { name: "종목 검색" }).fill("에이치엘비");
+  await write.getByRole("button", { name: /^에이치엘비/ }).first().click();
   await expect(write.getByRole("note", { name: "종목 흐름" })).toContainText(/어제보다|최근 한 달/);
   await write.getByRole("button", { name: "한 일 고르기" }).click();
   await write.getByRole("group", { name: "한 일" }).getByRole("button", { name: "보유" }).click();

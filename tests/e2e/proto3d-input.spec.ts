@@ -17,6 +17,7 @@ test("typing key by key stays in the field: the nickname and a journal", async (
   await expect(name).toHaveValue("보리친구abc");
   // a journal page: the hypothesis typed key by key
   await page.goto("/proto3d?demo&weather=clear");
+  await V.villageReady(page);
   await V.journal(page);
   await page.getByRole("dialog", { name: "투자일지" }).getByRole("button", { name: /^(새|첫) 일지 쓰기/ }).click();
   const w = page.getByRole("dialog", { name: "일지 쓰기" });

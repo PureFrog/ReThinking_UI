@@ -14,8 +14,8 @@ test("coins at the top open the shop, signs on buildings, and the profile page h
   await expect(V.controls(page)).toBeVisible({ timeout: 30_000 });
   await expect.poll(() => page.evaluate(() => !!(window as unknown as { __proto3d?: { ready?: boolean } }).__proto3d?.ready), { timeout: 60_000 }).toBe(true);
   // coins
-  // (since 2026-11-22 the coins open the shop, 꽃집; 넓히기 is the build mode)
-  const coins = page.getByRole("button", { name: /^코인 [\d,]+원 · 상점$/ });
+  // (since 2026-11-24 the coins open the payment window, 피드백 "돈을 누르면 결제창"; the shop is the 건물 상인's)
+  const coins = page.getByRole("button", { name: /^코인 [\d,]+원 · 충전$/ });
   await expect(coins).toBeVisible();
   // signs: one per place; walking to the house brings its sign on screen (the garden is wider since B step 1, so the
   // start view may show none)
@@ -30,9 +30,9 @@ test("coins at the top open the shop, signs on buildings, and the profile page h
   await page.screenshot({ path: info.outputPath("mypage-after.png") });
   await page.getByRole("button", { name: "닫기" }).click();
   await expect(page.getByLabel("오늘 시장 날씨")).toBeVisible();
-  // a tap on the coins opens the shop
+  // a tap on the coins opens the payment window
   await coins.click();
-  await expect(page.getByRole("dialog", { name: "상점" })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "코인 결제창" })).toBeVisible();
   expect(errors).toEqual([]);
 });
 
