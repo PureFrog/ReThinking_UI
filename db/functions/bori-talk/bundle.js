@@ -3103,7 +3103,8 @@ Deno.serve(async (req) => {
     if (stale.expired.length) await persist(store);
     return json({ error: "bad-request" }, 400);
   }
-  if (b.action === "reopen" && !store.jobs.some((j2) => j2.request_id === b.request_id && j2.status === "delivered")) return json({ error: "not-delivered" }, 400);
+  const localRid = String(b.request_id ?? "").replace(`${me.id}:`, "");
+  if (b.action === "reopen" && !store.jobs.some((j2) => j2.request_id === localRid && j2.status === "delivered")) return json({ error: "not-delivered" }, 400);
   if (b.action === "message" && (typeof b.text !== "string" || !b.text.trim())) return json({ error: "bad-request" }, 400);
   if (b.action === "open") {
     const signals = (Array.isArray(b.signals) ? b.signals : []).filter((x) => typeof x === "string").slice(0, 10);
@@ -3144,7 +3145,7 @@ Deno.serve(async (req) => {
     store = r.store;
     result = r.result;
   } else if (b.action === "reopen") {
-    const r = await reopenForCorrection(store, world, model, String(b.request_id));
+    const r = await reopenForCorrection(store, world, model, localRid);
     store = r.store;
     result = r.result;
   } else {
@@ -3153,13 +3154,15 @@ Deno.serve(async (req) => {
     store = r.store;
     result = r.result;
   }
+  const gid = (rid) => `${me.id}:${rid}`;
   const receive = async (job) => {
+    const payload = { ...job.payload, request_id: gid(job.request_id), supersedes_request_id: job.payload.supersedes_request_id ? gid(job.payload.supersedes_request_id) : null };
     await fetch(`${url}/rest/v1/analysis_inbox?on_conflict=request_id`, {
       method: "POST",
       headers: { ...svc, prefer: "resolution=ignore-duplicates" },
-      body: JSON.stringify({ request_id: job.request_id, player_id: me.id, payload_hash: job.payload_hash, route: job.route, payload: job.payload })
+      body: JSON.stringify({ request_id: gid(job.request_id), player_id: me.id, payload_hash: job.payload_hash, route: job.route, payload })
     });
-    const r = await fetch(`${url}/rest/v1/analysis_inbox?request_id=eq.${encodeURIComponent(job.request_id)}&player_id=eq.${me.id}&select=payload_hash`, { headers: svc });
+    const r = await fetch(`${url}/rest/v1/analysis_inbox?request_id=eq.${encodeURIComponent(gid(job.request_id))}&player_id=eq.${me.id}&select=payload_hash`, { headers: svc });
     const row = r.ok ? (await r.json())[0] : null;
     if (!row) throw new Error("inbox write failed");
     return { request_id: job.request_id, payload_hash: row.payload_hash, status: row.payload_hash === job.payload_hash ? "persisted" : "conflict" };

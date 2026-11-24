@@ -1,4 +1,5 @@
 import { test, expect } from "./fixtures";
+import { villageReady, openSheet } from "./village";
 
 // 가상 종목 on real closes (core/virtual.ts, 2026-11-23): a lot bought on real closes is valued at the latest real close;
 // a lot bought on the mock walk stays on it even when real closes for that stock are loaded (no mock cost against a
@@ -24,8 +25,7 @@ test("the communicator values a real lot at the real close and keeps a mock lot 
     { names: [], bars: { "196170": series(123400), "028300": series(987600) } });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/proto3d?demo&weather=clear");
-  const coins = page.getByRole("button", { name: /^코인 .* 상점$/ });
-  await expect(coins).toBeVisible({ timeout: 30_000 });
+  await villageReady(page);
   await page.evaluate(() => {
     const s = JSON.parse(localStorage.getItem("rethink-garden-v1")!);
     s.currency = 1_000_000; s.grants = [...(s.grants ?? []), "tour"];
@@ -36,10 +36,9 @@ test("the communicator values a real lot at the real close and keeps a mock lot 
     localStorage.setItem("rethink-garden-v1", JSON.stringify(s));
   });
   await page.goto("/proto3d?weather=clear");
-  await expect(page.getByRole("button", { name: /^코인 1,000,000원/ })).toBeVisible({ timeout: 30_000 });
-  const bori = page.getByRole("dialog", { name: "보리와 대화" });
-  if (await bori.isVisible().catch(() => false)) await bori.getByRole("button", { name: "나중에 얘기할게" }).click();
-  await page.getByRole("button", { name: "통신기" }).click({ timeout: 30_000 });
+  await villageReady(page);
+  // (the village screen has no fixed 통신기 button in every state: open the sheet as the button does)
+  await openSheet(page, { kind: "comm" });
   const comm = page.getByRole("dialog", { name: "통신기" });
   await expect(comm).toContainText("알테오젠");
   await expect(comm).toContainText("123,400");
