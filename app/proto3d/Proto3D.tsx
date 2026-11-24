@@ -30,7 +30,7 @@ import {authRepo} from './server';
 import {boriChat} from '../core/bori-chat';
 import {debateChat} from '../core/debate-chat';
 import {missingConsents,boriTalk,boriOpen,jigiAI,readCapture,hasInvite,isMaster,observatoryServer,type BoriLine} from './supabase';
-import {searchNames,loadRealBars,loadMarket,fixturePrices,type PriceFixture} from './prices';
+import {searchNames,loadRealBars,loadMarket,loadVirtualBars,fixturePrices,type PriceFixture} from './prices';
 import {rowFor} from '../core/model-signals';
 import {loadModelSignals,fixtureModelSignals,type ModelSignalFixture} from './model-signals';
 import {RealEntry,type RealPrices} from './ui/RealEntry';
@@ -100,7 +100,7 @@ import {Bubbles} from './ui/Bubbles';
 import {FriendSheet} from './ui/Friend';
 import {VirtualShop} from './ui/VirtualShop';
 import {HoverTip} from './ui/HoverTip';
-import {quote,virtualTree,VIRTUAL_ID} from '../core/virtual';
+import {quote,lotQuote,buyQuote,virtualTree,VIRTUAL_ID,VIRTUAL_STOCKS} from '../core/virtual';
 import {VILLAGE_SPEAKERS} from '../content/village-talk';
 import {FRIEND,friendOpener,type BoriFace} from '../core/friend';
 import {NaruTalk,FishingPlay,FishLog} from './ui/Fishing';
@@ -376,7 +376,7 @@ export default function Proto3D(){
   const closeDeep=(back:SheetState)=>{setSheet(back)};
   // real prices (private test, prices.ts): for a signed-in player with an invite code, or an e2e page with a fixture
   const fixture=typeof window!=='undefined'?(window as unknown as {__priceFixture?:PriceFixture}).__priceFixture:undefined;
-  const realPrices=useMemo<RealPrices|null>(()=>fixture?fixturePrices(fixture):syncOn?{search:searchNames,load:loadRealBars,market:loadMarket}:null,[fixture,syncOn]);
+  const realPrices=useMemo<RealPrices|null>(()=>fixture?fixturePrices(fixture):syncOn?{search:searchNames,load:loadRealBars,market:loadMarket,virtual:loadVirtualBars}:null,[fixture,syncOn]);
   const w=useWeather(realPrices),tiltCtl=useTilt(g.s.settings.tilt);
   const lapseBack=lapse?frames[lapse.i]:0,lapseDay=dayBack(clock.today,lapseBack);
   const lapseMarket=lapse&&lapseBack>0?marketProvider.today(lapseDay):null;
@@ -401,7 +401,8 @@ export default function Proto3D(){
   // the first screens stand on the world itself: an example garden grows behind them (shown only, never saved)
   const hoverTree=useCallback((id:number)=>shownRef.current.find(x=>x.id===id)??null,[]);
   // 게임 구성 2026-11-20: my real stocks in the 밭, virtual ones bought with coins in the 과수원
-  const vtrees=useMemo(()=>(g.s.virtual??[]).flatMap(l=>{const q=quote(l.code,clock.today);return q?[virtualTree(l,q.price)]:[]}),[g.s.virtual,clock.today]);
+  // a lot on real closes not loaded yet stands at its cost (0%) rather than vanishing
+  const vtrees=useMemo(()=>(g.s.virtual??[]).map(l=>virtualTree(l,lotQuote(l,clock.today)?.price??l.cost)),[g.s.virtual,clock.today,pricesAt]);
   // 유저 워크플로우 3장: on the first walk my real trees are kept, not drawn, until the farmer plants them
   const [walk,setWalkS]=useState<WalkSave>(()=>{try{return readWalk(JSON.parse(localStorage.getItem('rethink-walk-v1')??'null'))}catch{return WALK0}});
   const putWalk=(f:(w:WalkSave)=>WalkSave)=>setWalkS(w=>{const n=f(w);if(n!==w)try{localStorage.setItem('rethink-walk-v1',JSON.stringify(n))}catch{/* this visit only */}return n});
@@ -653,7 +654,12 @@ export default function Proto3D(){
   // (Village3D Villager errand); the talk goes on when he is back
   const errandLoad=useRef<(()=>void)|null>(null);
   const [errand,setErrand]=useState<{lotId:number;to:{x:number;z:number};key:number;after:string|null}|null>(null);
-  const todays=useMemo(()=>candidates(KOSDAQ_STOCKS,clock.today).map(st=>{const q=quote(st.code,clock.today);return {code:st.code,name:st.name,mkt:st.mkt,price:q?.price??null,real:!!q?.real}}),[clock.today]);
+  const todays=useMemo(()=>candidates(KOSDAQ_STOCKS,clock.today).map(st=>{const q=buyQuote(s.virtual??[],st.code,clock.today);return {code:st.code,name:st.name,mkt:st.mkt,price:q?.price??null,real:!!q?.real}}),[clock.today,pricesAt,s.virtual]);
+  // the virtual stocks' real closes (core/virtual.ts, kept apart from the journals' bars): the shop's stocks, today's
+  // picks and the ones in the orchard, once per sign-in and whenever a new one is planted
+  const virtualKey=[...new Set([...VIRTUAL_STOCKS.map(x=>x.code),...todays.map(x=>x.code),...(s.virtual??[]).map(l=>l.code)])].sort().join(',');
+  useEffect(()=>{if(!realPrices?.virtual||!virtualKey)return;let on=true;
+    void realPrices.virtual(virtualKey.split(',')).then(n=>{if(on&&n)setPricesAt(Date.now())});return()=>{on=false}},[realPrices,virtualKey]);
   // 통신기 (ui/Comm.tsx) and the merchant/farmer share these: a coin buy plants a virtual tree, a sell goes on the farmer's cart
   const commRoom=fieldPlots(s.built?.land??[],'orchard').filter(i=>!holdings.some(h=>h.plot===i)&&!(s.virtual??[]).some(l=>l.plot===i)).length;
   const commBuy=(code:string,n:number):string|null=>{const name=todays.find(c=>c.code===code)?.name??'';
@@ -953,14 +959,15 @@ export default function Proto3D(){
         <button type="button" className="rt-btn primary" onClick={()=>onVillager(shop)}>{VILLAGERS.find(v=>v.id===shop)?.name}에게 말 걸기</button>
         <button type="button" className="rt-btn" onClick={()=>{setVt(null);swapShop(null)}}>밖으로 나가기</button></div>}
       {vtTalk&&where==='village'&&<VillagerTalk key={(vt?.id??'')+(vt?.stage??'')} name={vtTalk.name} who={vt?.id==='bori'||!merchantOpen&&vt?.id==='merchant'&&vt?.stage!=='meet'?'bori':vt?.id} role={ROLE[vt?.id==='bori'||!merchantOpen&&vt?.id==='merchant'&&vt?.stage!=='meet'?'bori':vt?.id??'']} line={vtTalk.line} choices={vtTalk.choices}/>}
-      {sheet?.kind==='tree'&&(()=>{const hh=[...holdings,...vtrees].find(x=>x.id===sheet.id);if(!hh)return null;const q=hh.code?quote(hh.code,clock.today):null;
+      {sheet?.kind==='tree'&&(()=>{const hh=[...holdings,...vtrees].find(x=>x.id===sheet.id);if(!hh)return null;const lot=hh.virtual?(s.virtual??[]).find(l=>VIRTUAL_ID+l.id===hh.id):null;
+        const q=lot?lotQuote(lot,clock.today):hh.code?quote(hh.code,clock.today):null;
         return <TreeStatus h={hh} price={q?.price??null} onClose={close}/>})()}
       {sheet?.kind==='comm'&&<Comm key={sheet.tab??'balance'} start={sheet.tab} acct={commAccount(holdings,s.virtual??[],s.currency,clock.today,id=>VIRTUAL_ID+id)} cands={todays}
-        lots={(s.virtual??[]).map(l=>{const q=quote(l.code,clock.today);return {id:l.id,name:l.name,qty:l.qty,price:q?.price??null,rate:q?Math.round((q.price/l.cost-1)*1000)/10:null}})}
+        lots={(s.virtual??[]).map(l=>{const q=lotQuote(l,clock.today);return {id:l.id,name:l.name,qty:l.qty,price:q?.price??null,rate:q?Math.round((q.price/l.cost-1)*1000)/10:null}})}
         day={clock.today} room={commRoom} open={merchantOpen} openNote={`상인이 ${nextOpenLabel(minutes)}에 와요. 주문은 상인이 있는 동안(8시~20시)만 돼요.`}
         onBuy={commBuy} onSell={commSell} onTree={id=>{setSheet(null);openTree(id)}} onClose={()=>setSheet(null)}/>}
       {sheet?.kind==='harvest'&&<Harvest today={clock.today} cart={s.cart??[]} onClose={()=>setSheet(null)}
-        lots={(s.virtual??[]).map(l=>({id:l.id,name:l.name,qty:l.qty,price:quote(l.code,clock.today)?.price??null}))}
+        lots={(s.virtual??[]).map(l=>({id:l.id,name:l.name,qty:l.qty,price:lotQuote(l,clock.today)?.price??null}))}
         onLoad={commSell}/>}
       {sheet?.kind==='news'&&<NewsBoard day={clock.today} onClose={()=>setSheet(null)}
         stocks={[...realShown.map(h=>({code:codeOf(h),name:h.name})),...(s.virtual??[]).map(l=>({code:l.code,name:l.name}))].filter((x,i,a)=>a.findIndex(y=>y.code===x.code)===i)}/>}

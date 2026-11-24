@@ -56,15 +56,15 @@ export function tradingDayAfter(day:string):string{const d=new Date(day+'T00:00:
 // 4장 the farmer's cart: what was harvested waits here (no longer sellable, coins unchanged) and is paid once at the
 // close of the next trading day. practice: the first walk's harvest (paid as a number only, the free tree is kept)
 export type CartLoad={id:number;lotId:number;code:string;name:string;qty:number;day:string/* loaded on */;settleDay:string;
-  practice?:boolean;paid?:number|null/* coins paid once settled */;close?:number|null};
-export function loadCart(cart:CartLoad[],l:{lotId:number;code:string;name:string},qty:number,day:string,practice=false):CartLoad[]|null{
+  practice?:boolean;paid?:number|null/* coins paid once settled */;close?:number|null;src?:'real'|'mock'/* the lot's prices (core/virtual.ts) */};
+export function loadCart(cart:CartLoad[],l:{lotId:number;code:string;name:string;src?:'real'|'mock'},qty:number,day:string,practice=false):CartLoad[]|null{
   if(!Number.isInteger(qty)||qty<1)return null;
-  return [...cart,{id:Math.max(0,...cart.map(c=>c.id))+1,lotId:l.lotId,code:l.code,name:l.name,qty,day,settleDay:tradingDayAfter(day),practice,paid:null,close:null}];
+  return [...cart,{id:Math.max(0,...cart.map(c=>c.id))+1,lotId:l.lotId,code:l.code,name:l.name,qty,day,settleDay:tradingDayAfter(day),practice,paid:null,close:null,...(l.src?{src:l.src}:{})}];
 }
 // paid once: when a close on or after the settle day is final (closeFrom gives the first such close, or null)
-export function settleCart(cart:CartLoad[],closeFrom:(code:string,from:string)=>{d:string;c:number}|null):{cart:CartLoad[];coins:number;settled:CartLoad[]}{
+export function settleCart(cart:CartLoad[],closeFrom:(code:string,from:string,src?:'real'|'mock')=>{d:string;c:number}|null):{cart:CartLoad[];coins:number;settled:CartLoad[]}{
   let coins=0;const settled:CartLoad[]=[];
-  const next=cart.map(c=>{if(c.paid!=null)return c;const b=closeFrom(c.code,c.settleDay);if(!b)return c;
+  const next=cart.map(c=>{if(c.paid!=null)return c;const b=closeFrom(c.code,c.settleDay,c.src);if(!b)return c;
     const paid=Math.round(b.c*c.qty),done={...c,paid,close:b.c,settleDay:b.d};if(!c.practice)coins+=paid;settled.push(done);return done});
   return {cart:next,coins,settled};
 }

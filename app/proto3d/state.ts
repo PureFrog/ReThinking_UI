@@ -40,9 +40,8 @@ import {DEFAULT_LOOK,type Look} from '../core/wardrobe';
 import type {RunRecord} from '../core/game/run';
 import type {Share} from '../core/planets';
 import {stampById,type StampId} from '../core/stamps';
-import {buyVirtual,sellVirtual,quote,type VirtualLot} from '../core/virtual';
+import {buyVirtual,sellVirtual,buyQuote,lotQuote,lotSrc,closeFrom,type VirtualLot} from '../core/virtual';
 import {loadCart,settleCart,type CartLoad} from '../core/walk';
-import {bars as stockBars} from '../core/jigi/stocks';
 import {fieldPlots} from '../core/land';
 import {activeRun,blankProgress,endPlay,packOfRun,playAfter,playAt,playBefore,type QuestDef,type DailyPack,decide as decideQuest,kstDay,setDraft,setPick,setStage,startRun,type DailyRun,type DecideError,type FieldKey,type Fields,type Fraction,type InvestorProgress,type Stage} from '../core/game/daily/model';
 import {settle} from '../core/game/daily/settle';
@@ -297,27 +296,27 @@ export function useGarden(){
     setLook(look:Look){setS(p=>({...p,look}))},
     // a piece of clothing from the cart's currency (core/wardrobe.ts unlock buy)
     // 가상 종목 (core/virtual.ts): bought at today's price into a free plot of the 과수원; sold back at today's price
-    buyVirtual(code:string,qty:number):ReturnType<typeof buyVirtual>{const q=quote(code,c.today);let out:ReturnType<typeof buyVirtual>={ok:false,why:'unknown'};if(!q)return out;
-      setS(p=>{const plots=fieldPlots(p.built?.land??[],'orchard').filter(i=>!p.holdings.some(h=>h.plot===i));
-        out=buyVirtual({currency:p.currency,virtual:p.virtual??[]},code,qty,q.price,plots,c.today);return out.ok?{...p,currency:out.currency,virtual:out.virtual}:p});
+    buyVirtual(code:string,qty:number):ReturnType<typeof buyVirtual>{let out:ReturnType<typeof buyVirtual>={ok:false,why:'unknown'};
+      setS(p=>{const q=buyQuote(p.virtual??[],code,c.today);if(!q)return p;const plots=fieldPlots(p.built?.land??[],'orchard').filter(i=>!p.holdings.some(h=>h.plot===i));
+        out=buyVirtual({currency:p.currency,virtual:p.virtual??[]},code,qty,q.price,plots,c.today,q.src);return out.ok?{...p,currency:out.currency,virtual:out.virtual}:p});
       return out},
     sellVirtual(id:number,qty:number){let gain:number|null=null;
-      setS(p=>{const l=(p.virtual??[]).find(x=>x.id===id),q=l?quote(l.code,c.today):null;if(!l||!q)return p;
+      setS(p=>{const l=(p.virtual??[]).find(x=>x.id===id),q=l?lotQuote(l,c.today):null;if(!l||!q)return p;
         const r=sellVirtual({currency:p.currency,virtual:p.virtual??[]},id,qty,q.price);if(!r.ok)return p;gain=r.gain;return {...p,currency:r.currency,virtual:r.virtual}});
       return gain},
     // 유저 워크플로우 4장: the merchant's free sapling on the first walk (one share, once per account: grant tag 'free-tree')
-    freeVirtual(code:string):ReturnType<typeof buyVirtual>{const q=quote(code,c.today);let out:ReturnType<typeof buyVirtual>={ok:false,why:'unknown'};if(!q)return out;
-      setS(p=>{if((p.grants??[]).includes('free-tree'))return p;const plots=fieldPlots(p.built?.land??[],'orchard').filter(i=>!p.holdings.some(h=>h.plot===i));
-        out=buyVirtual({currency:p.currency+q.price,virtual:p.virtual??[]},code,1,q.price,plots,c.today);
+    freeVirtual(code:string):ReturnType<typeof buyVirtual>{let out:ReturnType<typeof buyVirtual>={ok:false,why:'unknown'};
+      setS(p=>{if((p.grants??[]).includes('free-tree'))return p;const q=buyQuote(p.virtual??[],code,c.today);if(!q)return p;const plots=fieldPlots(p.built?.land??[],'orchard').filter(i=>!p.holdings.some(h=>h.plot===i));
+        out=buyVirtual({currency:p.currency+q.price,virtual:p.virtual??[]},code,1,q.price,plots,c.today,q.src);
         return out.ok?{...p,virtual:out.virtual,grants:[...(p.grants??[]),'free-tree']}:p});
       return out},
     // the farmer harvests some of a virtual tree into the cart: the shares leave the tree now (it shrinks, or goes when
     // none are left), the coins come once at the next trading day's close (cartSettle)
     cartLoad(lotId:number,qty:number){let ok=false;setS(p=>{const l=(p.virtual??[]).find(x=>x.id===lotId);if(!l||!Number.isInteger(qty)||qty<1||qty>l.qty)return p;
-      const cart=loadCart(p.cart??[],{lotId,code:l.code,name:l.name},qty,c.today);if(!cart)return p;ok=true;
+      const cart=loadCart(p.cart??[],{lotId,code:l.code,name:l.name,src:lotSrc(l)},qty,c.today);if(!cart)return p;ok=true;
       return {...p,cart,virtual:qty===l.qty?(p.virtual??[]).filter(x=>x.id!==lotId):(p.virtual??[]).map(x=>x.id===lotId?{...x,qty:x.qty-qty}:x)}});return ok},
     cartSettle(){let paid=0;setS(p=>{if(!(p.cart??[]).some(x=>x.paid==null))return p;
-      const r=settleCart(p.cart??[],(code,from)=>{const b=stockBars(code).find(x=>x.d>=from&&x.d<c.today);return b?{d:b.d,c:b.c}:null});
+      const r=settleCart(p.cart??[],(code,from,src)=>{const b=closeFrom(code,from,c.today,src);return b?{d:b.d,c:b.c}:null});
       if(!r.settled.length)return p;paid=r.coins;return {...p,cart:r.cart.slice(-60),currency:p.currency+r.coins}});
       if(paid>0)say(`수레 정산: 코인 ${won(paid)}이 들어왔어요`);return paid},
     // a one-off gift of coins (the tutorial's start money): given once per tag
