@@ -31,8 +31,18 @@ test("넓히기: land, a building and a landmark with coins; short of coins says
   // a building: 55 coins
   await page.locator(".bd-tag").filter({ hasText: "풍차" }).dispatchEvent("click");
   await page.getByRole("dialog", { name: "풍차 짓기" }).getByRole("button", { name: /^짓기/ }).click();
-  await expect.poll(async () => (await save(page)).built).toEqual({ land: ["farm2"], buildings: ["windmill"], cities: [] });
-  // a landmark from the city book: 40 coins, its index named
+  // then where it stands (since 2026-11-23): a tap on free ground; through the hook, trying spots until one is free
+  await expect(page.getByRole("status").filter({ hasText: "놓을 자리를 눌러요" })).toBeVisible();
+  const placed = await page.evaluate(() => {
+    const h = (window as unknown as { __proto3d: { placeAt: (x: number, z: number) => string | null } }).__proto3d;
+    for (const [x, z] of [[16.6, -6], [-6, 6], [0, 8], [-8, -2], [10, 10], [-10, 10], [14, 2]]) if (h.placeAt(x, z) === null) return [x, z];
+    return null;
+  });
+  expect(placed).not.toBeNull();
+  await expect.poll(async () => (await save(page)).built).toMatchObject({ land: ["farm2"], buildings: ["windmill"], cities: [] });// (+ spots: where each stands)
+  // a landmark from the city book: 40 coins, its index named (placing a building ends 넓히기 mode: open it again)
+  await V.moreSheet(page);
+  await page.getByRole("dialog", { name: "더보기" }).getByRole("button", { name: /^정원 넓히기/ }).click();
   await bar.getByRole("button", { name: "도시 수첩" }).click();
   const book = page.getByRole("dialog", { name: "도시 수첩" });
   await expect(book.getByRole("article", { name: "서울 경복궁" })).toContainText("KOSPI");
@@ -42,7 +52,7 @@ test("넓히기: land, a building and a landmark with coins; short of coins says
   await page.screenshot({ path: info.outputPath("landmark.png") });
   const s = await save(page);
   expect(s.currency).toBe(5_000);// coins in 원 (core/won.ts WON)
-  expect(s.built).toEqual({ land: ["farm2"], buildings: ["windmill"], cities: ["seoul"] });
+  expect(s.built).toMatchObject({ land: ["farm2"], buildings: ["windmill"], cities: ["seoul"] });
   // short of coins: the card says how many and the button is off
   await V.moreSheet(page);
   await page.getByRole("dialog", { name: "더보기" }).getByRole("button", { name: /^정원 넓히기/ }).click();

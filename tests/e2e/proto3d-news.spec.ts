@@ -41,12 +41,13 @@ test("the news board: every article has its excerpt under the headline", async (
 
 test("the merchant's day-before news: 기사 읽기 opens the excerpt, marked as the publisher's", async ({ page }, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/?demo&weather=clear");
+  // (the 통신기 is the practice account's order screen since 2026-11-23; the merchant is in 8시~20시)
+  await page.goto("/?demo&weather=clear&hour=14");
   await V.villageReady(page);
-  await V.openSheet(page, { kind: "comm" });
-  const comm = page.getByRole("dialog", { name: "상인의 통신기" });
-  await comm.locator(".vl-cand").first().click();
-  const art = comm.locator("article.vl-news");
+  await V.openSheet(page, { kind: "comm", tab: "order" });
+  const comm = page.getByRole("dialog", { name: "통신기" });
+  await comm.locator(".mts-row-btn").first().click();
+  const art = comm.locator("article.rt-comm-news");
   await expect(art.locator(".vl-news-sum")).toHaveCount(0);
   await art.getByRole("button", { name: "기사 읽기" }).click();
   await expect(art.locator(".vl-news-sum")).toBeVisible();

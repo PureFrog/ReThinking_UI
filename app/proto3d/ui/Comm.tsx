@@ -105,7 +105,8 @@ export function Comm({acct,cands,lots,day,room,open,openNote,start='balance',onB
             <article className="rt-comm-news" data-read={read.includes(c.code)}>
               <span>전날 뉴스 · {news!.theme} · 예시 기사</span><strong>{news!.title}</strong>
               {!read.includes(c.code)?<button type="button" className="mts-link" onClick={()=>setRead(r=>[...r,c.code])}>기사 읽기</button>
-                :<p>기사 본문은 뉴스 연결 뒤에 실제 기사로 바뀌어요.</p>}
+                :<>{/* RSS gives the publisher's short excerpt, not the body (사용자 2026-11-22): that is what 기사 읽기 opens */}<p className="vl-news-sum">{news!.summary??'이 기사는 요약이 없어요.'}</p>
+                <small className="vl-news-src">언론사 요약 발췌 · 전문은 원문 링크에서 봐요</small></>}
             </article>
             <dl className="rt-comm-dl">
               <div><dt>수량</dt><dd><span className="vs-qty" role="group" aria-label="수량">

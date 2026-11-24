@@ -876,3 +876,5 @@ html[data-text="l"] .proto3d :is(.rt-sheet,.rt-me-panel,.rt-dock,.rt-next){zoom:
 .proto3d:has(.rt-sheet) .rt-top-right{opacity:0;pointer-events:none;transition:opacity .25s}
 .proto3d:has(.rt-sheet) .rt-top-right>*{pointer-events:none}/* the buttons set their own pointer-events: unseen, they took the tap (the sheet's close button sits under them) */
 @media (max-width:430px){.proto3d .rt-top-right{gap:5px}.proto3d .rt-coins{padding:0 10px 0 7px}.proto3d .rt-coin-cal{width:34px;height:34px}}
+/* the 통신기's day-before news: the publisher's excerpt once 기사 읽기 is tapped (RSS, 사용자 2026-11-22) */
+.rt-comm-news p.vl-news-sum{color:inherit;font-size:13px;line-height:1.5}.rt-comm-news .vl-news-src{font-size:11px;color:var(--mts-sub)}
