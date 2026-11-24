@@ -22,12 +22,15 @@ const TITLES:Record<Theme,Ex[]>={
     n=>[`${n} 대표이사 변경 공시`,`이사회가 새 대표이사를 선임했다고 공시했다. 취임일은 공시에 적힌 날짜부터다.`],
     n=>[`${n}, 신규 시설 투자 공시`,`회사가 새 생산 시설에 투자한다고 공시했다. 투자 금액과 완공 예정 시기가 함께 나왔다.`]],
 };
+// The example articles never name the real company (2026-11-24): a made-up "NAVER 대표이사 변경 공시" dated today reads
+// as a claim about a listed company even under 예시 기사. The board still files each under the stock it was drawn for.
+const EXAMPLE_CO='예시 회사';
 const hash=(s:string)=>{let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0};
 // today's articles on these stocks: zero to two each, each with a theme
 export function articlesFor(stocks:{code:string;name:string}[],day:string):Article[]{
   const out:Article[]=[];
   for(const s of stocks){const h=hash(s.code+day),n=h%3;for(let i=0;i<n;i++){const theme=THEMES[(h>>>(4+i*3))%THEMES.length],list=TITLES[theme];
-    const [title,summary]=list[(h>>>(9+i*5))%list.length](s.name);
+    const [title,summary]=list[(h>>>(9+i*5))%list.length](EXAMPLE_CO);
     out.push({id:`${s.code}-${day}-${i}`,theme,title,summary,code:s.code,name:s.name,day})}}
   return out;
 }
@@ -35,7 +38,7 @@ export function articlesFor(stocks:{code:string;name:string}[],day:string):Artic
 export function dayBeforeArticle(s:{code:string;name:string},day:string):Article{
   const prev=new Date(day+'T00:00:00Z');prev.setUTCDate(prev.getUTCDate()-1);const d=prev.toISOString().slice(0,10);
   const h=hash(s.code+d),theme=THEMES[h%THEMES.length],list=TITLES[theme];
-  const [title,summary]=list[(h>>>7)%list.length](s.name);
+  const [title,summary]=list[(h>>>7)%list.length](EXAMPLE_CO);
   return {id:`${s.code}-${d}-p`,theme,title,summary,code:s.code,name:s.name,day:d};
 }
 export const OVERVIEW:Record<string,string>={
