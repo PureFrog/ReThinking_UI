@@ -316,3 +316,4 @@
 - 2026-11-23 [feature] 캐릭터 LLM 탐지 모드 출력에 시각(at, KST) 추가: engine.ts stamp, bori-talk 응답·번들, 대화창 이름 옆 표시. tests: llm1-elicitation 1개.
 - 2026-11-23 [feature] 통신기 = 연습 계좌 MTS(B2C 기본, mts 브랜치): 상인이 건네준 뒤 화면 버튼, 잔고(기록+코인 종목, 코인=예수금, 두 관점 시트)·현재가(오늘 5종목)·주문(코인 매수, 코인 종목 매도→농부 수레) (ui/Comm.tsx, content/comm.ts). tests: 단위 comm 2개, e2e proto3d-comm 2개, walk.spec 통신기 단계 갱신.
 - 2026-11-23 [feature] 가입 없이 둘러보기를 실서버에서 다시 염(B2C 기본): 기기에만 저장, 서버 기능은 로그인 후. docs/server.md 15번 갱신. tests: e2e proto3d-guest 1개.
+- 2026-11-24 [stage] 루온 종목 토론 → 탐지 모드, /signal 종목명: 루온에게 말 걸면 내 종목 목록, 고르면 그 종목 코드로 bori-talk `signal`(speaker luon) → 탐지 모드 첫 마디·시각, 이어서 LLM 대화(손님은 정해진 대사). /signal 이름 → 정원 종목 코드 먼저, 없으면 대형주+코스닥120(core/llm1/signal.ts), 정원에 없으면 고정 대사. 엔진 signalStock(같은 종목 이어 가기·다른 종목은 멈춤·재개), 루온 성격 persona_luon.json·대화 문서 분리·id 접두어 lu-. 가로 화면에서 긴 선택지 목록이 위로 넘치던 것 스크롤로. tests: llm1-signal 4개, e2e proto3d-luon-signal 2개. bori-talk 번들 다시 붙여 넣어야 함.

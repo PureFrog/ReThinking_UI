@@ -18,10 +18,12 @@ export type Speaker={id:string;name:string;smalls:string[];stockLine:(name:strin
 const LATER='그래, 생각나면 불러.';
 
 // onFace: the face of the line on screen (보리's model wears it, Analyst3D); the server sends one with every line
-export function FriendSheet({opener,topic,seed,onGo,onClose,talk,opening,onFace,who,stocks=[],onStock}:{opener:string;topic:FriendTopic;seed:string;onGo:(to:'grades'|'journal'|'case')=>void;onClose:()=>void;
+export function FriendSheet({opener,topic,seed,onGo,onClose,talk,opening,onFace,who,stocks=[],onStock,pickFirst,onPickTalk}:{opener:string;topic:FriendTopic;seed:string;onGo:(to:'grades'|'journal'|'case')=>void;onClose:()=>void;
   talk?:((history:TalkLine[],message:string)=>Promise<Line>)|null;opening?:(()=>Promise<Line|null>)|null;onFace?:(f:BoriFace)=>void;
-  who?:Speaker;stocks?:{id:number;name:string}[];onStock?:(id:number)=>void}){
-  const [picking,setPicking]=useState(false);
+  who?:Speaker;stocks?:{id:number;name:string}[];onStock?:(id:number)=>void;
+  // 루온 (2026-11-24): the stocks stand first, and a stock picked asks the server for detection mode on it (supabase.ts stockSignal)
+  pickFirst?:boolean;onPickTalk?:((id:number,name:string)=>Promise<Line|null>)|null}){
+  const [picking,setPicking]=useState(!!pickFirst&&stocks.length>0);
   const name=who?.name??FRIEND.name;
   // what 보리 still has to say (the first is on screen), what was said (for the server), and where the talk is
   const [queue,setQueue]=useState<string[]>(opening?[]:[opener]),[face,setFace]=useState<BoriFace>(FRIEND_FACE.of(opening?'thinking':FRIEND_FACE.topic[topic]));
@@ -49,13 +51,15 @@ export function FriendSheet({opener,topic,seed,onGo,onClose,talk,opening,onFace,
   const say=(text:string,emotion?:string,stamp:string|null=null)=>{setAt(stamp);setQueue([text]);setHistory(h=>[...h,{who:'bori',text}]);if(emotion)setFace(FRIEND_FACE.of(emotion))};
   const mine0=stocks.length&&onStock?[{label:'내 종목 얘기',stocks:true}]:[];
   const choices:Choice[]=stopLoss?[{label:'얘기해 줄게',talk:true},{label:'나중에',leave:true}]
-    :picking?[...stocks.slice(0,6).map(x=>({label:x.name,stock:x.id})),{label:'다음에',leave:true}]
+    :picking?[...stocks.slice(0,8).map(x=>({label:x.name,stock:x.id})),{label:'다음에',leave:true}]
     :who&&talk?[...mine0,{label:'말 걸기',talk:true}]
     :who?[{label:'수다 떨자',answer:who.smalls[(seed+who.id).length%who.smalls.length]},...mine0]
     :[...friendReplies(topic,seed).filter(r=>r.go!=='case').map(r=>({label:r.label,answer:r.answer,go:r.go})),...mine0,...(talk?[{label:'말 걸기',talk:true}]:[])];
   const pick=(c:Choice)=>{setMine(c.label);
     if(c.stocks){setPicking(true);say(who?'어느 나무 얘기 할래?':'어떤 종목? 골라 봐.','curious');return}
     // 토론 캐릭터: the stock picked opens the talk box about it (no tree walk)
+    if(c.stock!==undefined&&who&&talk&&onPickTalk){const id=c.stock,n=c.label;setPicking(false);setMode('type');setHistory(h=>[...h,{who:'me',text:n}]);setBusy(true);setFace('thinking');
+      void onPickTalk(id,n).then(l=>{setBusy(false);if(l)say(l.text,l.emotion??'curious',l.at??null);else say(`${n}? 좋아. 왜 갖고 있는지 한 줄로 말해 줘. 반대로 볼 근거를 같이 찾아볼게.`,'curious')});return}
     if(c.stock!==undefined&&who&&talk){const n=c.label;setPicking(false);setMode('type');say(`${n}? 좋아. 왜 갖고 있는지 한 줄로 말해 줘. 반대로 볼 근거를 같이 찾아볼게.`,'curious');setHistory(h=>[...h,{who:'me',text:n}]);return}
     if(c.stock!==undefined){const id=c.stock,n=c.label;setMode('leaving');say(who?who.stockLine(n):`${n} 나무로 가자. 수첩 펼쳐 줄게.`,'happy');setTimeout(()=>onStock?.(id),TIMING.talkGo+300);return}
     if(c.leave){setMode('leaving');say(LATER,'happy');setTimeout(onClose,TIMING.talkLeave);return}

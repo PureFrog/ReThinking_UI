@@ -29,7 +29,7 @@ import {Welcome} from './ui/Welcome';
 import {authRepo} from './server';
 import {boriChat} from '../core/bori-chat';
 import {debateChat} from '../core/debate-chat';
-import {missingConsents,boriTalk,boriOpen,jigiAI,readCapture,hasInvite,isMaster,observatoryServer,type BoriLine} from './supabase';
+import {missingConsents,boriTalk,boriOpen,stockSignal,jigiAI,readCapture,hasInvite,isMaster,observatoryServer,type BoriLine} from './supabase';
 import {searchNames,loadRealBars,loadMarket,loadVirtualBars,fixturePrices,type PriceFixture} from './prices';
 import {rowFor} from '../core/model-signals';
 import {loadModelSignals,fixtureModelSignals,type ModelSignalFixture} from './model-signals';
@@ -426,6 +426,12 @@ export default function Proto3D(){
   // the stock pickers (보리, 루온) list real holdings first: only six fit
   const realFirst=useMemo(()=>[...holdings].sort((a,b)=>Number(!!b.real)-Number(!!a.real)),[holdings]);
   const boriHoldings=useMemo(()=>holdings.map(x=>({company_id:codeOf(x),name:x.name})),[holdings]);
+  // 루온 (2026-11-24): a stock picked → the server turns the talk to detection mode on it (supabase.ts stockSignal); signed out, the
+  // placeholder lines (core/debate-chat.ts). e2e: window.__luonSignal / __luonTalk stand in for the server
+  const testLuon=typeof window!=='undefined'?(window as unknown as {__luonSignal?:(code:string,name:string)=>Promise<BoriLine|null>;__luonTalk?:(m:string)=>Promise<BoriLine>}):undefined;
+  const luonOn=syncOn||!!testLuon?.__luonSignal;
+  const luonPick=useCallback((id:number,name:string)=>{const h=holdings.find(x=>x.id===id),code=h?codeOf(h):name;
+    return testLuon?.__luonSignal?testLuon.__luonSignal(code,name):stockSignal(boriHoldings,code,'luon')},[holdings,boriHoldings,testLuon]);
   // with the server, only real holdings' signals go to it (a mock tree's made-up signal must not start a real analysis)
   const lossCodes=useMemo(()=>signals.filter(x=>x.loss).map(x=>holdings.find(h=>h.id===x.holdingId)).flatMap(h=>h&&(!syncOn||h.real)?[codeOf(h)]:[]),[signals,holdings,syncOn]);
   // e2e: window.__boriOpen stands in for the server (it gets the loss codes)
@@ -1108,7 +1114,8 @@ export default function Proto3D(){
         talk={(history,m)=>boriChat(history,m,syncOn?(_h,msg)=>boriTalk(boriHoldings,msg):null)} opening={boriTalks?boriOpening:null} onFace={setBoriFace}
         onGo={()=>setSheet({kind:'journal',stock:askedAbout??undefined})} stocks={realFirst.map(x=>({id:x.id,name:x.name}))} onStock={openTree}/>}
       {sheet?.kind==='talk'&&(()=>{const w=VILLAGE_SPEAKERS[sheet.id];return <FriendSheet key={sheet.id} who={w} opener={sheet.id==='luon'?'…어느 종목 얘기할래? 고르면 네 이유부터 들어 볼게.':w.greet[clock.today.length%w.greet.length]} topic="chat" seed={clock.today}
-        talk={sheet.id==='luon'?(history,m)=>debateChat(history,m,null):null}
+        talk={sheet.id==='luon'?(history,m)=>debateChat(history,m,testLuon?.__luonTalk?(_h,msg)=>testLuon.__luonTalk!(msg):syncOn?(_h,msg)=>boriTalk(boriHoldings,msg,'luon'):null):null}
+        pickFirst={sheet.id==='luon'} onPickTalk={sheet.id==='luon'&&luonOn?luonPick:null}
         onClose={close} onGo={()=>setSheet({kind:'journal'})} stocks={realFirst.map(x=>({id:x.id,name:x.name}))} onStock={openTree}/>})()}
       {sheet?.kind==='drawer'&&<Drawer g={g} onClose={close} onCart={()=>setSheet({kind:'cart'})}/>}
       {sheet?.kind==='analyst'&&<AnalystCard g={g} id={sheet.id} signal={open.find(x=>x.analyst===sheet.id)??null} onClose={close}

@@ -3,7 +3,7 @@
 // To attach the LLM: give boriChat a `llm` (history + message → {text, emotion}); the server's boriTalk is wired in
 // Proto3D when signed in. Nothing else in the UI changes.
 export type ChatLine={who:'bori'|'me';text:string};
-export type ChatReply={text:string;emotion?:string};
+export type ChatReply={text:string;emotion?:string;at?:string};
 export type BoriLLM=(history:ChatLine[],message:string)=>Promise<ChatReply>;
 
 const RULES:[RegExp,ChatReply][]=[

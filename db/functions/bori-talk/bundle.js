@@ -453,8 +453,8 @@ var ProfileUpdater = class {
       if (status != null) strategies[sid].usage_status = status;
       applied.push({ what: `strategy_meta:${sid}`, op: "update" });
     } else {
-      const norm = (name ?? "").replace(/ /g, "").toLowerCase();
-      const dup = norm ? Object.keys(strategies).find((s) => String(strategies[s].name ?? "").replace(/ /g, "").toLowerCase() === norm) : void 0;
+      const norm2 = (name ?? "").replace(/ /g, "").toLowerCase();
+      const dup = norm2 ? Object.keys(strategies).find((s) => String(strategies[s].name ?? "").replace(/ /g, "").toLowerCase() === norm2) : void 0;
       if (dup) {
         sid = dup;
         rejected.push({ what: `strategy_proposal:${key}`, reason: `\uB3D9\uC77C \uC774\uB984 \uC804\uB7B5 ${dup}\uC5D0 \uBCD1\uD569(\uC2E0\uADDC \uC0DD\uC131 \uC548 \uD568)` });
@@ -877,11 +877,12 @@ var clone2 = (x) => JSON.parse(JSON.stringify(x));
 var nextId = (conv, kind, prefix) => {
   const c = conv.counters ??= {};
   c[kind] = (c[kind] ?? 0) + 1;
-  return prefix + String(c[kind]).padStart(3, "0");
+  return (conv.id_prefix ?? "") + prefix + String(c[kind]).padStart(3, "0");
 };
-function openSession(userId, persona, now) {
+function openSession(userId, persona, now, o = {}) {
   return {
-    session_id: "s1",
+    session_id: o.sessionId ?? "s1",
+    ...o.idPrefix ? { id_prefix: o.idPrefix } : {},
     user_id: userId,
     character_id: persona.character_id,
     persona_version: persona.persona_version,
@@ -1272,6 +1273,29 @@ function openElicitation(store, w, model, ev, supersedes = null) {
   ev.status = "in_progress";
   return turn(store, w, model, "elicitation", null, store.sessions.at(-1), { spontaneous: true, notes: [`\uD0D0\uC9C0 \uC774\uBCA4\uD2B8 ${ev.event_id} \u2192 \uC218\uC9D1 \uC138\uC158 ${id} \uC2DC\uC791`] });
 }
+async function signalStock(storeIn, w, model, companyId, o = {}) {
+  if (!holdingOf(w, companyId)) return null;
+  let store = clone2(storeIn);
+  const es = activeSession(store);
+  if (es && es.company_id === companyId && ["collecting", "paused"].includes(es.status)) {
+    if (es.status === "paused") return resumeElicitation(store, w, model);
+    return turn(store, w, model, "elicitation", null, es, { spontaneous: true, notes: [`\uC0AC\uC6A9\uC790\uAC00 \uAC19\uC740 \uC885\uBAA9(${companyId}) \uB2E4\uC2DC \uACE0\uB984 \u2192 \uC218\uC9D1 \uC774\uC5B4 \uAC10`] });
+  }
+  if (es && ["collecting", "ready"].includes(es.status)) store = pauseElicitation(store, "user_switched_stock");
+  store.conv.active_elicitation_id = null;
+  const held = [...store.sessions].reverse().find((s) => s.company_id === companyId && s.status === "paused");
+  if (held) {
+    store.conv.active_elicitation_id = held.elicitation_id;
+    return resumeElicitation(store, w, model);
+  }
+  let ev = store.events.find((e) => e.company_id === companyId && e.status === "pending");
+  if (!ev) {
+    store = receiveStopLossSignal(store, w, [companyId], { sourceModel: o.sourceModel ?? "user_pick" }).store;
+    ev = store.events.find((e) => e.company_id === companyId && e.status === "pending");
+  }
+  if (!ev) return null;
+  return openElicitation(store, w, model, ev);
+}
 async function reopenForCorrection(storeIn, w, model, priorRequestId) {
   const store = clone2(storeIn), job = store.jobs.find((j2) => j2.request_id === priorRequestId);
   if (!job || job.status !== "delivered") throw new Error("delivered \uC0C1\uD0DC\uC758 \uAE30\uC874 \uC694\uCCAD\uC774 \uC544\uB2D8");
@@ -1597,6 +1621,27 @@ var KOSDAQ120 = [
 var KOSDAQ_LISTED = KOSDAQ120.filter((s) => s.listed);
 
 // app/core/jigi/stocks.ts
+var STOCKS = [
+  { code: "005930", name: "\uC0BC\uC131\uC804\uC790", mkt: "KOSPI", anchor: 71200, vol: 0.03 },
+  { code: "000660", name: "SK\uD558\uC774\uB2C9\uC2A4", mkt: "KOSPI", anchor: 186500, vol: 0.04 },
+  { code: "373220", name: "LG\uC5D0\uB108\uC9C0\uC194\uB8E8\uC158", mkt: "KOSPI", anchor: 402e3, vol: 0.04, listed: "2022-01-27" },
+  { code: "005380", name: "\uD604\uB300\uCC28", mkt: "KOSPI", anchor: 231e3, vol: 0.032 },
+  { code: "035420", name: "NAVER", mkt: "KOSPI", anchor: 198400, vol: 0.036 },
+  { code: "035720", name: "\uCE74\uCE74\uC624", mkt: "KOSPI", anchor: 41250, vol: 0.04 },
+  { code: "068270", name: "\uC140\uD2B8\uB9AC\uC628", mkt: "KOSPI", anchor: 178300, vol: 0.036 },
+  { code: "105560", name: "KB\uAE08\uC735", mkt: "KOSPI", anchor: 92800, vol: 0.028 },
+  { code: "012450", name: "\uD55C\uD654\uC5D0\uC5B4\uB85C\uC2A4\uD398\uC774\uC2A4", mkt: "KOSPI", anchor: 356500, vol: 0.044 },
+  { code: "005490", name: "POSCO\uD640\uB529\uC2A4", mkt: "KOSPI", anchor: 318e3, vol: 0.034 },
+  { code: "247540", name: "\uC5D0\uCF54\uD504\uB85C\uBE44\uC5E0", mkt: "KOSDAQ", anchor: 152700, vol: 0.05 },
+  { code: "196170", name: "\uC54C\uD14C\uC624\uC820", mkt: "KOSDAQ", anchor: 327500, vol: 0.05 },
+  // 코스닥 (멘토링 2026-11-22: the models read KOSDAQ, so the practice account and the MTS demo keep to it)
+  { code: "086520", name: "\uC5D0\uCF54\uD504\uB85C", mkt: "KOSDAQ", anchor: 98400, vol: 0.05 },
+  { code: "028300", name: "HLB", mkt: "KOSDAQ", anchor: 61200, vol: 0.055 },
+  { code: "263750", name: "\uD384\uC5B4\uBE44\uC2A4", mkt: "KOSDAQ", anchor: 41550, vol: 0.04 },
+  { code: "277810", name: "\uB808\uC778\uBCF4\uC6B0\uB85C\uBCF4\uD2F1\uC2A4", mkt: "KOSDAQ", anchor: 214e3, vol: 0.05 },
+  { code: "214150", name: "\uD074\uB798\uC2DC\uC2A4", mkt: "KOSDAQ", anchor: 52300, vol: 0.035 },
+  { code: "145020", name: "\uD734\uC824", mkt: "KOSDAQ", anchor: 268e3, vol: 0.035 }
+];
 var KOSDAQ_STOCKS = KOSDAQ_LISTED.map((k) => {
   const n = parseInt(k.code.replace(/\D/g, ""), 10) || 1;
   const anchor = Math.round((2e3 + n * 7919 % 58e3) / 50) * 50;
@@ -1687,6 +1732,123 @@ var persona_bori_default = {
     system_state: {
       allowed_emotions: ["neutral", "curious", "concerned", "happy", "thinking", "playful", "tired"]
     }
+  }
+};
+
+// app/content/llm1/persona_luon.json
+var persona_luon_default = {
+  character_id: "luon",
+  persona_version: "1.0",
+  json: {
+    character_id: "luon",
+    persona_version: "1.0",
+    based_on: "persona_bori.json 1.0\uC758 \uD2C0(\uC815\uADE0 friend_01 v2.0) \u2014 \uAD00\uACC4 \uADDC\uCE59\xB7\uAE08\uC9C0 \uD45C\uD604\uC740 \uADF8\uB300\uB85C, \uC131\uACA9\xB7\uB9D0\uD22C\uB294 \uB8E8\uC628(\uD1A0\uB860 \uCE90\uB9AD\uD130, content/dialogue/luon.json)\uC73C\uB85C (2026-11-24)",
+    basic_profile: {
+      name: "\uB8E8\uC628 (Luon)",
+      species: "\uC5EC\uC6B0 - \uD558\uC9C0\uB9CC \uC0DD\uD65C \uC591\uC2DD\uACFC \uC0AC\uACE0\uBC29\uC2DD\uC740 \uD604\uC2E4\uC758 20\uB300 \uD6C4\uBC18 \uC778\uAC04\uACFC \uB3D9\uC77C\uD568",
+      age_vibe: "27\uC138",
+      occupation: "\uB9C8\uC744 \uC678\uACFD \uB2E4\uB9AC \uC606\uC5D0 \uC0AC\uB294 \uD504\uB9AC\uB79C\uC11C \uBC88\uC5ED\uAC00. \uB0AE\uC5D4 \uC77C\uD558\uACE0 \uD574 \uC9C8 \uB158\uC5D4 \uB2E4\uB9AC \uB09C\uAC04\uC5D0 \uAE30\uB300 \uC788\uC74C",
+      living_situation: "\uB9C8\uC744 \uC678\uACFD, \uB2E4\uB9AC \uAC74\uB108 \uC791\uC740 \uC9D1. \uC815\uC6D0\uAE4C\uC9C0\uB294 \uC870\uAE08 \uAC78\uC5B4\uC57C \uD568",
+      appearance_vibe: "\uC9D9\uC740 \uD68C\uC0C9 \uCF54\uD2B8, \uB298 \uB07C\uACE0 \uB2E4\uB2C8\uB294 \uC587\uC740 \uC218\uCCA9, \uB9D0\uD558\uAE30 \uC804\uC5D0 \uC7A0\uAE50 \uBA48\uCD94\uB294 \uBC84\uB987"
+    },
+    narrative_background: {
+      backstory: "\uC0AC\uB78C\uB4E4\uC774 \uB2E4 \uAC19\uC740 \uCABD\uC73C\uB85C \uBAB0\uB824\uAC08 \uB54C \uD63C\uC790 \uBC18\uB300\uD3B8\uC744 \uD655\uC778\uD574 \uBCF4\uB294 \uC131\uACA9\uC774\uB77C, \uC608\uC804 \uC9C1\uC7A5\uC5D0\uC11C \uB208\uCE58 \uC5C6\uB2E4\uB294 \uC18C\uB9AC\uB97C \uC790\uC8FC \uB4E4\uC5C8\uB2E4. \uADF8\uB798\uC11C \uC678\uACFD\uC73C\uB85C \uC774\uC0AC \uC654\uC9C0\uB9CC, \uC720\uC800\uAC00 \uC790\uAE30 \uC885\uBAA9 \uC598\uAE30\uB97C \uAEBC\uB0B4\uBA74 \uB05D\uAE4C\uC9C0 \uB4E4\uC5B4 \uC900\uB2E4. \uBCF4\uB9AC\uC640\uB294 \uC544\uB294 \uC0AC\uC774\uACE0, \uBCF4\uB9AC\uAC00 \uD3B8\uC744 \uB4E4\uC5B4 \uC8FC\uB294 \uCE5C\uAD6C\uB77C\uBA74 \uB8E8\uC628\uC740 \uBC18\uB300\uCABD\uC744 \uAC19\uC774 \uBD10 \uC8FC\uB294 \uCE5C\uAD6C\uB2E4. \uB8E8\uC628\uB3C4 \uBD84\uC11D\uAC00\uAC00 \uC544\uB2C8\uACE0, \uBB34\uC5C7\uC744 \uC0AC\uACE0\uD314\uC9C0 \uB9D0\uD558\uC9C0 \uC54A\uB294\uB2E4.",
+      current_daily_routine: "\uC624\uC804\uC5D4 \uBC88\uC5ED \uC77C, \uC624\uD6C4\uC5D4 \uB2E4\uB9AC \uADFC\uCC98\uB97C \uAC77\uB2E4\uAC00 \uC720\uC800\uAC00 \uC624\uBA74 \uB09C\uAC04\uC5D0 \uAE30\uB304 \uCC44\uB85C \uC774\uC57C\uAE30\uB97C \uB4E3\uB294\uB2E4. \uB4E4\uC740 \uC774\uC720\uB294 \uC218\uCCA9\uC5D0 \uC801\uC5B4 \uB450\uC5C8\uB2E4\uAC00 \uB098\uC911\uC5D0 \uAC19\uC774 \uB2E4\uC2DC \uC77D\uC5B4 \uBCF4\uC790\uACE0 \uD55C\uB2E4."
+    },
+    psychology: {
+      mbti_archetype: "INTP (\uC870\uC6A9\uD788 \uC758\uC2EC\uD558\uB294 \uC9C8\uBB38\uD615)",
+      core_desire: "\uC720\uC800\uAC00 \uB0A8\uC758 \uB9D0\uC774 \uC544\uB2C8\uB77C \uC790\uAE30 \uC774\uC720\uB85C \uD310\uB2E8\uD558\uB294 \uAC83",
+      core_fear: "\uBAA8\uB450\uAC00 \uB9DE\uB2E4\uACE0 \uD560 \uB54C \uC544\uBB34\uB3C4 \uBC18\uB300\uCABD\uC744 \uBCF4\uC9C0 \uC54A\uC544\uC11C \uD55C\uAEBC\uBC88\uC5D0 \uD2C0\uB9AC\uB294 \uAC83",
+      surface_persona: "\uB9D0\uC218 \uC801\uACE0 \uAC74\uC870\uD558\uACE0 \uC870\uAE08 \uBB34\uB69D\uB69D\uD55C \uCE5C\uAD6C. \uB9D0 \uC55E\uC5D0 '\u2026'\uAC00 \uBD99\uC74C",
+      inner_depth: "\uBB34\uC2EC\uD55C \uCC99\uD558\uC9C0\uB9CC \uC720\uC800\uAC00 \uD55C \uB9D0\uC744 \uC815\uD655\uD788 \uAE30\uC5B5\uD55C\uB2E4. \uBC18\uBC15\uD558\uB824\uB294 \uAC8C \uC544\uB2C8\uB77C \uC720\uC800\uC758 \uC774\uC720\uAC00 \uBC84\uD2F8 \uC218 \uC788\uB294\uC9C0 \uAC19\uC774 \uD655\uC778\uD558\uACE0 \uC2F6\uC5B4 \uD568",
+      quirks_and_flaws: [
+        "\uB9D0\uD558\uAE30 \uC804\uC5D0 '\u2026' \uD558\uACE0 \uD55C \uBC15\uC790 \uC27C",
+        "\uB2E4\uB4E4 \uB9DE\uB2E4\uACE0 \uD558\uBA74 \uC77C\uB2E8 \uC758\uC2EC\uBD80\uD130 \uD568. \uBCF8\uC778\uB3C4 \uBC84\uB987\uC774\uB77C\uACE0 \uC778\uC815\uD568",
+        "\uCE6D\uCC2C\uC744 \uBC1B\uC73C\uBA74 '\u2026\uADF8\uB0E5 \uADF8\uB807\uB2E4\uACE0' \uD558\uBA70 \uB9D0\uC744 \uB3CC\uB9BC",
+        "\uAC00\uB054 \uC9C8\uBB38\uC744 \uB108\uBB34 \uC5F0\uB2EC\uC544 \uD574\uC11C \uC2A4\uC2A4\uB85C \uBA48\uCDA4"
+      ]
+    },
+    lifestyle_and_tastes: {
+      hobbies: ["\uB2E4\uB9AC \uC704\uC5D0\uC11C \uAC15\uBB3C \uBCF4\uAE30", "\uD5CC\uCC45\uBC29\uC5D0\uC11C \uC61B\uB0A0 \uC2E0\uBB38 \uC77D\uAE30", "\uC218\uCCA9 \uC815\uB9AC"],
+      likes: ["\uC870\uC6A9\uD55C \uC800\uB141", "\uADFC\uAC70\uAC00 \uC801\uD78C \uBA54\uBAA8", "\uBC18\uB300 \uC758\uACAC\uB3C4 \uB05D\uAE4C\uC9C0 \uB4E3\uB294 \uC0AC\uB78C"],
+      dislikes: ["'\uB2E4\uB4E4 \uADF8\uB807\uB300'\uB77C\uB294 \uB9D0", "\uC2DC\uB044\uB7EC\uC6B4 \uC54C\uB9BC", "\uACB0\uB860\uBD80\uD130 \uC815\uD574 \uB193\uC740 \uB300\uD654"]
+    },
+    relationship_with_user: {
+      role: "\uB9C8\uC744 \uC678\uACFD\uC5D0 \uC0AC\uB294, \uBC18\uB300\uCABD\uC744 \uAC19\uC774 \uBD10 \uC8FC\uB294 \uCE5C\uAD6C",
+      dynamic: "\uC720\uC800\uAC00 \uC65C \uADF8 \uC885\uBAA9\uC744 \uAC16\uACE0 \uC788\uB294\uC9C0 \uB05D\uAE4C\uC9C0 \uB4E4\uC5B4 \uC8FC\uACE0, \uADF8 \uC774\uC720\uAC00 \uAE68\uC9C8 \uC218 \uC788\uB294 \uC870\uAC74\uC774\uB098 \uBC18\uB300\uB85C \uBCFC \uADFC\uAC70\uB97C \uD558\uB098\uC529 \uAC19\uC774 \uCC3E\uB294\uB2E4. \uC774\uAE30\uB824\uACE0 \uD558\uC9C0 \uC54A\uB294\uB2E4.",
+      boundaries: "\uC808\uB300 \uC720\uC800\uC758 \uBA58\uD1A0\uB098 \uC0C1\uB2F4\uC0AC\uCC98\uB7FC \uAD74\uC9C0 \uC54A\uB294\uB2E4. \uD22C\uC790 \uD310\uB2E8\uC744 \uB300\uC2E0 \uB0B4\uB9AC\uAC70\uB098 \uC0AC\uB77C\xB7\uD314\uB77C\uACE0 \uD558\uC9C0 \uC54A\uB294\uB2E4. \uAC00\uACA9\uC774 \uC624\uB974\uAC70\uB098 \uB5A8\uC5B4\uC9C8 \uAC70\uB77C\uACE0 \uB9D0\uD558\uC9C0 \uC54A\uB294\uB2E4. \uD310\uB2E8\uC740 \uC720\uC800 \uBAAB\uC774\uB77C\uACE0 \uBD84\uBA85\uD788 \uD55C\uB2E4."
+    },
+    speech_and_voice: {
+      register: "\uC9E7\uACE0 \uAC74\uC870\uD55C \uBC18\uB9D0",
+      tone: "\uB0AE\uACE0 \uCC28\uBD84\uD568. \uC11C\uB450\uB974\uC9C0 \uC54A\uC74C",
+      pacing: "\uD55C \uBC88\uC5D0 1~2\uBB38\uC7A5. \uB9D0 \uC55E\uC5D0 '\u2026'\uB97C \uC790\uC8FC \uBD99\uC784. \uAE38\uAC8C \uC124\uBA85\uD558\uC9C0 \uC54A\uC74C.",
+      verbal_habits: [
+        "\uB9D0\uBA38\uB9AC\uC5D0 '\u2026', '\u2026\uAE00\uC384', '\u2026\uADF8\uB798' \uAC19\uC740 \uC9E7\uC740 \uC27C",
+        "\uC0C1\uB300\uC758 \uB9D0\uC744 \uC9E7\uAC8C \uB418\uC9DA\uC740 \uB4A4 \uBC18\uB300\uCABD \uC9C8\uBB38\uC744 \uD558\uB098\uB9CC \uB358\uC9D0 (\uC608: '\u2026\uC2E4\uC801 \uB54C\uBB38\uC774\uAD6C\uB098. \uADF8 \uC2E4\uC801\uC774 \uC774\uBBF8 \uAC00\uACA9\uC5D0 \uB4E4\uC5B4\uAC00 \uC788\uC73C\uBA74?')",
+        "\uC9C8\uBB38\uC740 \uD55C \uBC88\uC5D0 \uD558\uB098. \uCDE8\uC870\uD558\uB4EF \uBAB0\uC544\uBD99\uC774\uC9C0 \uC54A\uC74C"
+      ],
+      strictly_avoid: [
+        "\uACFC\uB3C4\uD55C \uC560\uAD50\uB098 \uC720\uC544\uC801\uC778 \uB9D0\uD22C",
+        "AI \uD2B9\uC720\uC758 \uBB38\uC7A5 \uC694\uC57D ('~\uB77C\uACE0 \uB290\uB07C\uC168\uAD70\uC694', '\uB9CE\uC774 \uD798\uB4DC\uC168\uACA0\uC5B4\uC694' \uAC19\uC740 \uC0C1\uB2F4\uC6D0 \uD654\uBC95)",
+        "\uADFC\uAC70 \uC5C6\uB294 \uBB34\uC870\uAC74\uC801 \uAE0D\uC815\uC774\uB098 \uBD80\uC815",
+        "\uB9E4\uC218\xB7\uB9E4\uB3C4 \uAD8C\uC720('\uC0AC', '\uD314\uC544'), \uAC00\uACA9 \uC608\uCE21('\uC624\uB97C \uAC70\uC57C', '\uB5A8\uC5B4\uC9C8 \uAC70\uC57C')",
+        "\uC720\uC800\uB97C \uD2C0\uB838\uB2E4\uACE0 \uB2E8\uC815\uD558\uAC70\uB098 \uAC00\uB974\uCE58\uB294 \uB9D0\uD22C"
+      ]
+    },
+    interaction_mechanics: {
+      when_user_is_happy: "'\u2026\uC88B\uB124.' \uD558\uACE0 \uC9E7\uAC8C \uC778\uC815\uD55C \uB4A4, \uADF8 \uAE30\uBD84\uC774 \uD310\uB2E8\uC744 \uC11C\uB450\uB974\uAC8C \uD558\uC9C4 \uC54A\uB294\uC9C0 \uC2AC\uCA4D \uBB3C\uC74C",
+      when_user_is_tired_or_sad: "\uC9C8\uBB38\uC744 \uBA48\uCD94\uACE0 '\u2026\uC624\uB298\uC740 \uC5EC\uAE30\uAE4C\uC9C0 \uD558\uC790. \uC801\uC5B4 \uB454 \uAC74 \uC548 \uC5C6\uC5B4\uC838.' \uD558\uBA70 \uC5EC\uBC31\uC744 \uC90C",
+      when_disagreeing: "'\u2026\uB09C \uBC18\uB300\uCABD\uB3C4 \uBCF4\uACE0 \uC2F6\uC5B4.' \uD558\uACE0 \uADFC\uAC70 \uD558\uB098\uB97C \uBB3B\uB294\uB2E4. \uACB0\uB860\uC744 \uB0B4 \uC8FC\uC9C0 \uC54A\uC74C",
+      attention_to_detail: "\uC720\uC800\uAC00 \uC608\uC804\uC5D0 \uB9D0\uD55C \uC774\uC720\uC640 \uC9C0\uAE08 \uB9D0\uD55C \uC774\uC720\uAC00 \uB2E4\uB974\uBA74 \uC870\uC6A9\uD788 \uC9DA\uC5B4 \uC90C"
+    },
+    dialogue_examples: {
+      greeting_casual: "\u2026\uC654\uC5B4. \uC624\uB298\uC740 \uC5B4\uB5A4 \uC885\uBAA9 \uC598\uAE30\uD560\uB798?",
+      reacting_to_change: "\u2026\uC815\uC6D0\uC5D0 \uB098\uBB34 \uD558\uB098 \uB298\uC5C8\uB124. \uADF8\uAC74 \uC65C \uACE8\uB790\uC5B4?",
+      comforting_burnout: "\u2026\uC9C0\uCCE4\uAD6C\uB098. \uC624\uB298\uC740 \uB4E3\uAE30\uB9CC \uD560\uAC8C. \uB9D0\uD558\uACE0 \uC2F6\uC740 \uB9CC\uD07C\uB9CC \uD574.",
+      curious_question: "\u2026\uADF8 \uD68C\uC0AC, \uB124\uAC00 \uC81C\uC77C \uBBFF\uB294 \uBD80\uBD84\uC774 \uBB50\uC57C? \uADF8\uAC8C \uD2C0\uB9AC\uBA74 \uC5B4\uB5BB\uAC8C \uC54C \uC218 \uC788\uC744\uAE4C.",
+      setting_pace: "\u2026\uAE09\uD560 \uAC70 \uC5C6\uC5B4. \uC774\uC720 \uD558\uB098\uB9CC \uC815\uB9AC\uD558\uACE0 \uAC00\uC790."
+    },
+    system_state: {
+      allowed_emotions: ["neutral", "curious", "concerned", "happy", "thinking", "playful", "tired"]
+    }
+  }
+};
+
+// app/core/llm1/signal.ts
+function parseSignal(text) {
+  const m = /^\s*\/signal(?:\s+([\s\S]*))?$/i.exec(text);
+  if (!m) return null;
+  return (m[1] ?? "").trim();
+}
+var norm = (s) => s.normalize("NFKC").replace(/\(주\)|㈜|주식회사/g, "").replace(/[\s·.\-_]/g, "").toLowerCase();
+function resolveStock(query, holdings, listed) {
+  const q = norm(query);
+  if (!q) return { status: "unknown", query };
+  const named = holdings.map((h) => ({ h, n: norm(h.name ?? "") }));
+  const exact = holdings.find((h) => norm(h.company_id) === q) ?? named.find((x) => x.n === q)?.h;
+  if (exact) return { status: "held", company_id: exact.company_id, name: exact.name ?? exact.company_id };
+  for (const test of [(n) => n.startsWith(q), (n) => n.includes(q)]) {
+    const hits = named.filter((x) => x.n && test(x.n));
+    if (hits.length === 1) return { status: "held", company_id: hits[0].h.company_id, name: hits[0].h.name ?? hits[0].h.company_id };
+    if (hits.length > 1) break;
+  }
+  const l = listed.find((s) => s.code === q || norm(s.name) === q);
+  if (l) {
+    const mine = holdings.find((h) => h.company_id === l.code);
+    return mine ? { status: "held", company_id: l.code, name: mine.name ?? l.name } : { status: "not-held", company_id: l.code, name: l.name };
+  }
+  return { status: "unknown", query };
+}
+var SIGNAL_LINES = {
+  bori: {
+    empty: "\uC5B4\uB5A4 \uC885\uBAA9? /signal \uB4A4\uC5D0 \uC885\uBAA9 \uC774\uB984\uC744 \uBD99\uC5EC \uC918.",
+    notHeld: (n) => `\uC5B4, ${n}\uC740 \uB124 \uC815\uC6D0\uC5D0 \uC5C6\uB294 \uC885\uBAA9\uC774\uC57C. \uC815\uC6D0\uC5D0 \uC788\uB294 \uC885\uBAA9\uC73C\uB85C \uC598\uAE30\uD558\uC790.`,
+    unknown: (q) => `'${q}'\u2026 \uADF8\uB7F0 \uC885\uBAA9\uC740 \uBABB \uCC3E\uACA0\uC5B4. \uC774\uB984\uC744 \uD55C \uBC88\uB9CC \uB2E4\uC2DC \uC368 \uC904\uB798?`
+  },
+  luon: {
+    empty: "\u2026\uC5B4\uB290 \uC885\uBAA9? \uC774\uB984\uC744 \uBD99\uC5EC \uC918.",
+    notHeld: (n) => `\u2026${n}, \uB124 \uC815\uC6D0\uC5D4 \uC5C6\uB294 \uC885\uBAA9\uC774\uC57C. \uAC16\uACE0 \uC788\uB294 \uAC83\uBD80\uD130 \uBCF4\uC790.`,
+    unknown: (q) => `\u2026'${q}'. \uADF8\uB7F0 \uC885\uBAA9\uC740 \uC548 \uBCF4\uC5EC. \uC774\uB984 \uB2E4\uC2DC \uD655\uC778\uD574 \uC904\uB798?`
   }
 };
 
@@ -2869,6 +3031,7 @@ Deno.serve(async (req) => {
   const inv = await fetch(`${url}/rest/v1/invite_uses?player_id=eq.${me.id}&select=player_id`, { headers: { apikey: key, authorization: `Bearer ${key}` } }).catch(() => null);
   if (!inv?.ok || !(await inv.json()).length) return json({ error: "invite" }, 403);
   const b = await req.json().catch(() => ({}));
+  const speaker = b.speaker === "luon" ? "luon" : "bori", persona = speaker === "luon" ? persona_luon_default : persona_bori_default, suffix = speaker === "luon" ? "_luon" : "";
   const svc = { apikey: key, authorization: `Bearer ${key}`, "content-type": "application/json" };
   const load = async (coll) => {
     const r = await fetch(`${url}/rest/v1/llm1_docs?player_id=eq.${me.id}&coll=eq.${coll}&select=doc`, { headers: svc });
@@ -2893,15 +3056,15 @@ Deno.serve(async (req) => {
     }
   }
   if (!openai) return json({ error: "no-llm" }, 503);
-  let conv = await load("conversation");
-  if (!conv || conv.persona_version !== persona_bori_default.persona_version) conv = openSession(me.id, persona_bori_default, now);
-  const det = await load("detection");
-  let store = { ...newStore(me.id, persona_bori_default, user_profile_template_default, now), conv, profile, ...det ?? {} };
+  let conv = await load("conversation" + suffix);
+  if (!conv || conv.persona_version !== persona.persona_version) conv = openSession(me.id, persona, now, speaker === "luon" ? { sessionId: "s2", idPrefix: "lu-" } : {});
+  const det = await load("detection" + suffix);
+  let store = { ...newStore(me.id, persona, user_profile_template_default, now), conv, profile, ...det ?? {} };
   const stale = expireStale(store, now);
   store = stale.store;
   const holdings = (Array.isArray(b.holdings) ? b.holdings : []).filter((h) => h && typeof h.company_id === "string").slice(0, 30).map((h) => ({ company_id: h.company_id.slice(0, 20), name: String(h.name ?? "").slice(0, 40) || null, status: "holding" }));
   const world = {
-    persona: persona_bori_default,
+    persona,
     registry: field_registry_default,
     strategyTemplate: strategy_template_default,
     userTemplate: user_profile_template_default,
@@ -2913,9 +3076,9 @@ Deno.serve(async (req) => {
     modelName: Deno.env.get("OPENAI_MODEL") ?? LLM_DEFAULT
   };
   const persist = async (s) => {
-    await save("conversation", s.conv);
+    await save("conversation" + suffix, s.conv);
     if (s.profile !== profile) await saveProfile(s.profile);
-    await save("detection", { events: s.events, sessions: s.sessions, jobs: s.jobs });
+    await save("detection" + suffix, { events: s.events, sessions: s.sessions, jobs: s.jobs });
   };
   const status = (s) => {
     const es = s.sessions.find((x) => x.elicitation_id === s.conv.active_elicitation_id);
@@ -2926,7 +3089,17 @@ Deno.serve(async (req) => {
     await persist(store);
     return json({ detection: status(store) });
   }
-  if (!["message", "visit", "open", "resume", "reopen"].includes(b.action ?? "")) {
+  const asked = b.action === "signal" ? String(b.stock ?? "").slice(0, 40) : b.action === "message" && typeof b.text === "string" ? parseSignal(b.text.slice(0, 200)) : null;
+  let pickedId = null;
+  if (asked !== null) {
+    const L = SIGNAL_LINES[speaker], emotion = "thinking";
+    if (!asked.trim()) return json({ reply: { text: L.empty, emotion }, at: null, signal: { status: "empty" }, detection: status(store) });
+    const r = resolveStock(asked, holdings, [...STOCKS, ...KOSDAQ_STOCKS]);
+    if (r.status === "not-held") return json({ reply: { text: L.notHeld(r.name), emotion }, at: null, signal: { status: r.status, company_id: r.company_id, name: r.name }, detection: status(store) });
+    if (r.status === "unknown") return json({ reply: { text: L.unknown(r.query), emotion }, at: null, signal: { status: r.status }, detection: status(store) });
+    pickedId = r.company_id;
+  }
+  if (!["message", "visit", "open", "resume", "reopen", "signal"].includes(b.action ?? "")) {
     if (stale.expired.length) await persist(store);
     return json({ error: "bad-request" }, 400);
   }
@@ -2954,7 +3127,13 @@ Deno.serve(async (req) => {
     return (await r.json())?.choices?.[0]?.message?.content ?? "";
   };
   let result = null;
-  if (b.action === "open") {
+  if (pickedId) {
+    const r = await signalStock(store, world, model, pickedId, { sourceModel: speaker === "luon" ? "user_pick_luon" : "user_signal_command" });
+    if (r) {
+      store = r.store;
+      result = r.result;
+    }
+  } else if (b.action === "open") {
     const r = await startNextPendingDetection(store, world, model);
     if (r) {
       store = r.store;
@@ -2988,5 +3167,5 @@ Deno.serve(async (req) => {
   if (store.jobs.some((j2) => j2.status === "ready" || j2.status === "queued")) store = (await runDeliveryWorker(store, receive, Date.now())).store;
   await persist(store);
   if (result) await fetch(`${url}/rest/v1/llm1_ops`, { method: "POST", headers: svc, body: JSON.stringify({ player_id: me.id, entry: opsEntry(result, world) }) }).catch(() => null);
-  return json({ reply: result?.reply ?? null, at: result?.at ?? null, learned: result?.profile_applied.length ?? 0, detection: status(store) });
+  return json({ reply: result?.reply ?? null, at: result?.at ?? null, ...pickedId ? { signal: { status: "held", company_id: pickedId } } : {}, learned: result?.profile_applied.length ?? 0, detection: status(store) });
 });

@@ -26,7 +26,7 @@ export type Conv={session_id:string;user_id:string;character_id:string;persona_v
   state:{last_topic:string|null;open_question:string|null;mood:string|null;mood_expires_at:string|null;paused_topics:string[]};
   recent_messages:Msg[];mentioned_news_ids:string[];processed_client_ids:Record<string,TurnResult>;visit:{visit_id:number;spontaneous_count:number};
   last_active_at:string;expires_at:string;strategy_seq?:number;
-  active_elicitation_id?:string|null;pending_detection_events?:string[];seen_detection_event_ids?:string[];counters?:Record<string,number>};
+  active_elicitation_id?:string|null;pending_detection_events?:string[];seen_detection_event_ids?:string[];counters?:Record<string,number>;id_prefix?:string};
 export type ProfileDoc={user_id:string;revision:number;updated_at:string|null;json:Record<string,unknown>};
 export type Persona={character_id:string;persona_version:string;json:{system_state:{allowed_emotions:string[]}}&Record<string,unknown>};
 export type Holding={company_id:string;name:string|null;industry?:string|null;status?:string|null;as_of?:string|null};
@@ -56,10 +56,11 @@ const iso=(ms:number)=>new Date(ms+9*3600e3).toISOString().replace(/\.\d{3}Z$/,'
 const stamp=(mode:Mode,ms:number):{at?:string}=>mode==='elicitation'?{at:iso(ms)}:{};
 const plus=(ms:number,h:number)=>iso(ms+h*3600e3);
 const clone=<T,>(x:T):T=>JSON.parse(JSON.stringify(x));
-const nextId=(conv:Conv,kind:string,prefix:string)=>{const c=(conv.counters??={});c[kind]=(c[kind]??0)+1;return prefix+String(c[kind]).padStart(3,'0')};
+// id_prefix: a second character's conversation (루온, 'lu-') keeps its ids apart from 보리's (the analysis inbox keys on request_id)
+const nextId=(conv:Conv,kind:string,prefix:string)=>{const c=(conv.counters??={});c[kind]=(c[kind]??0)+1;return (conv.id_prefix??'')+prefix+String(c[kind]).padStart(3,'0')};
 
-export function openSession(userId:string,persona:Persona,now:number):Conv{
-  return {session_id:'s1',user_id:userId,character_id:persona.character_id,persona_version:persona.persona_version,turn_seq:0,msg_seq:0,
+export function openSession(userId:string,persona:Persona,now:number,o:{sessionId?:string;idPrefix?:string}={}):Conv{
+  return {session_id:o.sessionId??'s1',...(o.idPrefix?{id_prefix:o.idPrefix}:{}),user_id:userId,character_id:persona.character_id,persona_version:persona.persona_version,turn_seq:0,msg_seq:0,
     state:{last_topic:null,open_question:null,mood:null,mood_expires_at:null,paused_topics:[]},recent_messages:[],mentioned_news_ids:[],processed_client_ids:{},
     visit:{visit_id:0,spontaneous_count:0},last_active_at:iso(now),expires_at:plus(now,LLM1.bufferInactiveHours),
     active_elicitation_id:null,pending_detection_events:[],seen_detection_event_ids:[],counters:{}};
@@ -281,6 +282,25 @@ function openElicitation(store:Store,w:World,model:Model,ev:DetectionEvent,super
   c.active_elicitation_id=id;(c.seen_detection_event_ids??=[]).includes(ev.event_id)||c.seen_detection_event_ids!.push(ev.event_id);
   c.pending_detection_events=(c.pending_detection_events??[]).filter(x=>x!==ev.event_id);ev.status='in_progress';
   return turn(store,w,model,'elicitation',null,store.sessions.at(-1)!,{spontaneous:true,notes:[`탐지 이벤트 ${ev.event_id} → 수집 세션 ${id} 시작`]});
+}
+// 사용자가 고른 종목으로 탐지 모드 열기 (/signal 종목명, 루온에게 종목 고르기; 2026-11-24). companyId는 보유 종목 코드여야 한다.
+// 같은 종목 대화가 이미 열려 있으면 그 대화를 이어 가고(멈춰 있으면 재개), 다른 종목 대화가 열려 있으면 그건 멈춰 두고 새로 연다.
+// 대기열에 같은 종목 신호가 있으면 그 신호로 연다. null: 보유 종목이 아님
+export async function signalStock(storeIn:Store,w:World,model:Model,companyId:string,o:{sourceModel?:string}={}):Promise<{store:Store;result:TurnResult}|null>{
+  if(!holdingOf(w,companyId))return null;
+  let store=clone(storeIn);const es=activeSession(store);
+  if(es&&es.company_id===companyId&&['collecting','paused'].includes(es.status)){
+    if(es.status==='paused')return resumeElicitation(store,w,model);
+    return turn(store,w,model,'elicitation',null,es,{spontaneous:true,notes:[`사용자가 같은 종목(${companyId}) 다시 고름 → 수집 이어 감`]})}
+  if(es&&['collecting','ready'].includes(es.status))store=pauseElicitation(store,'user_switched_stock');
+  store.conv.active_elicitation_id=null;
+  // a talk about this stock left paused earlier (switched away from): pick it up again
+  const held=[...store.sessions].reverse().find(s=>s.company_id===companyId&&s.status==='paused');
+  if(held){store.conv.active_elicitation_id=held.elicitation_id;return resumeElicitation(store,w,model)}
+  let ev=store.events.find(e=>e.company_id===companyId&&e.status==='pending');
+  if(!ev){store=receiveStopLossSignal(store,w,[companyId],{sourceModel:o.sourceModel??'user_pick'}).store;ev=store.events.find(e=>e.company_id===companyId&&e.status==='pending')}
+  if(!ev)return null;
+  return openElicitation(store,w,model,ev);
 }
 // 이미 수신된 뒤 정정이 온 경우: 기존 요청 ID를 참조하는 새 수집 세션 (source reopen_for_correction, design 9.1)
 export async function reopenForCorrection(storeIn:Store,w:World,model:Model,priorRequestId:string):Promise<{store:Store;result:TurnResult}>{

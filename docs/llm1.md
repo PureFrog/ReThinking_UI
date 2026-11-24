@@ -62,3 +62,13 @@
 - 탐지 모드(elicitation) 턴 결과에는 서버가 그 턴을 처리한 시각 `at`이 붙는다(KST, `2026-11-23T14:05:12+09:00`, `engine.ts` `stamp`). 평상시 모드(daily) 결과에는 없다.
 - `bori-talk` 응답에 `at`이 같이 온다(평상시 모드는 `null`). 앱은 대화창 이름 옆에 `14:05`처럼 작게 보인다(`ui/Friend.tsx`).
 - 운영 로그(`llm1_ops`)의 `at`은 원래부터 있었다.
+
+### /signal 종목명 · 루온 종목 토론 (2026-11-24)
+
+- 정균 원본 `chat.py`의 `/signal 종목명` 명령을 옮겼다(`app/core/llm1/signal.ts`). 보리·루온 대화에서 `/signal 삼성전자`라고 치면 그 종목의 탐지 모드(elicitation)로 바뀐다.
+- 종목 이름 → 코드: 먼저 앱이 보낸 정원 종목에서 찾는다(코드, 이름, 띄어쓰기·대소문자·(주) 무시, 앞부분이 하나만 맞으면 그것). 없으면 상장 목록(`core/jigi/stocks.ts` 대형주 + 코스닥120)에서 찾는다. 상장 목록에만 있으면 "정원에 없는 종목"이라고 고정 대사로 답한다(AI 호출 없음). 직접 입력한 나무(`M…` 모의 코드)도 이름으로 찾는다.
+- 엔진 `signalStock`: 같은 종목 대화가 열려 있으면 이어 가고(멈춰 있으면 재개), 다른 종목 대화가 열려 있으면 그건 `paused`로 두고 새로 연다. 나중에 그 종목을 다시 고르면 멈춘 대화를 재개한다. 신호의 `source_model`은 `user_signal_command`(명령) · `user_pick_luon`(루온에게 고름).
+- `bori-talk` 서버 함수: `signal {stock}` 동작 추가, `message`가 `/signal`로 시작하면 같은 길. `speaker: 'luon'`이면 루온 성격(`app/content/llm1/persona_luon.json`), 대화·탐지 문서도 따로(`conversation_luon`, `detection_luon`), id 앞에 `lu-`(분석 수신함 `request_id`가 보리와 겹치지 않게). 프로필은 같이 쓴다.
+- 앱: 루온에게 "종목 골라 토론하기" → 내 종목 목록이 먼저 뜬다(최대 8개, 길면 스크롤) → 고르면 서버에 그 종목 코드로 `signal` → 첫 마디와 시각이 뜨고, 그다음 대화도 루온(LLM)이 한다. 로그인 안 했거나 손님이면 전처럼 정해진 대사(`core/debate-chat.ts`).
+- 테스트: `tests/llm1-signal.test.mjs`(4개), `tests/e2e/proto3d-luon-signal.spec.ts`(서버는 `window.__luonSignal`·`__luonTalk`로 대신).
+- 남은 것: 12개 밖 종목의 기업 자료(업종·사업 요약)는 비어 있어 코드·이름만 LLM에 간다. `analysis_inbox.request_id`가 전역 기본 키라서 다른 플레이어끼리 `ar001`이 겹칠 수 있다(이번 변경 전부터, 고치려면 키를 `(player_id, request_id)`로).
