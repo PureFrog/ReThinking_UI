@@ -89,7 +89,9 @@ Deno.serve(async(req:Request)=>{
     if(r.status==='unknown')return json({reply:{text:L.unknown(r.query),emotion},at:null,signal:{status:r.status},detection:status(store)});
     pickedId=r.company_id}
   if(!['message','visit','open','resume','reopen','signal'].includes(b.action??'')){if(stale.expired.length)await persist(store);return json({error:'bad-request'},400)}
-  if(b.action==='reopen'&&!store.jobs.some(j=>j.request_id===b.request_id&&j.status==='delivered'))return json({error:'not-delivered'},400);
+  // the inbox's request_id is the player's id + the talk's own id (see receive below); a reopen may name either
+  const localRid=String(b.request_id??'').replace(`${me.id}:`,'');
+  if(b.action==='reopen'&&!store.jobs.some(j=>j.request_id===localRid&&j.status==='delivered'))return json({error:'not-delivered'},400);
   if(b.action==='message'&&(typeof b.text!=='string'||!b.text.trim()))return json({error:'bad-request'},400);
   if(b.action==='open'){
     const signals=(Array.isArray(b.signals)?b.signals:[]).filter(x=>typeof x==='string').slice(0,10);
@@ -111,15 +113,20 @@ Deno.serve(async(req:Request)=>{
   if(pickedId){const r=await signalStock(store,world,model,pickedId,{sourceModel:speaker==='luon'?'user_pick_luon':'user_signal_command'});if(r){store=r.store;result=r.result}}
   else if(b.action==='open'){const r=await startNextPendingDetection(store,world,model);if(r){store=r.store;result=r.result}}
   else if(b.action==='resume'){const r=await resumeElicitation(store,world,model);store=r.store;result=r.result}
-  else if(b.action==='reopen'){const r=await reopenForCorrection(store,world,model,String(b.request_id));store=r.store;result=r.result}
+  else if(b.action==='reopen'){const r=await reopenForCorrection(store,world,model,localRid);store=r.store;result=r.result}
   else{if(b.action==='visit')store={...store,conv:startVisit(store.conv)};
     const r=await runTurn(store,world,model,{text:b.action==='message'?b.text!.slice(0,2000):null,spontaneous:b.action==='visit',clientMessageId:b.client_message_id??null});
     store=r.store;result=r.result}
   // hand ready packets to the analysis inbox (receiver: insert once, then compare the stored hash)
+  // A talk numbers its requests per player (ar001, lu-ar001, …), but analysis_inbox.request_id is unique across players:
+  // the row's id is the player's id + the talk's id, in the payload too (2026-11-24: a second player's lu-ar001 would have
+  // been dropped as a duplicate and never analysed)
+  const gid=(rid:string)=>`${me.id}:${rid}`;
   const receive:Receiver=async job=>{
+    const payload={...job.payload,request_id:gid(job.request_id),supersedes_request_id:job.payload.supersedes_request_id?gid(job.payload.supersedes_request_id):null};
     await fetch(`${url}/rest/v1/analysis_inbox?on_conflict=request_id`,{method:'POST',headers:{...svc,prefer:'resolution=ignore-duplicates'},
-      body:JSON.stringify({request_id:job.request_id,player_id:me.id,payload_hash:job.payload_hash,route:job.route,payload:job.payload})});
-    const r=await fetch(`${url}/rest/v1/analysis_inbox?request_id=eq.${encodeURIComponent(job.request_id)}&player_id=eq.${me.id}&select=payload_hash`,{headers:svc});
+      body:JSON.stringify({request_id:gid(job.request_id),player_id:me.id,payload_hash:job.payload_hash,route:job.route,payload})});
+    const r=await fetch(`${url}/rest/v1/analysis_inbox?request_id=eq.${encodeURIComponent(gid(job.request_id))}&player_id=eq.${me.id}&select=payload_hash`,{headers:svc});
     const row=r.ok?(await r.json())[0]:null;if(!row)throw new Error('inbox write failed');
     return {request_id:job.request_id,payload_hash:row.payload_hash,status:row.payload_hash===job.payload_hash?'persisted':'conflict'}};
   if(store.jobs.some(j=>j.status==='ready'||j.status==='queued'))store=(await runDeliveryWorker(store,receive,Date.now())).store;
