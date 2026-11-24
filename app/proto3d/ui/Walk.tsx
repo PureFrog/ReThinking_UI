@@ -96,7 +96,7 @@ export function Harvest({lots,cart,today,onLoad,onClose}:{lots:Lot[];cart:CartLo
       <label className="vl-bar"><span className="rt-num">0</span>
         <input type="range" min={0} max={max} step={1} value={n} aria-label="매도 수량" onChange={e=>setN(Number(e.target.value))}/>
         <span className="rt-num">{max}</span></label>
-      <p className="vl-bar-now rt-num" aria-live="polite">{n}주{l.price!=null&&n>0?` · 오늘 종가로 ${won(l.price*n)}어치`:''}</p>
+      <p className="vl-bar-now rt-num" aria-live="polite">{n}주{l.price!=null&&n>0?` · 지금 값으로 ${won(l.price*n)}어치 (다음 거래일 종가로 팔려요)`:''}</p>
     </div>}
     {waitingLoads.length>0&&<><div className="rt-section">수레표</div><ul className="vl-tags">{waitingLoads.map(c=><li key={c.id}>
       <b>{c.name} {c.qty}주</b><span>정산 예정 {c.settleDay.slice(5).replace('-','.')}</span><em>정산 대기</em></li>)}</ul></>}

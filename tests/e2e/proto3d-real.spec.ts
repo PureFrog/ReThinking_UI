@@ -27,8 +27,11 @@ test("a new player puts a stock in on real prices: buying close from that day, r
   await page.addInitScript(f => { (window as unknown as { __priceFixture?: unknown }).__priceFixture = f }, fx);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/proto3d?fresh&weather=clear");
-  const start = page.getByRole("dialog", { name: "내 종목 넣기" });
-  await start.getByRole("button", { name: /실제 시세로/ }).click({ timeout: 30_000 });
+  // (the onboarding has no 실제 시세로 button since 2026-11-23: typed lines resolve real names, next test; the exact-day
+  // entry is still the 'real' sheet, opened here as the hook opens any sheet)
+  await expect(page.getByRole("dialog", { name: "내 종목 넣기" })).toBeVisible({ timeout: 30_000 });
+  await expect.poll(() => page.evaluate(() => typeof (window as unknown as { __proto3d?: { open?: unknown } }).__proto3d?.open), { timeout: 30_000 }).toBe("function");
+  await page.evaluate(() => (window as unknown as { __proto3d: { open: (s: unknown) => void } }).__proto3d.open({ kind: "real" }));
   const sheet = page.getByRole("dialog", { name: "실제 시세로 넣기" });
   await sheet.getByLabel("1번 종목 찾기").fill("삼성");
   await sheet.getByRole("option", { name: /^삼성전자 005930/ }).click();

@@ -42,12 +42,11 @@ test("on a stop-loss day 보리 walks up to the player and says the talk's first
   await expect(talk).toHaveAttribute("data-face", "curious");
   // the server opened the talk once; the dialogue reused that line
   expect(await page.evaluate(() => (window as unknown as { __boriCalls?: number }).__boriCalls)).toBe(1);
-  // (since 2026-11-22 the answer is written in the notebook, not typed to 보리)
+  // (since 2026-11-24 the answer is told to 보리 again: the stop-loss talk is the detection talk that becomes an analysis
+  // request, core/llm1/engine.ts; the notebook stays one tap away)
   await choose.getByRole("button", { name: "얘기해 줄게" }).click();
-  await expect(page.getByRole("dialog", { name: "투자일지" })).toBeVisible();
+  await expect(talk.getByRole("textbox", { name: "보리에게 말하기" })).toBeVisible();
   await page.screenshot({ path: info.outputPath("bori-type.png") });
-  await expect(talk).toHaveCount(0);
-  await expect.poll(() => page.evaluate(() => (window as unknown as { __proto3d?: { boriFace?: string } }).__proto3d?.boriFace)).toBe("neutral");
   expect(errors).toEqual([]);
 });
 

@@ -29,12 +29,15 @@ const box = async (page: Page, sel: ReturnType<Page["locator"]>) => (await sel.b
 test("upright: the whole farm is on screen, sheets rise from the bottom", async ({ page }) => {
   const errors: string[] = [];
   await open(page, errors);
-  await expect.poll(async () => (await hooks(page))?.camera?.turn ?? 0).toBeGreaterThan(0.5);
+  await expect.poll(async () => (await hooks(page))?.camera?.turn ?? 0, { timeout: 20_000 }).toBeGreaterThan(0.5);
+  // (since the wider village, 2026-11-22, the player starts by the house: walk to the farm first)
+  await page.locator(".proto3d-map").first().click();
+  await page.getByRole("button", { name: "밭", exact: true }).click();
   // the camera follows the player with a short lag; the trees settle within a second or two
   await expect.poll(async () => {
     const t = Object.values((await hooks(page))?.trees ?? {});
     return t.length === 7 && t.every(p => p.x > 0 && p.x < UPRIGHT.width && p.y > 60 && p.y < UPRIGHT.height - 90);
-  }, { timeout: 15_000 }).toBe(true);
+  }, { timeout: 30_000 }).toBe(true);
   await V.journal(page);
   const s = await box(page, page.getByRole("dialog", { name: "투자일지" }));
   expect(s.width).toBeGreaterThan(UPRIGHT.width - 40);

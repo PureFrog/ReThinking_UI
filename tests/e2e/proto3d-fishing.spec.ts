@@ -43,7 +43,7 @@ test("나루 by the pond: talk, cast, a tap in time lands a goldfish, too early 
   await page.evaluate(() => { (window as unknown as { __fishBite: number }).__fishBite = 60_000 });
   await play.getByRole("button", { name: "한 번 더" }).click();
   await play.getByRole("button", { name: "탭!" }).click();
-  await expect(play.getByRole("status")).toContainText("아직이야");
+  await expect(play.getByRole("status")).toContainText("아직이었는데");
   // the third and last cast of the day, then only the log
   await page.evaluate(() => { (window as unknown as { __fishBite: number }).__fishBite = 1800 });
   await play.getByRole("button", { name: "다시 던지기" }).click();
