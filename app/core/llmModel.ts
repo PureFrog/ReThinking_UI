@@ -7,10 +7,11 @@ export const LLM_DEFAULT='gpt-6-luna';
 // the picture reader: Luna's image input is not confirmed yet; set OPENAI_VISION_MODEL=gpt-6-luna once it is
 export const VISION_DEFAULT='gpt-4.1-mini';
 export const isReasoning=(model:string)=>/^(gpt-[5-9]|o\d)/.test(model);
-// the request body for chat.completions, right for either kind of model. out: room for the visible answer; a
+// the request body for chat.completions, right for either kind of model. Effort 'minimal' is not taken by the model in
+// use (2026-11-24: friend-chat answered 'llm' every time; bori-talk on 'low' works), so it is sent as 'low'. out: room for the visible answer; a
 // reasoning model also needs room to think, so it gets more.
 export function chatBody(model:string,messages:unknown[],o:{out:number;temperature?:number;effort?:'minimal'|'low'|'medium'}){
   return isReasoning(model)
-    ?{model,messages,max_completion_tokens:o.out*4+400,reasoning_effort:o.effort??'low'}
+    ?{model,messages,max_completion_tokens:o.out*4+400,reasoning_effort:!o.effort||o.effort==='minimal'?'low':o.effort}
     :{model,messages,max_tokens:o.out,...(o.temperature!=null?{temperature:o.temperature}:{})};
 }

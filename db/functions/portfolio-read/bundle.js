@@ -4,7 +4,7 @@
 var VISION_DEFAULT = "gpt-4.1-mini";
 var isReasoning = (model) => /^(gpt-[5-9]|o\d)/.test(model);
 function chatBody(model, messages, o) {
-  return isReasoning(model) ? { model, messages, max_completion_tokens: o.out * 4 + 400, reasoning_effort: o.effort ?? "low" } : { model, messages, max_tokens: o.out, ...o.temperature != null ? { temperature: o.temperature } : {} };
+  return isReasoning(model) ? { model, messages, max_completion_tokens: o.out * 4 + 400, reasoning_effort: !o.effort || o.effort === "minimal" ? "low" : o.effort } : { model, messages, max_tokens: o.out, ...o.temperature != null ? { temperature: o.temperature } : {} };
 }
 
 // app/core/capture.ts
