@@ -15,8 +15,9 @@ function capturePrompt() {
     "\uD654\uBA74\uC5D0 \uBCF4\uC774\uB294 \uBAA8\uB4E0 \uBCF4\uC720 \uC885\uBAA9\uC744 \uC704\uC5D0\uC11C \uC544\uB798 \uC21C\uC11C\uB85C \uBE60\uC9D0\uC5C6\uC774 \uC77D\uB294\uB2E4. \uD55C \uD654\uBA74\uC5D0 \uC5EC\uB7EC \uC885\uBAA9\uC774 \uC788\uB294 \uAC83\uC774 \uBCF4\uD1B5\uC774\uB2E4.",
     "\uAC01 \uC885\uBAA9\uB9C8\uB2E4 \uC885\uBAA9\uBA85, \uC218\uC775\uB960(%), \uBCF4\uC720 \uC218\uB7C9(\uC8FC), \uD3C9\uADE0 \uB9E4\uC785\uAC00(\uC6D0)\uB97C \uC77D\uB294\uB2E4. \uD654\uBA74\uC5D0 \uC5C6\uB294 \uAC12\uC740 null\uB85C \uB454\uB2E4. \uCD94\uCE21\uD574\uC11C \uCC44\uC6B0\uC9C0 \uC54A\uB294\uB2E4.",
     "\uC218\uC775\uB960\uC740 \uBD80\uD638\uB97C \uC9C0\uD0A8\uB2E4(\uBE68\uAC15\xB7+\uB294 \uC591\uC218, \uD30C\uB791\xB7-\uB294 \uC74C\uC218). \uD3C9\uAC00\uC190\uC775 \uAE08\uC561(\uC6D0)\uC744 \uC218\uC775\uB960\uB85C \uCC29\uAC01\uD558\uC9C0 \uC54A\uB294\uB2E4.",
+    "\uC218\uC775\uB960\uC740 \uB0B4 \uD3C9\uADE0 \uB9E4\uC785\uAC00 \uB300\uBE44 \uC218\uC775\uB960\uC774\uB2E4. \uD604\uC7AC\uAC00 \uC606\uC758 \uB4F1\uB77D\uB960(\uC624\uB298 \uD558\uB8E8 \uC8FC\uAC00 \uBCC0\uB3D9)\uC740 \uC218\uC775\uB960\uC774 \uC544\uB2C8\uB2E4: \uADF8\uB7F0 \uD654\uBA74\uC774\uBA74 rate\uB294 null\uB85C \uB450\uACE0 \uD604\uC7AC\uAC00\uB97C current\uC5D0 \uC801\uB294\uB2E4.",
     "\uACC4\uC88C\uBC88\uD638, \uC0AC\uB78C \uC774\uB984, \uCD1D \uD3C9\uAC00\uAE08\uC561, \uC608\uC218\uAE08\uC740 \uC808\uB300 \uCD9C\uB825\uD558\uC9C0 \uC54A\uB294\uB2E4. \uC885\uBAA9\uC774 \uC544\uB2CC \uC904(\uD569\uACC4, \uAD11\uACE0, \uBA54\uB274)\uC740 \uBE80\uB2E4.",
-    'JSON \uBC30\uC5F4\uB9CC \uCD9C\uB825\uD55C\uB2E4. \uC6D0\uC18C: {"name":\uC885\uBAA9\uBA85,"rate":\uC22B\uC790|null,"quantity":\uC22B\uC790|null,"price":\uC22B\uC790|null}. \uC885\uBAA9\uC774 \uD558\uB098\uB3C4 \uC5C6\uC73C\uBA74 [].'
+    'JSON \uBC30\uC5F4\uB9CC \uCD9C\uB825\uD55C\uB2E4. \uC6D0\uC18C: {"name":\uC885\uBAA9\uBA85,"rate":\uC22B\uC790|null,"quantity":\uC22B\uC790|null,"price":\uD3C9\uADE0 \uB9E4\uC785\uAC00 \uC22B\uC790|null,"current":\uD604\uC7AC\uAC00 \uC22B\uC790|null}. \uC885\uBAA9\uC774 \uD558\uB098\uB3C4 \uC5C6\uC73C\uBA74 [].'
   ].join("\n");
 }
 var num = (v) => {
@@ -40,7 +41,8 @@ function parseCapture(raw) {
     if (!x || typeof x.name !== "string") continue;
     const name = x.name.replace(/\s+/g, " ").trim().slice(0, 30);
     if (name.length < 1 || /^[\d\s-]+$/.test(name) || /계좌|합계|총\s?평가|예수금/.test(name) || seen.has(name)) continue;
-    const rate = num(x.rate), q = num(x.quantity), p = num(x.price);
+    const q = num(x.quantity), p = num(x.price), cur = num(x.current);
+    const rate = p != null && p > 0 && cur != null && cur > 0 ? (cur / p - 1) * 100 : num(x.rate);
     out.push({ name, rate: rate != null && rate > -100 && rate < 1e4 ? Math.round(rate * 100) / 100 : 0, ...q != null && q > 0 && q < 1e9 ? { quantity: Math.round(q) } : {}, ...p != null && p > 0 && p < 1e9 ? { price: Math.round(p) } : {} });
     seen.add(name);
     if (out.length >= CAPTURE.maxRows) break;
