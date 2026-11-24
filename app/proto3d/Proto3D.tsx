@@ -423,8 +423,11 @@ export default function Proto3D(){
     h.openBrief=(signalId:string)=>{setPicked(null);setSheet({kind:'brief',start:{signalId}})}},[signals]);
   const open=signals.filter(x=>!wroteToday(x.holdingId));
   // 보리's stop-loss talk (db/functions/bori-talk): today's loss signals by company code
+  // the stock pickers (보리, 루온) list real holdings first: only six fit
+  const realFirst=useMemo(()=>[...holdings].sort((a,b)=>Number(!!b.real)-Number(!!a.real)),[holdings]);
   const boriHoldings=useMemo(()=>holdings.map(x=>({company_id:codeOf(x),name:x.name})),[holdings]);
-  const lossCodes=useMemo(()=>signals.filter(x=>x.loss).map(x=>holdings.find(h=>h.id===x.holdingId)).flatMap(h=>h?[codeOf(h)]:[]),[signals,holdings]);
+  // with the server, only real holdings' signals go to it (a mock tree's made-up signal must not start a real analysis)
+  const lossCodes=useMemo(()=>signals.filter(x=>x.loss).map(x=>holdings.find(h=>h.id===x.holdingId)).flatMap(h=>h&&(!syncOn||h.real)?[codeOf(h)]:[]),[signals,holdings,syncOn]);
   // e2e: window.__boriOpen stands in for the server (it gets the loss codes)
   const testOpen=typeof window!=='undefined'?(window as unknown as {__boriOpen?:(codes:string[])=>Promise<string|null>}).__boriOpen:undefined;
   // the server opens a stop-loss talk once (a second open returns nothing), so the first line is kept for the day:
@@ -1103,10 +1106,10 @@ export default function Proto3D(){
         <button type="button" onClick={()=>setPlanting(null)}>취소</button></div>}
       {sheet?.kind==='friend'&&<FriendSheet opener={opener.text} topic={opener.topic} seed={clock.today} onClose={close}
         talk={(history,m)=>boriChat(history,m,syncOn?(_h,msg)=>boriTalk(boriHoldings,msg):null)} opening={boriTalks?boriOpening:null} onFace={setBoriFace}
-        onGo={()=>setSheet({kind:'journal',stock:askedAbout??undefined})} stocks={holdings.map(x=>({id:x.id,name:x.name}))} onStock={openTree}/>}
+        onGo={()=>setSheet({kind:'journal',stock:askedAbout??undefined})} stocks={realFirst.map(x=>({id:x.id,name:x.name}))} onStock={openTree}/>}
       {sheet?.kind==='talk'&&(()=>{const w=VILLAGE_SPEAKERS[sheet.id];return <FriendSheet key={sheet.id} who={w} opener={sheet.id==='luon'?'…어느 종목 얘기할래? 고르면 네 이유부터 들어 볼게.':w.greet[clock.today.length%w.greet.length]} topic="chat" seed={clock.today}
         talk={sheet.id==='luon'?(history,m)=>debateChat(history,m,null):null}
-        onClose={close} onGo={()=>setSheet({kind:'journal'})} stocks={holdings.map(x=>({id:x.id,name:x.name}))} onStock={openTree}/>})()}
+        onClose={close} onGo={()=>setSheet({kind:'journal'})} stocks={realFirst.map(x=>({id:x.id,name:x.name}))} onStock={openTree}/>})()}
       {sheet?.kind==='drawer'&&<Drawer g={g} onClose={close} onCart={()=>setSheet({kind:'cart'})}/>}
       {sheet?.kind==='analyst'&&<AnalystCard g={g} id={sheet.id} signal={open.find(x=>x.analyst===sheet.id)??null} onClose={close}
         onBrief={()=>{const sig=open.find(x=>x.analyst===sheet.id);if(sig)setSheet({kind:'brief',start:{signalId:sig.id}})}}/>}

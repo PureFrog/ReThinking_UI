@@ -2,7 +2,7 @@
 // (core/views.ts), one line on whether they agree, and what the models cannot see. Shown inside the MTS so the answer
 // comes in place, without going into the garden. It names what the models read; the judgment stays with the player.
 import {readBooks,readPath,together,disagree,type BookRead,type PathRead,type Together} from '../../core/views';
-import {bars} from '../../core/jigi/stocks';
+import {bars,isReal} from '../../core/jigi/stocks';
 import {booksOf} from '../books';
 
 export type Fact={k:string;v:string};
@@ -26,13 +26,14 @@ export function bookCard(k:BookRead):Card{
   return {label:'기업 체력',who:k.model==='ohlson'?'올슨 모델 · 부도 확률':'F-score · 재무 9항목',chip,tone,foot:`${k.asOf} · 모의 재무`,
     facts:[{k:'F-score',v:`9점 중 ${k.fscore}점`},{k:'부도 확률',v:`${k.oscore[0]}% → ${k.oscore[1]}%`},{k:'ROE',v:`${k.roe[0]}% → ${k.roe[1]}%`}]};
 }
-export function pathCard(p:PathRead):Card{
+export function pathCard(p:PathRead,real=false):Card{
   const [chip,tone]=PATH_CHIP[p.state],vsMa=Math.round((p.close/p.ma60-1)*1000)/10;
-  return {label:'주가 흐름',who:'추세 · 60일 평균',chip,tone,foot:`${p.asOf} 종가 · 모의 시세`,
+  return {label:'주가 흐름',who:'추세 · 60일 평균',chip,tone,foot:`${p.asOf} 종가 · ${real?'실제 시세':'모의 시세'}`,
     facts:[{k:'60거래일',v:pct(p.r60)},{k:'60일 평균 대비',v:pct(vsMa)},{k:'20일선 아래',v:p.below20?`${p.below20}거래일째`:'아님'}]};
 }
-export function twoViews(code:string,today:string):TwoViews{
-  const b=booksOf(code),k=b?readBooks(b):null,p=readPath(bars(code),today);
+// mockBooks false: leave out the made-up books (content/books.ts) — for a real holding, whose card must not show them
+export function twoViews(code:string,today:string,{mockBooks=true}:{mockBooks?:boolean}={}):TwoViews{
+  const b=mockBooks?booksOf(code):null,k=b?readBooks(b):null,p=readPath(bars(code),today);
   const t=together(k?.state??'ok',p?.state??'flat'),sum=SUM[t];
-  return {together:t,split:disagree(t),title:sum.title,line:sum.line,book:k?bookCard(k):null,path:p?pathCard(p):null,spark:p?.spark??[],blind:BLIND};
+  return {together:t,split:disagree(t),title:sum.title,line:sum.line,book:k?bookCard(k):null,path:p?pathCard(p,isReal(code)):null,spark:p?.spark??[],blind:BLIND};
 }

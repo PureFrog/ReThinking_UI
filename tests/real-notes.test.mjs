@@ -43,3 +43,13 @@ test('the small print says which prices are real', () => {
 test('the price-trend note is not named after the 서서히 model', () => {
   assert.notEqual(A.MODEL_INFO.gradual.name,'서서히');
 });
+
+test('a real holding\'s card shows no made-up books, a mock one keeps them', async () => {
+  const R=await load('content/recheck');
+  const h={id:9,name:'HLB',code:'028300',rate:-10,lossDays:0,date:'2026-10-01',price:40000,kind:1,quantity:1};
+  const mock=R.recheckCard(h,[h],'2026-11-20');
+  assert.ok(mock.views?.book);
+  const real=R.recheckCard({...h,real:true},[{...h,real:true}],'2026-11-20');
+  assert.equal(real.views?.book??null,null);
+  assert.equal(real.views?.split??false,false);
+});

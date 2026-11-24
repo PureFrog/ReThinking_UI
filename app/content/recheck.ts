@@ -12,7 +12,7 @@ export const RECHECK={ask:'오늘 처음 본다면, 이 종목을 정원의 {w}%
 export type RecheckCard={worth:number;weight:number;rate:number;ask:string;note:string;
   views:{book:string|null;path:string|null;split:boolean;title:string}|null};
 export function recheckCard(h:Holding,all:Holding[],today:string):RecheckCard{
-  const r=recheck(h,all),tv=h.code?twoViews(h.code,today):null;
+  const r=recheck(h,all),tv=h.code?twoViews(h.code,today,{mockBooks:!h.real}):null;   // a real holding: no made-up books on its card
   // a disagreement is only named when the books are there to disagree with
   const views=tv&&(tv.book||tv.path)?{book:tv.book?.chip??null,path:tv.path?.chip??null,split:!!tv.book&&tv.split,title:tv.book?tv.title:''}:null;
   return {...r,ask:line(RECHECK.ask,{w:String(r.weight)}),note:RECHECK.note,views};
