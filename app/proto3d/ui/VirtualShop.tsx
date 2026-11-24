@@ -4,7 +4,7 @@
 // Every price says where it comes from (실제 종가 when the real bars are loaded, 모의 시세 otherwise).
 import {useState} from 'react';
 import {Sheet} from './Sheet';
-import {VIRTUAL_STOCKS,quote,valueOf,type VirtualLot} from '../../core/virtual';
+import {VIRTUAL_STOCKS,buyQuote,lotQuote,lotSrc,hasRealPrice,valueOf,type VirtualLot} from '../../core/virtual';
 import {won} from '../../core/won';
 
 const pct=(x:number)=>`${x>0?'+':x<0?'−':''}${Math.abs(x).toFixed(1)}%`;
@@ -20,7 +20,7 @@ export function VirtualShop({coins,lots,today,focus,room,onBuy,onSell,onClose}:{
       <button type="button" role="tab" aria-selected={tab==='mine'} aria-pressed={tab==='mine'} onClick={()=>setTab('mine')}>내 가상 종목 {lots.length}</button></div>
     <p className="rt-hint vs-note">코인으로만 사고팔아요. 실제 계좌와는 상관없고, 산 종목은 과수원(가상 종목 밭)에 나무로 자라요.</p>
     {msg&&<p className="vs-msg" role="status">{msg}</p>}
-    {tab==='buy'&&<ul className="vs-list">{VIRTUAL_STOCKS.map(s=>{const p=quote(s.code,today);if(!p)return null;const n=q(s.code),cost=p.price*n,have=lots.some(l=>l.code===s.code);
+    {tab==='buy'&&<ul className="vs-list">{VIRTUAL_STOCKS.map(s=>{const p=buyQuote(lots,s.code,today);if(!p)return null;const n=q(s.code),cost=p.price*n,have=lots.some(l=>l.code===s.code);
       return <li key={s.code} className="vs-row">
         <div className="vs-name"><strong>{s.name}</strong><small>{s.mkt} · {p.real?'실제 종가':'모의 시세'} {p.day.slice(5).replace('-','.')}</small></div>
         <b className="rt-num vs-price">{won(p.price)}</b>
@@ -32,9 +32,11 @@ export function VirtualShop({coins,lots,today,focus,room,onBuy,onSell,onClose}:{
           onClick={()=>{const r=onBuy(s.code,n);setMsg(r);if(!r)setMsg(`${s.name} ${n}주를 샀어요. 과수원에 심었어요.`)}}>
           {cost>coins?`${won(cost-coins)} 부족`:!have&&room<=0?'빈 자리 없음':`${won(cost)} 사기`}</button>
       </li>})}</ul>}
-    {tab==='mine'&&(lots.length?<ul className="vs-list">{lots.map(l=>{const p=quote(l.code,today);if(!p)return null;const v=valueOf(l,p.price);
+    {tab==='mine'&&(lots.length?<ul className="vs-list">{lots.map(l=>{const p=lotQuote(l,today);
+      if(!p)return <li key={l.id} className="vs-row mine"><div className="vs-name"><strong>{l.name}</strong><small>{l.qty}주 · 평균 {won(l.cost)} · 실제 종가를 불러오는 중이에요</small></div></li>;
+      const v=valueOf(l,p.price),oldMock=lotSrc(l)==='mock'&&hasRealPrice(l.code);
       return <li key={l.id} className="vs-row mine" data-focus={focus===l.id}>
-        <div className="vs-name"><strong>{l.name}</strong><small>{l.qty}주 · 평균 {won(l.cost)} · 지금 {won(p.price)}</small></div>
+        <div className="vs-name"><strong>{l.name}</strong><small>{l.qty}주 · 평균 {won(l.cost)} · 지금 {won(p.price)} · {oldMock?'모의 시세로 산 종목':p.real?'실제 종가':'모의 시세'}</small></div>
         <div className="vs-val"><b className="rt-num">{won(v.value)}</b><small className={v.gain>0?'up':v.gain<0?'down':''}>{v.gain>0?'+':''}{won(v.gain)} ({pct(v.rate)})</small></div>
         <div className="vs-sell"><button type="button" className="rt-btn" onClick={()=>{onSell(l.id,1);setMsg(`${l.name} 1주를 팔았어요. ${won(p.price)}이 들어왔어요.`)}}>1주 팔기</button>
           <button type="button" className="rt-btn" onClick={()=>{onSell(l.id,l.qty);setMsg(`${l.name} ${l.qty}주를 모두 팔았어요. ${won(v.value)}이 들어왔어요.`)}}>모두 팔기</button></div>

@@ -51,8 +51,9 @@ export function priceLegal(codes:(string|null|undefined)[]):string{
 }
 export function setReal(code:string,name:string,bs:Bar[]){if(!bs.length)return;REAL.set(code,bs);cache.delete(code);
   if(!stockOf(code))STOCKS_EXTRA.push({code,name,mkt:'KOSPI',anchor:bs[bs.length-1].c,vol:.03})}
-export function bars(code:string):Bar[]{
-  const real=REAL.get(code);if(real)return real;
+export function bars(code:string):Bar[]{return REAL.get(code)??mockBars(code)}
+// the mock walk alone, even when real bars are loaded (a virtual stock bought at a mock price stays on it: core/virtual.ts)
+export function mockBars(code:string):Bar[]{
   const hit=cache.get(code);if(hit)return hit;
   const st=stockOf(code);if(!st)return [];
   const r=rng((/^\d+$/.test(code)?parseInt(code,10):parseInt(code.slice(1),10)+31)*7+13);let p=100,ref:Bar|null=null;const raw:Bar[]=[];

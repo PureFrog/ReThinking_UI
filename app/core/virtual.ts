@@ -2,29 +2,60 @@
 // stock's price (real closes when they are loaded, the mock walk otherwise, and the screen says which), grow as trees
 // there, and when sold the coins come back with the gain or the loss. Real stocks never earn coins by their returns;
 // this field is where returns are played with. Nothing here touches a real account.
-import {STOCKS,lastConfirmed,barOnOrBefore,isReal,stockOf} from './jigi/stocks';
+// 2026-11-23: a lot keeps the prices it was bought at (src): one bought on the mock walk is valued and sold on the mock
+// walk even after real closes come in, one bought on real closes waits for them (no price until they are loaded), so a
+// mock cost never meets a real price. The virtual stocks' real bars are kept here (setVirtualReal), apart from the
+// journals' bars (jigi/stocks.ts setReal), so loading them does not move a journal's chart or verdict.
+import {STOCKS,mockBars,isReal,bars,stockOf,type Bar} from './jigi/stocks';
 import type {Holding} from './model';
 
-export type VirtualLot={id:number;code:string;name:string;qty:number;cost:number/* 원 a share */;plot:number;day:string};
+export type Src='real'|'mock';
+export type VirtualLot={id:number;code:string;name:string;qty:number;cost:number/* 원 a share */;plot:number;day:string;src?:Src/* absent on lots from before 2026-11-23 */};
 // tree ids of virtual stocks stay apart from my holdings' ids
 export const VIRTUAL_ID=800000;
 export const VIRTUAL_STOCKS=STOCKS;
-// the price a virtual stock trades at today: the last close before today (today's is not final yet)
-export function quote(code:string,today:string):{price:number;day:string;real:boolean}|null{
-  const b=lastConfirmed(code,today)??barOnOrBefore(code,today);return b?{price:b.c,day:b.d,real:isReal(code)}:null;
+const VREAL=new Map<string,Bar[]>();
+export function setVirtualReal(code:string,bs:Bar[]){if(bs.length)VREAL.set(code,bs)}
+const realBarsOf=(code:string)=>VREAL.get(code)??(isReal(code)?bars(code):null);
+export const hasRealPrice=(code:string)=>!!realBarsOf(code);
+const onOrBefore=(a:Bar[],day:string)=>{for(let i=a.length-1;i>=0;i--)if(a[i].d<=day)return a[i];return null};
+const before=(a:Bar[],day:string)=>{for(let i=a.length-1;i>=0;i--)if(a[i].d<day)return a[i];return null};
+// the price a virtual stock trades at today: the last close before today (today's is not final yet). src: only these
+// prices (a lot's own); without it, real closes when loaded, else the mock walk
+export function quote(code:string,today:string,src?:Src):{price:number;day:string;real:boolean}|null{
+  const rb=realBarsOf(code),use=src==='mock'?mockBars(code):src==='real'?rb:rb??mockBars(code);if(!use)return null;
+  const b=before(use,today)??onOrBefore(use,today);return b?{price:b.c,day:b.d,real:!!rb&&use===rb}:null;
+}
+// a lot's prices: its own src, or for an older lot the source whose close on its buying day is nearer its cost
+export function lotSrc(l:Pick<VirtualLot,'code'|'cost'|'day'|'src'>):Src{
+  if(l.src)return l.src;const rb=realBarsOf(l.code);if(!rb)return 'mock';
+  const r=onOrBefore(rb,l.day),m=onOrBefore(mockBars(l.code),l.day);if(!r)return 'mock';if(!m)return 'real';
+  return Math.abs(m.c-l.cost)<Math.abs(r.c-l.cost)?'mock':'real';
+}
+export const lotQuote=(l:VirtualLot,today:string)=>quote(l.code,today,lotSrc(l));
+// what a buy of this stock costs today and on which prices: a second buy adds to the tree on the tree's own prices
+export function buyQuote(lots:VirtualLot[],code:string,today:string):{price:number;day:string;real:boolean;src:Src}|null{
+  const have=lots.find(l=>l.code===code);
+  if(have){const src=lotSrc(have),q=quote(code,today,src);return q?{...q,src}:null}
+  const q=quote(code,today);return q?{...q,src:q.real?'real':'mock'}:null;
+}
+// the first final close on or after a day (the cart's settling), on the given prices
+export function closeFrom(code:string,from:string,today:string,src?:Src):Bar|null{
+  const rb=realBarsOf(code),a=src==='mock'?mockBars(code):src==='real'?rb:rb??mockBars(code);
+  return a?.find(x=>x.d>=from&&x.d<today)??null;
 }
 type O={currency:number;virtual:VirtualLot[]};
 export type Buy={ok:true;currency:number;virtual:VirtualLot[];lot:VirtualLot}|{ok:false;why:'qty'|'coins'|'room'|'unknown';need?:number};
 // buying: whole shares, enough coins, a free plot (a second buy of the same stock adds to its tree at the average price)
-export function buyVirtual(o:O,code:string,qty:number,price:number,plots:number[],day:string):Buy{
+export function buyVirtual(o:O,code:string,qty:number,price:number,plots:number[],day:string,src?:Src):Buy{
   const st=stockOf(code);if(!st||!(price>0))return {ok:false,why:'unknown'};
   if(!Number.isInteger(qty)||qty<1)return {ok:false,why:'qty'};
   const cost=price*qty;if(o.currency<cost)return {ok:false,why:'coins',need:cost-o.currency};
   const have=o.virtual.find(l=>l.code===code);
-  if(have){const q=have.qty+qty,lot={...have,qty:q,cost:Math.round((have.cost*have.qty+cost)/q)};
+  if(have){const q=have.qty+qty,lot={...have,qty:q,cost:Math.round((have.cost*have.qty+cost)/q),...(src?{src}:{})};
     return {ok:true,currency:o.currency-cost,virtual:o.virtual.map(l=>l.id===have.id?lot:l),lot}}
   const plot=plots.find(i=>!o.virtual.some(l=>l.plot===i));if(plot===undefined)return {ok:false,why:'room'};
-  const lot:VirtualLot={id:Math.max(0,...o.virtual.map(l=>l.id))+1,code,name:st.name,qty,cost:price,plot,day};
+  const lot:VirtualLot={id:Math.max(0,...o.virtual.map(l=>l.id))+1,code,name:st.name,qty,cost:price,plot,day,...(src?{src}:{})};
   return {ok:true,currency:o.currency-cost,virtual:[...o.virtual,lot],lot};
 }
 // selling some or all: the coins come back at today's price; the tree goes when nothing is left
