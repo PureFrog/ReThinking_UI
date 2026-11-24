@@ -2,6 +2,7 @@
 // talk; a cast waits for the dip; a tap in time lands the fish (a card, the log, a few coins); too early scares it off;
 // three casts a day. __fishBite fixes the wait, __fishPick the fish.
 import { test, expect } from "./fixtures";
+import * as V from "./village";
 import type { Page } from "@playwright/test";
 
 test.beforeEach(({}, info) => test.skip(info.project.name !== "mobile", "a phone screen is enough"));
@@ -13,18 +14,13 @@ const save = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem
 test("나루 by the pond: talk, cast, a tap in time lands a goldfish, too early scares one off, three a day, the log", async ({ page }, info) => {
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(e.message));
-  await page.addInitScript(() => { const w = window as unknown as { __fishBite: number; __fishPick: string; __fishWindow: number }; w.__fishBite = 1800; w.__fishPick = "geumbungeo"; w.__fishWindow = 8000; });
+  await page.addInitScript(() => { const w = window as unknown as { __fishBite: number; __fishPick: string; __fishWindow: number }; w.__fishBite = 1800; w.__fishPick = "geumbungeo"; w.__fishWindow = 30_000; });// wide: a loaded run can take seconds between the dip and the tap
   await page.goto("/proto3d?demo&weather=clear&hour=14");
-  const dock = page.getByRole("navigation", { name: "메뉴" });
+  const dock = V.controls(page);
   await expect(dock).toBeVisible({ timeout: 30_000 });
   const coins0 = (await save(page)).currency;
-  // walk to the pond, then tap 나루
-  await page.locator(".proto3d-map").first().click();
-  await page.getByRole("button", { name: "연못", exact: true }).click();
-  await page.waitForTimeout(5000);
-  const p = (await hk(page)).points["friend-naru"];
-  expect(p).toBeTruthy();
-  await page.mouse.click(p.x, p.y);
+  // tap 나루 by the pond (each villager has a name tag button since 2026-11-22)
+  await page.locator(".vl-npc-tag[data-npc=naru]").dispatchEvent("click");// the tag may sit off screen
   const talk = page.getByRole("dialog", { name: "나루와 대화" });
   await expect(talk).toContainText("3번 남았어", { timeout: 10_000 });
   await page.waitForTimeout(1500);
@@ -42,7 +38,7 @@ test("나루 by the pond: talk, cast, a tap in time lands a goldfish, too early 
   await page.screenshot({ path: info.outputPath("fishing-caught.png") });
   let s = await save(page);
   expect(s.fishing.log.geumbungeo.n).toBe(1);
-  expect(s.currency).toBe(coins0 + 3 + 2);
+  expect(s.currency).toBe(coins0 + 10_000 + 2_000);// a 희귀 goldfish + the first-catch bonus, in 원 (core/fishing.ts)
   // too early: it swims off (the dip is far off this time)
   await page.evaluate(() => { (window as unknown as { __fishBite: number }).__fishBite = 60_000 });
   await play.getByRole("button", { name: "한 번 더" }).click();

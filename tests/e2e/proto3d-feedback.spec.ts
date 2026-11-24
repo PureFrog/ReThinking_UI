@@ -1,19 +1,21 @@
 import { test, expect } from "./fixtures";
+import * as V from "./village";
 
 // 2026-11-16 feedback, group A (docs/feedback-2026-11-16.md): coins always at the top (a tap opens 넓히기), name
 // signs over the buildings, the profile page without the weather card under its name card, a clearer look (look.ts).
 test.describe.configure({ timeout: 180_000 });
 test.beforeEach(({}, info) => test.skip(info.project.name !== "mobile", "a phone screen is enough"));
 
-test("coins at the top, signs on buildings, and the profile page has its corner to itself", async ({ page }, info) => {
+test("coins at the top open the shop, signs on buildings, and the profile page has its corner to itself", async ({ page }, info) => {
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(e.message));
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/proto3d?demo&weather=clear");
-  await expect(page.getByRole("navigation", { name: "메뉴" })).toBeVisible({ timeout: 30_000 });
+  await expect(V.controls(page)).toBeVisible({ timeout: 30_000 });
   await expect.poll(() => page.evaluate(() => !!(window as unknown as { __proto3d?: { ready?: boolean } }).__proto3d?.ready), { timeout: 60_000 }).toBe(true);
   // coins
-  const coins = page.getByRole("button", { name: /^코인 \d+ · 넓히기$/ });
+  // (since 2026-11-22 the coins open the shop, 꽃집; 넓히기 is the build mode)
+  const coins = page.getByRole("button", { name: /^코인 [\d,]+원 · 상점$/ });
   await expect(coins).toBeVisible();
   // signs: one per place; walking to the house brings its sign on screen (the garden is wider since B step 1, so the
   // start view may show none)
@@ -23,14 +25,14 @@ test("coins at the top, signs on buildings, and the profile page has its corner 
   await expect.poll(() => page.locator(".rt-sign").evaluateAll(els => els.filter(e => getComputedStyle(e).visibility === "visible").length), { timeout: 20_000 }).toBeGreaterThan(0);
   await page.screenshot({ path: info.outputPath("garden-after.png") });
   // the profile page: no weather card underneath
-  await page.getByRole("button", { name: /^내 프로필/ }).click();
+  await V.myPage(page);
   await expect(page.getByLabel("오늘 시장 날씨")).toHaveCount(0);
   await page.screenshot({ path: info.outputPath("mypage-after.png") });
   await page.getByRole("button", { name: "닫기" }).click();
   await expect(page.getByLabel("오늘 시장 날씨")).toBeVisible();
-  // a tap on the coins opens 넓히기
+  // a tap on the coins opens the shop
   await coins.click();
-  await expect(page.getByText("넓히기", { exact: true })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "상점" })).toBeVisible();
   expect(errors).toEqual([]);
 });
 

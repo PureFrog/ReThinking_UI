@@ -1,14 +1,16 @@
 import { test, expect, type Page } from "./fixtures";
+import * as V from "./village";
 
 // A phone game, upright first (390×844), that still plays turned on its side (844×390).
-// Upright: the camera swings round so the farm runs up the tall screen, every holding tree is on screen, the menu sits at
-// the bottom and sheets rise from it. On its side: the camera comes back to the front, the menu becomes a rail on the
-// left and sheets open on the right. Turning the phone mid-judgment keeps what was typed.
+// Upright: the camera swings round so the farm runs up the tall screen, every holding tree is on screen and sheets rise
+// from the bottom. On its side: the camera comes back to the front and sheets open on the right; the corner buttons
+// (map, notebook, settings — the village has no dock since 2026-11-22) stay in reach. Turning the phone mid-judgment
+// keeps what was typed.
 // The camera values come from look.ts camera.frames through core/frame.ts and show in window.__proto3d.camera.
 test.describe.configure({ timeout: 150_000 });
 type Hooks = { frames: number; treeModels: number; trees: Record<number, { x: number; y: number }>; camera?: { turn: number; dist: number } };
 const hooks = (page: Page) => page.evaluate(() => (window as unknown as { __proto3d?: Hooks }).__proto3d ?? null);
-const dock = (page: Page) => page.getByRole("navigation", { name: "메뉴" });
+const dock = (page: Page) => V.controls(page);
 const UPRIGHT = { width: 390, height: 844 }, SIDEWAYS = { width: 844, height: 390 };
 
 // the viewport is set inside each test, so one phone project is enough
@@ -24,7 +26,7 @@ async function open(page: Page, errors: string[]) {
 }
 const box = async (page: Page, sel: ReturnType<Page["locator"]>) => (await sel.boundingBox())!;
 
-test("upright: the whole farm is on screen, the menu is at the bottom, sheets rise from it", async ({ page }) => {
+test("upright: the whole farm is on screen, sheets rise from the bottom", async ({ page }) => {
   const errors: string[] = [];
   await open(page, errors);
   await expect.poll(async () => (await hooks(page))?.camera?.turn ?? 0).toBeGreaterThan(0.5);
@@ -33,31 +35,26 @@ test("upright: the whole farm is on screen, the menu is at the bottom, sheets ri
     const t = Object.values((await hooks(page))?.trees ?? {});
     return t.length === 7 && t.every(p => p.x > 0 && p.x < UPRIGHT.width && p.y > 60 && p.y < UPRIGHT.height - 90);
   }, { timeout: 15_000 }).toBe(true);
-  const d = await box(page, dock(page));
-  expect(d.y).toBeGreaterThan(UPRIGHT.height - 100);
-  expect(d.width).toBeGreaterThan(d.height);
-  await dock(page).getByRole("button", { name: /^일지/ }).click();
+  await V.journal(page);
   const s = await box(page, page.getByRole("dialog", { name: "투자일지" }));
   expect(s.width).toBeGreaterThan(UPRIGHT.width - 40);
-  expect(s.y + s.height).toBeLessThanOrEqual(d.y);
+  expect(s.y + s.height).toBeLessThanOrEqual(UPRIGHT.height + 1);
   expect(errors.filter(e => !/deprecated/i.test(e))).toEqual([]);
 });
 
-test("turned on its side: a rail on the left, a sheet on the right, and a half-written judgment survives the turns", async ({ page }) => {
+test("turned on its side: the corner buttons in reach, a sheet on the right, and a half-written judgment survives the turns", async ({ page }) => {
   const errors: string[] = [];
   await open(page, errors);
   await page.setViewportSize(SIDEWAYS);
   await expect.poll(async () => (await hooks(page))?.camera?.turn ?? 1).toBe(0);
-  const d = await box(page, dock(page));
-  expect(d.x).toBeLessThan(40);
-  expect(d.height).toBeGreaterThan(d.width);
-  // every menu button stays big enough to press and inside the screen
-  for (const b of await dock(page).getByRole("button").all()) {
+  // the buttons over the garden stay big enough to press and inside the screen (no dock or rail since 2026-11-22)
+  for (const b of [dock(page), page.getByRole("button", { name: "수첩 펼치기" }), page.getByRole("button", { name: "설정" })]) {
     const r = (await b.boundingBox())!;
-    expect(r.height).toBeGreaterThanOrEqual(40);
+    expect(Math.min(r.width, r.height)).toBeGreaterThanOrEqual(36);
     expect(r.y + r.height).toBeLessThanOrEqual(SIDEWAYS.height);
+    expect(r.x + r.width).toBeLessThanOrEqual(SIDEWAYS.width);
   }
-  await dock(page).getByRole("button", { name: /^일지/ }).click();
+  await V.journal(page);
   await page.getByRole("dialog", { name: "투자일지" }).locator("button.rt-row").filter({ hasText: /카카오/ }).click();
   const brief = page.getByRole("dialog", { name: "브리핑" });
   const s = await box(page, brief);

@@ -43,7 +43,7 @@ export function BuildConfirm({want,coins,onYes,onNo}:{want:Want;coins:number;onY
   return <section className="bd-pop" role="dialog" aria-label={`${nameOf(want)} ${verb}`}>
     <div className="rt-kicker">{want.kind==='land'?'빈 땅':want.kind==='building'?'건물 터':'도시'}</div>
     <h3>{nameOf(want)}</h3><p>{descOf(want)}</p>
-    {short>0&&<p className="bd-short">코인이 {short} 모자라요. 일지를 쓰고 복기하면 모여요.</p>}
+    {short>0&&<p className="bd-short">코인이 {won(short)} 모자라요. 일지를 쓰고 복기하면 모여요.</p>}
     <div className="bd-pop-acts"><button type="button" className="rt-btn" onClick={onNo}>닫기</button>
       <button type="button" className="bd-go" disabled={short>0} onClick={onYes}>{verb}<em><Coin/>{wonShort(price)}</em></button></div>
   </section>;

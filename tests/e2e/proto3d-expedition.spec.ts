@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "./fixtures";
+import * as V from "./village";
 
 // 관측소 원정 (docs/game.md, G2): a blind 판 from the observatory. Brief → the days run → time stops on a crash or report
 // day → 지킴·절반·정리 with chips → … → the reveal names the companies and the period, grades each decision and saves
@@ -92,7 +93,7 @@ test("the observatory door opens 오늘의 관측소; the weekly 판 is only a r
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?demo&weather=clear&gameTutorial=0");
   await expect(page.locator(".proto3d canvas")).toBeVisible({ timeout: 30_000 });
-  await page.getByRole("navigation", { name: "메뉴" }).getByRole("button", { name: /^관측소/ }).click();
+  await V.observatory(page);
   const door = page.getByRole("dialog", { name: "오늘의 관측소" });
   await expect(door.getByTestId("dq-door")).toBeVisible();
   await expect(door.getByRole("button", { name: /이번 주 판 시작/ })).toHaveCount(0);

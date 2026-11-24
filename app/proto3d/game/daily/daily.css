@@ -185,3 +185,4 @@ img.dq-mono{object-fit:cover;padding:0}
 .dq-news li{border-left:2px solid var(--rt-rule);padding-left:8px}
 .dq-news li.new{border-left-color:var(--rt-seal)}
 .dq-news p{font-size:13.5px;margin:2px 0 0}
+.dq-news p.dq-news-sum{font-size:12.5px;color:var(--rt-mute,#6d6457);line-height:1.5;margin-top:3px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}

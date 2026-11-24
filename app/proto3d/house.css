@@ -252,6 +252,10 @@ html[data-still="1"] .hs-doc,html[data-still="1"] .hs-ink,html[data-still="1"] .
 .vl-articles{list-style:none;padding:0;margin:0;display:grid;gap:8px}
 .vl-articles li{display:grid;gap:3px;padding:10px 12px;border-radius:10px;background:#fffdf6;border:1px solid var(--rt-line)}
 .vl-articles strong{font-size:14px;line-height:1.35}.vl-articles small{color:#7a705f;font-size:12px}
+/* the feed's excerpt under a headline (RSS <description>, 사용자 2026-11-22): plain, three lines at most on the board */
+.vl-news-sum{margin:2px 0 1px;font-size:13px;line-height:1.5;color:#4f473b}
+.vl-articles .vl-news-sum{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.vl-news p.vl-news-sum{font-size:13.5px;color:#3f382e}.vl-news .vl-news-src{font-size:11px;color:#9a8f7c}
 .vl-empty{padding:18px 6px;text-align:center;color:#6d6457;font-size:13.5px;line-height:1.5}
 /* the first lesson: the level gauge and the drawer's lock 보리 points at */
 .hs-chip{display:inline-flex;align-items:center;gap:6px}

@@ -36,7 +36,10 @@ export interface ActionsProvider{readonly id:string;actions(q:{instrumentId:stri
 
 // ── news, macro, policy (NewsProvider · NEWS_API_KEY, MacroProvider · MACRO_API_KEY, PolicyProvider · POLICY_SOURCE_URL)
 // news without a body licence keeps title and metadata only; reprints of one story point at it (dupOf)
-export type NewsItem={id:string;title:string;publisher:string;publishedAt:string;updatedAt:string|null;url:string;usage:'metadata-only'|'full';entities:string[];dupOf:string|null};
+// summary: the publisher's own excerpt from its feed (RSS <description>, an API's summary field), plain text, cut short
+// (core/content/live/rss.ts excerpt). Shown under the headline (사용자 결정 2026-11-22); the body is never kept without
+// a licence. null when the feed gives none.
+export type NewsItem={id:string;title:string;publisher:string;publishedAt:string;updatedAt:string|null;url:string;usage:'metadata-only'|'full';entities:string[];dupOf:string|null;summary?:string|null};
 // a value as first released (vintage): later revisions are other points, never written over it
 export type MacroPoint={series:string;period:string;value:number;unit:string;vintage:string;releasedAt:string};
 export type PolicyEvent={id:string;jurisdiction:string;title:string;stage:'proposed'|'final';announcedAt:string;effectiveAt:string|null;docUrl:string;sectors:string[]};

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "./fixtures";
+import * as V from "./village";
 
 // Onboarding (app/proto3d/ui/Onboarding.tsx): a new player lands on an empty garden and puts their holdings in, by a
 // capture (mock reader: four example companies) or by typing; each holding becomes a tree on its own plot, and the
@@ -29,7 +30,7 @@ test("a new player lands on an empty garden and types two holdings in", async ({
   // nothing planted yet: no trees, no analysts, no menu
   expect(await treeCount(page)).toBe(0);
   await expect(page.locator(".rt-bubble")).toHaveCount(0);
-  await expect(page.getByRole("navigation", { name: "메뉴" })).toBeHidden();
+  await expect(V.controls(page)).toBeHidden();
 
   await start.getByRole("button", { name: /직접 입력/ }).click();
   const list = page.getByRole("dialog", { name: "종목 확인" });
@@ -55,7 +56,7 @@ test("a new player lands on an empty garden and types two holdings in", async ({
   await expect(look).toContainText("30일 전", { timeout: 15_000 });
   expect((await births(page))?.stage).toBe("done");
   await expect(look).toContainText("그때 너라면");
-  await expect(look.getByRole("article", { name: "토리 리서치 노트" })).toBeVisible();
+  await expect(look.getByRole("article", { name: "루온 리서치 노트" })).toBeVisible();// F-Score is 루온's since 2026-11-22
   const form = look.getByRole("form", { name: "그때의 일지" });
   await expect(form.getByRole("button", { name: "기록하고 결과 보기" })).toBeDisabled();
   await form.getByRole("group", { name: "방향" }).getByRole("button", { name: "내릴" }).click();
@@ -77,10 +78,9 @@ test("a new player lands on an empty garden and types two holdings in", async ({
   expect(await page.evaluate(() => (JSON.parse(localStorage.getItem("rethink-garden-v1") ?? "{}").journals ?? []).filter((j: { practice?: boolean }) => j.practice).length)).toBe(1);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("rethink-garden-v1") ?? "{}").judgments.length)).toBe(0);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("rethink-garden-v1") ?? "{}").currency)).toBeGreaterThan(0);
-  await expect(page.getByRole("navigation", { name: "메뉴" })).toBeVisible();
-  // a heavy loss is flagged: tori goes to that tree with a note on it
-  await expect(page.locator('.rt-bubble[data-analyst="tori"]')).toContainText("한빛전자", { timeout: 30_000 });
-  await page.getByRole("navigation", { name: "메뉴" }).getByRole("button", { name: /^일지/ }).click();
+  await expect(V.controls(page)).toBeVisible();
+  // a heavy loss is flagged: the notebook has it (the analysts' bubbles left the village on 2026-11-22)
+  await V.journal(page);
   await expect(page.getByRole("dialog", { name: "투자일지" })).toContainText("한빛전자");
   await page.getByRole("dialog", { name: "투자일지" }).getByRole("button", { name: "닫기" }).first().click();
 
@@ -110,7 +110,7 @@ test("a capture fills the list (mock reader), and the track record edits it late
   await expect(page.getByRole("dialog", { name: "되돌아보기" })).toBeHidden();
 
   // later: 더보기 → 내 종목 → change a rate, take one out, add one
-  await page.getByRole("navigation", { name: "메뉴" }).getByRole("button", { name: /^더보기/ }).click();
+  await V.moreSheet(page);
   await page.getByRole("dialog", { name: "더보기" }).getByRole("button", { name: /^내 종목/ }).click();
   const edit = page.getByRole("dialog", { name: "종목 확인" });
   await expect(edit.getByLabel("SK하이닉스 보유 기간")).toHaveCount(0); // a planted tree keeps its age
@@ -137,7 +137,9 @@ test("the demo garden is one tap away", async ({ page }) => {
   await page.getByRole("dialog", { name: "내 종목 넣기" }).getByRole("button", { name: "예시 정원으로 시작" }).click();
   await expect.poll(() => treeCount(page), { timeout: 30_000 }).toBe(7);
   await skipBirth(page);
-  await expect(page.getByRole("region", { name: "다음 할 일" })).toContainText("채점 결과 2건");
+  // (the next-step card is gone since 2026-11-22: the notebook's top row says the grades are in)
+  await V.journal(page);
+  await expect(page.getByRole("dialog", { name: "투자일지" })).toContainText("이전 판단 채점 결과 2건");
   clean(errors);
 });
 

@@ -362,7 +362,7 @@ export function useGarden(){
       const r=res as ReturnType<typeof spend>|null;if(!r)return false;
       const name=w.kind==='land'?LANDS.find(l=>l.id===w.id)?.name:w.kind==='building'?BUILDINGS.find(b=>b.id===w.id)?.name:CITIES.find(x=>x.id===w.id)?.landmark;
       if(r.ok)say(w.kind==='land'?`${name} · 새 나무 자리 ${LANDS.find(l=>l.id===w.id)!.plots.length}칸이 생겼어요`:w.kind==='building'?`${name} · 다 지었어요`:`${name} · 정원 가장자리에 세웠어요`);
-      else say(r.why==='coins'?`코인이 ${r.need} 모자라요. 일지를 쓰고 복기하면 모여요`:r.why==='have'?'이미 있어요':'지금은 할 수 없어요');return r.ok},
+      else say(r.why==='coins'?`코인이 ${won(r.need??0)} 모자라요. 일지를 쓰고 복기하면 모여요`:r.why==='have'?'이미 있어요':'지금은 할 수 없어요');return r.ok},
     journalOpened(id:string,hypoId:string){setS(p=>({...p,journals:(p.journals??[]).map(j=>j.id===id?{...j,hypos:j.hypos.map(h=>h.id===hypoId?{...h,opened:c.now}:h)}:j)}))},
     journalArchive(id:string,on:boolean){setS(p=>({...p,journals:(p.journals??[]).map(j=>j.id===id?{...j,archivedAt:on?c.now:null}:j)}))},
     journalTrash(id:string,on:boolean){setS(p=>({...p,journals:(p.journals??[]).map(j=>j.id===id?{...j,deletedAt:on?c.now:null}:j)}))},

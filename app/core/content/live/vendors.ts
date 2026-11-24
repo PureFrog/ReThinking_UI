@@ -11,6 +11,7 @@
 import {ProviderError,type ActionsProvider,type CorporateAction,type Ctx,type MacroPoint,type MacroProvider,type Mentor,type NewsItem,type NewsProvider,
   type PhilosophySource,type PolicyEvent,type PolicyProvider,type PriceSeries,type PricesProvider,type Principle} from '../ports';
 import {need,request} from './http';
+import {excerpt} from './rss';
 const iso=/^\d{4}-\d{2}-\d{2}/;
 const str=(v:unknown)=>typeof v==='string';
 const num=(v:unknown)=>typeof v==='number'&&Number.isFinite(v);
@@ -43,7 +44,7 @@ export function vendorNews(ctx:Ctx,map:(raw:unknown)=>unknown=x=>x):NewsProvider
     check(P,!!r&&Array.isArray(r.items),'search');
     for(const n of r.items)check(P,str(n.id)&&str(n.title)&&str(n.publisher)&&iso.test(n.publishedAt)&&str(n.url),`item ${n?.id}`);
     // without a body licence only the headline and its metadata are kept
-    return {items:dedupeNews(r.items.map(n=>({...n,usage:n.usage==='full'?'full':'metadata-only',updatedAt:n.updatedAt??null,entities:n.entities??[entity],dupOf:null}))),cursor:r.cursor??null}},
+    return {items:dedupeNews(r.items.map(n=>({...n,usage:n.usage==='full'?'full':'metadata-only',updatedAt:n.updatedAt??null,entities:n.entities??[entity],dupOf:null,summary:excerpt(typeof n.summary==='string'?n.summary:null)}))),cursor:r.cursor??null}},
 }}
 export function vendorMacro(ctx:Ctx,map:(raw:unknown)=>unknown=x=>x):MacroProvider{const P='macro';return {id:'vendor-macro',
   async series({series,asOf}){

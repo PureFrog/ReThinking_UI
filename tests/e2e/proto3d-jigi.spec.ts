@@ -1,11 +1,12 @@
 import { test, expect, type Page } from "./fixtures";
+import * as V from "./village";
 
 // 지기 투자일지 J1 (docs/jigi.md): the 일지 tab is the journal book (by stock, a time bar, one journal opened); a tree's
 // card starts a journal (quick chips prefill 한 일); writing is four pages that keep a draft; saving with blanks
 // jumps to the missing page; a saved journal stays after a reload; the old judgments are read-only behind 이전 판단.
 test.describe.configure({ timeout: 180_000 });
 test.beforeEach(({}, info) => test.skip(info.project.name !== "mobile", "a phone screen is enough"));
-const dock = (page: Page) => page.getByRole("navigation", { name: "메뉴" });
+const dock = (page: Page) => V.controls(page);
 const book = (page: Page) => page.getByRole("dialog", { name: "투자일지" });
 const write = (page: Page) => page.getByRole("dialog", { name: "일지 쓰기" });
 // the page now open (feedback 11-17: three pages, a filled one goes on by itself)
@@ -15,16 +16,18 @@ const pick = async (page: Page, slot: RegExp, group: string, value: string) => {
   await write(page).getByRole("group", { name: group }).getByRole("button", { name: value, exact: true }).click();
 };
 
-test("the book: stocks, a time bar, one journal with its chart and graded hypothesis; old judgments read-only", async ({ page }, info) => {
+test("the book: stocks, their journals by date, one journal with its chart and graded hypothesis; old judgments read-only", async ({ page }, info) => {
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(e.message));
   await page.goto("/proto3d?demo&weather=clear");
-  await dock(page).getByRole("button", { name: /^일지/ }).click({ timeout: 30_000 });
+  await V.villageReady(page);
+  await V.journal(page);
   await expect(book(page).getByRole("tab", { name: "일기장" })).toHaveAttribute("aria-selected", "true");
   await expect(book(page).getByRole("button", { name: /^삼성전자 일지 5편/ })).toBeVisible();
   await page.screenshot({ path: info.outputPath("jigi-book.png") });
   await book(page).getByRole("button", { name: /^삼성전자 일지/ }).click();
-  await expect(book(page).getByRole("group", { name: "일지 시간 막대" }).getByRole("button")).toHaveCount(5);
+  // (since 2026-11-22 a stock's page lists its journals by date, with a line at the bottom to write today)
+  await expect(book(page).locator(".jg-page .jg-card")).toHaveCount(5);
   await book(page).locator(".jg-card").first().click();
   await expect(book(page).getByRole("img", { name: /삼성전자 일봉 차트/ })).toBeVisible();
   await expect(book(page)).toContainText("모의 시세");
@@ -44,15 +47,12 @@ test("writing: a tree's quick chip starts a draft, blanks jump to their page, sa
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(e.message));
   await page.goto("/proto3d?demo&weather=clear");
-  await expect(dock(page)).toBeVisible({ timeout: 30_000 });
+  await V.villageReady(page);
   // a tree's card: 일지 쓰기 first, and the old judgment chips start a journal (손절 검토 = 보유 + the exit plan)
   await expect.poll(() => page.evaluate(() => Object.keys((window as unknown as { __proto3d?: { trees?: object } }).__proto3d?.trees ?? {}).length), { timeout: 30_000 }).toBeGreaterThanOrEqual(7);
   await page.waitForTimeout(2500);
-  const size = page.viewportSize()!;
-  // a tree on screen whose spot reaches the canvas
-  const pt = await page.evaluate(sz => { const t = (window as unknown as { __proto3d: { trees: Record<string, { x: number; y: number }> } }).__proto3d.trees;
-    return Object.values(t).filter(p => p.x > 30 && p.x < sz.width - 30 && p.y > 140 && p.y < sz.height - 200 && document.elementFromPoint(p.x, p.y)?.tagName === "CANVAS").sort((a, b) => b.y - a.y)[0] }, size);
-  await page.mouse.click(pt.x, pt.y);
+  // the old tree card (a tap on a tree opens its read-only status since 2026-11-22): through the e2e hook
+  await V.treeCard(page, 7);
   const card = page.getByRole("dialog", { name: /나무$/ });
   await expect(card).toBeVisible();
   const name = (await card.getByRole("heading").textContent())!.trim();
@@ -93,22 +93,24 @@ test("writing: a tree's quick chip starts a draft, blanks jump to their page, sa
   expect(await page.evaluate(() => (JSON.parse(localStorage.getItem("rethink-garden-v1") ?? "{}").journals ?? []).filter((j: { status: string; demo?: boolean }) => j.status === "saved" && !j.demo).length)).toBe(1);
   // it is saved in the garden: a reload keeps it
   await page.goto("/proto3d?weather=clear");
-  await dock(page).getByRole("button", { name: /^일지/ }).click({ timeout: 30_000 });
+  await V.villageReady(page);
+  await V.journal(page);
   await expect(book(page).getByRole("button", { name: new RegExp("^" + name + " 일지") })).toBeVisible();
   expect(await page.evaluate(() => (JSON.parse(localStorage.getItem("rethink-garden-v1") ?? "{}").journals ?? []).filter((j: { status: string; demo?: boolean }) => j.status === "saved" && !j.demo).length)).toBe(1);
   expect(errors).toEqual([]);
 });
 
-// J2: hypotheses pulled from my own words, the stock-direction one confirmed and buried as a capsule under its tree;
+// J2: hypotheses pulled from my own words, the stock-direction one confirmed and registered for its verdict;
 // when its end date has a close it comes up with its verdict (automatic, no manual buttons), then the review.
-test("hypotheses: pull, confirm, buried as a capsule, dug up with the verdict, then the review", async ({ page }, info) => {
+test("hypotheses: pull, confirm, the verdict once its end date passes, then the review", async ({ page }, info) => {
   test.setTimeout(360_000);// writes a whole journal, buries, reloads 95 days ahead and digs up: the longest walk-through here
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(e.message));
   await page.goto("/proto3d?demo&weather=clear");
-  await dock(page).getByRole("button", { name: /^일지/ }).click({ timeout: 30_000 });
+  await V.villageReady(page);
+  await V.journal(page);
   await book(page).getByRole("button", { name: /^카카오 일지/ }).click();
-  await book(page).getByRole("button", { name: "이 종목 일지 쓰기" }).click();
+  await book(page).getByRole("button", { name: /여기에 오늘 쓰기/ }).click();
   await pick(page, /한 일 고르기/, "한 일", "관찰");
   await pick(page, /이해 정도 고르기/, "이해 정도", "일부 이해");
   await onPage(page, /가설/);
@@ -121,21 +123,27 @@ test("hypotheses: pull, confirm, buried as a capsule, dug up with the verdict, t
   // saving opens the analysis; open the book tab, then the newest journal of 카카오
   await book(page).getByRole("tab", { name: "일기장" }).click();
   await book(page).getByRole("button", { name: /^카카오 일지 2편/ }).click();
-  await book(page).locator(".jg-card").first().click();
+  await book(page).locator(".jg-card").last().click();// the page runs oldest to newest
   await book(page).getByRole("button", { name: "가설 뽑기" }).click();
   const drafts = book(page).getByRole("group", { name: "가설 초안" });
   await expect(drafts).toHaveCount(2);
   await expect(book(page).getByRole("button", { name: /^(적중|실패|판정불가)$/ })).toHaveCount(0);
   await page.screenshot({ path: info.outputPath("jigi-drafts.png") });
-  // the price one: confirm → buried under 카카오's tree with a D-n tag
+  // the price one: confirm → registered for its verdict
   await drafts.filter({ hasText: "판정 기준" }).getByRole("button", { name: "확정하고 판정 등록" }).click();
   await expect(book(page)).toBeHidden();
-  await expect(page.getByRole("button", { name: /^카카오 · D-\d+/ })).toHaveCount(1, { timeout: 20_000 });
-  // past its end date: the capsule says the verdict is in; digging it up shows it
+  type J = { id: string; stock?: { name: string }; createdAt: number; hypos: { id: string; status: string }[] };
+  const mine = async () => {
+    const s = await page.evaluate(() => JSON.parse(localStorage.getItem("rethink-garden-v1")!));
+    const j = (s.journals as J[]).filter(x => x.stock?.name === "카카오").sort((a, b) => b.createdAt - a.createdAt)[0];
+    return { j, h: j?.hypos.find(x => x.status === "confirmed") };
+  };
+  await expect.poll(async () => !!(await mine()).h).toBe(true);
+  const { j, h } = await mine();
+  // past its end date the verdict is in (the capsule marker that dug it up left the village on 2026-11-22: through the hook)
   await page.goto("/proto3d?weather=clear&ahead=95");
-  const tag = page.getByRole("button", { name: "카카오 · 판정 완료" });
-  await expect(tag).toHaveCount(1, { timeout: 30_000 });
-  await tag.dispatchEvent("click");
+  await V.villageReady(page);
+  await V.openSheet(page, { kind: "verdict", journalId: j.id, hypoId: h!.id });
   const v = page.getByRole("dialog", { name: "가설 판정" });
   await expect(v.getByRole("status")).toContainText(/적중|빗나감/);
   await expect(v).toContainText("카카오 주가가 석 달 안에 오를 것이다");
@@ -145,9 +153,7 @@ test("hypotheses: pull, confirm, buried as a capsule, dug up with the verdict, t
   const review = book(page).getByRole("group", { name: "복기" });
   await expect(review).toBeVisible();
   await review.getByRole("group", { name: "계획대로 행동했나요" }).getByRole("button", { name: "예" }).click();
-  // opened once: the capsule is gone
   await book(page).getByRole("button", { name: "닫기" }).first().click();
-  await expect(page.getByRole("button", { name: /^카카오 · / })).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
@@ -160,7 +166,8 @@ test("analysis: summary with an interval, the style of judging, and a task on th
   // the demo's verdicts follow the mock prices up to "today": pin the day so the numbers (and 보완할 점) hold still
   await page.clock.setFixedTime(new Date("2026-11-15T10:00:00+09:00"));
   await page.goto("/proto3d?demo&weather=clear");
-  await dock(page).getByRole("button", { name: /^일지/ }).click({ timeout: 30_000 });
+  await V.villageReady(page);
+  await V.journal(page);
   await book(page).getByRole("tab", { name: "분석" }).click();
   await expect(book(page)).toContainText("예시 기록으로 보여 드려요");
   await expect(book(page)).toContainText("내 투자 판단 요약");
@@ -191,7 +198,7 @@ test("analysis: summary with an interval, the style of judging, and a task on th
   // the league says what it counts
   await write(page).getByRole("button", { name: "닫기" }).first().click();
   await book(page).getByRole("button", { name: "닫기" }).first().click();
-  await dock(page).getByRole("button", { name: /^더보기/ }).click();
+  await V.moreSheet(page);
   await page.getByRole("dialog", { name: "더보기" }).getByRole("button", { name: /^리그/ }).click();
   await expect(page.getByRole("dialog", { name: /리그/ })).toContainText("한 일로 점수가 쌓여요");
   expect(errors).toEqual([]);

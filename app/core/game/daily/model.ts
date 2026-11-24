@@ -48,7 +48,8 @@ export type OtherCompany={slot:Exclude<Slot,'A'>;alias:string;business:string;qt
 // the fee per fill. A pack's own rules: no Korean price limits or tick sizes on a US case (fills are at the raw open)
 export type Market={calendar:string;label:string;fee:number};
 // a headline that arrives during the flow on its trading day (names masked as on the cards)
-export type NewsItem={tick:number;title:string;source:string;about?:Slot};
+// summary: the feed's excerpt under the headline (core/content/ports.ts NewsItem.summary), masked as the headline is
+export type NewsItem={tick:number;title:string;summary?:string;source:string;about?:Slot};
 export type DailyPack={id:string;version:number;sample:boolean;mentor:Mentor;market?:Market;news?:NewsItem[];
   company:{alias:string;business:string;qty:number};cash:number;currency:string;
   // one row per trading day from the first one shown; nothing past a scene's tick is ever drawn during play

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "./fixtures";
+import * as V from "./village";
 
 // 오늘의 관측소 (daily_quest_design v1 + feedback F1·F2): the lesson → the portfolio → three scenes, each a new journal that
 // confirms the hypothesis (입문: the target and period given, the direction picked, one line on why) and 보유·부분매도
@@ -198,7 +199,7 @@ test("today's request arrives in the garden; the notice opens it", async ({ page
   await expect(page.locator(".proto3d canvas")).toBeVisible({ timeout: 30_000 });
   const notice = page.getByTestId("request-notice");
   await expect(notice).toContainText("오늘의 관측 의뢰가 도착했어", { timeout: 15_000 });
-  await expect(page.getByRole("navigation", { name: "메뉴" }).getByRole("button", { name: /^관측소/ })).toContainText("1");
+  // (the dock and its 관측소 badge are gone with the village screen; the notice is the way in)
   await notice.getByRole("button", { name: /오늘의 관측 의뢰/ }).click();
   const dq = page.getByTestId("daily-quest");
   await expect(dq).toBeVisible({ timeout: 10_000 });

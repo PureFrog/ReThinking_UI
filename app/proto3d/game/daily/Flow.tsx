@@ -41,7 +41,7 @@ export function Flow({g,run,pack,top}:{g:G;run:DailyRun;pack:DailyPack;top:(k:st
       {many&&<div className="dq-tabs small" role="tablist" aria-label="차트 종목">{companiesOf(pack).map(c=><button key={c.slot} type="button" role="tab" aria-selected={slot===c.slot} onClick={()=>setSlot(c.slot)}>{c.alias}</button>)}</div>}
       <QuestChart pack={pack} upto={t} fills={fills} slot={slot} label="흐름 차트"/>
       <section className="gx-panel dq-sec" data-testid="dq-news"><p className="dq-k">뉴스 · 그날까지 나온 것만</p>
-        {news.length?<ul className="dq-news">{news.map(n=><li key={n.tick+n.title} className={n.tick>p.from?'new':''}><small className="gx-note">{n.tick<=p.from?'지난 소식':`${n.tick-p.from}거래일째`} · {n.source}</small><p>{n.title}</p></li>)}</ul>
+        {news.length?<ul className="dq-news">{news.map(n=><li key={n.tick+n.title} className={n.tick>p.from?'new':''}><small className="gx-note">{n.tick<=p.from?'지난 소식':`${n.tick-p.from}거래일째`} · {n.source}</small><p>{n.title}</p>{n.summary&&<p className="dq-news-sum">{n.summary}</p>}</li>)}</ul>
           :<p className="gx-note">아직 들어온 소식이 없어요.</p>}</section>
     </div>
     {end?<button type="button" className="gx-btn" onClick={()=>g.ops.questPlayEnd(run.id)}>{next?'판단하러 가기':'평가일 결과 보기'}</button>

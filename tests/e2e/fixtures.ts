@@ -24,6 +24,15 @@ export const test = base.extend({
     await page.addInitScript(() => { (window as unknown as { __noHouse?: boolean }).__noHouse = !new URLSearchParams(location.search).has("house") });
     // accounts stay on the device in e2e, even when .env.local points at the Supabase project (app/proto3d/server.ts)
     await page.addInitScript(() => { (window as unknown as { __localAuth?: boolean }).__localAuth = true });
+    // on a stop-loss day 보리 walks up and opens its talk over everything (the demo garden always has one, 예시 신호);
+    // tests start with today's visit already had unless the address has ?bori (the day as the app counts it, ?ahead=N)
+    await page.addInitScript(() => {
+      const q = new URLSearchParams(location.search);
+      if (q.has("bori")) return;
+      const d = new Date(Date.now() + (Number(q.get("ahead")) || 0) * 86400000);
+      const day = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+      try { localStorage.setItem("rethink-friend-day", day) } catch { /* storage off */ }
+    });
     await use(page);
   },
 });

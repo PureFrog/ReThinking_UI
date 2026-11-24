@@ -739,6 +739,11 @@ export default function Proto3D(){
   // 설계 6장: a tree opens my notebook at its stock, the camera close on that tree (the tree and its name stay above the book)
   // e2e: talk to a friend as a tap on it would (the 3D figures move about the village)
   useEffect(()=>{const w=window as unknown as {__proto3d?:{talkTo?:(id:string)=>void}};(w.__proto3d??={}).talkTo=id=>world.onAnalyst(id as AnalystId)});
+  // e2e only: the old 더보기 list (케이스, 되감기, 리그, 서랍, …) has no door in the new village yet, so its tests open
+  // those as the old dock did and keep checking the sheet itself. `more` takes a MoreId (ui/Home.tsx), `open` a sheet
+  // `pick` opens the old tree card (quick notes, cooldown, 일지 쓰기): a tap on a tree opens its read-only status now
+  useEffect(()=>{const w=window as unknown as {__proto3d?:{open?:(sh:SheetState)=>void;more?:(id:string)=>void;pick?:(id:number)=>void}};const hk=(w.__proto3d??={});
+    hk.open=sh=>{setPicked(null);setSheet(sh)};hk.more=id=>{setPicked(null);pickMore(id as MoreId)};hk.pick=id=>{setSheet(null);setPicked(id)}});
   // 9-5: the player walks over beside the tree, the camera goes to it, and that stock's notebook opens there
   const openTree=(id:number)=>{const hh=holdings.find(x=>x.id===id)??vtrees.find(x=>x.id===id);if(!hh)return;setPicked(null);setFocus(id);
     const w=(window as unknown as {__proto3d?:{player?:{x:number;z:number};treeAt?:Record<number,{x:number;z:number}>}}).__proto3d,t=w?.treeAt?.[id],me=w?.player;

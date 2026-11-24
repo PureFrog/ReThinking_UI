@@ -41,14 +41,15 @@ export const DANPUNG:DailyPack={
   company:{alias:'단풍식품',business:'과자·즉석식품 제조. 대표 제품 단풍칩, 매출의 60%가 대형마트 납품.',qty:100},
   cash:2_000_000,currency:'원',prices,index,evalTick:100,
   market:{calendar:'XKRX',label:'한국 거래일 · 원화',fee:.001},
-  // the flow between moments (feedback F4): headlines on their trading day, names masked as on the cards
+  // the flow between moments (feedback F4): headlines on their trading day, names masked as on the cards; the summary
+  // stands in for a feed's excerpt (사용자 2026-11-22), held to the same rules as the headline
   news:[
-    {tick:12,title:'과자 원재료 값 오름세 이어져, 제과업계 부담 커져',source:'경제 신문'},
-    {tick:28,title:'단풍식품, 대형마트와 다음 분기 납품 조건 협의 중',source:'업계 전문지'},
-    {tick:47,title:'단풍칩 인상 첫 주, 대형마트 매대 행사 늘어',source:'유통 전문지'},
-    {tick:53,title:'해오름제과, 가격 동결 광고 시작',source:'경제 신문'},
-    {tick:70,title:'편의점 과자 매출, 할인 행사 늘며 소폭 증가',source:'유통 전문지'},
-    {tick:86,title:'단풍식품, 다음 분기 판촉 예산은 이번 분기 수준으로',source:'설명회 보도'},
+    {tick:12,title:'과자 원재료 값 오름세 이어져, 제과업계 부담 커져',summary:'밀가루와 설탕 수입 단가가 석 달째 올랐다. 업계는 원가 부담을 제품 가격과 판촉비 중 어디서 줄일지 검토하고 있다.',source:'경제 신문'},
+    {tick:28,title:'단풍식품, 대형마트와 다음 분기 납품 조건 협의 중',summary:'납품 단가와 매대 행사 횟수가 함께 논의되고 있다. 회사는 협의가 끝나면 조건을 알리겠다고 밝혔다.',source:'업계 전문지'},
+    {tick:47,title:'단풍칩 인상 첫 주, 대형마트 매대 행사 늘어',summary:'가격이 오른 첫 주에 대형마트 세 곳이 1+1 행사를 열었다. 행사 비용을 누가 내는지는 공개되지 않았다.',source:'유통 전문지'},
+    {tick:53,title:'해오름제과, 가격 동결 광고 시작',summary:'경쟁사 해오름제과가 주요 과자 가격을 올해 올리지 않겠다는 광고를 냈다. 광고는 편의점과 온라인에 실렸다.',source:'경제 신문'},
+    {tick:70,title:'편의점 과자 매출, 할인 행사 늘며 소폭 증가',summary:'편의점 세 곳의 과자 매출이 전달보다 조금 늘었다. 할인 행사 상품의 비중도 함께 커졌다.',source:'유통 전문지'},
+    {tick:86,title:'단풍식품, 다음 분기 판촉 예산은 이번 분기 수준으로',summary:'설명회에서 회사는 다음 분기 판촉비를 이번 분기와 비슷하게 쓰겠다고 했다. 가격 정책에 대한 질문에는 답하지 않았다.',source:'설명회 보도'},
     {tick:94,title:'과자 원재료 값, 석 달 만에 내림세',source:'경제 신문'}],
   scenes:[
     {id:'p1',no:1,title:'가격 인상 발표',tick:40,situation:'단풍식품이 주력 과자 값을 올린다고 발표한 날이에요. 장이 열려 있는 동안 보도자료가 나왔어요.',

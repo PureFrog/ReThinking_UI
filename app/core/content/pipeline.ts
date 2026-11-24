@@ -22,7 +22,8 @@ export type EditorDraft={packId:string;version:number;sample:boolean;mentorId:st
   // the exchange's close in its own zone: a scene knows what was published by then (after-close news waits a day)
   sessionClose:string;portfolio:{qty:number;cash:number};preDays:number;scenes:DraftScene[];evalDate:string;
   // the flow's headlines (feedback F4), each bound to a source published by that day's close; fee: the pack's own rule
-  news?:{date:string;title:string;source:string;sourceId:string;about?:'A'|'B'|'C'}[];fee?:number;
+  // summary: the feed's excerpt under the headline (NewsItem.summary), masked as the headline is
+  news?:{date:string;title:string;summary?:string;source:string;sourceId:string;about?:'A'|'B'|'C'}[];fee?:number;
   holdings:{managerCik:string;managerName:string;quarters:string[];note:string}|null;
   reveal:{company:string;period:string;event:string;summary:string;sources:string[]}};
 // a source bound to the case by the editor ("원문 근거 묶기"): the value it carries, and how a price claim is recomputed
@@ -50,6 +51,8 @@ const CUR:Record<string,string>={KRW:'원',USD:'달러',JPY:'엔',EUR:'유로'};
 const CAL:Record<string,string>={XKRX:'한국',XKOS:'한국',XNYS:'미국',XNAS:'미국',XTKS:'일본',XLON:'영국'};
 const quarterEnd=(q:string)=>`${q.slice(0,4)}-${['03-31','06-30','09-30','12-31'][Number(q.slice(5))-1]}`;
 const DIRECTION=/(매수|매도|사세요|파세요|사라|팔아|오를\s*것|내릴\s*것|오를\s*거|떨어질\s*것)/;
+// a feed excerpt under a headline: two short sentences at most (core/content/live/rss.ts cuts feeds to 160)
+export const NEWS_SUMMARY_MAX=160;
 const ESTIMATE=/(추정|전망|계획|목표|예상|미체결)/;
 const pctOf=(a:number,b:number)=>(b/a-1)*100;
 const numbersIn=(s:string)=>[...s.replace(/−/g,'-').matchAll(/\d+(?:[.,]\d+)?/g)].map(m=>Number(m[0].replace(/,/g,'')));
@@ -148,13 +151,16 @@ export function buildPack(d:EditorDraft,g:Gathered):{pack:DailyPack|null;issues:
   const realNames=[...d.instrument.realNames,d.instrument.instrumentId,...(d.others??[]).flatMap(o=>[...o.realNames,o.instrumentId])];
   const news=(d.news??[]).map(n=>{const t=tickOf(n.date),where=`뉴스 ${n.date}`;
     if(t<1||t>end-start||days.indexOf(n.date)<0)err('news-date',where,'뉴스 날짜가 기록 구간의 거래일이 아니에요.');
-    for(const name of realNames)if(name&&n.title.includes(name))err('real-name',where,`뉴스 제목에 실명·티커 "${name}"가 있어요.`);
-    if(/(19|20)\d{2}\s*년/.test(n.title))err('period',where,'뉴스 제목에 연도가 보여요.');
-    if(DIRECTION.test(n.title))err('direction',where,'뉴스 제목에 매매 방향이 있어요.');
+    // the excerpt under the headline is held to the same rules (no name, year or direction) and kept short
+    for(const [part,text] of [['제목',n.title],['요약',n.summary??'']] as const){
+      for(const name of realNames)if(name&&text.includes(name))err('real-name',where,`뉴스 ${part}에 실명·티커 "${name}"가 있어요.`);
+      if(/(19|20)\d{2}\s*년/.test(text))err('period',where,`뉴스 ${part}에 연도가 보여요.`);
+      if(DIRECTION.test(text))err('direction',where,`뉴스 ${part}에 매매 방향이 있어요.`)}
+    if(n.summary&&n.summary.length>NEWS_SUMMARY_MAX)err('news-summary',where,`뉴스 요약은 ${NEWS_SUMMARY_MAX}자 이내로 줄여요.`);
     if(n.about&&!slots.includes(n.about))err('news-about',where,'뉴스의 종목이 포트폴리오에 없어요.');
     const o=g.observations.find(x=>x.ref.sourceId===n.sourceId);
     if(!o)err('source',where,'뉴스 출처가 묶여 있지 않아요.');else if(!(Date.parse(o.ref.publishedAt)<=Date.parse(`${n.date}T${d.sessionClose}`)))err('future',where,`출처 ${o.ref.sourceId}는 그날 장 마감 뒤에 공개돼요.`);
-    return {tick:t,title:n.title,source:n.source,...(n.about?{about:n.about}:{})}}).sort((a,b)=>a.tick-b.tick);
+    return {tick:t,title:n.title,...(n.summary?{summary:n.summary}:{}),source:n.source,...(n.about?{about:n.about}:{})}}).sort((a,b)=>a.tick-b.tick);
   // the result's first page reads the event at a glance (feedback F3): two sentences at most, the rest behind 원문 보기
   if(d.reveal.event.split(/(?<=[.!?。])(?!\d)\s+/).filter(x=>x.trim()).length>2)err('reveal-length','사례 공개','사건 설명은 두 문장 이내로 줄여요. 자세한 내용은 요약과 원문에 둬요.');
   const refOf=(card:string)=>{const c=d.scenes.flatMap(s=>s.cards).find(x=>x.id===card);return c?g.observations.find(o=>o.ref.sourceId===c.sourceIds[0])?.ref:undefined};
