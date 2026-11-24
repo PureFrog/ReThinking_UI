@@ -101,3 +101,13 @@ test('the shown examples: every village article and the sample quest\'s news car
   assert.ok(news.filter(n => n.summary).length >= 5);
   for (const n of news) if (n.summary) { assert.ok(n.summary.length <= 160); assert.doesNotMatch(n.summary, BANNED) }
 });
+
+test('example articles never put a real company in the headline or the excerpt', async () => {
+  const VN2 = await load('content/village-news');
+  const stocks = [{code: '035420', name: 'NAVER'}, {code: '005490', name: 'POSCO홀딩스'}, {code: '028300', name: 'HLB'}];
+  for (const day of ['2026-11-22', '2026-11-23', '2026-11-24', '2026-11-25']) {
+    for (const a of [...VN2.articlesFor(stocks, day), ...stocks.map(s => VN2.dayBeforeArticle(s, day))]) {
+      for (const s of stocks) { assert.ok(!a.title.includes(s.name) && !(a.summary ?? '').includes(s.name), a.title) }
+    }
+  }
+});
