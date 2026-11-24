@@ -16,8 +16,10 @@ test('mock bars: same every time, weekdays only, anchored near the real level, c
   assert.ok(S.lastConfirmed('005930',today).d<today);
   assert.equal(S.barOnOrBefore('005930','2026-11-15').d,'2026-11-13');// Sunday falls back to Friday
   assert.ok(S.bars('373220')[0].d>='2022-01-27');// listed later
-  assert.deepEqual(S.searchStocks('하이닉').map(s=>s.code),['000660']);
-  assert.deepEqual(S.searchStocks('0059').map(s=>s.code),['005930']);
+  // 피드백 2026-11-23: the search finds KOSDAQ120 only (no KOSPI)
+  assert.deepEqual(S.searchStocks('하이닉').map(s=>s.code),[]);
+  assert.deepEqual(S.searchStocks('하림').map(s=>s.code),['136480']);
+  assert.deepEqual(S.searchStocks('13648').map(s=>s.code),['136480']);
 });
 
 test('a journal saves only with its nine required things; saving again is a new version', () => {

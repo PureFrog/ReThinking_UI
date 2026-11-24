@@ -21,9 +21,23 @@ const LANDS0:Land[]=[
   {id:'north',name:'북쪽 밭',kind:'farm',plots:grid([3.6,6,8.4],[-5.8,-8.2]),price:WON*60,at:[6,-7],desc:'숲길 옆 새 밭, 나무 자리 6칸'},
   {id:'pondside',name:'개울가 과수원',kind:'orchard',plots:grid([6.4,8.8,11.2],[8.6,10.9]),price:WON*90,at:[8.8,9.75],desc:'개울 옆 새 과수원, 나무 자리 6칸'},
 ];
+// 피드백 2026-11-24 (스케치 "실제 / 농부 / 가상 / 상인"): the two fields side by side across the east, seen from the middle:
+// 실제 종목 밭 on the left (north), the farmer and his cart between, 가상 종목 밭 on the right (south), the merchant's shop
+// past it (then 2 further back, 피드백 "뒤로 보내고"). Each opens its 3 more plots as a front row (the side toward the middle). Spread coordinates, written directly.
+const col=(x:number,zs:number[]):[number,number][]=>zs.map(z=>[x,z] as [number,number]);
+const FARM_Z=[-7.0,-4.7,-2.4],ORCH_Z=[2.6,5.0,7.4];
+const FIELD_AT:Record<string,{plots:[number,number][];at:[number,number]}>={
+  farm:{plots:[15.7,18,20.3].flatMap(x=>col(x,FARM_Z)),at:[18,-4.7]},
+  farm2:{plots:col(13.4,FARM_Z),at:[13.4,-4.7]},
+  orchard:{plots:[15.6,18,20.4].flatMap(x=>col(x,ORCH_Z)),at:[18,5.0]},
+  orchard2:{plots:col(13.2,ORCH_Z),at:[13.2,5.0]},
+};
+// the 북쪽 밭 lot steps west to keep clear of 실제 종목 밭's fence
+const NORTH_WEST=-2;
 // a field and its extension move together (the extension's plots are the same rows)
 const FIELD_OF:Record<string,string>={farm2:'farm',orchard2:'orchard'};
-export const LANDS:Land[]=LANDS0.map(l=>{const f=LANDS0.find(x=>x.id===(FIELD_OF[l.id]??l.id))!,dx=(SPREAD-1)*f.at[0],dz=(SPREAD-1)*f.at[1];
+export const LANDS:Land[]=LANDS0.map(l=>{const f=LANDS0.find(x=>x.id===(FIELD_OF[l.id]??l.id))!,dx=(SPREAD-1)*f.at[0]+(l.id==='north'?NORTH_WEST:0),dz=(SPREAD-1)*f.at[1];
+  if(FIELD_AT[l.id])return {...l,...FIELD_AT[l.id]};
   return {...l,at:[l.at[0]+dx,l.at[1]+dz],plots:l.plots.map(([x,z])=>[x+dx,z+dz] as [number,number])}});
 export const BASE_LAND=['farm','orchard'];
 // every plot, in index order
@@ -53,15 +67,19 @@ const CITIES0:City[]=[
 
 export const CITIES:City[]=CITIES0.map(c=>({...c,at:spread(c.at[0],c.at[1])}));
 
-export type Built={land:string[];buildings:string[];cities:string[]};
+// spots: where a bought building was set down (피드백 2026-11-24 "사고 나서 마을을 보여주면서 맘에 드는 곳 클릭"); one
+// without a spot stands on its lot
+export type Built={land:string[];buildings:string[];cities:string[];spots?:Record<string,[number,number]>};
+export const buildingAt=(b:Building,built:Built|null|undefined):[number,number]=>built?.spots?.[b.id]??b.at;
 export const BUILT0:Built={land:[],buildings:[],cities:[]};
 export type Want={kind:'land'|'building'|'city';id:string};
 export const priceOf=(w:Want)=>w.kind==='land'?LANDS.find(l=>l.id===w.id)?.price:w.kind==='building'?BUILDINGS.find(b=>b.id===w.id)?.price:CITIES.find(c=>c.id===w.id)?.price;
 const keyOf={land:'land',building:'buildings',city:'cities'} as const;
 // spending: only with enough coins, only once, and land in order isn't required (any lot can be opened)
-export function spend(b:Built,coins:number,w:Want):{ok:true;built:Built;coins:number}|{ok:false;why:'have'|'coins'|'unknown';need?:number}{
+export function spend(b:Built,coins:number,w:Want,spot?:[number,number]):{ok:true;built:Built;coins:number}|{ok:false;why:'have'|'coins'|'unknown';need?:number}{
   const price=priceOf(w);if(price==null||(w.kind==='land'&&BASE_LAND.includes(w.id)))return {ok:false,why:'unknown'};
   const k=keyOf[w.kind];if(b[k].includes(w.id))return {ok:false,why:'have'};
   if(coins<price)return {ok:false,why:'coins',need:price-coins};
-  return {ok:true,built:{...b,[k]:[...b[k],w.id]},coins:coins-price};
+  const built:Built={...b,[k]:[...b[k],w.id]};if(spot&&w.kind==='building')built.spots={...b.spots,[w.id]:spot};
+  return {ok:true,built,coins:coins-price};
 }

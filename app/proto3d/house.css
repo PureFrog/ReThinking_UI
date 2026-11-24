@@ -183,7 +183,7 @@ html[data-still="1"] .hs-doc,html[data-still="1"] .hs-ink,html[data-still="1"] .
 .proto3d[data-place=house]>:not(.hs):not(.rt-sheet):not(.rt-toast):not(.rt-wel):not(.rt-room-fade){display:none!important}
 .hs{z-index:9}
 .vl-gear{display:grid;place-items:center;font-size:18px}
-@media(min-width:701px){.hs-talk .rt-talk-box{left:24px;transform:none;width:min(440px,40vw)}}
+/* 피드백 2026-11-22: the teacher's bubble sits in the middle like every other talk (phone first) */
 .hs-pin{position:absolute;left:0;top:0;z-index:3}
 .cd-index button[aria-pressed=true]{background:var(--rt-ink);color:#fff;border-color:var(--rt-ink)}
 .cd-cover blockquote{color:var(--rt-ink);background:none}
@@ -263,3 +263,133 @@ html[data-still="1"] .hs-doc,html[data-still="1"] .hs-ink,html[data-still="1"] .
 .hs-gauge b{display:block;height:100%;background:#d9a92a;border-radius:3px}
 .hs-chip small{font-size:10.5px;color:#8a7f6e}
 .hs-chip[data-hl=true],.hs-plate[data-hl=true]{box-shadow:0 0 0 3px #ffd66b,0 0 18px 4px #ffd66b99;animation:vl-bob 1.2s ease-in-out infinite}
+
+/* 피드백 2026-11-22: the tree's name as a garden plant marker at its foot (ui/TreeTags.tsx): a small board on a stake */
+.vl-tree-tag{padding:0 0 14px;border:0;border-radius:0;background:none;box-shadow:none;font-size:11.5px}
+.vl-tree-tag span{display:block;padding:3px 8px;border-radius:5px;background:#f6ead0;border:1px solid #b99a62;color:#4a3a22;box-shadow:0 3px 8px -4px #2a1d0c99}
+.vl-tree-tag::after{content:'';position:absolute;left:50%;bottom:0;width:3px;height:15px;margin-left:-1.5px;background:#8a6a3a;border-radius:0 0 2px 2px}
+.vl-tree-tag[data-virtual=true]{background:none;border:0}
+.vl-tree-tag[data-virtual=true] span{background:#fff3cf;border-color:#d9b55a}
+.vl-tree-tag[data-virtual=true]::before{content:none}
+.vl-tree-tag[data-virtual=true] span::before{content:'가상 ';color:#a07a1c;font-weight:700}
+/* 피드백 2026-11-23: inside a shop (Shop3D.tsx) only the talk, the sheets and the way out show */
+.proto3d[data-shop]>:not(:has(canvas)):not(.rt-talk):not(.vl-shop-acts):not(.rt-sheet):not(.rt-toast):not(.rt-room-fade):not(.rt-me-panel):not(.rt-me){visibility:hidden}
+.vl-shop-acts{position:absolute;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:20;display:flex;gap:10px}
+
+/* 시나리오 퀘스트 (ui/ScenarioQuest.tsx, PM 설계 2026-11-22): the desk leaned in on; papers come and go over it */
+.sq{position:absolute;inset:0;z-index:6;display:grid;place-items:center;padding:calc(64px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
+  background:linear-gradient(#2a262000,#2a262055 40%,#2a262088);overflow:hidden;color:var(--rt-ink)}
+.sq[data-step=mentor]{background:#1d1a1699}
+.sq-close{position:absolute;top:calc(12px + env(safe-area-inset-top));right:16px;min-height:38px;background:#fbf7ec;z-index:3}
+.sq-kick{font-size:11.5px;font-weight:700;color:var(--rt-mute);letter-spacing:.2px;margin:0 0 6px}
+.sq-acts{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}
+.sq-note{font-size:12px;color:var(--rt-mute);line-height:1.5}
+.sq table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}.sq th,.sq td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--rt-line)}.sq th{font-size:11.5px;color:var(--rt-mute);font-weight:600}
+.sq section,.sq article{background:#fbf7ec;border-radius:8px;box-shadow:0 1px 0 #fff inset,0 14px 36px #1d1a1655}
+/* ① the portrait plate centred, then left with the principle on the right */
+.sq-mentor{position:relative;width:min(980px,100%);height:min(620px,100%);background:none!important;box-shadow:none!important}
+.sq-portrait{position:absolute;top:50%;left:50%;width:min(300px,62vw);aspect-ratio:4/5;margin:0;transform:translate(-50%,-50%);transition:left .6s cubic-bezier(.3,.7,.2,1),transform .6s,opacity .4s;
+  background:linear-gradient(160deg,#e9dcc0,#cdb894);border:10px solid #8a6446;border-radius:6px;box-shadow:0 18px 40px #0008;display:grid;place-items:center;text-align:center}
+.sq-plate{font:800 54px/1 Georgia,serif;color:#5c4a3a;letter-spacing:2px}
+.sq-portrait figcaption{position:absolute;left:0;right:0;bottom:-74px;color:#fbf7ec;display:grid;gap:2px}
+.sq-portrait figcaption small{font-size:12px;opacity:.8}.sq-portrait figcaption b{font-size:22px}.sq-portrait figcaption span{font-size:12px;opacity:.75}
+.sq-mentor[data-beat=left] .sq-portrait,.sq-mentor[data-beat=out] .sq-portrait{left:20%}
+.sq-philo{position:absolute;top:0;bottom:0;right:0;width:58%;overflow:auto;padding:22px 24px;opacity:0;transform:translateX(30px);transition:opacity .5s .25s,transform .5s .25s;font-size:15px;line-height:1.7}
+.sq-mentor[data-beat=left] .sq-philo{opacity:1;transform:none}
+.sq-mentor[data-beat=out] .sq-portrait,.sq-mentor[data-beat=out] .sq-philo{transform:translate(-160%,-50%);opacity:0;transition-delay:0s}
+.sq-mentor[data-beat=out] .sq-philo{transform:translateX(-160%)}
+.sq-philo h2{font-size:24px;margin:0 0 10px}
+.sq-philo dl{display:grid;gap:6px;margin:14px 0 0;font-size:13.5px}.sq-philo dl div{display:grid;grid-template-columns:76px 1fr;gap:8px}.sq-philo dt{font-weight:700;color:var(--rt-mute)}.sq-philo dd{margin:0}
+/* ② the portfolio rises from below and goes back down */
+.sq-portfolio{width:min(620px,100%);padding:20px 22px;font-size:14.5px;line-height:1.6;animation:sq-rise .5s cubic-bezier(.3,.7,.2,1)}
+.sq-portfolio[data-down=true]{transform:translateY(120vh);transition:transform .48s ease-in}
+.sq-rule{font-size:13px;background:#f3ead3;border-radius:6px;padding:8px 10px}
+@keyframes sq-rise{from{transform:translateY(110vh)}to{transform:none}}
+/* ③ the desk on a turn: the rolled paper in the middle, the other papers beside it, the notebook at the right edge */
+.sq-clock{position:absolute;top:calc(12px + env(safe-area-inset-top));left:16px;right:190px;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;font-size:13px;
+  background:#fbf7ec;border-radius:8px;padding:8px 12px;box-shadow:0 6px 18px #1d1a1633}
+.sq-clock>span:first-child{font-weight:800;font-size:16px}.sq-stop{color:var(--rt-seal);font-weight:700}.sq-running{color:var(--rt-accent);font-weight:700}
+.sq-board{width:min(640px,100%);background:#fbf7ec;border-radius:8px;padding:12px;box-shadow:0 14px 36px #1d1a1655}
+.sq-chart{width:100%;height:auto;display:block}.sq-chart-line{fill:none;stroke:var(--rt-ink);stroke-width:2}.sq-chart-dot{fill:var(--rt-seal)}.sq-chart-day{stroke:#c9a23a88;stroke-dasharray:3 3}
+.sq-desk{position:relative;width:100%;min-height:260px;background:none!important;box-shadow:none!important;display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center}
+.sq-roll{justify-self:center;width:min(300px,70vw);height:86px;border-radius:43px;border:0;cursor:pointer;display:grid;place-content:center;gap:2px;color:#2a2620;
+  background:linear-gradient(#e9e1cf,#fbf7ec 35%,#d9cfb8 70%,#efe8d8);box-shadow:0 14px 26px #0006,inset 0 -6px 10px #0001;animation:sq-arrive .6s cubic-bezier(.3,.7,.2,1)}
+.sq-roll b{font:800 20px/1 Georgia,serif;letter-spacing:1px}.sq-roll small{font-size:12px;color:var(--rt-mute)}
+@keyframes sq-arrive{from{transform:translateY(-60px) rotate(-6deg);opacity:0}to{transform:none;opacity:1}}
+.sq-docs{grid-column:1;list-style:none;margin:0;padding:0;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.sq-docs button{background:#fffdf6;border:1px solid var(--rt-line2);border-radius:4px;padding:10px 12px;text-align:left;font-size:13.5px;max-width:260px;box-shadow:0 6px 14px #0004;transform:rotate(-1.5deg)}
+.sq-docs button small{display:block;font-size:11px;color:var(--rt-mute)}
+.sq-notebook{grid-column:2;grid-row:1/span 2;width:76px;height:150px;border-radius:6px 0 0 6px;border:0;background:linear-gradient(90deg,#4b6638,#5d7b47);color:#fbf7ec;display:grid;place-content:center;gap:4px;
+  box-shadow:0 10px 22px #0006;margin-right:-16px;cursor:pointer}
+.sq-notebook small{opacity:.8;font-size:11px}
+.sq-read{position:absolute;inset:0;display:grid;place-items:center;padding:calc(64px + env(safe-area-inset-top)) 16px 16px;background:#1d1a1655;z-index:2}
+.sq-paper,.sq-sheet{width:min(720px,100%);max-height:100%;overflow:auto;padding:18px 22px;font-size:15px;line-height:1.7;animation:sq-unroll .45s cubic-bezier(.3,.7,.2,1);transform-origin:center}
+.sq-paper{background:#f6f1e4!important;font-family:Georgia,'Noto Serif KR',serif}
+.sq-paper header,.sq-sheet header{display:flex;justify-content:space-between;align-items:baseline;border-bottom:3px double var(--rt-ink);padding-bottom:6px;margin-bottom:8px}
+.sq-paper header b{font-size:22px;letter-spacing:1px}.sq-paper h3{font-size:21px;margin:10px 0 6px;line-height:1.35}
+.sq-sheet header{display:grid;border-bottom:1px solid var(--rt-line2)}.sq-sheet header small{font-size:11.5px;color:var(--rt-mute)}
+@keyframes sq-unroll{from{transform:scaleX(.12);opacity:.4}to{transform:none;opacity:1}}
+.sq-tabs{display:flex;gap:6px;margin:6px 0}.sq-tabs button{min-height:36px;padding:0 14px;border-radius:18px;border:1px solid var(--rt-line2);background:#fff;font-size:13px;font-weight:700}
+.sq-tabs button[aria-pressed=true]{background:var(--rt-ink);color:#fff}
+/* ④ the notebook slides in from the right */
+.sq-note-book{position:absolute;right:16px;top:calc(64px + env(safe-area-inset-top));bottom:calc(16px + env(safe-area-inset-bottom));width:min(460px,calc(100% - 32px));overflow:auto;padding:16px 18px;
+  background:#fffdf6!important;animation:sq-slide .45s cubic-bezier(.3,.7,.2,1);display:grid;align-content:start;gap:10px;font-size:14px;line-height:1.55;z-index:1}
+@keyframes sq-slide{from{transform:translateX(110%)}to{transform:none}}
+.sq-margin{background:#f3ead3;border-radius:6px;padding:8px 10px;margin:0}.sq-margin b{color:var(--rt-accent);margin-right:4px}
+.sq-past{font-size:13px;color:var(--rt-sub);border-left:3px solid var(--rt-line2);padding-left:8px}.sq-past p{margin:2px 0}
+.sq-printed{margin:0;font-size:13.5px}.sq-printed b{background:#ffe9a8}
+.sq-field{display:grid;gap:4px;font-weight:700;font-size:13px}.sq-field textarea{font:inherit;font-weight:400;font-size:15px;padding:8px;border:1px solid var(--rt-line2);border-radius:6px;resize:vertical}
+.sq-dir{flex-wrap:wrap}
+/* ⑤ the device comes up in the middle */
+.sq-device{width:min(420px,100%);padding:16px;border-radius:22px!important;background:#24282e!important;color:#eef2f5;animation:sq-pop .45s cubic-bezier(.3,1.4,.4,1);display:grid;gap:8px}
+.sq-device .sq-kick{color:#9fb0bd}.sq-device .sq-chart{background:#1a1d22;border-radius:10px;padding:6px}.sq-device .sq-chart-line{stroke:#7fe0c0}
+.sq-device .rt-seg{display:grid;grid-template-columns:repeat(4,1fr)}.sq-device .rt-seg button{color:var(--rt-ink);padding:0 4px}.sq-device .rt-seg button[aria-checked=true]{background:#7fe0c0;border-color:#7fe0c0;font-weight:800}
+.sq-device .rt-btn.primary{background:#7fe0c0;color:#1a1d22;border-color:#7fe0c0}.sq-device .rt-btn.primary:disabled{opacity:.4}.sq-qty,.sq-left{margin:0;font-size:13.5px}
+@keyframes sq-pop{from{transform:translateY(60vh) rotateX(40deg)}to{transform:none}}
+/* ⑥⑦ the results and the reveal */
+.sq-result,.sq-reveal,.sq-feedback{width:min(640px,100%);max-height:100%;overflow:auto;padding:20px 22px;font-size:14.5px;line-height:1.6}
+.sq-big,.sq-small{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:8px 0}
+.sq-big div,.sq-small div{display:grid;gap:2px;background:#fff;border-radius:8px;padding:10px 12px;border:1px solid var(--rt-line)}
+.sq-big span,.sq-small span{font-size:12px;color:var(--rt-mute)}.sq-big b{font-size:30px}.sq-small b{font-size:18px}
+.sq-reveal h2{font-size:22px}.sq-reveal s{color:var(--rt-mute)}
+.sq-fb{display:grid;gap:8px;margin:8px 0}.sq-fb div{display:grid;grid-template-columns:74px 1fr;gap:8px}.sq-fb dt{font-weight:700;color:var(--rt-mute);font-size:13px}.sq-fb dd{margin:0}
+@media (max-width:640px){
+  .sq-clock{right:16px;top:calc(60px + env(safe-area-inset-top))}
+  .sq{padding-top:calc(118px + env(safe-area-inset-top))}
+  .sq-mentor{height:100%}
+  .sq-portrait{width:min(220px,58vw)}
+  .sq-mentor[data-beat=left] .sq-portrait{left:50%;top:15%;width:110px;transform:translate(-50%,-50%)}
+  .sq-mentor[data-beat=left] .sq-portrait figcaption{bottom:auto;top:50%;left:120px;right:auto;text-align:left;color:#fbf7ec;width:150px}
+  .sq-mentor[data-beat=left] .sq-plate{font-size:26px}
+  .sq-philo{top:32%;width:100%;padding:16px}
+  .sq-desk{grid-template-columns:1fr}.sq-notebook{grid-column:1;grid-row:auto;width:100%;height:56px;border-radius:6px;margin:0}
+  .sq-note-book{top:calc(118px + env(safe-area-inset-top))}
+}
+@media (prefers-reduced-motion:reduce){.sq *{animation-duration:.01s!important;transition-duration:.01s!important}}
+:root[data-still="1"] .sq *{animation-duration:.01s!important;transition-duration:.01s!important}
+/* 시나리오 튜토리얼 (30장): one lit thing, the rest dimmed and not pressable, 보리's bubble */
+.sc{position:fixed;inset:0;z-index:10;pointer-events:none}
+.sc-dim{position:fixed;background:#1d1a16b3;pointer-events:auto}
+.sc-ring{position:fixed;border-radius:14px;border:3px solid #ffd85a;box-shadow:0 0 0 4px #ffd85a55,0 0 26px 6px #ffd85a88;pointer-events:none;animation:sc-breathe 1.4s ease-in-out infinite}
+@keyframes sc-breathe{50%{box-shadow:0 0 0 9px #ffd85a33,0 0 38px 12px #ffd85aaa}}
+.sc-bubble{position:fixed;pointer-events:auto;background:#fffdf6;border:2px solid #ffd85a;border-radius:16px;padding:11px 14px 9px;box-shadow:0 10px 28px #0006;
+  display:grid;gap:4px;font-size:14.5px;line-height:1.5;color:var(--rt-ink);animation:sc-pop .25s ease-out}
+.sc-bubble b{font-size:12.5px;color:#9a6b12}
+.sc-bubble p{margin:0}
+.sc-skip{justify-self:end;background:none;border:0;padding:4px 2px;font-size:12px;color:#7a7064;text-decoration:underline;cursor:pointer}
+@keyframes sc-pop{from{opacity:0;translate:0 6px}}
+@media (prefers-reduced-motion:reduce){.sc-ring,.sc-bubble{animation:none}}
+/* 피드백 2026-11-23: 무한 도전 — the coin line on a paper's back, the run's header */
+.hs-coin{margin:12px 0 0;padding:9px 12px;border-radius:10px;background:#f6d77a55;border:1.5px dashed #b88a1e;color:#5a4410;font-weight:700;font-size:14px;line-height:1.5;animation:hs-coin-in .5s cubic-bezier(.2,.9,.3,1.3) both}
+.hs-coin[data-ok=false]{background:#c2463a14;border-color:#c2463a88;color:#7a2a22}
+@keyframes hs-coin-in{from{opacity:0;transform:scale(.85) translateY(8px)}}
+.hs-run{padding:1px 8px;border-radius:3px;background:#22281f;color:#f6d77a;font-weight:700}
+.hs-coins b{color:#8a6410}
+/* 피드백 2026-11-23 "창의 움직임": the papers come in sideways like the scenario's pages */
+@keyframes hs-slide{from{transform:translateX(90px) rotate(4deg);opacity:0}60%{opacity:1}}
+.hs-bar{animation:rt-in .4s .15s ease-out both}
+@media (prefers-reduced-motion:reduce){.hs-coin,.hs-bar{animation:none}}
+.hs-cash{background:#f6d77a;border-color:#b88a1e;color:#4a3608;font-weight:700}
+/* 도전 고르기 (2026-11-24): take it on one row, the two levels on the next, each a full half — never squeezed letter by letter */
+.hs-acts:has([data-level]){flex-wrap:wrap}.hs-acts:has([data-level]) .hs-cash{flex:1 1 60%}
+.hs-acts [data-level]{flex:1 1 calc(50% - 4px);white-space:nowrap}

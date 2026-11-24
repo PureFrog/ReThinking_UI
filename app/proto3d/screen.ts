@@ -4,4 +4,4 @@
 // W6: how far the phone is tilted (-1..1 each way, core/tilt.ts), written by Proto3D, read by the camera
 export const tilt={x:0,y:0};
 export const snapshot:{take:null|(()=>string)}={take:null};
-export const screenPoints=new Map<string,{x:number;y:number;visible:boolean}>();
+export const screenPoints=new Map<string,{x:number;y:number;visible:boolean;d?:number/* from me, on the ground */}>();

@@ -123,18 +123,27 @@ export async function readCapture(file:Blob):Promise<ReadHolding[]|string>{
 export type BoriHolding={company_id:string;name:string};
 let boriSeq=0;
 // each line comes with the face 보리 says it with (persona_bori.json allowed_emotions, tools/blender/bori_faces.py)
-export type BoriLine={text:string;emotion:string};
-export async function boriTalk(holdings:BoriHolding[],message:string):Promise<BoriLine>{
-  const fallback={text:'지금은 대답을 못 하겠어. 이따 다시 말 걸어 줘.',emotion:'tired'};
-  try{const {data,error}=await supabase().functions.invoke('bori-talk',{body:{action:'message',text:message,holdings,client_message_id:`c${Date.now().toString(36)}${++boriSeq}`}});
-    return !error&&typeof data?.reply?.text==='string'?{text:data.reply.text,emotion:typeof data.reply.emotion==='string'?data.reply.emotion:'neutral'}:fallback}catch{return fallback}
+// at: the server's time on a detection-mode (elicitation) line, KST ISO; absent in daily talk
+export type BoriLine={text:string;emotion:string;at?:string};
+// speaker 'luon': 토론 캐릭터 루온 (its own persona and conversation on the server, 2026-11-24)
+export type Talker='bori'|'luon';
+export async function boriTalk(holdings:BoriHolding[],message:string,speaker:Talker='bori'):Promise<BoriLine>{
+  const fallback=speaker==='luon'?{text:'…지금은 대답이 안 나와. 조금 있다 다시 얘기하자.',emotion:'tired'}:{text:'지금은 대답을 못 하겠어. 이따 다시 말 걸어 줘.',emotion:'tired'};
+  try{const {data,error}=await supabase().functions.invoke('bori-talk',{body:{action:'message',text:message,holdings,speaker,client_message_id:`c${Date.now().toString(36)}${++boriSeq}`}});
+    return !error&&typeof data?.reply?.text==='string'?{text:data.reply.text,emotion:typeof data.reply.emotion==='string'?data.reply.emotion:'neutral',...(typeof data.at==='string'?{at:data.at}:{})}:fallback}catch{return fallback}
+}
+// a stock the player picked (name or code, the same as "/signal 종목명"): the talk turns to detection mode on it.
+// null: the server could not be reached (the app keeps its own line)
+export async function stockSignal(holdings:BoriHolding[],stock:string,speaker:Talker='bori'):Promise<BoriLine|null>{
+  try{const {data,error}=await supabase().functions.invoke('bori-talk',{body:{action:'signal',stock,holdings,speaker}});
+    return !error&&typeof data?.reply?.text==='string'?{text:data.reply.text,emotion:typeof data.reply.emotion==='string'?data.reply.emotion:'curious',...(typeof data.at==='string'?{at:data.at}:{})}:null}catch{return null}
 }
 // stop-loss signals on holdings (company codes): 보리 opens the talk about the oldest one and listens for why the player
 // holds it; the quotes go to the analysis model on the server. null = nothing new to open (no call, or one under way)
 export async function boriOpen(holdings:BoriHolding[],signals:string[]):Promise<BoriLine|null>{
   if(!signals.length)return null;
   try{const {data,error}=await supabase().functions.invoke('bori-talk',{body:{action:'open',holdings,signals}});
-    return !error&&typeof data?.reply?.text==='string'?{text:data.reply.text,emotion:typeof data.reply.emotion==='string'?data.reply.emotion:'curious'}:null}catch{return null}
+    return !error&&typeof data?.reply?.text==='string'?{text:data.reply.text,emotion:typeof data.reply.emotion==='string'?data.reply.emotion:'curious',...(typeof data.at==='string'?{at:data.at}:{})}:null}catch{return null}
 }
 
 // 오늘의 관측소 (db/functions/quest-settle): the server replays a finished run and keeps the XP ledger; investor_progress

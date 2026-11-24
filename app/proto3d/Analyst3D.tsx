@@ -22,13 +22,17 @@ type Props={mood?:string;id:AnalystId|'bori'|'naru';to:AnalystSpot;from?:Analyst
 const SPEED=2.2;
 const eyeMat=new THREE.MeshStandardMaterial({color:'#1d1f24',roughness:0.3});
 
+// 피드백 2026-11-24 "웃는 표정일 때 보리 눈 한쪽이 사라져": 보리's brown patch sat over its right eye, so the closed-eye
+// arcs (and the other line eyes) sank into it; the patch moves out to the side of the head, off the eye
+export function fixBoriPatch(root:THREE.Object3D){const p=root.getObjectByName('patch');if(p){p.position.set(0.25,0.42,0.2);p.scale.x=0.11;p.scale.y=0.13}return root}
 export function Analyst({id,to,from,act,faceTo,face,surface,tilt,bubble,onPick,report,mood}:Props){
   const {scene}=useGLTF(MODELS.analyst(id));
   const model=useMemo(()=>{const root=scene.clone(true);
     root.traverse(o=>{const m=o as THREE.Mesh;if(!m.isMesh)return;m.castShadow=true;m.receiveShadow=true;
       const src=m.material as THREE.MeshStandardMaterial;
       m.material=src.name==='eye'||src.name==='frame'||src.name==='brow'?eyeMat:soft('#'+src.color.getHexString(THREE.SRGBColorSpace))});
-    return root},[scene]);
+    if(id==='bori')fixBoriPatch(root);
+    return root},[scene,id]);
   const parts=useMemo(()=>{const get=(n:string)=>model.getObjectByName(n)??null;
     return {body:get('body'),head:get('head'),armL:get('arm_l'),armR:get('arm_r'),eyes:[get('eye_l'),get('eye_r')].filter(Boolean) as THREE.Object3D[],
       rest:{armL:get('arm_l')?.rotation.clone(),armR:get('arm_r')?.rotation.clone(),eyeY:get('eye_l')?.scale.y??1}}},[model]);

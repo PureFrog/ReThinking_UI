@@ -7,8 +7,11 @@
 import type {AnalystId,ModelId} from './analysts';
 import type {Choice} from '../core/judgment';
 import type {Holding} from '../core/model';
-import {bars} from '../core/jigi/stocks';
+import {bars,isReal,type Bar} from '../core/jigi/stocks';
+import {booksOf} from './books';
+import {readBooks} from '../core/views';
 import {readBars,priceFlag,fmtPct} from '../core/real';
+import {verdicts,verdictFor,verdictNotes,analysisFor,rebuttalNote,dropsLoaded,dropFor,dropNote,coveredBy} from '../core/model-signals';
 export type Fact={k:string;v:string};
 export type Signal={id:string;holdingId:number;analyst:AnalystId;model:ModelId;loss:boolean;headline:string;evidence:Fact[];say:string;
   counter:Record<Choice,string>;deep?:{title:string;items:{k:string;ok:boolean}[]}};
@@ -61,8 +64,11 @@ export function madeSignal(h:Holding):Omit<Signal,'id'>|null{
   return null;
 }
 // a tree on real prices (core/real.ts): only moa, only what the real bars show (as of the latest close)
-export function realSignal(h:Holding):Omit<Signal,'id'>|null{
-  if(!h.code)return null;const r=readBars(h,bars(h.code));if(!r)return null;const flag=priceFlag(r);
+// (a code whose real bars are not loaded gets nothing: the mock walk is never read as a real holding's chart)
+export function realSignal(h:Holding):Omit<Signal,'id'>|null{return h.code&&isReal(h.code)?priceSignal(h,bars(h.code)):null}
+// moa's note from the bars alone (real ones, or the mock ones cut at today for a stock with books)
+function priceSignal(h:Holding,bs:Bar[]):Omit<Signal,'id'>|null{
+  const r=readBars(h,bs);if(!r)return null;const flag=priceFlag(r);
   if(flag==='crash')return {holdingId:h.id,analyst:'moa',model:'crash',loss:true,headline:`하루 ${fmtPct(r.dayMove)}, 거래량 ${r.volX}배`,
     evidence:[{k:'당일 등락',v:fmtPct(r.dayMove)},{k:'거래량',v:`20일 평균의 ${r.volX}배`},{k:'산 가격 대비',v:fmtPct(r.rate)},{k:'기준일',v:r.asOf}],
     say:'어, 거래량이 확 튀었어. 이유부터 찾자.',
@@ -73,20 +79,71 @@ export function realSignal(h:Holding):Omit<Signal,'id'>|null{
     counter:{hold:'조용히 빠지는 건 길게 가던데. 버틸 이유 있어?',review:'조용한 하락은 바닥도 조용히 와. 너무 이르지 않아?',watch:'보는 건 좋아. 전저점 깨지면 그땐 뭐 할 거야?'}};
   return null;
 }
+// a stock with books (content/books.ts, the KOSDAQ practice account): the note comes from what the models read, the
+// same numbers the MTS sheet shows (core/views.ts). Weak books first (luon's F-score, or moa's O-score when the odds
+// crossed the line), else moa's read of the bars up to today. Numbers are never made up from the name.
+export function bookSignal(h:Holding,day:string):Omit<Signal,'id'>|null{
+  const b=booksOf(h.code);if(!b)return null;const k=readBooks(b);
+  if(k.state==='weak'&&k.model==='ohlson')return {holdingId:h.id,analyst:'moa',model:'ohlson',loss:true,headline:`부도 위험 ${k.oscore[0]}% → ${k.oscore[1]}%`,
+    evidence:[{k:'부도 확률(O-score)',v:`${k.oscore[0]}% → ${k.oscore[1]}%`},{k:'부채비율',v:`${k.debt[0]}% → ${k.debt[1]}%`},{k:'ROE',v:`${k.roe[0]}% → ${k.roe[1]}%`},{k:'기준',v:`${k.asOf} · 모의 재무`}],
+    say:'부채가 한 분기 만에 확 늘었어. 버틸 힘부터 봐야 돼.',
+    counter:{hold:'부도 확률이 한 분기에 크게 뛰었어. 산 이유가 그대로야?',review:'한 분기 숫자야. 다음 분기에 돌아오면?',watch:'좋아. 다음 분기 부채비율, 그게 기준이야.'}};
+  if(k.state==='weak')return {holdingId:h.id,analyst:'luon',model:'fscore',loss:true,headline:`재무 체력 9점 중 ${k.fscore}점`,
+    evidence:[{k:'F-score',v:`9점 중 ${k.fscore}점`},{k:'ROE',v:`${k.roe[0]}% → ${k.roe[1]}%`},{k:'부채비율',v:`${k.debt[0]}% → ${k.debt[1]}%`},{k:'기준',v:`${k.asOf} · 모의 재무`}],
+    say:'아홉 칸 중에 채운 게 몇 개 없어. 작년보다 약해졌어.',
+    counter:{hold:'재무 체력이 약해졌어. 주가는 뭘 보고 움직인 걸까?',review:'적자 업종은 한 분기에 뒤집히기도 하는데?',watch:'얼마나 더 볼지 날짜는 정했어?'},
+    deep:FSCORE(Array.from({length:k.fscore},(_,i)=>i*3%9))};
+  return h.code?priceSignal(h,bars(h.code).filter(x=>x.d<=day)):null;
+}
 export function mockSignals(holdings:Holding[],day:string):Signal[]{
   return holdings.flatMap(h=>{const hand=h.real?null:ALL.find(s=>s.name===h.name);let s:Omit<Signal,'id'>|null=null;
     if(h.real)s=realSignal(h);
+    else if(booksOf(h.code))s=bookSignal(h,day);
     else if(hand){const {name:_n,...rest}=hand;s={...rest,holdingId:h.id}}else s=madeSignal(h);
     return s?[{...s,id:`${s.model}:${h.id}:${day}`}]:[]});
 }
+// a real holding the team's models cover (core/model-signals.ts, loaded from holding_signals): the three friends'
+// notes from the 서서히 verdict, plus moa's price note when the chart flags something too. Anything else: as before.
+// A finished 반박 analysis on the holding's company adds luon's note (참고, not a loss signal).
+export function modelSignals(holdings:Holding[],day:string):Signal[]{
+  const rows=verdicts();
+  return holdings.flatMap(h=>{
+    const v=verdictFor(h,rows),out:Omit<Signal,'id'>[]=[];
+    // the team's 급락 model (drop_events) speaks for a covered stock once loaded; the app's own crash read steps aside
+    const modelDrops=h.real&&dropsLoaded()&&coveredBy(h),drop=modelDrops?dropFor(h,day):null;
+    const fromModel=drop?[{...dropNote(h,drop),id:`crash:${h.id}:${drop.drop_date}`}]:[];
+    const noAppCrash=(s:Signal)=>!(modelDrops&&s.model==='crash');
+    if(!v)return [...mockSignals([h],day).filter(noAppCrash),...fromModel.map(({drop:_d,...n})=>n),...rebuttal(h)];
+    out.push(...verdictNotes(h,v));const price=realSignal(h);if(price&&!(modelDrops&&price.model==='crash'))out.push(price);
+    return [...out.map(s=>({...s,id:`${s.model}:${h.id}:${day}`})),...fromModel.map(({drop:_d,...n})=>n),...rebuttal(h)]});
+}
+function rebuttal(h:Holding):Signal[]{
+  const r=h.real?analysisFor(h.code):null,n=r?rebuttalNote(h,r):null;if(!n)return [];
+  const {request:_q,...note}=n;return [{...note,id:`rebuttal:${h.id}:${n.request}`}];
+}
 export type SignalProvider={today(holdings:Holding[],day:string):Signal[]};
-export const signalProvider:SignalProvider={today:mockSignals};
+export const signalProvider:SignalProvider={today:modelSignals};
 
 // 되돌아보기 needs a note even when nothing in the garden is flagged (stocks typed in that are up, or barely down):
 // moa's plain chart note on the tree that moved most, not a loss signal. Only the first visit uses it.
+// A tree on real prices gets only what its real bars show (core/real.ts readBars), or no note when they are not loaded;
+// a made-up tree keeps the name-hash numbers.
+const LOOK_SAY={up:'차트는 조용히 위쪽이야. 이럴 때 뭘 근거로 들고 있었는지 적어 두면 좋아.',side:'방향이 아직 안 정해졌어. 그때 너라면 어느 쪽으로 봤을까?'};
+const LOOK_COUNTER={hold:'계속 들고 있을 이유, 한 줄로 말할 수 있어?',review:'흔들리는 구간에서 정리하면 나중에 아쉽지 않을까?',watch:'언제까지 볼지 날짜는 정했어?'};
+function realLook(h:Holding):Signal|null{
+  const r=h.code&&isReal(h.code)?readBars(h,bars(h.code)):null;if(!r)return null;
+  return {id:`look:${h.id}`,holdingId:h.id,analyst:'moa',model:'gradual',loss:false,
+    headline:r.below20?`20일선 아래 ${r.below20}거래일째`:`종가가 20일선 위, 고점 대비 ${fmtPct(r.fromHigh)}`,
+    evidence:[{k:'20일선',v:r.below20?`아래 ${r.below20}거래일째`:'위'},{k:'거래량',v:r.volX!=null?`20일 평균의 ${r.volX}배`:'자료 없음'},{k:'수익률',v:fmtPct(r.rate)},{k:'기준일',v:r.asOf}],
+    say:r.rate>=0&&!r.below20?LOOK_SAY.up:LOOK_SAY.side,counter:LOOK_COUNTER};
+}
 export function lookbackNote(holdings:Holding[]):Signal|null{
-  if(!holdings.length)return null;
-  const h=[...holdings].sort((a,b)=>Math.abs(b.rate)-Math.abs(a.rate))[0],r=hash(h.name),n=(lo:number,hi:number)=>lo+r%(hi-lo+1),up=h.rate>=0;
+  const sorted=[...holdings].sort((a,b)=>Math.abs(b.rate)-Math.abs(a.rate));
+  for(const x of sorted){const s=x.real?realLook(x):mockLook(x);if(s)return s}
+  return null;
+}
+function mockLook(h:Holding):Signal{
+  const r=hash(h.name),n=(lo:number,hi:number)=>lo+r%(hi-lo+1),up=h.rate>=0;
   return {id:`look:${h.id}`,holdingId:h.id,analyst:'moa',model:'gradual',loss:false,headline:up?`20일선 위에서 ${n(2,4)}주째`:`20일선 근처에서 ${n(2,4)}주째 옆걸음`,
     evidence:[{k:'20일선',v:up?`위 ${n(8,18)}거래일`:`위아래 ${n(6,12)}번`},{k:'거래량',v:`평균의 ${n(8,12)/10}배`},{k:'수익률',v:`${h.rate}%`}],
     say:up?'차트는 조용히 위쪽이야. 이럴 때 뭘 근거로 들고 있었는지 적어 두면 좋아.':'방향이 아직 안 정해졌어. 그때 너라면 어느 쪽으로 봤을까?',

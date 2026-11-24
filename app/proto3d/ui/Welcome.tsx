@@ -11,7 +11,7 @@ import {CONSENTS,NICK_MAX,checkSignUp,type Account,type ConsentId} from '../../c
 type View='land'|'login'|'signup';
 // owing: an account signed in with Kakao or Google that has not agreed to the terms yet — it only sees that step
 // invite: signed in but no invite code yet (private test, db/migrations/007) — it only sees the code step
-// onGuest: null when looking around without an account is closed (the private test on the real server)
+// onGuest: null hides looking around without an account (open everywhere since 2026-11-23, B2C 기본)
 export function Welcome({onAccount,onGuest,owing,invite,onInvited,shot='/brand/shot-home.webp'}:{onAccount:(a:Account,isNew:boolean)=>void;onGuest:(()=>void)|null;owing?:Account|null;invite?:boolean;onInvited?:()=>void;shot?:string}){
   const [view,setView]=useState<View>(()=>{try{const v=new URLSearchParams(location.search).get('welcome');return v==='login'||v==='signup'?v:'land'}catch{return 'land'}});
   if(owing)return <div className="rt-wel" data-testid="welcome" data-view="signup"><ConsentStep account={owing} onDone={a=>onAccount(a,true)}/></div>;
@@ -34,7 +34,7 @@ function Landing({onSignup,onLogin,onGuest}:{shot:string;onSignup:()=>void;onLog
       <button type="button" className="rt-gbtn light" onClick={onLogin}>로그인</button>
       {onGuest&&<button type="button" className="rt-wel-guest" onClick={onGuest}>가입 없이 둘러보기</button>}
     </div>
-    <p className="rt-wel-legal">본 서비스는 투자 권유를 목적으로 하지 않으며, 제공되는 정보는 과거 및 모의 데이터에 기반한 참고 자료입니다. 투자 판단과 그 결과에 대한 책임은 이용자 본인에게 있습니다.</p>
+    <p className="rt-wel-legal">본 서비스는 투자 권유를 목적으로 하지 않으며, 제공되는 정보는 한국거래소 종가 등 과거 데이터와 일부 모의 데이터에 기반한 참고 자료입니다. 투자 판단과 그 결과에 대한 책임은 이용자 본인에게 있습니다.</p>
   </section>;
 }
 

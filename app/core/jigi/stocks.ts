@@ -1,6 +1,7 @@
 // 지기 (docs/jigi.md): the stocks a journal can be about and their daily bars. Until the KRX collector is connected
 // (price_daily on the server) these are MOCK bars: the prototype's synthetic walk, anchored so each stock's close on
 // 2026-11-13 is near its real level. Every screen that shows them says "모의 시세". Same code, same bars, every time.
+import {KOSDAQ_LISTED} from '../../content/kosdaq120';
 export type Stock={code:string;name:string;mkt:'KOSPI'|'KOSDAQ';anchor:number;vol:number;listed?:string};
 export const STOCKS:Stock[]=[
   {code:'005930',name:'삼성전자',mkt:'KOSPI',anchor:71200,vol:.030},
@@ -15,12 +16,23 @@ export const STOCKS:Stock[]=[
   {code:'005490',name:'POSCO홀딩스',mkt:'KOSPI',anchor:318000,vol:.034},
   {code:'247540',name:'에코프로비엠',mkt:'KOSDAQ',anchor:152700,vol:.050},
   {code:'196170',name:'알테오젠',mkt:'KOSDAQ',anchor:327500,vol:.050},
+  // 코스닥 (멘토링 2026-11-22: the models read KOSDAQ, so the practice account and the MTS demo keep to it)
+  {code:'086520',name:'에코프로',mkt:'KOSDAQ',anchor:98400,vol:.050},
+  {code:'028300',name:'HLB',mkt:'KOSDAQ',anchor:61200,vol:.055},
+  {code:'263750',name:'펄어비스',mkt:'KOSDAQ',anchor:41550,vol:.040},
+  {code:'277810',name:'레인보우로보틱스',mkt:'KOSDAQ',anchor:214000,vol:.050},
+  {code:'214150',name:'클래시스',mkt:'KOSDAQ',anchor:52300,vol:.035},
+  {code:'145020',name:'휴젤',mkt:'KOSDAQ',anchor:268000,vol:.035},
 ];
+// 피드백 2026-11-22: the KOSDAQ120 list (content/kosdaq120.ts), still-listed ones, on the same mock walk: each anchored
+// at a made-up level from its code (모의 시세 on every screen) until real closes replace them (setReal)
+export const KOSDAQ_STOCKS:Stock[]=KOSDAQ_LISTED.map(k=>{const n=parseInt(k.code.replace(/\D/g,''),10)||1;
+  const anchor=Math.round((2000+(n*7919)%58000)/50)*50;return {code:k.code,name:k.name,mkt:'KOSDAQ',anchor,vol:.045}});
 // mock stocks for trees outside the twelve (registerMock below)
 const STOCKS_EXTRA:Stock[]=[];
-export const stockOf=(code:string)=>STOCKS.find(s=>s.code===code)??STOCKS_EXTRA.find(s=>s.code===code)??null;
-export const stockByName=(name:string)=>STOCKS.find(s=>s.name===name)??null;
-export function searchStocks(q:string){const t=q.trim().toLowerCase();if(!t)return [];return STOCKS.filter(s=>s.name.toLowerCase().includes(t)||s.code.includes(t))}
+export const stockOf=(code:string)=>STOCKS.find(s=>s.code===code)??KOSDAQ_STOCKS.find(s=>s.code===code)??STOCKS_EXTRA.find(s=>s.code===code)??null;
+export const stockByName=(name:string)=>STOCKS.find(s=>s.name===name)??KOSDAQ_STOCKS.find(s=>s.name===name)??null;
+export function searchStocks(q:string){const t=q.trim().toLowerCase();if(!t)return [];return KOSDAQ_STOCKS.filter(s=>s.name.toLowerCase().includes(t)||s.code.includes(t))}
 
 // v: volume (real bars only)
 export type Bar={d:string;o:number;h:number;l:number;c:number;v?:number};
@@ -31,10 +43,17 @@ const cache=new Map<string,Bar[]>();
 // real daily bars (private test, Supabase price_daily, loaded by app/proto3d/prices.ts): they replace the mock ones
 const REAL=new Map<string,Bar[]>();
 export const isReal=(code:string)=>REAL.has(code);
+// the small print under prices: real closes, mock walks, or both on one screen (no codes: nothing priced, say mock)
+export function priceLegal(codes:(string|null|undefined)[]):string{
+  const cs=codes.filter((c):c is string=>!!c),real=cs.filter(isReal).length;
+  const what=!cs.length||!real?'시세는 모의 데이터예요.':real===cs.length?'시세는 실제 종가 기준이에요.':'실제 종목은 실제 종가, 나머지는 모의 시세예요.';
+  return `${what} 투자 권유가 아니에요.`;
+}
 export function setReal(code:string,name:string,bs:Bar[]){if(!bs.length)return;REAL.set(code,bs);cache.delete(code);
   if(!stockOf(code))STOCKS_EXTRA.push({code,name,mkt:'KOSPI',anchor:bs[bs.length-1].c,vol:.03})}
-export function bars(code:string):Bar[]{
-  const real=REAL.get(code);if(real)return real;
+export function bars(code:string):Bar[]{return REAL.get(code)??mockBars(code)}
+// the mock walk alone, even when real bars are loaded (a virtual stock bought at a mock price stays on it: core/virtual.ts)
+export function mockBars(code:string):Bar[]{
   const hit=cache.get(code);if(hit)return hit;
   const st=stockOf(code);if(!st)return [];
   const r=rng((/^\d+$/.test(code)?parseInt(code,10):parseInt(code.slice(1),10)+31)*7+13);let p=100,ref:Bar|null=null;const raw:Bar[]=[];

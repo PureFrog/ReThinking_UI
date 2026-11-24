@@ -23,6 +23,8 @@ export const test = base.extend({
     // outside unless the address has ?house
     await page.addInitScript(() => { (window as unknown as { __noHouse?: boolean }).__noHouse = !new URLSearchParams(location.search).has("house") });
     // accounts stay on the device in e2e, even when .env.local points at the Supabase project (app/proto3d/server.ts)
+    // 피드백 2026-11-22: a long talk line is shown one or two sentences a bubble; tests see it whole unless the address has ?pages
+    await page.addInitScript(() => { (window as unknown as { __talkAll?: boolean }).__talkAll = !new URLSearchParams(location.search).has("pages") });
     await page.addInitScript(() => { (window as unknown as { __localAuth?: boolean }).__localAuth = true });
     // on a stop-loss day 보리 walks up and opens its talk over everything (the demo garden always has one, 예시 신호);
     // tests start with today's visit already had unless the address has ?bori (the day as the app counts it, ?ahead=N)

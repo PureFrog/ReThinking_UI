@@ -16,7 +16,8 @@ import {Sheet} from './Sheet';
 import type {StockName} from '../prices';
 import type {useGarden} from '../state';
 type G=ReturnType<typeof useGarden>;
-export type RealPrices={search:(q:string)=>Promise<StockName[]>;load:(c:{code:string;name:string}[])=>Promise<number>};
+// market: the KOSDAQ index bars for the weather (returns how many loaded); virtual: the virtual stocks' real closes
+export type RealPrices={search:(q:string)=>Promise<StockName[]>;load:(c:{code:string;name:string}[])=>Promise<number>;market?:()=>Promise<number>;virtual?:(codes:string[])=>Promise<number>};
 
 type Row=RealDraft&{q:string;found:boolean;auto:boolean};
 const blank=():Row=>({code:'',name:'',date:'',quantity:1,price:0,q:'',found:false,auto:false});

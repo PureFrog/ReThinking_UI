@@ -18,7 +18,7 @@ export function Intro({onCapture,onOther}:{onCapture:()=>void;onOther:()=>void})
   const tap=()=>{if(!done){setShown(cur.text.length);return}if(!last)setI(n=>n+1)};
   return <div className="rt-talk rt-intro" role="dialog" aria-label="처음 소개">
     <button type="button" className="rt-talk-leave" onClick={onOther}>건너뛰기</button>
-    <div className="rt-intro-faces" aria-hidden>{(['bori','tori','moa','luon'] as IntroWho[]).map(w=>
+    <div className="rt-intro-faces" aria-hidden>{(['bori'] as IntroWho[]).map(w=>
       <span key={w} className={'rt-intro-face f-'+w+(w===cur.who?' on':'')}/>)}</div>
     {last&&done&&<div className="rt-talk-choices" role="group" aria-label="대답">
       <button type="button" className="rt-talk-choice first" onClick={onCapture}>캡처 올리기</button>

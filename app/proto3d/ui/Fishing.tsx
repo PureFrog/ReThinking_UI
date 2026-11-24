@@ -17,8 +17,9 @@ export function FishIcon({color,size=1}:{color:string;size?:number}){
 }
 
 // 나루's greeting with the day's casts left
-export function NaruTalk({left,onFish,onLog,onClose}:{left:number;onFish:()=>void;onLog:()=>void;onClose:()=>void}){
-  const text=left>0?`오, 왔어? 오늘 물 좋다. 한번 던져 볼래? 오늘은 ${left}번 남았어.`:'오늘은 다 던졌어. 내일 또 와. 도감은 볼래?';
+// intro: the first walk's first visit, 나루 says who it is in the same breath (피드백 2026-11-24 "소개하면서 같이 한 번에")
+export function NaruTalk({left,onFish,onLog,onClose,intro=false}:{left:number;onFish:()=>void;onLog:()=>void;onClose:()=>void;intro?:boolean}){
+  const text=intro&&left>0?`어? 아, 안 잤어 안 잤어. …나는 나루야. 이 연못에서 같이 낚시해. 잡은 물고기만큼 코인이 들어와. 오늘 ${left}번 던질 수 있어. 한 번 해 볼래?`:left>0?`어? 아, 안 잤어 안 잤어. 오늘 물 살랑살랑 좋다. 저 바위 밑에 대물 나온다던데, 해 볼래? 오늘은 ${left}번 남았어.`:'오늘은 다 던졌어. 꾸벅꾸벅… 내일 또 와, 대물은 내일 나올지도? 도감은 볼래?';
   return <div className="rt-talk" role="dialog" aria-label="나루와 대화">
     <button type="button" className="rt-talk-leave" onClick={onClose}>나중에</button>
     <div className="rt-talk-choices" role="group" aria-label="대답">
@@ -50,8 +51,8 @@ export function FishingPlay({left,onCast,onLand,onPhase,onLog,onClose}:{left:num
   return <div className="rt-talk rt-fish" role="dialog" aria-label="낚시">
     <span className="rt-fish-left" aria-label={`남은 낚시 ${leftNow}`}>{Array.from({length:FISHING.perDay},(_,i)=><i key={i} className={i<Math.min(leftNow,FISHING.perDay)?'':'off'}/>)} 남은 낚시 {leftNow>FISHING.perDay?'∞':leftNow}</span>
     <button type="button" className="rt-talk-leave" onClick={onClose}>그만하기</button>
-    {(phase==='ready')&&<div className="rt-fish-hint"><p>{left>0?'찌를 던지고, 쑥 들어가면 바로 탭!':'오늘은 다 던졌어요'}</p></div>}
-    {(phase==='wait'||phase==='bite')&&<div className="rt-fish-hint"><p>{phase==='bite'?'지금!':'찌가 쑥 들어가면 바로 탭!'}</p></div>}
+    {(phase==='ready')&&<div className="rt-fish-hint"><p>{left>0?'물결 살랑살랑하는 데로 휙! 찌가 꼼지락 쑥 들어가면 바로 탭!':'오늘은 다 던졌어'}</p></div>}
+    {(phase==='wait'||phase==='bite')&&<div className="rt-fish-hint"><p>{phase==='bite'?'지금! 쭈욱 당겨!':'쉿, 아직이야~ 찌가 쑥 들어가면 바로 탭!'}</p></div>}
     {phase!=='result'&&<button type="button" className={'rt-fish-tap'+(phase==='bite'?' hot':'')} disabled={phase==='ready'&&left<=0}
       onClick={phase==='ready'?cast:tap}>{phase==='ready'?'던지기':'탭!'}</button>}
     {phase==='result'&&result&&(result.k==='caught'
@@ -64,7 +65,7 @@ export function FishingPlay({left,onCast,onLand,onPhase,onLog,onClose}:{left:num
         <div className="rt-fish-row">{left>0?<button type="button" className="rt-btn primary" onClick={cast}>한 번 더</button>:<button type="button" className="rt-btn primary" onClick={onLog}>도감 보기</button>}
           <button type="button" className="rt-btn" onClick={onClose}>그만하기</button></div></div>
       :<div className="rt-talk-box" role="status"><span className="rt-talk-name n-naru" data-who="naru">나루</span>
-        <p className="rt-talk-line">{result.k==='early'?'아직이야! 물고기가 놀라서 갔어.':'앗, 놓쳤다. 조금 늦었어.'}</p>
+        <p className="rt-talk-line">{result.k==='early'?'첨벙~ 아직이었는데! 물고기가 놀라서 도망갔네? 다시 던져, 다시!':'첨벙~ 도망갔네? 하하. 걔가 좀 빠르거든. 다시 던져!'}</p>
         <div className="rt-fish-row">{left>0?<button type="button" className="rt-btn primary" onClick={cast}>다시 던지기</button>:null}
           <button type="button" className="rt-btn" onClick={onClose}>그만하기</button></div></div>)}
   </div>;

@@ -7,7 +7,7 @@ import {WON} from './won';
 // feedback 11-17 "코인을 좀 더 많이": about three times what it was, so a lot or a building comes within a few days
 // the master account (db/migrations/008_master.sql): no invite code, no daily AI cap, coins topped up to this
 export const MASTER={coins:10_000_000/* 원 (core/won.ts) */};
-const EARN0={journal:10,confirm:5,review:10,judgment:5/* first judgment on a tree each day */,rebuttal:3/* answered luon's counter-argument */,
+const EARN0={quizBase:10/* today's first quiz papers all right */,bookQuiz:10/* 거장의 집: a book's quiz finished the first time (right or wrong) */,quizRun:3/* each right paper of the endless run */,journal:10,confirm:5,review:10,judgment:5/* first judgment on a tree each day */,rebuttal:3/* answered luon's counter-argument */,
   caseAnswered:3,caseRight:5,rewind:2/* a paid practice round (core/rewind.ts, first few a day) */,rewindHit:2,grade:8/* opened a graded judgment */,cooldownWaited:5,weekDone:20/* this week's three goals (core/weekly.ts), once a week */,dayDone:10/* finished today's three (core/today.ts), once a day */};
 // 원 (core/won.ts): a journal 10,000원, a finished day 10,000원, a week 20,000원
 export const EARN=Object.fromEntries(Object.entries(EARN0).map(([k,v])=>[k,v*WON])) as typeof EARN0;

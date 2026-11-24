@@ -111,15 +111,18 @@ export function voice(id:string,letter:string){if(!ready()||!settings.voice||!le
 //   birds    a short chirp now and then by day      · crickets  a soft trill now and then at night
 // Levels 0..1 come from the scene (Proto3D) every second; each eases to its new level. Off with the sound.
 export type Ambience={stream:number;fire:number;birds:number;crickets:number};
-let ambBus:GainNode|null=null,streamGain:GainNode|null=null,ambTimer:ReturnType<typeof setInterval>|null=null,amb:Ambience={stream:0,fire:0,birds:0,crickets:0};
+let ambBus:GainNode|null=null,streamGain:GainNode|null=null,fireGain:GainNode|null=null,ambTimer:ReturnType<typeof setInterval>|null=null,amb:Ambience={stream:0,fire:0,birds:0,crickets:0};
 function ambStart(){if(!ctx||ambBus)return;const c=ctx;ambBus=c.createGain();ambBus.gain.value=0;ambBus.connect(c.destination);
  const src=c.createBufferSource();src.buffer=noiseBuf;src.loop=true;const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=900;const bp=c.createBiquadFilter();bp.type='bandpass';bp.frequency.value=420;bp.Q.value=0.4;
  streamGain=c.createGain();streamGain.gain.value=0;src.connect(lp).connect(bp).connect(streamGain).connect(ambBus);src.start();
+ // the fire's low breath under its crackles: a warm rumble, heard up close (sitting by it)
+ const fs=c.createBufferSource();fs.buffer=noiseBuf;fs.loop=true;fs.playbackRate.value=0.7;const flp=c.createBiquadFilter();flp.type='lowpass';flp.frequency.value=320;
+ fireGain=c.createGain();fireGain.gain.value=0;fs.connect(flp).connect(fireGain).connect(ambBus);fs.start();
  // the scattered ones: a chirp, a trill, a crackle, each by chance on a slow tick
  ambTimer=setInterval(()=>{if(!ready()||!ambBus)return;const b=ambBus;
   if(Math.random()<amb.birds*0.35){const f=2400+Math.random()*1400;for(let i=0;i<2+Math.floor(Math.random()*3);i++)tone(b,{f:f*(1+i*0.06),to:f*1.25,at:i*0.09,dur:0.07,gain:0.05*amb.birds})}
   if(Math.random()<amb.crickets*0.5){const f=4200+Math.random()*500;for(let i=0;i<6;i++)tone(b,{f,at:i*0.045,dur:0.03,type:'square',gain:0.012*amb.crickets})}
-  if(Math.random()<amb.fire*0.9)for(let i=0;i<1+Math.floor(Math.random()*3);i++)noise(b,{f:1800+Math.random()*1600,at:Math.random()*0.4,dur:0.03,q:2,gain:0.12*amb.fire})},700)}
+  if(Math.random()<amb.fire*0.95)for(let i=0;i<1+Math.floor(Math.random()*(2+amb.fire*3));i++)noise(b,{f:1800+Math.random()*1600,at:Math.random()*0.4,dur:0.03,q:2,gain:0.12*amb.fire})},700)}
 export function ambience(a:Ambience){amb=a;if(!ready()){if(ambBus)ambBus.gain.value=0;return}ambStart();
- const t=ctx!.currentTime;ambBus!.gain.setTargetAtTime(settings.sfx*0.8,t,0.5);streamGain!.gain.setTargetAtTime(a.stream*0.09,t,0.8)}
-export function ambienceOff(){if(ambBus&&ctx)ambBus.gain.setTargetAtTime(0,ctx.currentTime,0.3);if(ambTimer){clearInterval(ambTimer);ambTimer=null}ambBus=null;streamGain=null}
+ const t=ctx!.currentTime;ambBus!.gain.setTargetAtTime(settings.sfx*0.8,t,0.5);streamGain!.gain.setTargetAtTime(a.stream*0.09,t,0.8);fireGain!.gain.setTargetAtTime(Math.max(0,a.fire-0.5)*0.22,t,a.fire>0.5?0.6:1.2)}
+export function ambienceOff(){if(ambBus&&ctx)ambBus.gain.setTargetAtTime(0,ctx.currentTime,0.3);if(ambTimer){clearInterval(ambTimer);ambTimer=null}ambBus=null;streamGain=null;fireGain=null}

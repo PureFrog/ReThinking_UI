@@ -24,10 +24,15 @@ test('near misses are wrong; nothing sent is wrong', () => {
     if(q.type==='direction'){const k=Object.keys(a)[0];assert.equal(Q.grade(q,{...a,[k]:a[k]==='up'?'down':'up'}),false,q.id)}}
 });
 test('fill-in: numbers by value (commas, units and a plus sign allowed), words without spaces', () => {
-  const n=Q.QUIZ100.find(q=>q.type==='fill_blank'&&typeof q.answer.b1==='number'&&q.answer.b1===150);
-  assert.ok(Q.grade(n,{b1:'150'}));assert.ok(Q.grade(n,{b1:'150%'}));assert.ok(Q.grade(n,{b1:' 150.0 '}));assert.equal(Q.grade(n,{b1:'15'}),false);assert.equal(Q.grade(n,{b1:''}),false);
-  const t=Q.QUIZ100.find(q=>q.type==='fill_blank'&&Array.isArray(q.answer.b1)&&q.answer.b1.includes('자기자본'));
-  assert.ok(Q.grade(t,{b1:'자기 자본'}));assert.ok(Q.grade(t,{b1:'자본'}));assert.equal(Q.grade(t,{b1:'부채'}),false);
+  const n=Q.QUIZ100.find(q=>q.type==='fill_blank'&&typeof q.answer.b1==='number');const v=n.answer.b1;
+  assert.ok(Q.grade(n,{b1:String(v)}));assert.ok(Q.grade(n,{b1:v+'%'}));assert.ok(Q.grade(n,{b1:` ${v}.0 `}));assert.equal(Q.grade(n,{b1:String(v+1)}),false);assert.equal(Q.grade(n,{b1:''}),false);
+  const t=Q.QUIZ100.find(q=>q.type==='fill_blank'&&Array.isArray(q.answer.b1)&&q.answer.b1.includes('ETF'));
+  assert.ok(Q.grade(t,{b1:'ETF'}));assert.ok(Q.grade(t,{b1:'상장 지수 펀드'}));assert.equal(Q.grade(t,{b1:'채권'}),false);
+  assert.ok(!t.prompt.includes('[빈칸]'),'the blank is shown as a line');
+});
+test('입문 set is the deck (Q101~Q200); the first set still found by id for 지난 퀴즈', () => {
+  assert.ok(Q.QUIZ100.every(q=>/^Q(1\d\d|200)$/.test(q.id)));
+  assert.equal(Q.quizById('Q001')?.id,'Q001');assert.equal(Q.quizById('Q150')?.id,'Q150');assert.equal(Q.quizById('Q999'),undefined);
 });
 test('the day is dealt from the 100 papers; a stamp keeps the response and grades it', () => {
   const ps=D.quizPapers();assert.equal(ps.length,100);

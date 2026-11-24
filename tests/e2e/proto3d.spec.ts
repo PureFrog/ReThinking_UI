@@ -49,14 +49,14 @@ test("the 3D garden renders and a tree opens its card", async ({ page }) => {
     Object.entries(h.trees).filter(([, p]) => p.x > 20 && p.x < size.width - 20 && p.y > 100 && p.y < size.height - 100));
   const [id, pt] = Object.entries(h.trees).filter(([k]) => free.includes(k)).sort((a, b) => b[1].y - a[1].y)[0];
   await page.mouse.click(pt.x, pt.y);
-  // 유저 워크플로우 3장 (2026-11-22): a tree opens its stock's status, read only (the journal is the library's)
-  const card = page.getByRole("dialog", { name: /상태$/ });
+  const card = page.getByRole("dialog", { name: /나무$/ });
   await expect(card).toBeVisible();
   const names = ["SK하이닉스", "NAVER", "카카오", "현대차", "한화에어로스페이스", "삼성전자", "POSCO홀딩스"];
-  await expect(card.getByRole("heading", { level: 2 })).toHaveText(names[Number(id) - 1]);
-  await expect(card).toContainText("수익률");
-  await expect(card).toContainText("보기만 해요");
-  await expect(card).not.toContainText(/팔아|사세요|매도|매수하세요/);
+  await expect(card).toContainText(names[Number(id) - 1]);
+  // 처분효과 (core/recheck.ts): worth and share first, the same question on every card
+  await expect(card).toContainText(/평가 .*원 · 정원의 [\d.]+%/);
+  await expect(card.getByRole("group", { name: "다시 보기" })).toContainText("오늘 처음 본다면");
+  await expect(card).not.toContainText(/팔아|사세요|매도|매수/);
   await card.getByRole("button", { name: "닫기" }).click();
   await expect(card).toBeHidden();
   expect(errors.filter(e => !/deprecated/i.test(e))).toEqual([]);

@@ -1,7 +1,10 @@
-// 투자학습 퀴즈 100문항 (팀 자료 2026-11-21, content/quiz100.json): eight kinds of question for the daily quiz papers.
-// The file is kept as given; this reads it, grades a response and writes a response out as words for the back of the paper.
+// 투자학습 퀴즈 100문항: eight kinds of question for the daily quiz papers. Since 2026-11-23 the day's quiz is dealt from
+// the 입문 set (팀 자료 "투자학습_입문_800선_100문항", content/quiz100-intro.json, Q101~Q200); the first set
+// (2026-11-21, content/quiz100.json, Q001~Q100) is kept so the quizzes already done still show in 지난 퀴즈.
+// The files are kept as given; this reads them, grades a response and writes a response out as words for the back of the paper.
 // Pure: no screen here.
-import SET from '../content/quiz100.json';
+import SET from '../content/quiz100-intro.json';
+import FIRST from '../content/quiz100.json';
 
 export type Opt={id:string;text:string};
 export type QKind='true_false'|'matching'|'fill_blank'|'direction'|'ordering'|'multiple_select'|'classification'|'scenario';
@@ -11,7 +14,13 @@ export type Q100={id:string;type:QKind;topic:string;difficulty:string;prompt:str
 // what the player gave: one option id, several ids (a set or an order), or a map (left → right, target → option, blank → text)
 export type Resp=string|string[]|Record<string,string>;
 
-export const QUIZ100=SET.questions as unknown as Q100[];
+// "[빈칸]" in a fill-in prompt is shown as a blank line
+const shown=(q:Q100):Q100=>q.type==='fill_blank'?{...q,prompt:q.prompt.replace(/\[빈칸\]/g,'＿＿＿')}:q;
+/** the day's deck (입문 100문항) */
+export const QUIZ100=(SET.questions as unknown as Q100[]).map(shown);
+const ALL=new Map([...QUIZ100,...(FIRST.questions as unknown as Q100[]).map(shown)].map(q=>[q.id,q]));
+/** any question by id, the earlier set too (for the quizzes already done) */
+export const quizById=(id:string)=>ALL.get(id);
 export const KIND_LABEL:Record<QKind,string>=Object.fromEntries(Object.entries(SET.types).map(([k,v])=>[k,v.label])) as Record<QKind,string>;
 export const TOPIC_LABEL:Record<string,string>=SET.topics;
 export const LEVEL_LABEL:Record<string,string>=SET.difficulty_labels;

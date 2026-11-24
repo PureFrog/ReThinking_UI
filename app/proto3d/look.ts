@@ -62,6 +62,10 @@ export const LOOK={
   analystTurn:5,
   walk:{speed:4,accel:10,turn:12,brake:0.7,keyStep:0.8},
   // 유저 워크플로우 2장: a tap on someone further than reach walks me up to stand this far in front of them
+  // 피드백 2026-11-22: the tutorial's lead (Scene3D world.lead): how far off the way I may step, the light elsewhere
+  lead:{width:3.2,near:3.0,dim:0.42},
+  // 피드백 2026-11-22 (나무 이름표): a tree's name is a small plant marker at its foot, shown only near me (the closest few)
+  treeTag:{near:4.2,most:3},
   villager:{reach:2.8,stand:2.1},
 
   // the grade reveal reaching the tree (Scene3D Burst): sparks for a hit, autumn leaves for a miss
@@ -127,6 +131,22 @@ export const LOOK={
   },
   // 집 (House3D.tsx, PM 설계 2026-11-19): the three seats at the desk (position, where the eyes rest), the field of view
   // (wider on a tall phone so the sheet, 보리 and the door stay in one shot), how fast the camera moves, 보리's size
+  // 거장의 집 · 버핏의 서재 (ui/MasterStudy.tsx, buffett_house_ui.md): the room, the shelf on the back wall's left,
+  // Buffett on the right turned a little to the middle, and the camera's three seats
+  study:{room:{w:6.4,d:5.2,h:4.4},
+    shelf:{x:-1.45,z:-2.38,depth:0.42,height:2.15,pitch:0.255,rowTop:1.42,rowLow:0.82,book:[0.2,0.44,0.3] as [number,number,number],pull:0.34},
+    holdAt:0.95/* the book stops this far in front of the camera before it opens */,
+    buffett:{at:[1.55,0,-1.05] as [number,number,number],rot:-0.55,sitY:0.08/* hips just over the cushion (the figure's own legs are off) */,scale:1.12,tagY:1.75},
+    lamp:{at:[2.45,0,-1.9] as [number,number,number]},table:{at:[2.45,0,-0.45] as [number,number,number]},
+    cam:{fov:46,fovMax:84,hfov:66,
+      room:{pos:[0.55,2.05,4.15] as [number,number,number],look:[-0.05,1.05,-1.3] as [number,number,number]},
+      shelf:{pos:[-1.45,1.25,0.4] as [number,number,number],look:[-1.45,1.18,-2.4] as [number,number,number]},
+      talk:{pos:[0.15,1.55,1.35] as [number,number,number],look:[1.25,1.2,-0.9] as [number,number,number]},
+      talkTall:{pos:[0.6,1.95,1.7] as [number,number,number],look:[1.45,0.6,-0.95] as [number,number,number]},
+      roomTall:{pos:[0.05,2.7,5.3] as [number,number,number],look:[0.05,1.0,-1.3] as [number,number,number]}},
+    bookColors:['#7a3b2e','#2f4a6a','#4d6b3a','#8a6a2e','#5a3d6b','#2e5f5f','#9a4a3a','#3d3d52'],
+    color:{floor:'#9a7352',wall:'#e9dcc2',wall2:'#ddcfb2',trim:'#6f5040',rug:'#7a3d36',wood:'#7d573c',woodDark:'#5a3d2b',door:'#6a4a36',
+      chair:'#8a3a2e',chairDark:'#6e2e25',suit:'#2f3a52',tie:'#a8323a',skin:'#efc6a4'}},
   house:{
     cam:{seat:{pos:[0,1.18,0.55],look:[0,0.92,-1.5]},paper:{pos:[0,1.2,0.2],look:[-0.1,0.8,-0.9]},case:{pos:[0,1.5,0.0],look:[0,0.74,-0.7]}} as Record<'seat'|'paper'|'case',{pos:[number,number,number];look:[number,number,number]}>,
     // 9-5: the vertical view widens on a tall screen until hfov degrees fit across (both desk ends show), up to fovMax

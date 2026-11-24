@@ -1,0 +1,3444 @@
+{
+  "schema_version": "1.0",
+  "title": "다시 생각해볼래? 입문 투자 퀴즈 100문항",
+  "locale": "ko-KR",
+  "total_count": 100,
+  "counts_by_type": {
+    "true_false": 13,
+    "matching": 13,
+    "fill_blank": 13,
+    "direction": 13,
+    "ordering": 12,
+    "multiple_select": 12,
+    "classification": 12,
+    "scenario": 12
+  },
+  "types": {
+    "true_false": {
+      "label": "OX",
+      "scoring": "option_id"
+    },
+    "matching": {
+      "label": "단어 매칭",
+      "scoring": "left_id_to_right_id"
+    },
+    "fill_blank": {
+      "label": "빈칸 채우기",
+      "scoring": "blank_id_to_number_or_accepted_texts"
+    },
+    "direction": {
+      "label": "방향 맞추기",
+      "scoring": "target_id_to_option_id"
+    },
+    "ordering": {
+      "label": "순서 배열",
+      "scoring": "ordered_item_ids"
+    },
+    "multiple_select": {
+      "label": "복수 선택",
+      "scoring": "unordered_option_ids"
+    },
+    "classification": {
+      "label": "문장 분류",
+      "scoring": "option_id"
+    },
+    "scenario": {
+      "label": "상황 판단",
+      "scoring": "option_id"
+    }
+  },
+  "topics": {
+    "macro": "금융·경제 기초",
+    "statements": "재무제표·기업 분석",
+    "valuation": "주식·채권과 가치평가",
+    "bias": "투자 판단과 행동 편향",
+    "evidence": "공시와 보유 논리 검증",
+    "causality": "경제적 인과관계"
+  },
+  "difficulty_labels": {
+    "basic": "기초",
+    "intermediate": "응용"
+  },
+  "scoring_notes": {
+    "fill_blank": "숫자는 단위 없이 값만 입력한다. 텍스트는 공백을 제거하고 허용 답안과 비교한다.",
+    "multiple_select": "정답과 선택 항목을 순서와 무관하게 비교한다."
+  },
+  "sources": {
+    "bok_800": {
+      "title": "한국은행 경제금융용어 800선",
+      "year": 2026,
+      "note": "쪽수는 책자에 인쇄된 번호 기준"
+    }
+  },
+  "questions": [
+    {
+      "id": "Q101",
+      "type": "true_false",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "거래소에 상장된 ETF는 주식처럼 장중에 사고팔 수 있어요.",
+      "data": {
+        "options": [
+          {
+            "id": "true",
+            "text": "O"
+          },
+          {
+            "id": "false",
+            "text": "X"
+          }
+        ]
+      },
+      "answer": "true",
+      "explanation": "ETF는 거래소에서 일반 주식처럼 거래돼요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "상장지수펀드(ETF), 162쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q102",
+      "type": "true_false",
+      "topic": "statements",
+      "difficulty": "basic",
+      "prompt": "부채비율의 분모는 회사의 매출액이에요.",
+      "data": {
+        "options": [
+          {
+            "id": "true",
+            "text": "O"
+          },
+          {
+            "id": "false",
+            "text": "X"
+          }
+        ]
+      },
+      "answer": "false",
+      "explanation": "부채비율은 부채를 자본으로 나눈 비율이에요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "부채비율, 145쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q103",
+      "type": "true_false",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "한국은행 기준금리와 내가 은행에서 받는 대출금리는 항상 같아요.",
+      "data": {
+        "options": [
+          {
+            "id": "true",
+            "text": "O"
+          },
+          {
+            "id": "false",
+            "text": "X"
+          }
+        ]
+      },
+      "answer": "false",
+      "explanation": "기준금리는 통화정책의 기준이고, 실제 대출금리는 상품과 차주의 조건을 반영해요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "기준금리, 76쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q104",
+      "type": "true_false",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "한 가지 제품의 가격이 올랐다는 사실만으로 경제 전체에 인플레이션이 발생했다고 볼 수 있어요.",
+      "data": {
+        "options": [
+          {
+            "id": "true",
+            "text": "O"
+          },
+          {
+            "id": "false",
+            "text": "X"
+          }
+        ]
+      },
+      "answer": "false",
+      "explanation": "인플레이션은 여러 상품과 서비스의 전반적인 물가가 오르는 현상이에요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "인플레이션, 255쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q105",
+      "type": "true_false",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "작년 매출이 유난히 낮았다면 올해 매출이 평소 수준으로 돌아오기만 해도 높은 성장률이 나올 수 있어요.",
+      "data": {
+        "options": [
+          {
+            "id": "true",
+            "text": "O"
+          },
+          {
+            "id": "false",
+            "text": "X"
+          }
+        ]
+      },
+      "answer": "true",
+      "explanation": "비교 기준인 작년 매출이 낮으면 같은 올해 매출도 성장률이 크게 보여요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "기저효과, 76쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q106",
+      "type": "true_false",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "예금보험은 주식 가격 하락으로 생긴 손실을 보전하기 위한 제도예요.",
+      "data": {
+        "options": [
+          {
+            "id": "true",
+            "text": "O"
+          },
+          {
+            "id": "false",
+            "text": "X"
+          }
+        ]
+      },
+      "answer": "false",
+      "explanation": "예금보험은 금융기관이 예금을 지급하지 못할 때 보호 대상 예금을 제도에 따라 보호해요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "예금보험제도, 222쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q107",
+      "type": "true_false",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "주가지수를 따라가는 ETF라도 가격이 떨어져 손실이 날 수 있어요.",
+      "data": {
+        "options": [
+          {
+            "id": "true",
+            "text": "O"
+          },
+          {
+            "id": "false",
+            "text": "X"
+          }
+        ]
+      },
+      "answer": "true",
+      "explanation": "ETF의 기초지수가 하락하면 그 지수를 추종하는 ETF 가격도 떨어질 수 있어요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "상장지수펀드(ETF), 162쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q108",
+      "type": "true_false",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "주식을 빌려 먼저 판 뒤 나중에 같은 종목을 사서 갚는 거래는 공매도의 한 방식이에요.",
+      "data": {
+        "options": [
+          {
+            "id": "true",
+            "text": "O"
+          },
+          {
+            "id": "false",
+            "text": "X"
+          }
+        ]
+      },
+      "answer": "true",
+      "explanation": "빌린 주식을 먼저 팔고 나중에 되사서 갚는 거래를 차입 공매도라고 해요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "공매도, 29쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q109",
+      "type": "true_false",
+      "topic": "statements",
+      "difficulty": "basic",
+      "prompt": "EPS는 회사의 매출을 주당 금액으로 나타낸 지표예요.",
+      "data": {
+        "options": [
+          {
+            "id": "true",
+            "text": "O"
+          },
+          {
+            "id": "false",
+            "text": "X"
+          }
+        ]
+      },
+      "answer": "false",
+      "explanation": "EPS는 매출이 아니라 이익을 주당 금액으로 나타내요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "주당순이익(EPS), 295쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q110",
+      "type": "true_false",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "고정된 표면금리로 발행한 채권은 시장에서 채권 가격이 바뀌어도 약속된 이자 지급액이 그대로예요.",
+      "data": {
+        "options": [
+          {
+            "id": "true",
+            "text": "O"
+          },
+          {
+            "id": "false",
+            "text": "X"
+          }
+        ]
+      },
+      "answer": "true",
+      "explanation": "약정 이자는 액면금액과 표면금리를 기준으로 정하고, 시장가격은 거래에 따라 달라져요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "표면금리, 358쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q111",
+      "type": "true_false",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "주가지수가 올라도 그 지수에 들어 있는 주식 중 일부는 내릴 수 있어요.",
+      "data": {
+        "options": [
+          {
+            "id": "true",
+            "text": "O"
+          },
+          {
+            "id": "false",
+            "text": "X"
+          }
+        ]
+      },
+      "answer": "true",
+      "explanation": "지수는 여러 종목을 종합한 값이어서 구성 종목의 움직임이 모두 같을 필요는 없어요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "주가지수, 293쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q112",
+      "type": "true_false",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "국채의 발행 주체는 기업이고 회사채의 발행 주체는 정부예요.",
+      "data": {
+        "options": [
+          {
+            "id": "true",
+            "text": "O"
+          },
+          {
+            "id": "false",
+            "text": "X"
+          }
+        ]
+      },
+      "answer": "false",
+      "explanation": "국채는 정부가, 회사채는 회사가 발행해요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "국채, 49쪽"
+        },
+        {
+          "source_id": "bok_800",
+          "locator": "회사채, 380쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q113",
+      "type": "true_false",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "거래 상대를 쉽게 찾고 큰 가격 손해 없이 사고팔 수 있는 자산은 유동성이 좋은 편이에요.",
+      "data": {
+        "options": [
+          {
+            "id": "true",
+            "text": "O"
+          },
+          {
+            "id": "false",
+            "text": "X"
+          }
+        ]
+      },
+      "answer": "true",
+      "explanation": "시장 유동성은 자산을 얼마나 쉽게 큰 가격 충격 없이 거래할 수 있는지와 관련돼요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "유동성, 242쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q114",
+      "type": "matching",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "채권 이름과 발행 주체를 연결하세요.",
+      "data": {
+        "left": [
+          {
+            "id": "o1",
+            "text": "국채"
+          },
+          {
+            "id": "o2",
+            "text": "회사채"
+          }
+        ],
+        "right": [
+          {
+            "id": "r1",
+            "text": "회사"
+          },
+          {
+            "id": "r2",
+            "text": "정부"
+          }
+        ]
+      },
+      "answer": {
+        "o1": "r2",
+        "o2": "r1"
+      },
+      "explanation": "누가 돈을 빌리려고 채권을 발행했는지에 따라 구분할 수 있어요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "국채, 49쪽"
+        },
+        {
+          "source_id": "bok_800",
+          "locator": "회사채, 380쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q115",
+      "type": "matching",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "대출 금리의 약정 방식을 연결하세요.",
+      "data": {
+        "left": [
+          {
+            "id": "o1",
+            "text": "고정금리"
+          },
+          {
+            "id": "o2",
+            "text": "변동금리"
+          }
+        ],
+        "right": [
+          {
+            "id": "r1",
+            "text": "약정 기간에는 적용 금리가 일정"
+          },
+          {
+            "id": "r2",
+            "text": "약정한 기준이 변하면 재산정할 수 있음"
+          }
+        ]
+      },
+      "answer": {
+        "o1": "r1",
+        "o2": "r2"
+      },
+      "explanation": "같은 대출이라도 어떤 금리 방식을 택했는지에 따라 약정 금리가 움직이는 방식이 달라요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "고정금리, 22쪽"
+        },
+        {
+          "source_id": "bok_800",
+          "locator": "변동금리, 135쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q116",
+      "type": "matching",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "이자를 계산하는 방식을 연결하세요.",
+      "data": {
+        "left": [
+          {
+            "id": "o1",
+            "text": "단리"
+          },
+          {
+            "id": "o2",
+            "text": "복리"
+          }
+        ],
+        "right": [
+          {
+            "id": "r1",
+            "text": "이전 이자를 더한 금액에도 다음 이자를 계산"
+          },
+          {
+            "id": "r2",
+            "text": "처음 원금에만 이자를 계산"
+          }
+        ]
+      },
+      "answer": {
+        "o1": "r2",
+        "o2": "r1"
+      },
+      "explanation": "복리는 발생한 이자가 원금에 더해져 이후 이자 계산에 들어가요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "단리/복리, 89쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q117",
+      "type": "matching",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "경제 전체의 물가가 지속해서 움직이는 방향을 연결하세요.",
+      "data": {
+        "left": [
+          {
+            "id": "o1",
+            "text": "인플레이션"
+          },
+          {
+            "id": "o2",
+            "text": "디플레이션"
+          }
+        ],
+        "right": [
+          {
+            "id": "r1",
+            "text": "전반적인 물가가 내림"
+          },
+          {
+            "id": "r2",
+            "text": "전반적인 물가가 오름"
+          }
+        ]
+      },
+      "answer": {
+        "o1": "r2",
+        "o2": "r1"
+      },
+      "explanation": "개별 상품 가격보다 경제 전반의 가격 흐름을 보는 용어예요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "인플레이션, 255쪽"
+        },
+        {
+          "source_id": "bok_800",
+          "locator": "디플레이션, 106쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q118",
+      "type": "matching",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "주가와 비교하는 기준을 연결하세요.",
+      "data": {
+        "left": [
+          {
+            "id": "o1",
+            "text": "PER"
+          },
+          {
+            "id": "o2",
+            "text": "PBR"
+          }
+        ],
+        "right": [
+          {
+            "id": "r1",
+            "text": "주당장부가치"
+          },
+          {
+            "id": "r2",
+            "text": "주당순이익"
+          }
+        ]
+      },
+      "answer": {
+        "o1": "r2",
+        "o2": "r1"
+      },
+      "explanation": "PER은 이익과, PBR은 장부에 기록된 순자산의 주당 가치와 주가를 비교해요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "주가수익비율(PER), 292쪽"
+        },
+        {
+          "source_id": "bok_800",
+          "locator": "주가순자산비율(PBR), 292쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q119",
+      "type": "matching",
+      "topic": "statements",
+      "difficulty": "basic",
+      "prompt": "주식 지표와 뜻을 연결하세요.",
+      "data": {
+        "left": [
+          {
+            "id": "o1",
+            "text": "EPS"
+          },
+          {
+            "id": "o2",
+            "text": "PER"
+          }
+        ],
+        "right": [
+          {
+            "id": "r1",
+            "text": "주가가 주당순이익의 몇 배인지 나타낸 값"
+          },
+          {
+            "id": "r2",
+            "text": "주식 한 주에 해당하는 순이익"
+          }
+        ]
+      },
+      "answer": {
+        "o1": "r2",
+        "o2": "r1"
+      },
+      "explanation": "EPS는 주당 이익 금액이고 PER은 가격과 이익을 비교한 배수예요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "주당순이익(EPS), 295쪽"
+        },
+        {
+          "source_id": "bok_800",
+          "locator": "주가수익비율(PER), 292쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q120",
+      "type": "matching",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "두 금리의 역할을 연결하세요.",
+      "data": {
+        "left": [
+          {
+            "id": "o1",
+            "text": "기준금리"
+          },
+          {
+            "id": "o2",
+            "text": "표면금리"
+          }
+        ],
+        "right": [
+          {
+            "id": "r1",
+            "text": "채권 액면금액 대비 약속된 연간 이자 비율"
+          },
+          {
+            "id": "r2",
+            "text": "중앙은행의 통화정책 기준"
+          }
+        ]
+      },
+      "answer": {
+        "o1": "r2",
+        "o2": "r1"
+      },
+      "explanation": "기준금리는 정책에 쓰고, 표면금리는 채권 이자 지급액을 계산하는 데 써요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "기준금리, 76쪽"
+        },
+        {
+          "source_id": "bok_800",
+          "locator": "표면금리, 358쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q121",
+      "type": "matching",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "물가 흐름을 설명한 말을 연결하세요.",
+      "data": {
+        "left": [
+          {
+            "id": "o1",
+            "text": "디스인플레이션"
+          },
+          {
+            "id": "o2",
+            "text": "디플레이션"
+          }
+        ],
+        "right": [
+          {
+            "id": "r1",
+            "text": "전반적인 물가 자체가 지속해서 내림"
+          },
+          {
+            "id": "r2",
+            "text": "물가는 오르지만 오르는 속도가 느려짐"
+          }
+        ]
+      },
+      "answer": {
+        "o1": "r2",
+        "o2": "r1"
+      },
+      "explanation": "물가가 조금씩 계속 오르는 경우는 디스인플레이션, 물가 수준이 계속 내리는 경우는 디플레이션이에요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "디스인플레이션, 105쪽"
+        },
+        {
+          "source_id": "bok_800",
+          "locator": "디플레이션, 106쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q122",
+      "type": "matching",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "예금 금리의 두 가지 표현을 연결하세요.",
+      "data": {
+        "left": [
+          {
+            "id": "o1",
+            "text": "명목금리"
+          },
+          {
+            "id": "o2",
+            "text": "실질금리"
+          }
+        ],
+        "right": [
+          {
+            "id": "r1",
+            "text": "물가 변화를 감안한 금리"
+          },
+          {
+            "id": "r2",
+            "text": "예금증서 등에 표시된 금리"
+          }
+        ]
+      },
+      "answer": {
+        "o1": "r2",
+        "o2": "r1"
+      },
+      "explanation": "실질금리는 예금의 구매력이 얼마나 변하는지 생각할 때 쓰여요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "명목금리/실질금리, 119쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q123",
+      "type": "matching",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "주식 앱에 표시된 항목과 뜻을 연결하세요.",
+      "data": {
+        "left": [
+          {
+            "id": "o1",
+            "text": "주가지수"
+          },
+          {
+            "id": "o2",
+            "text": "지수 추종 ETF"
+          }
+        ],
+        "right": [
+          {
+            "id": "r1",
+            "text": "여러 주식의 가격 움직임을 요약한 숫자"
+          },
+          {
+            "id": "r2",
+            "text": "특정 지수를 따라가도록 설계해 거래소에서 거래되는 펀드"
+          }
+        ]
+      },
+      "answer": {
+        "o1": "r1",
+        "o2": "r2"
+      },
+      "explanation": "지수는 시장을 보여 주는 기준이고 ETF는 거래할 수 있는 상품이에요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "주가지수, 293쪽"
+        },
+        {
+          "source_id": "bok_800",
+          "locator": "상장지수펀드(ETF), 162쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q124",
+      "type": "matching",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "환율 때문에 생긴 결과를 연결하세요.",
+      "data": {
+        "left": [
+          {
+            "id": "o1",
+            "text": "환차익"
+          },
+          {
+            "id": "o2",
+            "text": "환차손"
+          }
+        ],
+        "right": [
+          {
+            "id": "r1",
+            "text": "환율 변화로 생긴 이익"
+          },
+          {
+            "id": "r2",
+            "text": "환율 변화로 생긴 손실"
+          }
+        ]
+      },
+      "answer": {
+        "o1": "r1",
+        "o2": "r2"
+      },
+      "explanation": "같은 달러를 들고 있어도 원화로 바꿀 때의 가치가 달라질 수 있어요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "환차손/환차익, 379쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q125",
+      "type": "matching",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "두 금융 용어를 뜻과 연결하세요.",
+      "data": {
+        "left": [
+          {
+            "id": "o1",
+            "text": "시장 유동성"
+          },
+          {
+            "id": "o2",
+            "text": "부채비율"
+          }
+        ],
+        "right": [
+          {
+            "id": "r1",
+            "text": "자산을 얼마나 쉽게 거래할 수 있는지"
+          },
+          {
+            "id": "r2",
+            "text": "자본에 비해 부채가 얼마나 많은지"
+          }
+        ]
+      },
+      "answer": {
+        "o1": "r1",
+        "o2": "r2"
+      },
+      "explanation": "유동성의 시장 측면은 거래의 편리함, 부채비율은 자금 구조를 보여 줘요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "유동성, 242쪽"
+        },
+        {
+          "source_id": "bok_800",
+          "locator": "부채비율, 145쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q126",
+      "type": "matching",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "두 용어를 설명과 연결하세요.",
+      "data": {
+        "left": [
+          {
+            "id": "o1",
+            "text": "기업공개(IPO)"
+          },
+          {
+            "id": "o2",
+            "text": "주식시장"
+          }
+        ],
+        "right": [
+          {
+            "id": "r1",
+            "text": "회사가 처음으로 주식을 일반 투자자에게 공개하는 절차"
+          },
+          {
+            "id": "r2",
+            "text": "주식이 발행되거나 투자자 사이에서 거래되는 시장"
+          }
+        ]
+      },
+      "answer": {
+        "o1": "r1",
+        "o2": "r2"
+      },
+      "explanation": "기업공개는 한 회사의 절차이고 주식시장은 여러 회사 주식이 거래되는 제도와 공간이에요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "기업공개, 73쪽"
+        },
+        {
+          "source_id": "bok_800",
+          "locator": "주식시장, 296쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q127",
+      "type": "fill_blank",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "거래소에 상장되어 주식처럼 거래할 수 있는 펀드를 [빈칸]라고 불러요.",
+      "data": {
+        "blanks": [
+          {
+            "id": "b1",
+            "input_type": "text"
+          }
+        ]
+      },
+      "answer": {
+        "b1": [
+          "ETF",
+          "상장지수펀드",
+          "상장지수펀드(ETF)"
+        ]
+      },
+      "explanation": "영어 약자는 ETF이고, 책자의 항목명은 상장지수펀드예요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "상장지수펀드(ETF), 162쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q128",
+      "type": "fill_blank",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "빌린 주식을 먼저 팔고 나중에 되사서 갚는 거래는 차입 [빈칸]예요.",
+      "data": {
+        "blanks": [
+          {
+            "id": "b1",
+            "input_type": "text"
+          }
+        ]
+      },
+      "answer": {
+        "b1": [
+          "공매도",
+          "차입공매도"
+        ]
+      },
+      "explanation": "빌린 주식으로 먼저 매도하는 방식이에요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "공매도, 29쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q129",
+      "type": "fill_blank",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "한국은행이 통화정책을 운용할 때 기준으로 삼는 금리는 [빈칸]예요.",
+      "data": {
+        "blanks": [
+          {
+            "id": "b1",
+            "input_type": "text"
+          }
+        ]
+      },
+      "answer": {
+        "b1": [
+          "기준금리",
+          "한국은행기준금리"
+        ]
+      },
+      "explanation": "한국은행 기준금리는 개별 예금이나 대출의 약정 금리와 구별돼요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "기준금리, 76쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q130",
+      "type": "fill_blank",
+      "topic": "statements",
+      "difficulty": "basic",
+      "prompt": "주식 한 주에 돌아가는 순이익을 나타내는 지표는 [빈칸]예요.",
+      "data": {
+        "blanks": [
+          {
+            "id": "b1",
+            "input_type": "text"
+          }
+        ]
+      },
+      "answer": {
+        "b1": [
+          "EPS",
+          "eps",
+          "주당순이익"
+        ]
+      },
+      "explanation": "EPS는 주식 한 주 기준으로 이익을 보여 줘요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "주당순이익(EPS), 295쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q131",
+      "type": "fill_blank",
+      "topic": "statements",
+      "difficulty": "basic",
+      "prompt": "부채와 자본이 각각 100억 원이에요. 부채비율은 몇 %인가요?",
+      "data": {
+        "blanks": [
+          {
+            "id": "b1",
+            "input_type": "number",
+            "unit": "%"
+          }
+        ]
+      },
+      "answer": {
+        "b1": 100
+      },
+      "explanation": "부채와 자본의 금액이 같으므로 부채 ÷ 자본 × 100 = 100%예요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "부채비율, 145쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q132",
+      "type": "fill_blank",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "액면금액 100만 원이고 연 표면금리가 5%인 채권의 1년 약정 이자는 몇 만 원인가요?",
+      "data": {
+        "blanks": [
+          {
+            "id": "b1",
+            "input_type": "number",
+            "unit": "만 원"
+          }
+        ]
+      },
+      "answer": {
+        "b1": 5
+      },
+      "explanation": "100만 원의 5%는 5만 원이에요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "표면금리, 358쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q133",
+      "type": "fill_blank",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "주가가 3만 원이고 EPS가 3천 원이에요. 주가는 주당순이익의 몇 배인가요?",
+      "data": {
+        "blanks": [
+          {
+            "id": "b1",
+            "input_type": "number",
+            "unit": "배"
+          }
+        ]
+      },
+      "answer": {
+        "b1": 10
+      },
+      "explanation": "PER은 주가 30,000원을 EPS 3,000원으로 나눈 10배예요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "주가수익비율(PER), 292쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q134",
+      "type": "fill_blank",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "주가가 2만 원, 주당장부가치가 2만 원이에요. PBR은 몇 배인가요?",
+      "data": {
+        "blanks": [
+          {
+            "id": "b1",
+            "input_type": "number",
+            "unit": "배"
+          }
+        ]
+      },
+      "answer": {
+        "b1": 1
+      },
+      "explanation": "주가와 주당장부가치가 같으면 PBR은 1배예요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "주가순자산비율(PBR), 292쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q135",
+      "type": "fill_blank",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "은행이 예금을 돌려주지 못할 때 보호 대상 예금자를 지원하는 장치를 [빈칸]라고 해요.",
+      "data": {
+        "blanks": [
+          {
+            "id": "b1",
+            "input_type": "text"
+          }
+        ]
+      },
+      "answer": {
+        "b1": [
+          "예금보험제도",
+          "예금보험",
+          "예금자보호제도"
+        ]
+      },
+      "explanation": "보호 여부와 범위는 제도의 적용 대상과 요건에 따라 정해져요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "예금보험제도, 222쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q136",
+      "type": "fill_blank",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "경제 전반의 물가가 계속 내려가는 현상을 [빈칸]이라고 해요.",
+      "data": {
+        "blanks": [
+          {
+            "id": "b1",
+            "input_type": "text"
+          }
+        ]
+      },
+      "answer": {
+        "b1": [
+          "디플레이션"
+        ]
+      },
+      "explanation": "한 상품만 싸지는 것과 달리 물가 전반이 내려가는 현상이에요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "디플레이션, 106쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q137",
+      "type": "fill_blank",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "만기가 같은 국채 수익률이 3%, 회사채 수익률이 5%예요. 두 수익률 차이는 몇 %p인가요?",
+      "data": {
+        "blanks": [
+          {
+            "id": "b1",
+            "input_type": "number",
+            "unit": "%p"
+          }
+        ]
+      },
+      "answer": {
+        "b1": 2
+      },
+      "explanation": "5%에서 3%를 빼면 차이는 2%p예요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "신용스프레드, 198쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q138",
+      "type": "fill_blank",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "100만 원을 연 10% 단리로 2년 맡겼어요. 세금 전 총이자는 몇 만 원인가요?",
+      "data": {
+        "blanks": [
+          {
+            "id": "b1",
+            "input_type": "number",
+            "unit": "만 원"
+          }
+        ]
+      },
+      "answer": {
+        "b1": 20
+      },
+      "explanation": "단리에서는 해마다 처음 원금 100만 원의 10%인 10만 원을 받아요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "단리/복리, 89쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q139",
+      "type": "fill_blank",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "기업이 일반 투자자에게 주식을 처음 공개하는 절차를 [빈칸]라고 해요.",
+      "data": {
+        "blanks": [
+          {
+            "id": "b1",
+            "input_type": "text"
+          }
+        ]
+      },
+      "answer": {
+        "b1": [
+          "기업공개",
+          "IPO",
+          "ipo"
+        ]
+      },
+      "explanation": "기업공개는 일반 투자자에게 회사 주식을 처음으로 공개하는 절차예요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "기업공개, 73쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q140",
+      "type": "direction",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "지갑에 든 돈은 그대로인데 평소 사는 물건 전반의 가격이 올랐어요. 같은 돈으로 살 수 있는 양은 어떻게 바뀔까요?",
+      "data": {
+        "targets": [
+          {
+            "id": "t1",
+            "text": "같은 돈으로 살 수 있는 양"
+          }
+        ],
+        "options": [
+          {
+            "id": "up",
+            "text": "↑ 증가"
+          },
+          {
+            "id": "down",
+            "text": "↓ 감소"
+          },
+          {
+            "id": "unchanged",
+            "text": "→ 그대로"
+          }
+        ]
+      },
+      "answer": {
+        "t1": "down"
+      },
+      "explanation": "같은 돈으로 살 수 있는 물건의 양이 줄어요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "인플레이션, 255쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q141",
+      "type": "direction",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "물가상승률이 5%에서 2%로 낮아졌어요. 2%로 오른 해의 물가 수준은 그 전해에 비해 어느 방향인가요?",
+      "data": {
+        "targets": [
+          {
+            "id": "t1",
+            "text": "물가 수준"
+          }
+        ],
+        "options": [
+          {
+            "id": "up",
+            "text": "↑ 증가"
+          },
+          {
+            "id": "down",
+            "text": "↓ 감소"
+          },
+          {
+            "id": "unchanged",
+            "text": "→ 그대로"
+          }
+        ]
+      },
+      "answer": {
+        "t1": "up"
+      },
+      "explanation": "상승률이 낮아져도 2%는 양수라서 물가는 전해보다 높아져요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "디스인플레이션, 105쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q142",
+      "type": "direction",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "시중 대출금리가 올랐어요. 내 대출은 만기까지 금리를 고정했고 약정도 달라지지 않았어요. 내 금리는 어떻게 되나요?",
+      "data": {
+        "targets": [
+          {
+            "id": "t1",
+            "text": "내 대출의 적용 금리"
+          }
+        ],
+        "options": [
+          {
+            "id": "up",
+            "text": "↑ 증가"
+          },
+          {
+            "id": "down",
+            "text": "↓ 감소"
+          },
+          {
+            "id": "unchanged",
+            "text": "→ 그대로"
+          }
+        ]
+      },
+      "answer": {
+        "t1": "unchanged"
+      },
+      "explanation": "고정 약정 기간에는 시장의 금리 변화가 내 적용 금리를 바꾸지 않아요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "고정금리, 22쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q143",
+      "type": "direction",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "대출 금리에 반영되는 약정 기준금리가 내려갔어요. 재산정일이 왔고 가산금리는 그대로예요. 적용 금리는 어느 방향인가요?",
+      "data": {
+        "targets": [
+          {
+            "id": "t1",
+            "text": "재산정 후 내 대출 금리"
+          }
+        ],
+        "options": [
+          {
+            "id": "up",
+            "text": "↑ 증가"
+          },
+          {
+            "id": "down",
+            "text": "↓ 감소"
+          },
+          {
+            "id": "unchanged",
+            "text": "→ 그대로"
+          }
+        ]
+      },
+      "answer": {
+        "t1": "down"
+      },
+      "explanation": "약정 기준금리가 떨어지고 다른 조건이 같으면 새 적용 금리도 내려가요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "변동금리, 135쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q144",
+      "type": "direction",
+      "topic": "statements",
+      "difficulty": "basic",
+      "prompt": "자본이 그대로인 회사가 돈을 더 빌려 총부채가 커졌어요. 자본은 양수예요. 부채비율은 어떻게 되나요?",
+      "data": {
+        "targets": [
+          {
+            "id": "t1",
+            "text": "부채비율"
+          }
+        ],
+        "options": [
+          {
+            "id": "up",
+            "text": "↑ 증가"
+          },
+          {
+            "id": "down",
+            "text": "↓ 감소"
+          },
+          {
+            "id": "unchanged",
+            "text": "→ 그대로"
+          }
+        ]
+      },
+      "answer": {
+        "t1": "up"
+      },
+      "explanation": "분모인 자본은 같은데 분자인 부채가 늘면 부채비율이 올라요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "부채비율, 145쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q145",
+      "type": "direction",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "주당순이익이 같은 양수인 상태에서 주가만 내렸어요. PER은 어떻게 되나요?",
+      "data": {
+        "targets": [
+          {
+            "id": "t1",
+            "text": "PER"
+          }
+        ],
+        "options": [
+          {
+            "id": "up",
+            "text": "↑ 증가"
+          },
+          {
+            "id": "down",
+            "text": "↓ 감소"
+          },
+          {
+            "id": "unchanged",
+            "text": "→ 그대로"
+          }
+        ]
+      },
+      "answer": {
+        "t1": "down"
+      },
+      "explanation": "같은 주당 이익으로 더 낮은 주가를 나누므로 PER이 낮아져요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "주가수익비율(PER), 292쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q146",
+      "type": "direction",
+      "topic": "statements",
+      "difficulty": "basic",
+      "prompt": "주식 수는 그대로인데 주주에게 돌아갈 이익이 늘었어요. 한 주에 돌아가는 이익은 어떻게 되나요?",
+      "data": {
+        "targets": [
+          {
+            "id": "t1",
+            "text": "주당순이익"
+          }
+        ],
+        "options": [
+          {
+            "id": "up",
+            "text": "↑ 증가"
+          },
+          {
+            "id": "down",
+            "text": "↓ 감소"
+          },
+          {
+            "id": "unchanged",
+            "text": "→ 그대로"
+          }
+        ]
+      },
+      "answer": {
+        "t1": "up"
+      },
+      "explanation": "늘어난 이익을 같은 수의 주식으로 나누면 한 주 몫이 커져요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "주당순이익(EPS), 295쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q147",
+      "type": "direction",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "같은 만기의 국채 수익률은 그대로인데 회사채 수익률이 내렸어요. 회사채 수익률은 여전히 더 높아요. 두 금리 차는 어떻게 되나요?",
+      "data": {
+        "targets": [
+          {
+            "id": "t1",
+            "text": "신용스프레드"
+          }
+        ],
+        "options": [
+          {
+            "id": "up",
+            "text": "↑ 증가"
+          },
+          {
+            "id": "down",
+            "text": "↓ 감소"
+          },
+          {
+            "id": "unchanged",
+            "text": "→ 그대로"
+          }
+        ]
+      },
+      "answer": {
+        "t1": "down"
+      },
+      "explanation": "회사채 수익률이 국채 수익률에 가까워져 차이가 줄어요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "신용스프레드, 198쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q148",
+      "type": "direction",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "100달러를 그대로 가지고 있어요. 이후 1달러의 원화 가격이 올랐어요. 수수료는 없다고 할 때 원화로 환산한 값은 어떻게 되나요?",
+      "data": {
+        "targets": [
+          {
+            "id": "t1",
+            "text": "100달러의 원화 가치"
+          }
+        ],
+        "options": [
+          {
+            "id": "up",
+            "text": "↑ 증가"
+          },
+          {
+            "id": "down",
+            "text": "↓ 감소"
+          },
+          {
+            "id": "unchanged",
+            "text": "→ 그대로"
+          }
+        ]
+      },
+      "answer": {
+        "t1": "up"
+      },
+      "explanation": "달러 수량이 같고 1달러를 바꿔 받을 원화가 늘면 전체 원화 가치가 커져요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "환차손/환차익, 379쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q149",
+      "type": "direction",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "시장에서 거래되던 채권 가격은 올랐어요. 채권의 액면금액과 약정 표면금리는 그대로예요. 약정 이자 지급액은 어느 방향인가요?",
+      "data": {
+        "targets": [
+          {
+            "id": "t1",
+            "text": "약정 이자 지급액"
+          }
+        ],
+        "options": [
+          {
+            "id": "up",
+            "text": "↑ 증가"
+          },
+          {
+            "id": "down",
+            "text": "↓ 감소"
+          },
+          {
+            "id": "unchanged",
+            "text": "→ 그대로"
+          }
+        ]
+      },
+      "answer": {
+        "t1": "unchanged"
+      },
+      "explanation": "약정 이자 지급액은 시장가격이 아니라 액면금액과 표면금리로 정해져요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "표면금리, 358쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q150",
+      "type": "direction",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "만기와 약속된 지급액이 그대로인 고정금리 채권이 있어요. 이 채권에 요구되는 시장 수익률만 올랐어요. 지금 가격은 어느 방향인가요?",
+      "data": {
+        "targets": [
+          {
+            "id": "t1",
+            "text": "채권 가격"
+          }
+        ],
+        "options": [
+          {
+            "id": "up",
+            "text": "↑ 증가"
+          },
+          {
+            "id": "down",
+            "text": "↓ 감소"
+          },
+          {
+            "id": "unchanged",
+            "text": "→ 그대로"
+          }
+        ]
+      },
+      "answer": {
+        "t1": "down"
+      },
+      "explanation": "새 시장 수익률이 높아지면 기존에 받기로 한 같은 돈의 현재 가격은 내려가요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "듀레이션, 103쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q151",
+      "type": "direction",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "세 종목을 담은 지수가 있어요. 셋의 비중은 그대로이고 세 종목 가격이 모두 올랐어요. 이 지수의 방향은 어떻게 될까요?",
+      "data": {
+        "targets": [
+          {
+            "id": "t1",
+            "text": "세 종목으로 구성한 주가지수"
+          }
+        ],
+        "options": [
+          {
+            "id": "up",
+            "text": "↑ 증가"
+          },
+          {
+            "id": "down",
+            "text": "↓ 감소"
+          },
+          {
+            "id": "unchanged",
+            "text": "→ 그대로"
+          }
+        ]
+      },
+      "answer": {
+        "t1": "up"
+      },
+      "explanation": "구성 종목이 모두 오르면, 비중과 산정 방식이 같을 때 이 지수도 올라요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "주가지수, 293쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q152",
+      "type": "direction",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "주가와 양수인 주당장부가치가 모두 지난해와 똑같아요. PBR은 어떻게 됐을까요?",
+      "data": {
+        "targets": [
+          {
+            "id": "t1",
+            "text": "PBR"
+          }
+        ],
+        "options": [
+          {
+            "id": "up",
+            "text": "↑ 증가"
+          },
+          {
+            "id": "down",
+            "text": "↓ 감소"
+          },
+          {
+            "id": "unchanged",
+            "text": "→ 그대로"
+          }
+        ]
+      },
+      "answer": {
+        "t1": "unchanged"
+      },
+      "explanation": "비율을 계산하는 두 값이 그대로면 PBR도 그대로예요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "주가순자산비율(PBR), 292쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q153",
+      "type": "ordering",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "주식을 빌려서 하는 공매도의 과정을 배열하세요.",
+      "data": {
+        "items": [
+          {
+            "id": "o1",
+            "text": "같은 종목을 사서 빌린 주식을 갚는다"
+          },
+          {
+            "id": "o2",
+            "text": "주식을 빌린다"
+          },
+          {
+            "id": "o3",
+            "text": "빌린 주식을 시장에서 판다"
+          }
+        ]
+      },
+      "answer": [
+        "o2",
+        "o3",
+        "o1"
+      ],
+      "explanation": "빌려서 먼저 팔고 나중에 같은 주식을 돌려줘요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "공매도, 29쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q154",
+      "type": "ordering",
+      "topic": "statements",
+      "difficulty": "basic",
+      "prompt": "부채 80억 원과 자본 100억 원이 주어졌어요. 부채비율을 표시하는 순서로 배열하세요.",
+      "data": {
+        "items": [
+          {
+            "id": "o1",
+            "text": "100을 곱해 %로 표시한다"
+          },
+          {
+            "id": "o2",
+            "text": "부채를 자본으로 나눈다"
+          },
+          {
+            "id": "o3",
+            "text": "부채와 자본 금액을 확인한다"
+          }
+        ]
+      },
+      "answer": [
+        "o3",
+        "o2",
+        "o1"
+      ],
+      "explanation": "80 ÷ 100 × 100 = 80%예요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "부채비율, 145쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q155",
+      "type": "ordering",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "EPS가 표시된 주식 앱에서 PER을 구하는 과정을 배열하세요.",
+      "data": {
+        "items": [
+          {
+            "id": "o1",
+            "text": "주가와 양수인 EPS를 확인한다"
+          },
+          {
+            "id": "o2",
+            "text": "주가를 EPS로 나눈다"
+          },
+          {
+            "id": "o3",
+            "text": "결과를 배 단위로 표시한다"
+          }
+        ]
+      },
+      "answer": [
+        "o1",
+        "o2",
+        "o3"
+      ],
+      "explanation": "PER은 주가가 주당 이익의 몇 배인지 보여 줘요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "주가수익비율(PER), 292쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q156",
+      "type": "ordering",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "1년마다 이자가 원금에 붙는 복리 상품의 2년 이자 계산 순서를 배열하세요.",
+      "data": {
+        "items": [
+          {
+            "id": "o1",
+            "text": "늘어난 금액을 기준으로 둘째 해 이자를 계산한다"
+          },
+          {
+            "id": "o2",
+            "text": "첫해 이자를 처음 원금 기준으로 계산한다"
+          },
+          {
+            "id": "o3",
+            "text": "첫해 이자를 원금에 더한다"
+          }
+        ]
+      },
+      "answer": [
+        "o2",
+        "o3",
+        "o1"
+      ],
+      "explanation": "복리의 둘째 해 이자에는 첫해에 붙은 이자의 효과가 들어가요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "단리/복리, 89쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q157",
+      "type": "ordering",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "약정 기준금리 상승이 변동금리 대출에 반영되는 과정을 배열하세요. 잔액과 가산금리는 같아요.",
+      "data": {
+        "items": [
+          {
+            "id": "o1",
+            "text": "새 금리로 내는 같은 기간 이자가 늘어난다"
+          },
+          {
+            "id": "o2",
+            "text": "약정 기준금리가 오른다"
+          },
+          {
+            "id": "o3",
+            "text": "재산정일에 적용 금리가 높아진다"
+          }
+        ]
+      },
+      "answer": [
+        "o2",
+        "o3",
+        "o1"
+      ],
+      "explanation": "조건에 맞춰 금리를 다시 계산한 뒤 이자에 반영해요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "변동금리, 135쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q158",
+      "type": "ordering",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "같은 만기의 두 채권 수익률로 차이를 확인하세요.",
+      "data": {
+        "items": [
+          {
+            "id": "o1",
+            "text": "금리 차를 %p로 기록한다"
+          },
+          {
+            "id": "o2",
+            "text": "회사채와 국채 수익률을 확인한다"
+          },
+          {
+            "id": "o3",
+            "text": "회사채 수익률에서 국채 수익률을 뺀다"
+          }
+        ]
+      },
+      "answer": [
+        "o2",
+        "o3",
+        "o1"
+      ],
+      "explanation": "퍼센트로 표시한 금리 사이의 차이는 퍼센트포인트로 써요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "신용스프레드, 198쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q159",
+      "type": "ordering",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "주가 1만 2천 원과 주당장부가치 1만 원으로 PBR을 구하는 순서를 배열하세요.",
+      "data": {
+        "items": [
+          {
+            "id": "o1",
+            "text": "주가를 주당장부가치로 나눈다"
+          },
+          {
+            "id": "o2",
+            "text": "주가와 주당장부가치를 확인한다"
+          },
+          {
+            "id": "o3",
+            "text": "1.2배로 기록한다"
+          }
+        ]
+      },
+      "answer": [
+        "o2",
+        "o1",
+        "o3"
+      ],
+      "explanation": "12,000 ÷ 10,000 = 1.2배예요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "주가순자산비율(PBR), 292쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q160",
+      "type": "ordering",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "올해 가격이 올랐는지 알아보려고 지난해와 올해의 장바구니를 비교합니다. 순서를 배열하세요.",
+      "data": {
+        "items": [
+          {
+            "id": "o1",
+            "text": "비교할 물건 목록을 정한다"
+          },
+          {
+            "id": "o2",
+            "text": "목록 전체의 가격 흐름을 비교한다"
+          },
+          {
+            "id": "o3",
+            "text": "같은 물건들의 두 해 가격을 조사한다"
+          }
+        ]
+      },
+      "answer": [
+        "o1",
+        "o3",
+        "o2"
+      ],
+      "explanation": "같은 물건들을 비교하면 품목이 바뀐 효과를 줄이고 가격 변화를 보기 쉬워요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "인플레이션, 255쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q161",
+      "type": "ordering",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "같은 100달러의 원화 가치가 얼마나 변했는지 확인합니다. 순서를 배열하세요.",
+      "data": {
+        "items": [
+          {
+            "id": "o1",
+            "text": "두 환율을 써서 원화 가치를 각각 계산한다"
+          },
+          {
+            "id": "o2",
+            "text": "두 원화 금액의 차이를 구한다"
+          },
+          {
+            "id": "o3",
+            "text": "처음과 지금의 원/달러 환율을 각각 확인한다"
+          }
+        ]
+      },
+      "answer": [
+        "o3",
+        "o1",
+        "o2"
+      ],
+      "explanation": "달러 수량을 고정하고 두 시점의 원화 가치를 비교해요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "환차손/환차익, 379쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q162",
+      "type": "ordering",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "연 약정 이자액을 계산하는 순서를 배열하세요.",
+      "data": {
+        "items": [
+          {
+            "id": "o1",
+            "text": "채권의 액면금액과 연 표면금리를 확인한다"
+          },
+          {
+            "id": "o2",
+            "text": "액면금액과 그 비율을 곱한다"
+          },
+          {
+            "id": "o3",
+            "text": "연 표면금리의 % 표시를 계산할 비율로 바꾼다"
+          }
+        ]
+      },
+      "answer": [
+        "o1",
+        "o3",
+        "o2"
+      ],
+      "explanation": "예를 들어 100만 원에 4%를 곱하면 연 약정 이자는 4만 원이에요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "표면금리, 358쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q163",
+      "type": "ordering",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "오늘 종가를 보고 지수가 전날보다 올랐는지 기록해요. 순서를 배열하세요.",
+      "data": {
+        "items": [
+          {
+            "id": "o1",
+            "text": "비교한 방향을 기록한다"
+          },
+          {
+            "id": "o2",
+            "text": "오늘 숫자가 어제 숫자보다 큰지 비교한다"
+          },
+          {
+            "id": "o3",
+            "text": "어제와 오늘의 지수 종가를 확인한다"
+          }
+        ]
+      },
+      "answer": [
+        "o3",
+        "o2",
+        "o1"
+      ],
+      "explanation": "지수가 올랐는지는 같은 지수의 두 날짜 값을 비교하면 돼요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "주가지수, 293쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q164",
+      "type": "ordering",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "올해 매출 증가율이 큰 이유를 확인하는 순서를 배열하세요.",
+      "data": {
+        "items": [
+          {
+            "id": "o1",
+            "text": "올해의 높은 매출 증가율을 발견한다"
+          },
+          {
+            "id": "o2",
+            "text": "작년 매출이 유난히 낮았는지 판단한다"
+          },
+          {
+            "id": "o3",
+            "text": "비교 기준인 작년 매출을 이전 몇 해와 비교한다"
+          }
+        ]
+      },
+      "answer": [
+        "o1",
+        "o3",
+        "o2"
+      ],
+      "explanation": "증가율이 큰 이유를 알려면 비교 기준이 평소보다 낮았는지도 봐야 해요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "기저효과, 76쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q165",
+      "type": "multiple_select",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "지수 추종 ETF에 관한 옳은 설명을 모두 고르세요.",
+      "data": {
+        "options": [
+          {
+            "id": "o1",
+            "text": "원금이 항상 보장돼요"
+          },
+          {
+            "id": "o2",
+            "text": "거래소에서 사고팔 수 있어요"
+          },
+          {
+            "id": "o3",
+            "text": "특정 지수의 움직임을 따라가도록 설계돼요"
+          }
+        ]
+      },
+      "answer": [
+        "o2",
+        "o3"
+      ],
+      "explanation": "지수를 따라가도 시장이 하락하면 손실이 날 수 있어요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "상장지수펀드(ETF), 162쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q166",
+      "type": "multiple_select",
+      "topic": "statements",
+      "difficulty": "basic",
+      "prompt": "부채비율을 계산할 때 직접 필요한 두 항목을 고르세요.",
+      "data": {
+        "options": [
+          {
+            "id": "o1",
+            "text": "자본"
+          },
+          {
+            "id": "o2",
+            "text": "매출액"
+          },
+          {
+            "id": "o3",
+            "text": "총부채"
+          }
+        ]
+      },
+      "answer": [
+        "o1",
+        "o3"
+      ],
+      "explanation": "부채비율은 부채를 자본으로 나눠 계산해요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "부채비율, 145쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q167",
+      "type": "multiple_select",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "PER을 계산하는 데 필요한 값을 모두 고르세요.",
+      "data": {
+        "options": [
+          {
+            "id": "o1",
+            "text": "주당순이익"
+          },
+          {
+            "id": "o2",
+            "text": "주당배당금"
+          },
+          {
+            "id": "o3",
+            "text": "주가"
+          }
+        ]
+      },
+      "answer": [
+        "o1",
+        "o3"
+      ],
+      "explanation": "PER은 주가를 주당순이익으로 나눈 배수예요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "주가수익비율(PER), 292쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q168",
+      "type": "multiple_select",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "전반적인 물가 상승을 알아보려면 도움이 되는 자료를 모두 고르세요.",
+      "data": {
+        "options": [
+          {
+            "id": "o1",
+            "text": "여러 생활 품목의 가격 변화"
+          },
+          {
+            "id": "o2",
+            "text": "소비자물가의 여러 달 변화"
+          },
+          {
+            "id": "o3",
+            "text": "한 가게의 딱 하루 할인율만"
+          }
+        ]
+      },
+      "answer": [
+        "o1",
+        "o2"
+      ],
+      "explanation": "경제 전체의 물가를 보려면 넓은 범위의 가격을 일정 기간 봐야 해요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "인플레이션, 255쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q169",
+      "type": "multiple_select",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "이자를 계산하는 방식에 관한 옳은 설명을 모두 고르세요.",
+      "data": {
+        "options": [
+          {
+            "id": "o1",
+            "text": "복리는 원금에 붙은 이자에도 다음 이자를 계산해요"
+          },
+          {
+            "id": "o2",
+            "text": "두 방식은 양의 금리여도 여러 기간 총이자가 반드시 같아요"
+          },
+          {
+            "id": "o3",
+            "text": "단리는 처음 원금을 기준으로 이자를 구해요"
+          }
+        ]
+      },
+      "answer": [
+        "o1",
+        "o3"
+      ],
+      "explanation": "복리는 이미 붙은 이자가 다음 기간 계산에 들어갈 수 있어요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "단리/복리, 89쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q170",
+      "type": "multiple_select",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "보유 중인 달러의 원화 가치를 지금 계산할 때 필요한 것을 모두 고르세요. 수수료는 없어요.",
+      "data": {
+        "options": [
+          {
+            "id": "o1",
+            "text": "보유 달러 수량"
+          },
+          {
+            "id": "o2",
+            "text": "받기로 한 원화 예금 이자율"
+          },
+          {
+            "id": "o3",
+            "text": "현재 원/달러 환율"
+          }
+        ]
+      },
+      "answer": [
+        "o1",
+        "o3"
+      ],
+      "explanation": "달러 수량에 1달러당 원화 환율을 곱하면 돼요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "환차손/환차익, 379쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q171",
+      "type": "multiple_select",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "예금이 제도에서 보호되는지 확인할 때 알아볼 사항을 모두 고르세요.",
+      "data": {
+        "options": [
+          {
+            "id": "o1",
+            "text": "해당 은행의 주식이 어제 올랐는지"
+          },
+          {
+            "id": "o2",
+            "text": "내가 가입한 금융상품이 보호 대상인지"
+          },
+          {
+            "id": "o3",
+            "text": "예금을 맡긴 금융기관이 대상인지"
+          }
+        ]
+      },
+      "answer": [
+        "o2",
+        "o3"
+      ],
+      "explanation": "보호 적용은 금융기관과 상품 등 제도의 적용 요건에 따라 달라요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "예금보험제도, 222쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q172",
+      "type": "multiple_select",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "주가지수를 설명한 옳은 문장을 고르세요.",
+      "data": {
+        "options": [
+          {
+            "id": "o1",
+            "text": "지수 숫자는 모든 종목의 주가와 항상 같아요"
+          },
+          {
+            "id": "o2",
+            "text": "여러 주식의 가격 움직임을 요약해요"
+          },
+          {
+            "id": "o3",
+            "text": "지수가 올라도 내린 종목이 있을 수 있어요"
+          }
+        ]
+      },
+      "answer": [
+        "o2",
+        "o3"
+      ],
+      "explanation": "지수는 시장의 전체적 움직임을 볼 때 쓰여요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "주가지수, 293쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q173",
+      "type": "multiple_select",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "대출 계약에서 적용 금리가 바뀔 수 있는지 확인하려면 무엇을 봐야 하나요?",
+      "data": {
+        "options": [
+          {
+            "id": "o1",
+            "text": "지점 건물의 크기"
+          },
+          {
+            "id": "o2",
+            "text": "고정인지 변동인지"
+          },
+          {
+            "id": "o3",
+            "text": "고정 기간이나 변동금리 재산정 조건"
+          }
+        ]
+      },
+      "answer": [
+        "o2",
+        "o3"
+      ],
+      "explanation": "고정·변동 여부와 약정된 기간 또는 재산정 기준을 보면 돼요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "고정금리, 22쪽"
+        },
+        {
+          "source_id": "bok_800",
+          "locator": "변동금리, 135쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q174",
+      "type": "multiple_select",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "어떤 자산의 시장 유동성이 좋은 편이라는 단서를 모두 고르세요.",
+      "data": {
+        "options": [
+          {
+            "id": "o1",
+            "text": "사고파는 상대를 쉽게 찾을 수 있어요"
+          },
+          {
+            "id": "o2",
+            "text": "거래하면서 뜻하지 않게 가격을 크게 양보할 일이 적어요"
+          },
+          {
+            "id": "o3",
+            "text": "팔려고 해도 오랫동안 거래가 안 돼요"
+          }
+        ]
+      },
+      "answer": [
+        "o1",
+        "o2"
+      ],
+      "explanation": "유동성이 좋으면 큰 가격 부담 없이 거래하기 쉬워요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "유동성, 242쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q175",
+      "type": "multiple_select",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "고정 표면금리 채권의 연 약정 이자를 계산할 때 사용하는 값을 모두 고르세요.",
+      "data": {
+        "options": [
+          {
+            "id": "o1",
+            "text": "오늘 증권사 앱의 채권 시장가격"
+          },
+          {
+            "id": "o2",
+            "text": "계약에 표시된 연 표면금리"
+          },
+          {
+            "id": "o3",
+            "text": "채권의 액면금액"
+          }
+        ]
+      },
+      "answer": [
+        "o2",
+        "o3"
+      ],
+      "explanation": "표면금리로 약속된 이자를 계산할 때 기준 금액은 액면금액이에요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "표면금리, 358쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q176",
+      "type": "multiple_select",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "PBR을 구할 때 직접 사용하는 값을 모두 고르세요.",
+      "data": {
+        "options": [
+          {
+            "id": "o1",
+            "text": "올해 매출액"
+          },
+          {
+            "id": "o2",
+            "text": "주가"
+          },
+          {
+            "id": "o3",
+            "text": "주당장부가치"
+          }
+        ]
+      },
+      "answer": [
+        "o2",
+        "o3"
+      ],
+      "explanation": "PBR은 주가를 주당장부가치로 나눈 값이에요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "주가순자산비율(PBR), 292쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q177",
+      "type": "classification",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "문장의 성격을 고르세요.",
+      "data": {
+        "statement": "거래 화면에서 오늘 지수가 2,500으로 마감한 것을 확인했어요.",
+        "options": [
+          {
+            "id": "o1",
+            "text": "확인한 수치·사실"
+          },
+          {
+            "id": "o2",
+            "text": "조건을 둔 설명"
+          },
+          {
+            "id": "o3",
+            "text": "앞으로의 예상"
+          }
+        ]
+      },
+      "answer": "o1",
+      "explanation": "오늘 표시된 마감 지수는 자료로 확인한 숫자예요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "주가지수, 293쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q178",
+      "type": "classification",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "문장의 성격을 고르세요.",
+      "data": {
+        "statement": "이 ETF는 다음 주에 오를 것 같아요.",
+        "options": [
+          {
+            "id": "o1",
+            "text": "확인한 수치·사실"
+          },
+          {
+            "id": "o2",
+            "text": "조건을 둔 설명"
+          },
+          {
+            "id": "o3",
+            "text": "앞으로의 예상"
+          }
+        ]
+      },
+      "answer": "o3",
+      "explanation": "다음 주 결과에 관한 예상이에요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "상장지수펀드(ETF), 162쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q179",
+      "type": "classification",
+      "topic": "statements",
+      "difficulty": "basic",
+      "prompt": "문장의 성격을 고르세요.",
+      "data": {
+        "statement": "부채가 늘고 양수인 자본이 그대로라면 부채비율은 높아져요.",
+        "options": [
+          {
+            "id": "o1",
+            "text": "확인한 수치·사실"
+          },
+          {
+            "id": "o2",
+            "text": "조건을 둔 설명"
+          },
+          {
+            "id": "o3",
+            "text": "앞으로의 예상"
+          }
+        ]
+      },
+      "answer": "o2",
+      "explanation": "부채와 자본의 움직임이라는 조건을 두고 결과를 설명해요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "부채비율, 145쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q180",
+      "type": "classification",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "문장의 성격을 고르세요.",
+      "data": {
+        "statement": "발표 자료에서 지난달 물가상승률이 2%였음을 확인했어요.",
+        "options": [
+          {
+            "id": "o1",
+            "text": "확인한 수치·사실"
+          },
+          {
+            "id": "o2",
+            "text": "조건을 둔 설명"
+          },
+          {
+            "id": "o3",
+            "text": "앞으로의 예상"
+          }
+        ]
+      },
+      "answer": "o1",
+      "explanation": "자료에 나온 지난달 수치를 말하는 문장이에요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "인플레이션, 255쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q181",
+      "type": "classification",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "문장의 성격을 고르세요.",
+      "data": {
+        "statement": "주가는 그대로이고 양수인 EPS가 높아진다면 PER은 낮아져요.",
+        "options": [
+          {
+            "id": "o1",
+            "text": "확인한 수치·사실"
+          },
+          {
+            "id": "o2",
+            "text": "조건을 둔 설명"
+          },
+          {
+            "id": "o3",
+            "text": "앞으로의 예상"
+          }
+        ]
+      },
+      "answer": "o2",
+      "explanation": "두 지표가 어떻게 변한다는 조건을 두고 배수의 변화를 설명해요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "주가수익비율(PER), 292쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q182",
+      "type": "classification",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "문장의 성격을 고르세요.",
+      "data": {
+        "statement": "다음 회의에서 한국은행이 기준금리를 내릴 것 같아요.",
+        "options": [
+          {
+            "id": "o1",
+            "text": "확인한 수치·사실"
+          },
+          {
+            "id": "o2",
+            "text": "조건을 둔 설명"
+          },
+          {
+            "id": "o3",
+            "text": "앞으로의 예상"
+          }
+        ]
+      },
+      "answer": "o3",
+      "explanation": "아직 나오지 않은 정책 결정에 대한 예상이에요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "기준금리, 76쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q183",
+      "type": "classification",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "문장의 성격을 고르세요.",
+      "data": {
+        "statement": "채권 계약서에 연 표면금리 4%라고 적혀 있어요.",
+        "options": [
+          {
+            "id": "o1",
+            "text": "확인한 수치·사실"
+          },
+          {
+            "id": "o2",
+            "text": "조건을 둔 설명"
+          },
+          {
+            "id": "o3",
+            "text": "앞으로의 예상"
+          }
+        ]
+      },
+      "answer": "o1",
+      "explanation": "계약서에서 바로 확인할 수 있는 약정 수치예요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "표면금리, 358쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q184",
+      "type": "classification",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "문장의 성격을 고르세요.",
+      "data": {
+        "statement": "같은 달러를 계속 보유하고 원/달러 환율이 높아지면 원화 환산액은 늘어요.",
+        "options": [
+          {
+            "id": "o1",
+            "text": "확인한 수치·사실"
+          },
+          {
+            "id": "o2",
+            "text": "조건을 둔 설명"
+          },
+          {
+            "id": "o3",
+            "text": "앞으로의 예상"
+          }
+        ]
+      },
+      "answer": "o2",
+      "explanation": "달러 수량이 같고 환율만 변한다는 조건을 둔 설명이에요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "환차손/환차익, 379쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q185",
+      "type": "classification",
+      "topic": "statements",
+      "difficulty": "basic",
+      "prompt": "문장의 성격을 고르세요.",
+      "data": {
+        "statement": "이 회사의 내년 EPS는 올해보다 높을 것 같아요.",
+        "options": [
+          {
+            "id": "o1",
+            "text": "확인한 수치·사실"
+          },
+          {
+            "id": "o2",
+            "text": "조건을 둔 설명"
+          },
+          {
+            "id": "o3",
+            "text": "앞으로의 예상"
+          }
+        ]
+      },
+      "answer": "o3",
+      "explanation": "아직 발표되지 않은 내년 주당 이익에 대한 예상이에요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "주당순이익(EPS), 295쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q186",
+      "type": "classification",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "문장의 성격을 고르세요.",
+      "data": {
+        "statement": "내 대출 계약서에서 만기까지 금리가 고정이라는 조건을 확인했어요.",
+        "options": [
+          {
+            "id": "o1",
+            "text": "확인한 수치·사실"
+          },
+          {
+            "id": "o2",
+            "text": "조건을 둔 설명"
+          },
+          {
+            "id": "o3",
+            "text": "앞으로의 예상"
+          }
+        ]
+      },
+      "answer": "o1",
+      "explanation": "계약서에 적힌 조건을 직접 확인했어요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "고정금리, 22쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q187",
+      "type": "classification",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "문장의 성격을 고르세요.",
+      "data": {
+        "statement": "물가상승률이 5%에서 2%로 낮아져도 상승률이 양수이면 물가 수준은 전년보다 올라요.",
+        "options": [
+          {
+            "id": "o1",
+            "text": "확인한 수치·사실"
+          },
+          {
+            "id": "o2",
+            "text": "조건을 둔 설명"
+          },
+          {
+            "id": "o3",
+            "text": "앞으로의 예상"
+          }
+        ]
+      },
+      "answer": "o2",
+      "explanation": "상승률이 양수라는 조건에 따라 가격 수준의 방향을 설명해요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "디스인플레이션, 105쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q188",
+      "type": "classification",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "문장의 성격을 고르세요.",
+      "data": {
+        "statement": "이번에 나온 회사채는 다음 달에 거래가 더 활발할 것 같아요.",
+        "options": [
+          {
+            "id": "o1",
+            "text": "확인한 수치·사실"
+          },
+          {
+            "id": "o2",
+            "text": "조건을 둔 설명"
+          },
+          {
+            "id": "o3",
+            "text": "앞으로의 예상"
+          }
+        ]
+      },
+      "answer": "o3",
+      "explanation": "다음 달 거래가 어떨지에 대한 예상이에요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "회사채, 380쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q189",
+      "type": "scenario",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "예금 잔액은 늘었지만 그동안 물가가 더 많이 올랐어요. 같은 예금으로 살 수 있는 물건의 양을 어떻게 보나요?",
+      "data": {
+        "options": [
+          {
+            "id": "o1",
+            "text": "줄어들 수 있어요"
+          },
+          {
+            "id": "o2",
+            "text": "물가 변화와 관계없이 그대로예요"
+          },
+          {
+            "id": "o3",
+            "text": "잔액이 늘었으니 꼭 늘어요"
+          }
+        ]
+      },
+      "answer": "o1",
+      "explanation": "물가가 예금 잔액보다 빠르게 오르면 구매력이 낮아져요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "인플레이션, 255쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q190",
+      "type": "scenario",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "종목 설명에 ‘코스피200 추종 ETF’라고 적혀 있어요. 이 상품이 목표로 삼는 것은 무엇인가요?",
+      "data": {
+        "options": [
+          {
+            "id": "o1",
+            "text": "한국은행이 정한 금리와 같은 이자를 주는 것"
+          },
+          {
+            "id": "o2",
+            "text": "코스피200의 가격 움직임을 따라가는 것"
+          },
+          {
+            "id": "o3",
+            "text": "어떤 시장 상황에서도 같은 가격을 유지하는 것"
+          }
+        ]
+      },
+      "answer": "o2",
+      "explanation": "지수 추종 ETF는 명시된 지수의 수익률과 비슷하게 움직이도록 설계돼요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "상장지수펀드(ETF), 162쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q191",
+      "type": "scenario",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "기사에 ‘물가상승률이 4%에서 2%로 낮아졌다’고 나왔어요. 가격 흐름을 맞게 읽은 것은?",
+      "data": {
+        "options": [
+          {
+            "id": "o1",
+            "text": "물가는 올랐고 오르는 속도가 느려졌어요."
+          },
+          {
+            "id": "o2",
+            "text": "전반적인 물가가 2% 내려갔어요."
+          },
+          {
+            "id": "o3",
+            "text": "모든 물건이 같은 가격을 유지했어요."
+          }
+        ]
+      },
+      "answer": "o1",
+      "explanation": "2%는 여전히 상승이지만 전보다 상승률이 낮아요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "디스인플레이션, 105쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q192",
+      "type": "scenario",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "2년 동안 약정 금리가 바뀌지 않는 대출을 찾고 있어요. 확인할 표현은 무엇인가요?",
+      "data": {
+        "options": [
+          {
+            "id": "o1",
+            "text": "기준에 연동해 수시 조정"
+          },
+          {
+            "id": "o2",
+            "text": "2년 고정금리"
+          },
+          {
+            "id": "o3",
+            "text": "매달 금리 재산정"
+          }
+        ]
+      },
+      "answer": "o2",
+      "explanation": "고정금리는 약정된 기간에 금리가 유지돼요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "고정금리, 22쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q193",
+      "type": "scenario",
+      "topic": "macro",
+      "difficulty": "basic",
+      "prompt": "빵집 매출은 재작년 100만 원, 작년 50만 원, 올해 100만 원이에요. 올해 증가율을 볼 때 맞는 해석은?",
+      "data": {
+        "options": [
+          {
+            "id": "o1",
+            "text": "올해 매출은 재작년보다 두 배예요."
+          },
+          {
+            "id": "o2",
+            "text": "올해 증가율이 높으니 올해 매출도 역대 최고예요."
+          },
+          {
+            "id": "o3",
+            "text": "작년이 유난히 낮아 증가율이 크게 보일 수 있어요."
+          }
+        ]
+      },
+      "answer": "o3",
+      "explanation": "높은 증가율은 낮은 작년 매출을 기준으로 비교한 결과일 수 있어요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "기저효과, 76쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q194",
+      "type": "scenario",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "A사와 B사의 주가는 같고 EPS는 B사가 더 높아요. EPS가 둘 다 양수라면 어느 회사의 PER이 더 낮나요?",
+      "data": {
+        "options": [
+          {
+            "id": "o1",
+            "text": "B사"
+          },
+          {
+            "id": "o2",
+            "text": "두 회사가 같아요"
+          },
+          {
+            "id": "o3",
+            "text": "A사"
+          }
+        ]
+      },
+      "answer": "o1",
+      "explanation": "주가가 같을 때 EPS가 더 높은 회사의 PER이 낮아요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "주가수익비율(PER), 292쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q195",
+      "type": "scenario",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "오늘 지수는 올랐는데 내가 들고 있는 주식은 내렸어요. 이 두 일이 함께 일어날 수 있나요?",
+      "data": {
+        "options": [
+          {
+            "id": "o1",
+            "text": "가능해요. 지수는 여러 종목을 묶어서 계산해요."
+          },
+          {
+            "id": "o2",
+            "text": "불가능해요. 지수는 내 주식의 가격만 나타내요."
+          },
+          {
+            "id": "o3",
+            "text": "불가능해요. 지수와 개별 주식은 항상 같은 방향이에요."
+          }
+        ]
+      },
+      "answer": "o1",
+      "explanation": "다른 종목의 상승이 내 종목의 하락보다 지수에 크게 반영될 수 있어요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "주가지수, 293쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q196",
+      "type": "scenario",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "A는 원하는 가격 근처에서 바로 살 사람을 찾았고, B는 가격을 크게 낮춰야 팔렸어요. 어느 쪽의 시장 유동성이 더 좋아 보이나요?",
+      "data": {
+        "options": [
+          {
+            "id": "o1",
+            "text": "A"
+          },
+          {
+            "id": "o2",
+            "text": "두 자산은 주어진 단서로 항상 같아요"
+          },
+          {
+            "id": "o3",
+            "text": "B"
+          }
+        ]
+      },
+      "answer": "o1",
+      "explanation": "가격을 크게 양보하지 않고 빠르게 거래되는 A의 유동성이 더 좋아 보여요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "유동성, 242쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q197",
+      "type": "scenario",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "비상장 회사가 일반 투자자들에게 처음으로 주식을 공개하는 절차를 시작했어요. 어떤 용어인가요?",
+      "data": {
+        "options": [
+          {
+            "id": "o1",
+            "text": "기업공개(IPO)"
+          },
+          {
+            "id": "o2",
+            "text": "예금보험"
+          },
+          {
+            "id": "o3",
+            "text": "공매도"
+          }
+        ]
+      },
+      "answer": "o1",
+      "explanation": "기업공개는 일반 투자자에게 회사 주식을 처음으로 공개하는 절차예요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "기업공개, 73쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q198",
+      "type": "scenario",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "100달러를 산 뒤 그대로 보유했어요. 달러를 원화로 바꿀 때 받는 돈이 처음 낸 원화보다 많아졌다면, 수수료가 없다고 할 때 그 차이는 무엇인가요?",
+      "data": {
+        "options": [
+          {
+            "id": "o1",
+            "text": "환차익"
+          },
+          {
+            "id": "o2",
+            "text": "배당금"
+          },
+          {
+            "id": "o3",
+            "text": "환차손"
+          }
+        ]
+      },
+      "answer": "o1",
+      "explanation": "달러의 원화 가치가 올라 환율 변화에서 이익이 생겼어요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "환차손/환차익, 379쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q199",
+      "type": "scenario",
+      "topic": "valuation",
+      "difficulty": "basic",
+      "prompt": "정부가 발행한 채권과 민간 기업이 발행한 채권 중, 국채는 어느 쪽인가요?",
+      "data": {
+        "options": [
+          {
+            "id": "o1",
+            "text": "민간 기업이 발행한 채권"
+          },
+          {
+            "id": "o2",
+            "text": "두 채권 모두"
+          },
+          {
+            "id": "o3",
+            "text": "정부가 발행한 채권"
+          }
+        ]
+      },
+      "answer": "o3",
+      "explanation": "국채는 정부가 발행한 채권이에요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "국채, 49쪽"
+        },
+        {
+          "source_id": "bok_800",
+          "locator": "회사채, 380쪽"
+        }
+      ]
+    },
+    {
+      "id": "Q200",
+      "type": "scenario",
+      "topic": "statements",
+      "difficulty": "basic",
+      "prompt": "뉴스에서 ‘올해 EPS 2,000원’이라고 봤어요. 이 숫자는 무엇을 뜻하나요?",
+      "data": {
+        "options": [
+          {
+            "id": "o1",
+            "text": "주식 한 주당 배당금이 2,000원으로 확정됐다는 뜻이에요."
+          },
+          {
+            "id": "o2",
+            "text": "주식 한 주가 지금 2,000원에 거래된다는 뜻이에요."
+          },
+          {
+            "id": "o3",
+            "text": "주식 한 주에 해당하는 순이익이 2,000원이라는 뜻이에요."
+          }
+        ]
+      },
+      "answer": "o3",
+      "explanation": "EPS는 한 주당 이익 금액이며 주가나 확정 배당금을 가리키지 않아요.",
+      "source_refs": [
+        {
+          "source_id": "bok_800",
+          "locator": "주당순이익(EPS), 295쪽"
+        }
+      ]
+    }
+  ]
+}

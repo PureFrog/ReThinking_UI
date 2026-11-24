@@ -4,6 +4,8 @@
 // Everything is code-made primitives on the shared soft material, instanced where there are many.
 import {useLayoutEffect,useMemo,useRef} from 'react';
 import {useFrame,type ThreeEvent} from '@react-three/fiber';
+import {useGLTF} from '@react-three/drei';
+import {MODELS} from './models';
 import * as THREE from 'three';
 import {OnGround,surfaceY,tiltAt,rng,UP} from './ground';
 import {PATHS,PLACES,STREAM,BRIDGE,streamZ,WORLD} from './places';
@@ -119,6 +121,23 @@ export function Library({onPick,open}:{onPick:()=>void;open:boolean}){
   </group></OnGround>;
 }
 
+// 거장의 집 (2026-11-23, a teammate's model: the master's head as a house): north-west of the cottage, facing the middle.
+// The file is about 0.9 wide, 0.58 high and 1 deep; MASTER_SIZE scales it to the village. A tap says where the master is met.
+export const MASTER_SIZE=6.2;
+export function MasterHouse({onPick}:{onPick:()=>void}){
+  const p=PLACES.find(x=>x.id==='master')!;
+  const {scene}=useGLTF(MODELS.masterHouse);
+  const obj=useMemo(()=>{const o=scene.clone(true);o.traverse(c=>{const m=c as THREE.Mesh;if(m.isMesh){m.castShadow=true;m.receiveShadow=true;
+    // the model came with a glass-like volume material: drawn as plain lit paint so it sits with the rest of the village
+    const mat=m.material as THREE.MeshPhysicalMaterial;if(mat&&'transmission' in mat){mat.transmission=0;mat.thickness=0}}});return o},[scene]);
+  return <OnGround x={p.x} z={p.z} rot={p.rot}><group onClick={click(onPick)} name="master-house">
+    <primitive object={obj} scale={MASTER_SIZE} position-y={-0.05}/>
+    {/* an easier thing to tap */}
+    <mesh position={[0,1.8,0]} visible={false}><boxGeometry args={[5.6,3.6,6.2]}/></mesh>
+  </group></OnGround>;
+}
+useGLTF.preload(MODELS.masterHouse);
+
 // 리그 광장: a paved circle across the stream, a ring of flags (this week's group), the notice board in the middle
 export function Plaza({onPick,flags,me}:{onPick:()=>void;flags:string[];me:number}){
   const p=PLACES.find(x=>x.id==='plaza')!,wave=useRef<(THREE.Mesh|null)[]>([]);
@@ -142,3 +161,18 @@ export function Plaza({onPick,flags,me}:{onPick:()=>void;flags:string[];me:numbe
     <mesh position-y={1.2} visible={false}><cylinderGeometry args={[3.6,3.6,2.6,16]}/></mesh>
   </group></OnGround>;
 }
+
+// 오락실 (피드백 2026-11-24 "왼쪽 리그광장 오른쪽 오락실", a teammate's model): over the bridge, right of the split, its
+// door turned to the path. The file is 1 wide, 0.49 high, 0.91 deep (steps and stones in front); ARCADE_SIZE scales it.
+export const ARCADE_SIZE=5.2;
+export function ArcadeHouse({onPick}:{onPick:()=>void}){
+  const p=PLACES.find(x=>x.id==='arcade')!;
+  const {scene}=useGLTF(MODELS.arcade);
+  const obj=useMemo(()=>{const o=scene.clone(true);o.traverse(c=>{const m=c as THREE.Mesh;if(m.isMesh){m.castShadow=true;m.receiveShadow=true;
+    const mat=m.material as THREE.MeshPhysicalMaterial;if(mat&&'transmission' in mat){mat.transmission=0;mat.thickness=0}}});return o},[scene]);
+  return <OnGround x={p.x} z={p.z} rot={p.rot}><group onClick={click(onPick)} name="arcade">
+    <primitive object={obj} scale={ARCADE_SIZE} position-y={-0.03}/>
+    <mesh position={[0,1.4,-0.2]} visible={false}><boxGeometry args={[5.2,2.8,4.2]}/></mesh>
+  </group></OnGround>;
+}
+useGLTF.preload(MODELS.arcade);

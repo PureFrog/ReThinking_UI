@@ -2,46 +2,67 @@
 // introductions outside (I walk to each by myself), and after that the house is the room seen from outside (3인칭).
 import { test, expect, type Page } from "./fixtures";
 import { answerPaper } from "./quiz-answer";
-test.describe.configure({ timeout: 300_000 });
+test.describe.configure({ timeout: 600_000 });
 test.beforeEach(({}, info) => test.skip(info.project.name !== "desktop", "one screen is enough"));
+// 피드백 2026-11-22 (UI 피드백): this path runs with the talk shown one or two sentences a bubble (?pages): "계속" until the answer
+async function choose(page: Page, scope: string, name: string) {
+  const box = page.locator(scope);
+  for (let i = 0; i < 40; i++) {
+    const c = box.getByRole("button", { name: new RegExp("^\\W*" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$") });
+    if (await c.isVisible().catch(() => false)) { await c.click(); return }
+    const more = box.getByRole("button", { name: /^\W*계속$/ });
+    if (await more.isVisible().catch(() => false)) { await more.click(); continue }
+    await page.waitForTimeout(300);
+  }
+  throw new Error("no answer " + name);
+}
 const h = (p: Page) => p.evaluate(() => (window as unknown as { __proto3d?: Record<string, any> }).__proto3d ?? {});
 
 test("the sample garden still has the first quiz, the walk-up introductions and the room", async ({ page }, info) => {
-  await page.goto("/?fresh&tutorial&hour=10&weather=clear");
+  await page.goto("/?fresh&tutorial&pages&hour=10&weather=clear");
   await page.getByRole("button", { name: "예시 정원으로 시작" }).click();
   await expect(page.getByTestId("house")).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator(".rt-talk-line")).toContainText("문제 하나 풀어 보자", { timeout: 20_000 });
+  // one or two sentences a bubble, the answers on the bubble itself (in the middle, not the corner)
+  await expect(page.locator(".hs-talk .rt-talk-line")).toContainText("선생님이야", { timeout: 20_000 });
+  await expect(page.locator(".hs-talk .rt-talk-line")).not.toContainText("문제 하나 풀어 보자");
+  const box = await page.locator(".hs-talk .rt-talk-box").boundingBox(), vw = page.viewportSize()!.width;
+  expect(Math.abs(box!.x + box!.width / 2 - vw / 2)).toBeLessThan(40);
+  await expect(page.locator(".hs-talk .rt-talk-box").getByRole("button", { name: "계속" })).toBeVisible();
+  await page.screenshot({ path: info.outputPath("demo-quiz-bubble.png") });
   await expect.poll(async () => (await h(page)).house?.paper).toBe("glow");
-  await page.getByRole("button", { name: "종이 누르기" }).click();
-  await page.getByRole("button", { name: /^\W*응$/ }).click();
-  await page.getByRole("button", { name: "종이 펼치기" }).click();
+  await choose(page, ".hs-talk", "종이 누르기");
+  await choose(page, ".hs-talk", "응");
+  await choose(page, ".hs-talk", "종이 펼치기");
   await answerPaper(page);
   await page.getByRole("button", { name: "해설 봤어 · 고개 들기" }).click();
   await expect.poll(async () => (await h(page)).house?.door).toBe(true);
-  await page.getByRole("button", { name: "밖으로 나가기" }).click();
-  await expect(page.locator(".vl-villager")).toContainText("데려다줄게", { timeout: 20_000 });
-  // no tap: I walk over to 토리 by myself, then the talk
-  await expect.poll(async () => (await h(page)).walk?.talk?.phase, { timeout: 20_000 }).toBe("walk");
-  await expect(page.locator(".vl-villager .rt-talk-name")).toContainText("토리", { timeout: 40_000 });
-  await expect(page.locator(".vl-villager")).toContainText("돈을 어떻게 버는지");
-  await page.screenshot({ path: info.outputPath("demo-tori.png") });
-  for (const [i, who] of ["토리", "모아", "루온", "농부", "상인", "신문 배달", "나루", "건물 점원", "옷 점원"].entries()) {
+  await choose(page, ".hs-talk", "밖으로 나가기");
+  await expect(page.locator(".vl-villager")).toContainText("보리야", { timeout: 20_000 });
+  // nobody walks me: 토리 is lit and I go there myself (a tap on 토리), then the talk from my eyes
+  // 유저 워크플로우 (2026-11-23): only its people, in its order (no analysts)
+  const MEET_IDS = ["farmer", "merchant", "librarian", "paperboy", "naru", "builder", "tailor"];
+  for (const [i, who] of ["농부", "상인", "사서", "신문 배달", "나루", "건물 상인", "옷 상인"].entries()) {
+    await expect.poll(async () => (await h(page)).walk?.lead, { timeout: 20_000 }).toBeTruthy();
+    await expect(page.locator(".vl-guide")).toContainText(who);
+    if (i === 0) await page.screenshot({ path: info.outputPath("demo-lead-tori.png") });
+    await page.evaluate(id => (window as any).__proto3d.meet(id), MEET_IDS[i]);
     await expect(page.locator(".vl-villager .rt-talk-name")).toContainText(who, { timeout: 40_000 });
-    await page.locator(".vl-villager").getByRole("button", { name: i === 8 ? "산책 시작" : "다음 사람" }).click();
+    if (i === 0) await page.screenshot({ path: info.outputPath("demo-tori.png") });
+    // no bubble holds more than two sentences
+    const line = (await page.locator(".vl-villager .rt-talk-line").innerText()).trim();
+    expect(line.split(/(?<=[.!?…~])\s+/).length).toBeLessThanOrEqual(2);
+    // the wardrobe never comes up from a tap on me during the walk
+    expect(await page.locator(".rt-me-panel").count()).toBe(0);
+    await choose(page, ".vl-villager", i === 6 ? "산책 시작" : "다음 사람");
   }
-  // the rest of the walk, then back into the house: the room with the teacher's tour
-  for (let k = 0; k < 12; k++) {
-    const st = (await h(page)).walk?.step;
-    if (!st) break;
-    await page.evaluate(s => (window as any).__proto3d.walkPass(s), st);
-    await page.waitForTimeout(600);
-  }
-  await expect(page.locator(".vl-villager")).toContainText("마음대로 다녀", { timeout: 20_000 });
-  await page.locator(".vl-villager").getByRole("button", { name: "좋아" }).click();
-  await expect.poll(async () => (await h(page)).walk?.on).toBe(false);
-  await page.evaluate(() => (window as any).__proto3d.landmark("house"));
-  await expect.poll(async () => (await h(page)).inside, { timeout: 15_000 }).toBe(true);
-  await expect(page.locator(".vl-villager")).toContainText("책상 뒤에", { timeout: 15_000 });
-  await page.waitForTimeout(1500);
-  await page.screenshot({ path: info.outputPath("demo-room.png") });
+  // then the first walk's first stop is lit the same way
+  await expect(page.locator(".vl-guide")).toContainText("농부", { timeout: 20_000 });
+  await expect.poll(async () => (await h(page)).walk?.lead).toBeTruthy();
+  // the example garden's stocks are not mine: the farmer asks before planting them (KOSDAQ examples)
+  await page.evaluate(() => (window as any).__proto3d.meet("farmer"));
+  await expect(page.locator(".vl-villager .rt-talk-name")).toContainText("농부", { timeout: 40_000 });
+  await choose(page, ".vl-villager", "예시로 심어 보기");
+  expect((await h(page)).walk?.planted).toBe(false);
+  // the first lesson is kept, so the house is the room from now on (after the walk)
+  expect(await page.evaluate(() => localStorage.getItem("rethink-lesson-v1"))).toBeTruthy();
 });

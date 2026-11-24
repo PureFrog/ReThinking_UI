@@ -17,6 +17,6 @@ test("each place's walk point is outside every wall", () => {
 });
 
 test('bought buildings and landmarks become walls', () => {
-  assert.equal(P.solids({land:[],buildings:[],cities:[]}).length,3);// house, library, cart (the 관측소 is gone, 2026-11-20)
-  assert.equal(P.solids({land:[],buildings:['silo'],cities:['paris']}).length,5);
+  assert.equal(P.solids({land:[],buildings:[],cities:[]}).length,6);// house, library, the two shops, 거장의 집 (2026-11-23), 오락실 (2026-11-24) (the 관측소 is gone, 2026-11-20)
+  assert.equal(P.solids({land:[],buildings:['silo'],cities:['paris']}).length,8);
 });

@@ -2,10 +2,11 @@
 // 유저 워크플로우 (PM 2026-11-21): the village's people and the things beside them (content/villagers.ts), and the guide
 // of the first walk: a ring and a bobbing arrow over the person to go to next, and footprints from the player to them.
 // The people are Explorer3D figures in their work clothes; each turns to the player when the player comes close.
-import {Suspense,useMemo,useRef} from 'react';
+import {Suspense,useEffect,useMemo,useRef} from 'react';
 import {useFrame} from '@react-three/fiber';
 import * as THREE from 'three';
 import {Explorer} from './Explorer3D';
+import {ROLE_KIT,ROLE_LOOK} from './RoleKit';
 import {soft} from './materials';
 import {OnGround,surfaceY,tiltAt} from './ground';
 import {LOOK} from './look';
@@ -26,6 +27,8 @@ export function Villager({id,x,z,face,look,hl,talking,away=false,errand=null,onE
   const body=useRef<THREE.Group>(null),walker=useRef<THREE.Group>(null),basket=useRef<THREE.Group>(null),ring=useRef<THREE.Mesh>(null),arrow=useRef<THREE.Group>(null);
   const base=useMemo(()=>new THREE.Vector3(x,surfaceY(x,z),z),[x,z]),q=useMemo(()=>tiltAt(x,z),[x,z]);
   const head=useMemo(()=>new THREE.Vector3(),[]);
+  // 피드백 2026-11-23: each one in the look of what they do (RoleKit.tsx)
+  const kitLook=useMemo(()=>{const r=ROLE_LOOK[id];return r?{...look,coat:r.coat,hat:r.hat,bag:null,tool:null}:look},[id,look]);
   const run=useRef<{key:number;leg:number;t:number;px:number;pz:number}|null>(null);
   useFrame(({clock},dt)=>{const b=body.current,w=walker.current;if(!b||!w)return;const t=clock.elapsedTime;
     if(errand&&run.current?.key!==errand.key)run.current={key:errand.key,leg:0,t:0,px:x,pz:z};
@@ -55,7 +58,7 @@ export function Villager({id,x,z,face,look,hl,talking,away=false,errand=null,onE
     head.copy(base).add(w.position);head.y+=1.2;report('npc-'+id,head);head.y+=1.05;report('npctag-'+id,head)});
   return <group position={base} quaternion={q} name={'npc-'+id} onClick={e=>{e.stopPropagation();onPick()}}>
     <group ref={walker}>
-      <group ref={body} rotation-y={face} scale={LOOK.explorer.scale} visible={!away}><Suspense fallback={null}><Explorer look={look}/></Suspense></group>
+      <group ref={body} rotation-y={face} scale={LOOK.explorer.scale} visible={!away}><Suspense fallback={null}><Explorer look={kitLook} kit={ROLE_KIT[id]}/></Suspense></group>
       {/* the harvest basket and the fruit in it */}
       <group ref={basket} visible={false}>
         <mesh castShadow><cylinderGeometry args={[0.2,0.15,0.18,12,1,true]}/><meshStandardMaterial color="#b08a5a" side={THREE.DoubleSide} roughness={0.9}/></mesh>
@@ -73,13 +76,31 @@ export function Villager({id,x,z,face,look,hl,talking,away=false,errand=null,onE
 // footprints from the player to where the next person is (the first walk's guide): a row of soft dots that light up
 // one after another toward the goal
 export function GuideTrail({from,to}:{from:React.MutableRefObject<THREE.Vector3>;to:{x:number;z:number}}){
-  const N=14,dots=useRef<(THREE.Mesh|null)[]>([]);
+  const N=22,dots=useRef<(THREE.Mesh|null)[]>([]);
   useFrame(({clock})=>{const p=from.current,dx=to.x-p.x,dz=to.z-p.z,d=Math.hypot(dx,dz),t=clock.elapsedTime;
     for(let i=0;i<N;i++){const m=dots.current[i];if(!m)continue;const k=(i+1)/(N+1);const x=p.x+dx*k,z=p.z+dz*k;
       m.visible=d>1.8&&k*d>0.9&&(1-k)*d>0.9;m.position.set(x,surfaceY(x,z)+0.04,z);m.rotation.set(-Math.PI/2,0,0);
-      (m.material as THREE.MeshBasicMaterial).opacity=0.25+0.6*Math.max(0,Math.sin(t*4-i*0.55))}});
-  return <>{Array.from({length:N},(_,i)=><mesh key={i} ref={m=>{dots.current[i]=m}}><circleGeometry args={[0.13,14]}/>
-    <meshBasicMaterial color="#ffe08a" transparent opacity={0.6} toneMapped={false} depthWrite={false}/></mesh>)}</>;
+      (m.material as THREE.MeshBasicMaterial).opacity=0.45+0.55*Math.max(0,Math.sin(t*4-i*0.55))}});
+  return <>{Array.from({length:N},(_,i)=><mesh key={i} ref={m=>{dots.current[i]=m}}><circleGeometry args={[0.22,16]}/>
+    <meshBasicMaterial color="#ffd04a" transparent opacity={0.8} toneMapped={false} depthWrite={false}/></mesh>)}</>;
+}
+
+// 피드백 2026-11-22 (튜토리얼 느낌): where the tutorial wants me to go. A warm light falls on that one place (a spot
+// from above, a soft beam and a ring that breathes), the rest of the village is dimmed (Scene3D), and the trail is bold
+export function LeadMark({to}:{to:{x:number;z:number}}){
+  const ring=useRef<THREE.Mesh>(null),beam=useRef<THREE.Mesh>(null),spot=useRef<THREE.SpotLight>(null);
+  const y=surfaceY(to.x,to.z);
+  useEffect(()=>{const l=spot.current;if(l){l.target.position.set(to.x,y,to.z);if(!l.target.parent)l.parent?.add(l.target);l.target.updateMatrixWorld()}},[to.x,to.z,y]);
+  useFrame(({clock})=>{const t=clock.elapsedTime,k=1+0.12*Math.sin(t*3);
+    if(ring.current){ring.current.scale.set(k,k,k);(ring.current.material as THREE.MeshBasicMaterial).opacity=0.55+0.3*Math.sin(t*3)}
+    if(beam.current)(beam.current.material as THREE.MeshBasicMaterial).opacity=0.16+0.06*Math.sin(t*2)});
+  return <group>
+    <spotLight ref={spot} position={[to.x,y+9,to.z]} angle={0.32} penumbra={0.6} intensity={140} distance={18} decay={1.6} color="#fff1c8" castShadow={false}/>
+    <mesh ref={beam} position={[to.x,y+3.2,to.z]}><cylinderGeometry args={[0.35,1.35,6.4,28,1,true]}/>
+      <meshBasicMaterial color="#fff3c4" transparent opacity={0.18} toneMapped={false} depthWrite={false} side={THREE.DoubleSide} blending={THREE.AdditiveBlending}/></mesh>
+    <mesh ref={ring} position={[to.x,y+0.05,to.z]} rotation-x={-Math.PI/2}><ringGeometry args={[1.05,1.35,40]}/>
+      <meshBasicMaterial color="#ffd75e" transparent opacity={0.7} toneMapped={false} depthWrite={false}/></mesh>
+  </group>;
 }
 
 // the big news board on the square: a wide board with papers pinned on it

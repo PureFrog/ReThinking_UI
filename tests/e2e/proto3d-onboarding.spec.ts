@@ -98,10 +98,10 @@ test("a capture fills the list (mock reader), and the track record edits it late
   const start = page.getByRole("dialog", { name: "내 종목 넣기" });
   await start.getByLabel("캡처 파일").setInputFiles({ name: "capture.png", mimeType: "image/png", buffer: Buffer.from([137, 80, 78, 71]) });
   const list = page.getByRole("dialog", { name: "종목 확인" });
-  await expect(list.getByLabel("1번 종목 이름")).toHaveValue("SK하이닉스", { timeout: 5_000 });
+  await expect(list.getByLabel("1번 종목 이름")).toHaveValue("클래시스", { timeout: 5_000 });
   await expect(list.getByLabel(/번 종목 이름$/)).toHaveCount(4);
   // drop one before planting
-  await list.getByRole("button", { name: "카카오 빼기" }).click();
+  await list.getByRole("button", { name: "하림 빼기" }).click();
   await list.getByRole("button", { name: "정원에 넣기 · 3종목" }).click();
   await expect.poll(() => treeCount(page), { timeout: 30_000 }).toBe(3);
   await skipBirth(page);
@@ -113,9 +113,9 @@ test("a capture fills the list (mock reader), and the track record edits it late
   await V.moreSheet(page);
   await page.getByRole("dialog", { name: "더보기" }).getByRole("button", { name: /^내 종목/ }).click();
   const edit = page.getByRole("dialog", { name: "종목 확인" });
-  await expect(edit.getByLabel("SK하이닉스 보유 기간")).toHaveCount(0); // a planted tree keeps its age
-  await edit.getByLabel("SK하이닉스 수익률").fill("-9");
-  await edit.getByRole("button", { name: "NAVER 빼기" }).click();
+  await expect(edit.getByLabel("클래시스 보유 기간")).toHaveCount(0); // a planted tree keeps its age
+  await edit.getByLabel("클래시스 수익률").fill("-9");
+  await edit.getByRole("button", { name: "네오위즈 빼기" }).click();
   await edit.getByRole("button", { name: "종목 추가" }).click();
   await edit.getByLabel("4번 종목 이름").fill("구름페이");
   await edit.getByRole("button", { name: "반영" }).click();
@@ -126,8 +126,8 @@ test("a capture fills the list (mock reader), and the track record edits it late
   await expect.poll(async () => (await births(page))?.active, { timeout: 5_000 }).toBe(false);
   await expect.poll(() => treeCount(page), { timeout: 30_000 }).toBe(3);
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("rethink-garden-v1")!).holdings as { name: string; rate: number }[]);
-  expect(saved.map(h => h.name).sort()).toEqual(["SK하이닉스", "구름페이", "현대차"]);
-  expect(saved.find(h => h.name === "SK하이닉스")!.rate).toBe(-9);
+  expect(saved.map(h => h.name).sort()).toEqual(["구름페이", "에이치엘비", "클래시스"]);
+  expect(saved.find(h => h.name === "클래시스")!.rate).toBe(-9);
   clean(errors);
 });
 
@@ -153,7 +153,7 @@ test("my holdings are born into the garden: each card flies to its plot, then a 
   await list.getByRole("button", { name: "정원에 넣기 · 4종목" }).click();
   // the first time is the long one: a card per holding with its name and return (checked first: a slow machine is slow)
   await expect(page.locator(".rt-birth-card")).toHaveCount(4);
-  await expect(page.locator(".rt-birth-card").filter({ hasText: "SK하이닉스" })).toContainText("%");
+  await expect(page.locator(".rt-birth-card").filter({ hasText: "클래시스" })).toContainText("%");
   expect(await births(page)).toMatchObject({ long: true, n: 4 });
   await skipBirth(page);
   await expect(page.locator(".rt-birth-card")).toHaveCount(0);
