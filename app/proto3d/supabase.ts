@@ -89,6 +89,16 @@ export async function friendTalk(ctx:FriendCtx,history:TalkLine[],message:string
     if(error||typeof data?.text!=='string')return '지금은 대답을 못 하겠어. 이따 다시 말 걸어 줘.';
     return data.text}catch{return '지금은 대답을 못 하겠어. 이따 다시 말 걸어 줘.'}}
 
+// 루온's stock debate (db/functions/debate-chat): throws when the server cannot answer, so core/debate-chat.ts falls
+// back to its placeholder lines
+import type {DebateCtx} from '../core/debate-chat';
+import type {ChatLine,ChatReply} from '../core/bori-chat';
+export async function debateTalk(ctx:DebateCtx,history:ChatLine[],message:string):Promise<ChatReply>{
+  const {data,error}=await supabase().functions.invoke('debate-chat',{body:{ctx,history,message}});
+  if(error||typeof data?.text!=='string')throw new Error('debate-chat');
+  return {text:data.text,emotion:'thinking'};
+}
+
 // 지기 LLM calls (db/functions/jigi-llm): null whenever the server cannot answer, so the caller keeps its rule-based text
 import type {Journal as JigiJournal} from '../core/jigi/journal';
 import type {Draft} from '../core/jigi/extract';

@@ -4,7 +4,7 @@
 var LLM_DEFAULT = "gpt-6-luna";
 var isReasoning = (model) => /^(gpt-[5-9]|o\d)/.test(model);
 function chatBody(model, messages, o) {
-  return isReasoning(model) ? { model, messages, max_completion_tokens: o.out * 4 + 400, reasoning_effort: o.effort ?? "low" } : { model, messages, max_tokens: o.out, ...o.temperature != null ? { temperature: o.temperature } : {} };
+  return isReasoning(model) ? { model, messages, max_completion_tokens: o.out * 4 + 400, reasoning_effort: !o.effort || o.effort === "minimal" ? "low" : o.effort } : { model, messages, max_tokens: o.out, ...o.temperature != null ? { temperature: o.temperature } : {} };
 }
 
 // app/core/friend.ts
@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     headers: { authorization: `Bearer ${openai}`, "content-type": "application/json" },
     body: JSON.stringify(chatBody(Deno.env.get("OPENAI_MODEL") ?? LLM_DEFAULT, friendPrompt(ctx, (history ?? []).filter((l) => l && typeof l.text === "string"), message), { out: 160, temperature: 0.8, effort: "minimal" }))
   });
-  if (!r.ok) return json({ error: "llm" }, 502);
+  if (!r.ok) return json({ error: "llm", status: r.status, detail: (await r.text().catch(() => "")).slice(0, 300) }, 502);
   const out = await r.json();
   return json({ text: friendSafe(out?.choices?.[0]?.message?.content ?? "") });
 });

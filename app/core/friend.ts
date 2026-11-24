@@ -66,6 +66,6 @@ export function friendPrompt(c:FriendCtx,history:TalkLine[],message:string):{rol
     {role:'user',content:message.slice(0,FRIEND_TALK.maxIn)}];
 }
 // an answer that slips into buy/sell or price calls is replaced, not shown
-const UNSAFE=/(^|\s)(사라|사 둬|사둬|사 봐|팔아|팔라|팔 때|살 때|물타기|풀매수|몰빵)|매수|매도|손절|익절|오를\s?거|오른다|오를 것|떨어질\s?거|떨어진다|떨어질 것|목표가|수익\s?보장/;
+export const UNSAFE=/(^|\s)(사라|사 둬|사둬|사 봐|팔아|팔라|팔 때|살 때|물타기|풀매수|몰빵)|매수|매도|손절|익절|오를\s?거|오른다|오를 것|떨어질\s?거|떨어진다|떨어질 것|목표가|수익\s?보장/;
 export const friendSafe=(text:string)=>{const t=text.trim().slice(0,160);
   return !t||UNSAFE.test(t)?'음, 그건 내가 말할 게 아니야. 분석가 노트 보고 네가 정해 봐.':t};

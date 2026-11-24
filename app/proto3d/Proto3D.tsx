@@ -28,8 +28,9 @@ import {nextStep} from '../core/next';
 import {Welcome} from './ui/Welcome';
 import {authRepo} from './server';
 import {boriChat} from '../core/bori-chat';
-import {debateChat} from '../core/debate-chat';
-import {missingConsents,boriTalk,boriOpen,jigiAI,readCapture,hasInvite,isMaster,observatoryServer,type BoriLine} from './supabase';
+import {debateChat,type DebateCtx} from '../core/debate-chat';
+import type {ChatLine} from '../core/bori-chat';
+import {missingConsents,boriTalk,boriOpen,debateTalk,jigiAI,readCapture,hasInvite,isMaster,observatoryServer,type BoriLine} from './supabase';
 import {searchNames,loadRealBars,loadMarket,loadVirtualBars,fixturePrices,type PriceFixture} from './prices';
 import {rowFor} from '../core/model-signals';
 import {loadModelSignals,fixtureModelSignals,type ModelSignalFixture} from './model-signals';
@@ -57,7 +58,7 @@ import {marketProvider} from '../content/market';
 import {signalProvider,lookbackNote} from '../content/signals';
 import {CASES} from '../content/cases';
 import {recheckCard} from '../content/recheck';
-import {ANALYSTS,UI,CURRENCY,line,type AnalystId} from '../content/analysts';
+import {ANALYSTS,UI,CURRENCY,MODEL_INFO,line,type AnalystId} from '../content/analysts';
 import {itemById} from '../content/garden-items';
 import Scene3D,{type World} from './Scene3D';
 import {LOOK} from './look';
@@ -423,6 +424,10 @@ export default function Proto3D(){
     h.openBrief=(signalId:string)=>{setPicked(null);setSheet({kind:'brief',start:{signalId}})}},[signals]);
   const open=signals.filter(x=>!wroteToday(x.holdingId));
   // 보리's stop-loss talk (db/functions/bori-talk): today's loss signals by company code
+  // 루온's debate (db/functions/debate-chat): the stock picked is the first line I said; 루온 gets only that tree's notes
+  const debateCtx=(history:ChatLine[]):DebateCtx=>{const n=history.find(l=>l.who==='me')?.text,h=n?holdings.find(x=>x.name===n):undefined;
+    return {hour:new Date().getHours(),stock:h?{name:h.name,code:h.code??null,real:!!h.real,rate:h.rate}:null,
+      notes:h?signals.filter(x=>x.holdingId===h.id).map(x=>`${MODEL_INFO[x.model]?.name??x.model}: ${x.headline}${x.evidence.length?` (${x.evidence.map(e=>`${e.k} ${e.v}`).join(', ')})`:''}`):[]}};
   // the stock pickers (보리, 루온) list real holdings first: only six fit
   const realFirst=useMemo(()=>[...holdings].sort((a,b)=>Number(!!b.real)-Number(!!a.real)),[holdings]);
   const boriHoldings=useMemo(()=>holdings.map(x=>({company_id:codeOf(x),name:x.name})),[holdings]);
@@ -1108,7 +1113,7 @@ export default function Proto3D(){
         talk={(history,m)=>boriChat(history,m,syncOn?(_h,msg)=>boriTalk(boriHoldings,msg):null)} opening={boriTalks?boriOpening:null} onFace={setBoriFace}
         onGo={()=>setSheet({kind:'journal',stock:askedAbout??undefined})} stocks={realFirst.map(x=>({id:x.id,name:x.name}))} onStock={openTree}/>}
       {sheet?.kind==='talk'&&(()=>{const w=VILLAGE_SPEAKERS[sheet.id];return <FriendSheet key={sheet.id} who={w} opener={sheet.id==='luon'?'…어느 종목 얘기할래? 고르면 네 이유부터 들어 볼게.':w.greet[clock.today.length%w.greet.length]} topic="chat" seed={clock.today}
-        talk={sheet.id==='luon'?(history,m)=>debateChat(history,m,null):null}
+        talk={sheet.id==='luon'?(history,m)=>debateChat(history,m,syncOn?(h,msg)=>debateTalk(debateCtx(h),h,msg):null):null}
         onClose={close} onGo={()=>setSheet({kind:'journal'})} stocks={realFirst.map(x=>({id:x.id,name:x.name}))} onStock={openTree}/>})()}
       {sheet?.kind==='drawer'&&<Drawer g={g} onClose={close} onCart={()=>setSheet({kind:'cart'})}/>}
       {sheet?.kind==='analyst'&&<AnalystCard g={g} id={sheet.id} signal={open.find(x=>x.analyst===sheet.id)??null} onClose={close}

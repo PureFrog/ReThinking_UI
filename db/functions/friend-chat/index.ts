@@ -32,7 +32,8 @@ Deno.serve(async(req:Request)=>{
   if(!(await take.json()))return json({text:'오늘은 수다 많이 떨었다! 내일 또 얘기하자.',limit:true});
   const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{authorization:`Bearer ${openai}`,'content-type':'application/json'},
     body:JSON.stringify(chatBody(Deno.env.get('OPENAI_MODEL')??LLM_DEFAULT,friendPrompt(ctx,(history??[]).filter(l=>l&&typeof l.text==='string'),message),{out:160,temperature:0.8,effort:'minimal'}))});
-  if(!r.ok)return json({error:'llm'},502);
+  // the model's own error message (no key in it), so a failure can be read in the response
+  if(!r.ok)return json({error:'llm',status:r.status,detail:(await r.text().catch(()=>'')).slice(0,300)},502);
   const out=await r.json();
   return json({text:friendSafe(out?.choices?.[0]?.message?.content??'')});
 });
