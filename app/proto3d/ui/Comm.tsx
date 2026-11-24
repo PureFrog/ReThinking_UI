@@ -78,7 +78,7 @@ export function Comm({acct,cands,lots,day,room,open,openNote,start='balance',onB
           <div><span>보유수량</span><span>평균단가</span><span>현재가</span></div>
         </div>
         {acct.lines.length?<ul className="mts-list" aria-label="보유 종목">{acct.lines.map(row)}</ul>:<p className="mts-hint">아직 종목이 없어요.</p>}
-        <p className="mts-foot">ReThink 연습 계좌입니다. 게임 코인으로만 주문하고 실제 계좌와 연결되지 않습니다. 시세·재무는 모의 값입니다. 투자 권유가 아닙니다.</p>
+        <p className="mts-foot">ReThink 연습 계좌입니다. 게임 코인으로만 주문하고 실제 계좌와 연결되지 않습니다. 시세는 실제 종목이면 한국거래소 종가, 그 밖은 모의 값이고 재무는 모의 값입니다. 투자 권유가 아닙니다.</p>
       </main>}
 
       {tab==='quote'&&<main className="mts-main" aria-label="현재가">
