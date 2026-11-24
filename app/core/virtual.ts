@@ -6,14 +6,15 @@
 // walk even after real closes come in, one bought on real closes waits for them (no price until they are loaded), so a
 // mock cost never meets a real price. The virtual stocks' real bars are kept here (setVirtualReal), apart from the
 // journals' bars (jigi/stocks.ts setReal), so loading them does not move a journal's chart or verdict.
-import {STOCKS,mockBars,isReal,bars,stockOf,type Bar} from './jigi/stocks';
+import {KOSDAQ_STOCKS,mockBars,isReal,bars,stockOf,type Bar} from './jigi/stocks';
 import type {Holding} from './model';
 
 export type Src='real'|'mock';
 export type VirtualLot={id:number;code:string;name:string;qty:number;cost:number/* 원 a share */;plot:number;day:string;src?:Src/* absent on lots from before 2026-11-23 */};
 // tree ids of virtual stocks stay apart from my holdings' ids
 export const VIRTUAL_ID=800000;
-export const VIRTUAL_STOCKS=STOCKS;
+// 피드백 2026-11-23 "코스피 종목이 나와": the virtual field trades the KOSDAQ120 list only
+export const VIRTUAL_STOCKS=KOSDAQ_STOCKS;
 const VREAL=new Map<string,Bar[]>();
 export function setVirtualReal(code:string,bs:Bar[]){if(bs.length)VREAL.set(code,bs)}
 const realBarsOf=(code:string)=>VREAL.get(code)??(isReal(code)?bars(code):null);

@@ -11,6 +11,7 @@ import {useGLTF} from '@react-three/drei';
 import * as THREE from 'three';
 import {soft} from './materials';
 import {MODELS} from './models';
+import {fixBoriPatch} from './Analyst3D';
 import {LOOK} from './look';
 import {still} from './still';
 
@@ -136,7 +137,7 @@ function Bori({point,paws,mood,onBori}:{point:Point;paws:Paws;mood:string;onBori
   const model=useMemo(()=>{const root=scene.clone(true);
     root.traverse(o=>{const m=o as THREE.Mesh;if(!m.isMesh)return;m.castShadow=true;const src=m.material as THREE.MeshStandardMaterial;
       m.material=src.name==='eye'||src.name==='frame'||src.name==='brow'?new THREE.MeshStandardMaterial({color:'#1d1f24',roughness:0.3}):soft('#'+src.color.getHexString(THREE.SRGBColorSpace))});
-    return root},[scene]);
+    return fixBoriPatch(root)},[scene]);
   const parts=useMemo(()=>({body:model.getObjectByName('body'),head:model.getObjectByName('head'),armR:model.getObjectByName('arm_r'),armL:model.getObjectByName('arm_l'),
     eyes:[model.getObjectByName('eye_l'),model.getObjectByName('eye_r')].filter(Boolean) as THREE.Object3D[]}),[model]);
   const rest=useMemo(()=>({r:parts.armR?.rotation.clone(),l:parts.armL?.rotation.clone(),eyeY:parts.eyes[0]?.scale.y??1}),[parts]);

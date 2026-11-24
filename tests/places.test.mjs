@@ -20,15 +20,19 @@ test('plots: eighteen open at first (9 a field) (more with land, core/land.ts), 
 
 test('walking: straight on one side, over the bridge to cross, never into the water, held at the edge', () => {
   assert.deepEqual(route({x: 0, z: 2}, {x: 4, z: -3}, noPond), [{x: 4, z: -3}]);
-  // across the stream: the near end of the bridge, the far end, then the tap
-  const r = route({x: 3, z: 4}, {x: -2, z: 19}, noPond);
-  assert.equal(r.length, 3);
-  assert.equal(r[0].x, BRIDGE.x);
-  assert.ok(!southOfStream(r[0].x, r[0].z) && southOfStream(r[1].x, r[1].z));
-  assert.deepEqual(r[2], {x: -2, z: 19});
+  // across the stream: straight onto the bridge's near end, over to the far end, straight off, then the tap
+  // (피드백 2026-11-24 "다리가 통과돼": never across a rail)
+  const r = route({x: 3, z: 4}, {x: -2, z: 22}, noPond);
+  assert.equal(r.length, 5);
+  for (const q of r.slice(0, 4)) assert.equal(q.x, BRIDGE.x);
+  assert.ok(!southOfStream(r[1].x, r[1].z) && southOfStream(r[2].x, r[2].z));
+  assert.deepEqual(r[4], {x: -2, z: 22});
   // and back again
-  const back = route({x: -2, z: 19}, {x: 0, z: 0}, noPond);
-  assert.ok(southOfStream(back[0].x, back[0].z) && !southOfStream(back[1].x, back[1].z));
+  const back = route({x: -2, z: 22}, {x: 0, z: 0}, noPond);
+  assert.ok(southOfStream(back[1].x, back[1].z) && !southOfStream(back[2].x, back[2].z));
+  // beside the bridge, inside its length: first a step straight out, then onto it
+  const mid = streamZ(BRIDGE.x), side = route({x: BRIDGE.x + 2, z: mid - 1.5}, {x: -2, z: 22}, noPond);
+  assert.equal(side[0].x, BRIDGE.x + 2);assert.ok(Math.abs(side[0].z - mid) > BRIDGE.half);
   // the water itself, or a pond, cannot be walked into
   assert.equal(route({x: 0, z: 0}, {x: 8, z: streamZ(8)}, noPond), null);
   assert.equal(route({x: 0, z: 0}, {x: 1, z: 1}, () => true), null);

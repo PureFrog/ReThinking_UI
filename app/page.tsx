@@ -10,6 +10,8 @@ import './proto3d/glass.css';
 import './proto3d/jigi.css';
 import './proto3d/build.css';
 import './proto3d/house.css';
+import './proto3d/study.css';
+import './proto3d/arcade.css';
 export default function Page(){
   const [mounted,setMounted]=useState(false);
   useEffect(()=>setMounted(true),[]);

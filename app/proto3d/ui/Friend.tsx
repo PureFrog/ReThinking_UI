@@ -15,7 +15,7 @@ type Line={text:string;emotion?:string;at?:string};
 type Choice={label:string;answer?:string;go?:'grades'|'journal'|'case'|null;talk?:boolean;leave?:boolean;stocks?:boolean;stock?:number};
 // 9-5: 토리·모아·루온 talk too, each in its own voice: small talk or one of my holdings (no free talk)
 export type Speaker={id:string;name:string;smalls:string[];stockLine:(name:string)=>string};
-const LATER='그래, 생각나면 불러.';
+const LATER='응, 괜찮아. 생각나면 그때 말해 줘.';
 
 // onFace: the face of the line on screen (보리's model wears it, Analyst3D); the server sends one with every line
 export function FriendSheet({opener,topic,seed,onGo,onClose,talk,opening,onFace,who,stocks=[],onStock,pickFirst,onPickTalk}:{opener:string;topic:FriendTopic;seed:string;onGo:(to:'grades'|'journal'|'case')=>void;onClose:()=>void;
@@ -61,9 +61,10 @@ export function FriendSheet({opener,topic,seed,onGo,onClose,talk,opening,onFace,
     if(c.stock!==undefined&&who&&talk&&onPickTalk){const id=c.stock,n=c.label;setPicking(false);setMode('type');setHistory(h=>[...h,{who:'me',text:n}]);setBusy(true);setFace('thinking');
       void onPickTalk(id,n).then(l=>{setBusy(false);if(l)say(l.text,l.emotion??'curious',l.at??null);else say(`${n}? 좋아. 왜 갖고 있는지 한 줄로 말해 줘. 반대로 볼 근거를 같이 찾아볼게.`,'curious')});return}
     if(c.stock!==undefined&&who&&talk){const n=c.label;setPicking(false);setMode('type');say(`${n}? 좋아. 왜 갖고 있는지 한 줄로 말해 줘. 반대로 볼 근거를 같이 찾아볼게.`,'curious');setHistory(h=>[...h,{who:'me',text:n}]);return}
-    if(c.stock!==undefined){const id=c.stock,n=c.label;setMode('leaving');say(who?who.stockLine(n):`${n} 나무로 가자. 수첩 펼쳐 줄게.`,'happy');setTimeout(()=>onStock?.(id),TIMING.talkGo+300);return}
+    if(c.stock!==undefined){const id=c.stock,n=c.label;setMode('leaving');say(who?who.stockLine(n):`${n} 나무로 가자.`,'happy');setTimeout(()=>onStock?.(id),TIMING.talkGo+300);return}
     if(c.leave){setMode('leaving');say(LATER,'happy');setTimeout(onClose,TIMING.talkLeave);return}
-    if(c.talk&&stopLoss&&!talk){setMode('leaving');say('그 종목 수첩 펼쳐 줄게. 거기에 적어 보자.','happy');setTimeout(()=>onGo('journal'),TIMING.talkGo);return}
+    // v3 npc_bori: the signal talk is not sent to the library; with no free talk yet, 보리 points to 루온 and lets it be
+    if(c.talk&&stopLoss&&!talk){setMode('leaving');say('그렇구나. 지금 바로 답 안 해도 돼. 더 따져 보고 싶으면 광장에 루온 있어.','neutral');setTimeout(onClose,TIMING.talkLeave+400);return}
     if(c.talk){setMode('type');if(!stopLoss)say('응, 뭐든 말해 봐.','curious');return}
     setHistory(h=>[...h,{who:'me',text:c.label}]);if(c.answer)say(c.answer,c.go?'happy':'playful');setMode('leaving');
     const to=c.go;setTimeout(()=>{if(to)onGo(to);else onClose()},to?TIMING.talkGo:TIMING.talkLeave+400)};

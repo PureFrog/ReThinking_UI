@@ -48,6 +48,7 @@ import {settle} from '../core/game/daily/settle';
 import {completionGrants,newGrants,type Grant} from '../core/game/daily/rewards';
 import {packById,packOfDay} from '../content/daily/packs';
 import {SAMPLE_REQUEST} from '../content/daily/request';
+import {addCoins,type CoinLog} from '../core/coinlog';
 
 export type Owned={uid:string;itemId:string;got:string;slot:string|null};
 // settings (ui/Settings.tsx): effect volume, keeping still, text size, tilt
@@ -57,7 +58,7 @@ export const DEFAULT_SETTINGS:Settings={sfx:0.7,still:false,text:'m',tilt:true,s
 // seen: how many times each long scene was played (docs/brief-wow.md: long the first time, short after)
 export type Seen={birth:number;cutaway:number;bury:number};
 // name, look: the player's observer (ui/MyPage.tsx) · stamps: achievements and the day each was earned · wardrobe: pieces bought
-export type GardenSave={v:1;example?:boolean/* the example garden (예시 정원으로 시작): its real field holds example stocks until I put in my own */;wonV?:1/* coins counted in 원 (core/won.ts) */;virtual?:VirtualLot[]/* 가상 종목 밭 (core/virtual.ts) */;grants?:string[]/* one-off coin gifts already given (the tutorial's start money) */;holdings:Holding[];onboarded:boolean;lookedBack:boolean;sound:boolean;seen:Seen;name:string;look:Look;stamps:{id:StampId;day:string}[];wardrobe:string[];tips:string[];settings:Settings;letters:string[];weeksDone:string[];rewinds:RewindRound[];daysDone:string[];rankSeen:number;judgments:Judgment[];graded:Graded[];cooldowns:Cooldown[];cases:CaseAnswer[];streak:Streak;currency:number;
+export type GardenSave={v:1;example?:boolean/* the example garden (예시 정원으로 시작): its real field holds example stocks until I put in my own */;wonV?:1/* coins counted in 원 (core/won.ts) */;virtual?:VirtualLot[]/* 가상 종목 밭 (core/virtual.ts) */;grants?:string[]/* one-off coin gifts already given (the tutorial's start money) */;coinLog?:CoinLog/* coins earned each day (core/coinlog.ts) */;quizPaid?:{day:string;coins:number}/* the day's quiz coins already paid (core/desk.ts quizCoins) */;holdings:Holding[];onboarded:boolean;lookedBack:boolean;sound:boolean;seen:Seen;name:string;look:Look;stamps:{id:StampId;day:string}[];wardrobe:string[];tips:string[];settings:Settings;letters:string[];weeksDone:string[];rewinds:RewindRound[];daysDone:string[];rankSeen:number;judgments:Judgment[];graded:Graded[];cooldowns:Cooldown[];cases:CaseAnswer[];streak:Streak;currency:number;
   trust:Record<AnalystId,Relation>;owned:Owned[];gifted:AnalystId[];bought:{itemId:string;day:string}[];
   // 관측소 원정 runs (core/game/run.ts): the 판, its decisions and score; the latest of a 판 is the next run's ghost
   expeditions:RunRecord[];
@@ -124,6 +125,9 @@ function loadSave(today:string):GardenSave{
   try{
     const q=new URLSearchParams(location.search);
     // ?demo&tour: the demo garden before the village tour (e2e)
+    // ?play (튜토리얼없이_보기.bat, 2026-11-24): a fresh visit starts as the demo garden with the first walk done (what is
+    // done after that is kept, as any save)
+    if(q.has('play')&&!localStorage.getItem(SAVE_KEY))return demoSave(today);
     if(q.has('demo')){const d=demoSave(today);return q.has('tour')?{...d,tips:d.tips.filter(t=>t!=='tour')}:d}
     if(isEmbed()){const raw=localStorage.getItem(EMBED_KEY);const e=raw?JSON.parse(raw):null;return e?.v===1?{...embedSave(),...e}:embedSave()}
     if(q.has('reset'))localStorage.removeItem(SAVE_KEY);
@@ -141,7 +145,11 @@ export function useGarden(){
   const [s,setState]=useState<GardenSave>(()=>loadSave(c.today));
   // every action reads the latest save and writes the next one at once, so it can return what happened
   const cur=useRef(s);
-  const setS=useCallback((fn:(p:GardenSave)=>GardenSave)=>{const next=fn(cur.current);if(next!==cur.current){cur.current=next;setState(next)}},[]);
+  // a gain of coins is written into the day's coin log (core/coinlog.ts) — not the master top-up or an adopted save (noLog)
+  const noLog=useRef(false);
+  const setS=useCallback((fn:(p:GardenSave)=>GardenSave)=>{let next=fn(cur.current);if(next!==cur.current){
+    const gain=next.currency-cur.current.currency;if(gain>0&&!noLog.current)next={...next,coinLog:addCoins(next.coinLog,c.today,gain)};
+    cur.current=next;setState(next)}},[]);// eslint-disable-line react-hooks/exhaustive-deps
   const [toast,setToast]=useState<Toast|null>(null);
   // when it was last changed goes with it (proto3d/sync.ts compares it with the server's copy); opening is not a change
   const first=useRef(true);
@@ -282,11 +290,11 @@ export function useGarden(){
     setSound(on:boolean){setS(p=>({...p,sound:on}))},
     setName(name:string){setS(p=>({...p,name}))},
     // master account (db/migrations/008_master.sql): coins never run short while testing
-    masterCoins(){setS(p=>p.currency>=MASTER.coins?p:{...p,currency:MASTER.coins})},
+    masterCoins(){noLog.current=true;setS(p=>p.currency>=MASTER.coins?p:{...p,currency:MASTER.coins});noLog.current=false},
     setSettings(settings:Settings){setS(p=>({...p,settings}))},
     // start over: the save goes and the page opens on the onboarding
     // the server's copy won on sign-in (core/sync.ts): it replaces this device's garden as it is
-    adopt(save:GardenSave){setS(()=>{const m={...blankSave(),...save};return save.wonV===1?m:{...m,wonV:1,currency:Math.round((Number(save.currency)||0)*WON)}})},
+    adopt(save:GardenSave){noLog.current=true;setS(()=>{const m={...blankSave(),...save};return save.wonV===1?m:{...m,wonV:1,currency:Math.round((Number(save.currency)||0)*WON)}});noLog.current=false},
     wipe(){try{localStorage.removeItem(saveKey());localStorage.removeItem('rethink-garden-at')}catch{}location.replace(location.pathname+'?reset')},
     // this week's three goals done (core/weekly.ts): paid once a week
     closeWeek(start:string){let paid=false;setS(p=>{if(p.weeksDone.includes(start))return p;paid=true;return {...p,weeksDone:[...p.weeksDone.slice(-30),start],currency:p.currency+EARN.weekDone}});
@@ -321,6 +329,9 @@ export function useGarden(){
       if(paid>0)say(`수레 정산: 코인 ${won(paid)}이 들어왔어요`);return paid},
     // a one-off gift of coins (the tutorial's start money): given once per tag
     grant(tag:string,amount:number){let given=false;setS(p=>{if((p.grants??[]).includes(tag))return p;given=true;return {...p,currency:p.currency+amount,grants:[...(p.grants??[]),tag]}});return given},
+    // the day's quiz coins (core/desk.ts quizCoins): only what is new since the last pay
+    quizPay(day:string,total:number){let paid=0;setS(p=>{const had=p.quizPaid?.day===day?p.quizPaid.coins:0;if(total<=had)return p;paid=total-had;
+      return {...p,currency:p.currency+paid,quizPaid:{day,coins:total}}});return paid},
     buyWear(id:string,price:number){let ok=false;setS(p=>{if(p.wardrobe.includes(id)||p.currency<price)return p;ok=true;return {...p,currency:p.currency-price,wardrobe:[...p.wardrobe,id]}});return ok},
     // stamps newly earned (core/stamps.ts newStamps): kept with today's date, said once
     stamp(ids:StampId[]){if(!ids.length)return;setS(p=>({...p,stamps:[...p.stamps,...ids.filter(i=>!p.stamps.some(x=>x.id===i)).map(id=>({id,day:c.today}))]}));say(line(UI.stamped,{name:ids.map(i=>stampById(i).name).join(', ')}))},
@@ -375,7 +386,7 @@ export function useGarden(){
       setS(p=>{const r=land(p.fishing,id,size);res=r;return {...p,fishing:r.fishing,currency:p.currency+r.coins}});
       return res as ReturnType<typeof land>|null},
     unplant(id:string){setS(p=>({...p,plants:removePlant(p.plants??[],id)}))},
-    build(w:Want){let res:ReturnType<typeof spend>|null=null;setS(p=>{const r=spend(p.built??BUILT0,p.currency,w);res=r;return r.ok?{...p,built:r.built,currency:r.coins}:p});
+    build(w:Want,spot?:[number,number]){let res:ReturnType<typeof spend>|null=null;setS(p=>{const r=spend(p.built??BUILT0,p.currency,w,spot);res=r;return r.ok?{...p,built:r.built,currency:r.coins}:p});
       const r=res as ReturnType<typeof spend>|null;if(!r)return false;
       const name=w.kind==='land'?LANDS.find(l=>l.id===w.id)?.name:w.kind==='building'?BUILDINGS.find(b=>b.id===w.id)?.name:CITIES.find(x=>x.id===w.id)?.landmark;
       if(r.ok)say(w.kind==='land'?`${name} · 새 나무 자리 ${LANDS.find(l=>l.id===w.id)!.plots.length}칸이 생겼어요`:w.kind==='building'?`${name} · 다 지었어요`:`${name} · 정원 가장자리에 세웠어요`);

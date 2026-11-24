@@ -10,6 +10,7 @@ export function hoverWords(name:string,tree:(id:number)=>{name:string;virtual?:b
   if(name.startsWith('signpost'))return {title:'표지판',sub:'마을 지도를 펼쳐요'};
   if(name==='observatory')return {title:'퀘스트 게시판',sub:'오늘과 이번 주에 할 일, 마치면 코인'};
   if(name==='plaza')return {title:'광장',sub:'다른 사람 마을을 구경해요'};
+  if(name==='arcade')return {title:'오락실',sub:'들어가서 닌자 게임 한 판'};
   if(name==='library')return {title:'도서관',sub:'사서한테 투자일지 쓰기'};
   if(name==='shop-builder')return {title:'건물 상점',sub:'꽃·나무·건물 사기'};
   if(name==='shop-tailor')return {title:'옷 가게',sub:'옷 사기'};

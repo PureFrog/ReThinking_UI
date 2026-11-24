@@ -27,7 +27,7 @@ const NEIGHBOURS:[string,string,string,string][]=[
   ['현금비중','애널리스트','손절 검토 위주','#4d4a8a'],['추세선','주니어 애널리스트','고르게','#9c6c12'],['분기노트','수석 애널리스트','홀드 위주','#1e6b4a'],['오후3시','시니어 애널리스트','지켜봄 위주','#6a5aa8'],
 ];
 const SECTORS=['반도체 장비','2차전지 소재','게임','바이오','조선','화장품','유통','통신','건설','철강','은행','보험','미디어','엔터','자동차 부품','음식료'];
-const NAMES=['한빛유통','청솔텔레콤','바위건설','POSCO홀딩스','SK하이닉스','NAVER'];
+const NAMES=['한빛유통','청솔텔레콤','바위건설','하림','클래시스','네오위즈'];
 const CONDS:Condition[]=['bloom','well','well','dull','wilt','rot'];
 export function examplePlanets(week:string):Planet[]{
   let h=0;for(const ch of week)h=(h*31+ch.charCodeAt(0))>>>0;const rnd=()=>{h=(h*1103515245+12345)>>>0;return h/4294967296};

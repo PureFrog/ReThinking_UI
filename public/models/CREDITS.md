@@ -10,3 +10,11 @@ Where each model, font and picture comes from (CLAUDE.md: 출처는 public/model
 ## Decor flowers and trees (public/models/decor)
 
 - 사과·귤·레몬·벚나무·목련 trees, 수국·해바라기·튤립 beds, and their shop pictures: made in Blender by `tools/blender/kind_trees.py` (on the holding-tree builder, `tools/blender/holding_tree.py`). Original work for this project. Sold in the 꽃집 (`app/content/flower-shop.ts`).
+
+## Buildings (public/models/buildings)
+
+- `master_house.glb` — 거장의 집 (the master's head as a house): made by a team member with Tripo (2026-11-23), simplified for the web with gltf-transform (weld, simplify to about 8% of the faces, texture resized to 1024). Shown in the village (`app/proto3d/World3D.tsx` MasterHouse).
+
+## 오락실 (2026-11-24)
+- `arcade/arcade.glb`: 팀원이 만든 오락실 모델(Tripo로 생성, 원본 15.7MB). gltf-transform으로 줄임: weld → simplify(약 478k → 24k 삼각형) → 텍스처 1024 → quantize. 결과 0.6MB.
+- 닌자 게임 `public/arcade/ninja/index.html`: 팀원 프로토타입(INVEST_GAME_2 prototype v0.2)을 우리 UI 색·글꼴로 바꾼 것. 보리 얼굴은 `models/analysts/faces/bori.png`.

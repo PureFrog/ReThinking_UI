@@ -9,9 +9,16 @@ import {LOOK} from '../look';
 
 export function TreeTags({items,onPick}:{items:{id:number;name:string;virtual?:boolean}[];onPick:(id:number)=>void}){
   const refs=useRef(new Map<number,HTMLButtonElement>());
+  // 피드백 2026-11-24 "웹일 때 마우스 커서 가져다 대도 뜨게": the tree under the mouse (Scene3D's 'rt-hover') shows its tag
+  // too, however far I stand, and keeps it a moment after the mouse moves off
+  const hovered=useRef<{id:number;until:number}|null>(null);
+  useEffect(()=>{const on=(e:Event)=>{const d=(e as CustomEvent<{name:string}|null>).detail,m=d?/^tree-(\d+)$/.exec(d.name):null;
+      if(m)hovered.current={id:Number(m[1]),until:Infinity};else if(hovered.current&&hovered.current.until===Infinity)hovered.current={...hovered.current,until:performance.now()+700}};
+    window.addEventListener('rt-hover',on);return()=>window.removeEventListener('rt-hover',on)},[]);
   useEffect(()=>{let raf=0;const tick=()=>{
       const near=[...refs.current.keys()].map(id=>({id,p:screenPoints.get('treefoot-'+id)})).filter(x=>x.p&&x.p.visible&&x.p.y>=60&&(x.p.d??99)<=LOOK.treeTag.near)
         .sort((a,b)=>(a.p!.d??99)-(b.p!.d??99)).slice(0,LOOK.treeTag.most).map(x=>x.id);
+      const hv=hovered.current;if(hv&&performance.now()<hv.until){if(screenPoints.get('treefoot-'+hv.id)?.visible&&!near.includes(hv.id))near.push(hv.id)}else hovered.current=null;
       for(const [id,el] of refs.current){const p=screenPoints.get('treefoot-'+id);
         if(!p||!near.includes(id)){el.style.visibility='hidden';continue}el.style.visibility='visible';el.style.transform=`translate(${p.x}px,${p.y}px) translate(-50%,-100%)`}
     raf=requestAnimationFrame(tick)};tick();return()=>cancelAnimationFrame(raf)},[]);

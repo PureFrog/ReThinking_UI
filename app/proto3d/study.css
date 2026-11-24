@@ -1,0 +1,126 @@
+/* 거장의 집 · 버핏의 서재 (ui/MasterStudy.tsx, buffett_house_ui.md) */
+.ms{position:fixed;inset:0;z-index:9;background:#ddcfb2;color:#2a2219;font-size:14px;font-family:'Gowun Dodum',var(--rt-font,sans-serif)}
+.ms-canvas{position:absolute!important;inset:0}
+/* while in the study the village draws nothing over it (sheets and the toast still show) */
+.proto3d[data-place=master]>:not(.ms):not(.rt-sheet):not(.rt-toast):not(.rt-room-fade){display:none!important}
+.ms-top{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));left:16px;right:16px;display:flex;align-items:center;gap:10px;z-index:30;pointer-events:none}
+.ms-top>*{pointer-events:auto}
+.ms-door,.ms-btn{min-height:44px;padding:0 16px;border-radius:999px;border:1px solid #fff9;background:#fffbf2e8;color:#3b2c20;font:600 14px/1 inherit;box-shadow:0 6px 16px -8px #3b2c2080;cursor:pointer}
+.ms-btn.primary{background:#6b3a2a;color:#fff6e6;border-color:#6b3a2a}
+.ms-btn:disabled{opacity:.45;cursor:default}
+.ms-title{flex:1;font:700 15px 'Gowun Batang',serif;color:#3b2c20;text-shadow:0 1px 0 #fff8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ms-coins{padding:10px 14px;border-radius:999px;background:#fffbf2e8;font-weight:700;white-space:nowrap;box-shadow:0 6px 16px -8px #3b2c2080}
+.ms-coins.got{animation:ms-pop .5s ease-out .55s both}
+@keyframes ms-pop{40%{transform:scale(1.15);background:#ffe9a8}}
+.ms-coin-fly{position:absolute;z-index:40;left:50%;top:55%;width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffe9a0,#d8a52a);color:#7a5410;font-weight:800;display:grid;place-items:center;
+  animation:ms-fly .75s cubic-bezier(.5,0,.3,1) forwards;pointer-events:none}
+@keyframes ms-fly{to{left:calc(100% - 70px);top:28px;transform:scale(.6);opacity:.2}}
+.ms-hint{position:absolute;left:16px;top:calc(68px + env(safe-area-inset-top,0px));z-index:20;margin:0;padding:8px 14px;border-radius:12px;background:#2a2219d9;color:#fff6e6;font-size:13px;pointer-events:none;animation:ms-bob 1.6s ease-in-out infinite}
+@keyframes ms-bob{50%{transform:translateY(-3px)}}
+.ms-room{position:absolute;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:20}
+.ms-keys{position:absolute;left:16px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:20;display:flex;gap:8px}
+.ms-keys button{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;padding:0}
+.ms-keys button:focus-visible{position:static;width:auto;height:44px;clip:auto;padding:0 16px;border-radius:999px;background:#fffbf2;border:2px solid #6b3a2a;color:#3b2c20;font:600 14px inherit}
+
+/* 3D labels */
+.ms-label{min-width:150px;max-width:220px;padding:8px 12px 9px;border-radius:12px;background:#fffbf2f2;box-shadow:0 10px 24px -10px #2a221999;display:flex;flex-direction:column;gap:2px;text-align:center;
+  transform:translateY(-50%);word-break:keep-all;pointer-events:auto}
+.ms-label small{color:#8a6a4a;font-size:12px}
+.ms-label b{font:700 14px/1.35 'Gowun Batang',serif;color:#2a2219}
+.ms-label em{font-style:normal;font-size:12px;color:#6b3a2a}
+.ms-take{margin-top:6px;min-height:40px;border-radius:999px;border:0;background:#6b3a2a;color:#fff6e6;font:600 13px inherit}
+.ms-bubble{padding:7px 12px;border-radius:14px;background:#fffbf2;color:#6b3a2a;font-weight:700;white-space:nowrap;box-shadow:0 8px 18px -8px #2a2219aa;animation:ms-bob 1.6s ease-in-out infinite;pointer-events:none}
+.ms-tag{padding:5px 10px;border-radius:999px;background:#2a2219d9;color:#fff6e6;font-size:12px;white-space:nowrap;pointer-events:none}
+
+/* the open book */
+.ms-read{position:absolute;inset:0;z-index:35;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#1f1812a8;backdrop-filter:blur(3px);outline:none;touch-action:pan-y}
+.ms-read-top{width:min(calc(var(--bw,100%)),calc(100% - 32px));display:flex;align-items:center;gap:12px;color:#fff6e6;font:700 15px/1.3 'Gowun Batang',serif}
+.ms-read-top span{flex:1;min-width:0;word-break:keep-all}
+.ms-read.wide .ms-read-top{width:min(900px,calc(100% - 80px))}
+.ms-close{min-height:44px;padding:0 16px;border-radius:999px;border:0;background:#fff6e6;color:#3b2c20;font:600 14px inherit;cursor:pointer;flex:none}
+.ms-read-hint{margin:0;color:#fff6e6b0;font-size:12px}
+.ms-book{position:relative;width:calc(var(--pw) * 2);height:var(--ph);perspective:1800px;filter:drop-shadow(0 24px 30px #0008)}
+.ms-read.narrow .ms-book{width:var(--pw)}
+.ms-page{position:absolute;top:0;width:var(--pw);height:100%;background:#fbf5e6;background-image:linear-gradient(90deg,#0000 92%,#00000010),repeating-linear-gradient(0deg,#0000 0 3px,#a08a5a06 3px 4px);box-sizing:border-box}
+.ms-page.left{left:0;border-radius:10px 0 0 10px;background-image:linear-gradient(270deg,#0000 90%,#0000001a)}
+.ms-page.right{left:var(--pw);border-radius:0 10px 10px 0;background-image:linear-gradient(90deg,#0000001a,#0000 10%)}
+.ms-read.narrow .ms-page.right{left:0;border-radius:10px}
+.ms-page-body{position:absolute;inset:0;padding:42px 32px 52px;font:400 15px/1.8 'Gowun Batang',serif;color:#2a2219;word-break:keep-all;overflow:hidden}
+.ms-page-body p{margin:0 0 12px}
+.ms-sec{margin:4px 0 10px;font:700 16px 'Gowun Batang',serif;color:#6b3a2a}
+.ms-pno{position:absolute;bottom:18px;font-size:12px;color:#8a7a5a}
+.ms-page.left .ms-pno{left:28px}.ms-page.right .ms-pno,.ms-face .ms-pno{right:28px}
+.ms-end{margin-top:18px;padding-top:12px;border-top:1px solid #d9c9a0;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.ms-end small{color:#8a7a5a;font-size:12px}
+.ms-finish{min-height:44px;padding:0 18px;border-radius:999px;border:0;background:#6b3a2a;color:#fff6e6;font:700 14px inherit;cursor:pointer}
+.ms-leaf{position:absolute;top:0;width:var(--pw);height:100%;transform-style:preserve-3d;z-index:3}
+.ms-leaf.fwd{left:var(--pw);transform-origin:left center;animation:ms-leaf-f var(--leaf) ease-in-out forwards}
+.ms-read.narrow .ms-leaf.fwd{left:0}
+.ms-leaf.bwd{left:0;transform-origin:right center;animation:ms-leaf-b var(--leaf) ease-in-out forwards}
+.ms-leaf.bwd.one{transform-origin:left center;animation:ms-leaf-in var(--leaf) ease-in-out forwards}
+@keyframes ms-leaf-f{to{transform:rotateY(-180deg)}}
+@keyframes ms-leaf-b{to{transform:rotateY(180deg)}}
+@keyframes ms-leaf-in{from{transform:rotateY(-180deg)}to{transform:rotateY(0)}}
+.ms-face{position:absolute!important;left:0!important;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:0 10px 10px 0;box-shadow:inset 0 0 30px #0000000d}
+.ms-face.back{transform:rotateY(180deg);border-radius:10px 0 0 10px}
+.ms-cover{position:absolute;top:-6px;left:var(--pw);width:calc(var(--pw) + 6px);height:calc(100% + 12px);border-radius:4px 12px 12px 4px;background:#6b3a2a;color:#f2d896;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:24px;box-sizing:border-box;transform-origin:left center;
+  backface-visibility:hidden;z-index:5;font:700 20px/1.4 'Gowun Batang',serif;border:3px double #e0c070;pointer-events:none}
+.ms-cover b{font-size:15px}
+.ms-read.narrow .ms-cover{left:0}
+.ms-book[data-phase=opening] .ms-cover{animation:ms-cover-open var(--open) ease-in-out forwards}
+.ms-book[data-phase=closing] .ms-cover{animation:ms-cover-open var(--open) ease-in-out reverse forwards}
+.ms-book[data-phase=open] .ms-cover{display:none}
+@keyframes ms-cover-open{from{transform:rotateY(0)}to{transform:rotateY(-180deg)}}
+.ms-turn{position:absolute;bottom:0;width:56px;height:96px;border:0;background:none;cursor:pointer;z-index:6}
+.ms-turn.prev{left:0;border-radius:0 0 0 10px;background:linear-gradient(45deg,#d9c9a0 0 22%,#0000 22%)}
+.ms-turn.next{right:0;border-radius:0 0 10px 0;background:linear-gradient(-45deg,#d9c9a0 0 22%,#0000 22%)}
+.ms-turn:hover:not(:disabled){filter:brightness(.92)}
+.ms-turn:disabled{opacity:0;cursor:default}
+
+/* Buffett's talk and quiz: beside him on a wide screen, under his face on a phone */
+.ms-talk .rt-talk-box{left:4vw;right:auto;width:min(440px,46vw);bottom:12vh;transform:none;translate:none}
+.ms-talk .rt-talk-choices{left:4vw;right:auto;bottom:calc(12vh + 160px);align-items:flex-start}
+.ms-quiz,.ms-list{position:absolute;z-index:32;left:4vw;top:50%;transform:translateY(-50%);width:min(460px,46vw);max-height:calc(100% - 120px);overflow:auto;
+  background:#fffbf2f5;border-radius:20px;padding:20px 22px;box-shadow:0 24px 50px -20px #2a2219aa;display:flex;flex-direction:column;gap:14px;box-sizing:border-box}
+.ms-q-head{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.ms-q-head b{font:700 15px/1.4 'Gowun Batang',serif;color:#6b3a2a;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:keep-all}
+.ms-q-head span{flex:none;font-weight:700;color:#8a6a4a}
+.ms-q{margin:0;font-size:17px;line-height:1.55;font-weight:600;word-break:keep-all}
+.ms-opts{display:flex;flex-direction:column;gap:8px}
+.ms-opt{display:flex;gap:10px;align-items:center;min-height:46px;padding:8px 14px;border-radius:12px;border:1.5px solid #e2d4b4;background:#fff;text-align:left;font:500 15px inherit;color:#2a2219;cursor:pointer;word-break:keep-all}
+.ms-opt span{flex:none;width:24px;height:24px;border-radius:50%;background:#f0e6d0;display:grid;place-items:center;font-size:12px;font-weight:700}
+.ms-opt.on{border-color:#6b3a2a;background:#fbf1e2}
+.ms-opt.right{border-color:#3e8a4a;background:#eaf6ea}
+.ms-opt.wrong{border-color:#b8372b;background:#fbeaea}
+.ms-opt:disabled{cursor:default;opacity:1;color:#2a2219}
+.ms-word{display:flex;flex-direction:column;gap:6px}
+.ms-word input{min-height:48px;padding:0 14px;border-radius:12px;border:1.5px solid #d9c9a0;font:600 17px inherit;background:#fff}
+.ms-word small{color:#8a7a5a}
+.ms-why{padding:12px 14px;border-radius:12px;background:#f4efe2}
+.ms-why.ok b{color:#2f7a3c}.ms-why.no b{color:#b8372b}
+.ms-why p{margin:6px 0 0;line-height:1.55}
+.ms-q-acts{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.ms-result{display:flex;flex-direction:column;gap:8px;padding:8px 0}
+.ms-score{margin:0;font-size:18px}
+.ms-coin-got{margin:0;font-size:16px;color:#7a5410}
+.ms-coin-old,.ms-coin-wait{margin:0;color:#8a7a5a}
+.ms-list-row{display:grid;grid-template-columns:32px 1fr;gap:2px 10px;align-items:center;min-height:52px;padding:8px 12px;border-radius:12px;border:1.5px solid #e2d4b4;background:#fff;text-align:left;cursor:pointer;font:inherit;color:inherit}
+.ms-list-row span{grid-row:span 2;font-weight:700;color:#8a6a4a}
+.ms-list-row b{font:700 14px/1.35 'Gowun Batang',serif;word-break:keep-all}
+.ms-list-row em{font-style:normal;font-size:12px;color:#6b3a2a}
+@media (max-width:759px){
+  .ms-title{font-size:13px}
+  .ms-talk .rt-talk-box{left:14px;right:14px;width:auto;bottom:calc(22px + env(safe-area-inset-bottom,0px))}
+  .ms-talk .rt-talk-choices{left:auto;right:14px;bottom:calc(178px + env(safe-area-inset-bottom,0px));align-items:flex-end}
+  .ms-quiz,.ms-list{left:12px;right:12px;width:auto;top:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px));transform:none;max-height:60%}
+  .ms-page-body{padding:34px 24px 48px}
+}
+@media (prefers-reduced-motion:reduce){.ms-hint,.ms-bubble{animation:none}.ms-coin-fly{animation-duration:.01s}}
+.ms-talk .rt-talk-name{color:#6b3a2a}
+.ms-keywords{margin:6px 0 0;padding:12px 14px;border-radius:12px;background:#f4efe2;display:flex;flex-direction:column;gap:6px}
+.ms-keywords dt{font-weight:700;color:#6b3a2a;font-size:13px}
+.ms-keywords dd{margin:0;line-height:1.5;font-size:14px;word-break:keep-all}
+/* 피드백 2026-11-24: the village's top right (coins, coin calendar, settings) over the study as well */
+.ms-hud{display:flex;margin-left:auto}
+.ms-hud.got .rt-coins{animation:ms-pop .5s ease-out .55s both}
