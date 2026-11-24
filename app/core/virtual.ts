@@ -2,13 +2,14 @@
 // stock's price (real closes when they are loaded, the mock walk otherwise, and the screen says which), grow as trees
 // there, and when sold the coins come back with the gain or the loss. Real stocks never earn coins by their returns;
 // this field is where returns are played with. Nothing here touches a real account.
-import {STOCKS,lastConfirmed,barOnOrBefore,isReal,stockOf} from './jigi/stocks';
+import {KOSDAQ_STOCKS,lastConfirmed,barOnOrBefore,isReal,stockOf} from './jigi/stocks';
 import type {Holding} from './model';
 
 export type VirtualLot={id:number;code:string;name:string;qty:number;cost:number/* 원 a share */;plot:number;day:string};
 // tree ids of virtual stocks stay apart from my holdings' ids
 export const VIRTUAL_ID=800000;
-export const VIRTUAL_STOCKS=STOCKS;
+// 피드백 2026-11-23 "코스피 종목이 나와": the virtual field trades the KOSDAQ120 list only
+export const VIRTUAL_STOCKS=KOSDAQ_STOCKS;
 // the price a virtual stock trades at today: the last close before today (today's is not final yet)
 export function quote(code:string,today:string):{price:number;day:string;real:boolean}|null{
   const b=lastConfirmed(code,today)??barOnOrBefore(code,today);return b?{price:b.c,day:b.d,real:isReal(code)}:null;

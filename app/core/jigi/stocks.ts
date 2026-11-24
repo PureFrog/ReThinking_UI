@@ -25,7 +25,7 @@ export const KOSDAQ_STOCKS:Stock[]=KOSDAQ_LISTED.map(k=>{const n=parseInt(k.code
 const STOCKS_EXTRA:Stock[]=[];
 export const stockOf=(code:string)=>STOCKS.find(s=>s.code===code)??KOSDAQ_STOCKS.find(s=>s.code===code)??STOCKS_EXTRA.find(s=>s.code===code)??null;
 export const stockByName=(name:string)=>STOCKS.find(s=>s.name===name)??KOSDAQ_STOCKS.find(s=>s.name===name)??null;
-export function searchStocks(q:string){const t=q.trim().toLowerCase();if(!t)return [];return [...KOSDAQ_STOCKS,...STOCKS].filter(s=>s.name.toLowerCase().includes(t)||s.code.includes(t))}
+export function searchStocks(q:string){const t=q.trim().toLowerCase();if(!t)return [];return KOSDAQ_STOCKS.filter(s=>s.name.toLowerCase().includes(t)||s.code.includes(t))}
 
 // v: volume (real bars only)
 export type Bar={d:string;o:number;h:number;l:number;c:number;v?:number};

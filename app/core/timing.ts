@@ -3,3 +3,7 @@ export const speechDuration=(text:string,thought=false)=>Math.min(thought?5000:8
 
 // 투자학습 퀴즈 100문항 (core/quiz100.ts): seconds on a paper by the kind of question (TIMING.quizPaper for the old ones)
 export const QUIZ_SECONDS:Record<string,number>={true_false:25,classification:40,scenario:45,direction:45,multiple_select:50,fill_blank:60,ordering:60,matching:75};
+
+// 거장의 집 · 버핏의 서재 (buffett_house_ui.md 2장·3장): a book slides out of its slot, then turns its cover to me and
+// comes close, then opens; a page turns over the spine. Reduced motion cuts them to a short change.
+export const STUDY_T={zoom:800/* from the room the camera comes up to the shelf first */,out:250,turn:300,open:300,leaf:350};

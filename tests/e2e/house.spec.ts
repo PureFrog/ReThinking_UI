@@ -7,7 +7,7 @@ const house = (p: Page) => p.evaluate(() => (window as unknown as { __proto3d?: 
 // 9-2: today's papers, stamped one by one; the back of each, then the results sheet
 async function doQuiz(page: Page) {
   await btn(page, "문서 받기").click();
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 40; i++) {
     if (!(await page.locator(".hs-quiz[data-side=front]").isVisible())) break;
     await answerPaper(page);
     await expect(page.locator(".hs-back")).toContainText("정답");

@@ -86,8 +86,8 @@ export const doorOpen=(d:DeskState)=>d!=='quiz'&&d!=='quiz-first';
 // what 보리 says as you look up (no advice, no calls on prices)
 export function boriLine(d:DeskState,o:{first:boolean;level:number;caseStatus:CaseStatus|null;started?:boolean}):string{
   switch(d){
-    case 'quiz':return o.first?`왔어? 오늘 문서 ${N()} 장이야. 한 장씩 같이 보자.`:o.started?'아까 하던 데서부터 이어 보자. 다음 장 올려 둘게.':`오늘 문서 ${N()} 장 가져왔어. 같이 보자.`;
-    case 'locked-done':return '오늘은 여기까지야. 밖에 나갈까?';
+    case 'quiz':return o.first?`흐음~ 왔구나. 오늘 문서 ${N()} 장이야. 좀 맛있는 문제야. 한 장씩 같이 보자.`:o.started?'아까 하던 데서부터 이어 보자. 다음 장 올려 둘게.':`흐음~ 왔구나. 오늘 문제는 좀 맛있어. 문서 ${N()} 장 가져왔어.`;
+    case 'locked-done':return '오늘 수업 끝! 졸지 않고 잘 봤어. 마을 일은 보리한테 물어봐.';
     case 'unlocked':return '이제 네가 직접 살펴볼 사건이 있어. 펼쳐 볼래?';
     case 'quiz-first':return o.started?'남은 문서부터 마저 보자. 사건철은 그다음이야.':'문서부터 보자. 사건철은 그다음에 펼칠게.';
     case 'case':return o.caseStatus==='open'?'어제 접어 둔 데서부터 이어 보자. 책갈피 끼워 뒀어.':'오늘 사건철이야. 펼쳐 볼래, 아니면 밖에 먼저 나갈래?';

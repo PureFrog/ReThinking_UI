@@ -6,14 +6,14 @@
 //   Lots       in 넓히기 mode: land still closed as dashed outlines, building lots as dashed squares (tags in DOM)
 //   Buildings  유리 온실, 곡물 창고, 풍차
 //   Landmarks  서울 경복궁, 도쿄 가미나리몬, 파리 에펠탑, 런던 시계탑, 뉴욕 자유의 여신상 — at the garden's edge
-import {useMemo,useRef} from 'react';
+import {useLayoutEffect,useMemo,useRef} from 'react';
 import {useFrame,type ThreeEvent} from '@react-three/fiber';
 import * as THREE from 'three';
 import {soft} from './materials';
-import {PATHS} from './places';
+import {BUILDING_R} from './places';
 import {LOOK} from './look';
 import {OnGround} from './ground';
-import {LANDS,BUILDINGS,CITIES,BASE_LAND,type Built} from '../core/land';
+import {LANDS,BUILDINGS,CITIES,BASE_LAND,buildingAt,type Built} from '../core/land';
 
 const S=(c:string)=><primitive object={soft(c)} attach="material"/>;
 const stop=(fn?:()=>void)=>fn?(e:ThreeEvent<MouseEvent>)=>{e.stopPropagation();fn()}:undefined;
@@ -22,10 +22,11 @@ const boundsOf=(plots:[number,number][],pad:number)=>{const xs=plots.map(p=>p[0]
 // gate: the x of an opening in the front (south) fence, where the stepping stones come in (feedback 2026-11-20)
 function rect(b:{x0:number;x1:number;z0:number;z1:number},step:number,gate:number|null=null){
   const pts:[number,number,number][]=[],side=(ax:number,az:number,bx:number,bz:number,g:boolean)=>{const len=Math.hypot(bx-ax,bz-az),n=Math.max(1,Math.round(len/step)),rot=Math.atan2(bx-ax,bz-az);
-    for(let i=0;i<n;i++){const t=(i+0.5)/n,x=ax+(bx-ax)*t;if(g&&gate!==null&&Math.abs(x-gate)<step*0.75)continue;pts.push([x,az+(bz-az)*t,rot])}};
-  side(b.x0,b.z0,b.x1,b.z0,false);side(b.x1,b.z0,b.x1,b.z1,false);side(b.x1,b.z1,b.x0,b.z1,true);side(b.x0,b.z1,b.x0,b.z0,false);return pts;
+    for(let i=0;i<n;i++){const t=(i+0.5)/n,x=ax+(bx-ax)*t,z=az+(bz-az)*t;if(g&&gate!==null&&Math.abs(z-gate)<step*0.75)continue;pts.push([x,z,rot])}};
+  side(b.x0,b.z0,b.x1,b.z0,false);side(b.x1,b.z0,b.x1,b.z1,false);side(b.x1,b.z1,b.x0,b.z1,false);side(b.x0,b.z1,b.x0,b.z0,true);return pts;
 }
-const gateOf=(b:{x0:number;x1:number},kind:'farm'|'orchard')=>b.x0+(b.x1-b.x0)*(kind==='farm'?0.5:0.72);
+// 피드백 2026-11-24: the fields stand side by side in the east, so each gate (a z on the west fence) faces the middle
+const gateOf=(b:{z0:number;z1:number})=>(b.z0+b.z1)/2;
 
 function Bed({kind}:{kind:'farm'|'orchard'}){
   if(kind==='orchard')return <group>
@@ -65,17 +66,6 @@ function Sign({color,text}:{color:string;text?:string}){
     <group position-y={1.1} rotation-x={text?-0.45:0}><mesh castShadow><boxGeometry args={[1.5,0.6,0.08]}/>{S(color)}</mesh>
     {tex&&[1,-1].map(k=><mesh key={k} position={[0,0,0.042*k]} rotation-y={k<0?Math.PI:0}><planeGeometry args={[1.46,0.57]}/><meshBasicMaterial map={tex} toneMapped={false}/></mesh>)}</group></group>;
 }
-// beige stepping stones from a field's gate straight down to the village path, then along it if the path ends short
-// (feedback 2026-11-20: one path along the front of both fields, a short branch up to each gate)
-function GatePath({from}:{from:[number,number]}){
-  const stones=useMemo(()=>{let best:[number,number]=from,bd=Infinity;
-    for(const line of PATHS)for(let i=1;i<line.length;i++){const [ax,az]=line[i-1],[bx,bz]=line[i];
-      for(let k=0;k<=40;k++){const t=k/40,x=ax+(bx-ax)*t,z=az+(bz-az)*t;if(z<from[1])continue;const d=Math.hypot(x-from[0],z-from[1]);if(d<bd){bd=d;best=[x,z]}}}
-    const out:[number,number,number][]=[],line=(a:[number,number],b:[number,number],skip0:boolean)=>{const len=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.round(len/0.78));
-      for(let k=skip0?1:0;k<n;k++){const t=k/n;out.push([a[0]+(b[0]-a[0])*t+((out.length*37)%7-3)*0.03,a[1]+(b[1]-a[1])*t+((out.length*53)%7-3)*0.03,out.length*1.7])}};
-    const corner:[number,number]=[from[0],best[1]];line(from,corner,false);if(Math.abs(best[0]-from[0])>0.5)line(corner,best,true);return out},[from[0],from[1]]);// eslint-disable-line react-hooks/exhaustive-deps
-  return <>{stones.map(([x,z,a],i)=><OnGround key={i} x={x} z={z} rot={a} lift={0.02}><mesh scale={[0.36,0.05,0.29]} receiveShadow><cylinderGeometry args={[1,1,1,12]}/>{S(LOOK.map.stone)}</mesh></OnGround>)}</>;
-}
 export function Fields({land,mode,onLot}:{land:string[];mode:boolean;onLot?:(id:string)=>void}){
   const open=LANDS.filter(l=>BASE_LAND.includes(l.id)||land.includes(l.id)),closed=LANDS.filter(l=>!BASE_LAND.includes(l.id)&&!land.includes(l.id));
   // a piece of land merges with its base field when they touch (밭 넓히기 extends 밭's fence)
@@ -84,9 +74,9 @@ export function Fields({land,mode,onLot}:{land:string[];mode:boolean;onLot?:(id:
   return <>
     {open.flatMap(l=>l.plots.map(([x,z],i)=><OnGround key={l.id+i} x={x} z={z} lift={-0.02}><Bed kind={l.kind}/></OnGround>))}
     {groups.map((gr,k)=>{const b=boundsOf(gr.plots,1.35),step=1.3;return <group key={k}>
-      {rect(b,step,gateOf(b,gr.kind)).map(([x,z,rot],i)=><OnGround key={i} x={x} z={z} rot={rot}><FencePiece len={step}/></OnGround>)}
-      <OnGround x={gateOf(b,gr.kind)-1.25} z={b.z1+0.55} rot={0}><Sign color={gr.kind==='farm'?'#f2d28c':'#bfe39c'} text={gr.kind==='farm'?'실제 종목':'가상 종목'}/></OnGround>
-      <GatePath from={[gateOf(b,gr.kind),b.z1+0.35]}/></group>})}
+      {rect(b,step,gateOf(b)).map(([x,z,rot],i)=><OnGround key={i} x={x} z={z} rot={rot}><FencePiece len={step}/></OnGround>)}
+      <OnGround x={b.x0-0.55} z={gateOf(b)-1.25} rot={-Math.PI/2}><Sign color={gr.kind==='farm'?'#f2d28c':'#bfe39c'} text={gr.kind==='farm'?'실제 종목':'가상 종목'}/></OnGround>
+      </group>})}
     {mode&&closed.map(l=>{const b=boundsOf(l.plots,1.1);return <group key={l.id} onClick={stop(onLot&&(()=>onLot('land:'+l.id)))} name={'lot-land-'+l.id}>
       {rect(b,0.7).map(([x,z,rot],i)=><OnGround key={i} x={x} z={z} rot={rot} lift={0.04}><mesh><boxGeometry args={[0.12,0.06,0.42]}/><meshBasicMaterial color="#ffffff" transparent opacity={0.92}/></mesh></OnGround>)}
       {l.plots.map(([x,z],i)=><OnGround key={'p'+i} x={x} z={z} lift={0.03}><mesh rotation-x={-Math.PI/2}><circleGeometry args={[0.9,24]}/><meshBasicMaterial color="#ffffff" transparent opacity={0.16}/></mesh></OnGround>)}
@@ -131,9 +121,21 @@ function Windmill(){
     <mesh position={[0,0.45,0.82]}><boxGeometry args={[0.4,0.7,0.06]}/>{S('#6b4a36')}</mesh>
   </group>;
 }
+export const BuildingModel=({id}:{id:string})=>id==='greenhouse'?<Greenhouse/>:id==='silo'?<Silo/>:<Windmill/>;
 export function Buildings({built,onPick}:{built:Built;onPick?:(id:string)=>void}){
-  return <>{BUILDINGS.filter(b=>built.buildings.includes(b.id)).map(b=><OnGround key={b.id} x={b.at[0]} z={b.at[1]} rot={b.rot}>
-    <group onClick={stop(onPick&&(()=>onPick(b.id)))} name={'building-'+b.id}>{b.id==='greenhouse'?<Greenhouse/>:b.id==='silo'?<Silo/>:<Windmill/>}</group></OnGround>)}</>;
+  return <>{BUILDINGS.filter(b=>built.buildings.includes(b.id)).map(b=>{const [x,z]=buildingAt(b,built);return <OnGround key={b.id} x={x} z={z} rot={b.rot}>
+    <group onClick={stop(onPick&&(()=>onPick(b.id)))} name={'building-'+b.id}><BuildingModel id={b.id}/></group></OnGround>})}</>;
+}
+// 피드백 2026-11-24: while a bought building is being set down, a see-through copy follows the pointer over the grass,
+// on a green ring where it can go and a red one where it cannot (Scene3D placeBlock says why)
+export function BuildingGhost({id,at,ok,rot}:{id:string;at:{x:number;z:number}|null;ok:boolean;rot:number}){
+  const g=useRef<THREE.Group>(null);
+  useLayoutEffect(()=>{g.current?.traverse(o=>{const m=o as THREE.Mesh;if(!m.isMesh)return;const mat=(Array.isArray(m.material)?m.material[0]:m.material) as THREE.Material;
+    const c=mat.clone();c.transparent=true;c.opacity=0.5;c.depthWrite=false;m.material=c;m.castShadow=false;m.raycast=()=>{}})},[id,!at]);
+  if(!at)return null;
+  return <OnGround x={at.x} z={at.z} rot={rot}><group ref={g} name="building-ghost"><BuildingModel id={id}/></group>
+    <mesh rotation-x={-Math.PI/2} position-y={0.06} raycast={()=>null}><ringGeometry args={[(BUILDING_R[id]??1.4)+0.1,(BUILDING_R[id]??1.4)+0.35,40]}/>
+      <meshBasicMaterial color={ok?'#5fd17a':'#ff6b6b'} transparent opacity={0.85} depthWrite={false}/></mesh></OnGround>;
 }
 
 // the five cities' landmarks, about 4–6 units tall so they read from across the garden

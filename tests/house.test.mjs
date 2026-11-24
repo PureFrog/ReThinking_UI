@@ -36,6 +36,32 @@ test('stamps one at a time; experience once when the bundle is done; the level f
   assert.equal(D.levelOf(0).lv,1);assert.equal(D.levelOf(D.xpFor(D.DESK.unlockLevel)).lv,D.DESK.unlockLevel);
   assert.deepEqual(D.stampMark('x'),D.stampMark('x'));
 });
+test('도전: two papers first make 500; each challenge stakes it on two more; stop takes the step, a miss loses it all; 10만 ends it', () => {
+  const P=id=>ALL.find(p=>p.id===id);assert.equal(D.DESK.perDay,2);
+  const ids=D.bundleOfDay(ALL,'r');let d=D.newDay('r',ids);
+  const step=(right)=>{const p=P(D.nextPaper(d));d=D.finishDay(D.stampPaper(d,p,right?p.answer:1-p.answer))};
+  const go=(lv)=>{d=D.challenge(d,lv,D.challengePapers(ALL,'r',[],d.ids,lv))};
+  step(true);assert.equal(d.run,undefined);assert.equal(D.choosing(d),false);
+  step(true);assert.equal(d.run,true);assert.equal(d.done,false);assert.equal(D.choosing(d),true);assert.equal(D.stepCoins(d),500);
+  assert.equal(D.quizCoins(d),0);assert.equal(D.quizCoins(D.stopRun(d)),500);
+  go('easy');assert.equal(d.level,'easy');assert.equal(d.ids.length,4);assert.equal(D.choosing(d),false);assert.equal(new Set(d.ids).size,4);
+  step(true);assert.equal(D.choosing(d),false);step(true);assert.equal(D.stepCoins(d),1000);
+  // the level stays as it was first chosen
+  go('hard');assert.equal(d.level,'easy');step(true);step(true);assert.equal(D.stepCoins(d),2000);
+  const st=D.stopRun(d);assert.equal(st.done,true);assert.equal(D.quizCoins(st),2000);assert.equal(D.stopRun(st),st);
+  // a miss in a challenge ends at once and loses it all
+  go('easy');step(false);assert.equal(d.done,true);assert.equal(d.ids.length,7);assert.equal(D.quizCoins(d),0);assert.equal(D.stopRun(d),d);
+  // all the way: 100,000 at the last step, the run closes paid
+  let e=D.newDay('t',D.bundleOfDay(ALL,'t'));d=e;step(true);step(true);
+  for(let i=0;i<6;i++){go('easy');step(true);step(true)}
+  assert.equal(d.done,true);assert.equal(D.quizCoins(d),100000);assert.equal(D.choosing(d),false);
+  // 어려움 pays more at each step
+  for(let i=1;i<7;i++)assert.ok(D.CHALLENGE.hard[i]>D.CHALLENGE.easy[i]);
+  // one of the first two wrong: no coins, no challenge
+  e=D.newDay('w',D.bundleOfDay(ALL,'w'));const p0=P(D.nextPaper(e));e=D.finishDay(D.stampPaper(e,p0,1-p0.answer));assert.equal(e.done,false);
+  const p1=P(D.nextPaper(e));e=D.finishDay(D.stampPaper(e,p1,p1.answer));
+  assert.equal(e.done,true);assert.equal(e.run,undefined);assert.equal(D.quizCoins(e),0);
+});
 test('the unlock is written once, on the day it happens, and never goes back', () => {
   let h=H.HOUSE0;h=H.afterQuiz(h,4,'d1');assert.equal(h.unlocked,false);
   h=H.afterQuiz(h,5,'d2');assert.deepEqual([h.unlocked,h.unlockedOn],[true,'d2']);

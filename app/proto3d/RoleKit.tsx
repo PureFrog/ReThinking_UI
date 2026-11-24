@@ -63,9 +63,18 @@ export const ROLE_KIT:Record<string,Kit>={
       <B p={[0,0.01,0]} s={[0.07,0.016,0.016]} c="#3a3128"/></group>,
     body:<group position={[0,0.12,0.31]} rotation-x={-0.35}><B p={[-0.1,0,0]} s={[0.19,0.26,0.025]} r={[0,0.25,0]} c="#8a3a3a"/><B p={[0.1,0,0]} s={[0.19,0.26,0.025]} r={[0,-0.25,0]} c="#8a3a3a"/>
       <B p={[-0.095,0,0.02]} s={[0.17,0.23,0.02]} r={[0,0.25,0]} c="#f3ead3"/><B p={[0.095,0,0.02]} s={[0.17,0.23,0.02]} r={[0,-0.25,0]} c="#f3ead3"/><B p={[0.02,-0.15,0.02]} s={[0.025,0.12,0.005]} c="#c9a23a"/></group>},
+  // 거장의 집 · 버핏 (피드백 2026-11-24 "흰머리 얘 우리 ui에 맞게"): the village figure in a navy suit, white shirt and red
+  // tie, thin white hair round the back and sides, heavy white brows and round glasses
+  master:{tint:{primary:'#2f3a52',secondary:'#f2efe6',accent:'#2a3348'},
+    hat:<group position-y={-0.13}><Ball p={[0,0,-0.07]} r={0.31} c="#efeee8" s={[1.06,0.5,1.0]}/>
+      <Ball p={[-0.27,-0.1,-0.02]} r={0.09} c="#efeee8" s={[0.8,1.1,1.2]}/><Ball p={[0.27,-0.1,-0.02]} r={0.09} c="#efeee8" s={[0.8,1.1,1.2]}/></group>,
+    head:<group position={[0,0.31,0.3]}><mesh position-x={-0.11}><torusGeometry args={[0.078,0.016,8,24]}/>{M('#2a2622')}</mesh><mesh position-x={0.11}><torusGeometry args={[0.078,0.016,8,24]}/>{M('#2a2622')}</mesh>
+      <B p={[0,0.01,0]} s={[0.07,0.018,0.016]} c="#2a2622"/>
+      <B p={[-0.11,0.11,-0.01]} s={[0.12,0.035,0.03]} r={[0,0,0.12]} c="#efeee8"/><B p={[0.11,0.11,-0.01]} s={[0.12,0.035,0.03]} r={[0,0,-0.12]} c="#efeee8"/></group>,
+    body:<group position={[0,0.16,0.27]}><B p={[0,0.02,0.02]} s={[0.16,0.24,0.02]} c="#f2efe6"/><B p={[0,0,0.04]} s={[0.06,0.22,0.02]} c="#b23a3a"/><B p={[0,0.11,0.045]} s={[0.075,0.045,0.025]} c="#9a2f2f"/></group>},
 };
 // what they wear from the wardrobe beside the kit (the kit's own hat and things replace the rest)
 export const ROLE_LOOK:Record<string,{coat:string;hat:string|null}>={
   farmer:{coat:'coat_vest',hat:'hat_straw'},merchant:{coat:'coat_knit',hat:'hat_beret'},paperboy:{coat:'coat_vest',hat:null},
-  builder:{coat:'coat_vest',hat:null},tailor:{coat:'coat_knit',hat:null},librarian:{coat:'coat_knit',hat:null},
+  builder:{coat:'coat_vest',hat:null},tailor:{coat:'coat_knit',hat:null},librarian:{coat:'coat_knit',hat:null},master:{coat:'coat_knit',hat:null},
 };

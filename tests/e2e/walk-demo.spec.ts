@@ -7,7 +7,7 @@ test.beforeEach(({}, info) => test.skip(info.project.name !== "desktop", "one sc
 // 피드백 2026-11-22 (UI 피드백): this path runs with the talk shown one or two sentences a bubble (?pages): "계속" until the answer
 async function choose(page: Page, scope: string, name: string) {
   const box = page.locator(scope);
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 40; i++) {
     const c = box.getByRole("button", { name: new RegExp("^\\W*" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$") });
     if (await c.isVisible().catch(() => false)) { await c.click(); return }
     const more = box.getByRole("button", { name: /^\W*계속$/ });
@@ -41,7 +41,7 @@ test("the sample garden still has the first quiz, the walk-up introductions and 
   // nobody walks me: 토리 is lit and I go there myself (a tap on 토리), then the talk from my eyes
   // 유저 워크플로우 (2026-11-23): only its people, in its order (no analysts)
   const MEET_IDS = ["farmer", "merchant", "librarian", "paperboy", "naru", "builder", "tailor"];
-  for (const [i, who] of ["농부", "상인", "사서", "신문 배달", "나루", "건물 점원", "옷 점원"].entries()) {
+  for (const [i, who] of ["농부", "상인", "사서", "신문 배달", "나루", "건물 상인", "옷 상인"].entries()) {
     await expect.poll(async () => (await h(page)).walk?.lead, { timeout: 20_000 }).toBeTruthy();
     await expect(page.locator(".vl-guide")).toContainText(who);
     if (i === 0) await page.screenshot({ path: info.outputPath("demo-lead-tori.png") });

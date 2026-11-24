@@ -658,6 +658,8 @@ button.rt-row:hover{filter:none;background:#16211b05}
 .fs-card strong{font-size:14px}.fs-card small{font-size:11px;color:#5e665a}
 .fs-pic{width:100%;aspect-ratio:1;border-radius:12px;background:#e8f2dc center/contain no-repeat}
 .fs-pic.sm{width:40px;height:40px;flex:none}
+.fs-pic.fs-emoji{display:grid;place-items:center;font-size:44px;line-height:1}
+.fs-card:disabled{opacity:.55}
 .fs-price,.rt-coins-inline{display:inline-flex;align-items:center;gap:4px;font-weight:700;font-size:13px;margin-top:4px}
 .rt-coin{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:#e7b53c;color:#6b4a07;font-size:10px;font-weight:800}
 .fs-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%}
@@ -748,3 +750,58 @@ html[data-text="l"] .proto3d :is(.rt-sheet,.rt-me-panel,.rt-dock,.rt-next){zoom:
 .rt-talk-page{margin-right:auto;font-size:12px;color:#8a8273}
 .rt-talk-box[data-more=true] .rt-talk-line{cursor:pointer}
 .rt-talk-line{min-height:0}
+/* 피드백 2026-11-23 "UI 창의 움직임이 있었으면 (시나리오 퀘스트처럼 슉슉)": every window comes in with a slide, the talk box
+   pops up from below, the answers come in one after another, and a sheet's content follows a beat later */
+.rt-sheet{animation:rt-sheet-in .46s cubic-bezier(.2,.9,.25,1.06) both}
+@keyframes rt-sheet-in{from{opacity:0;transform:translateX(72px) scale(.97)}60%{opacity:1}to{opacity:1;transform:none}}
+.rt-sheet-head,.rt-sheet-body>*{animation:rt-in .4s .12s ease-out both}
+.rt-sheet-body>*:nth-child(2){animation-delay:.18s}.rt-sheet-body>*:nth-child(3){animation-delay:.24s}.rt-sheet-body>*:nth-child(n+4){animation-delay:.3s}
+.rt-talk-box{animation:rt-talk-up .38s cubic-bezier(.2,.9,.3,1.12) both}
+@keyframes rt-talk-up{from{opacity:0;translate:0 46px;scale:.96}to{opacity:1;translate:0 0;scale:1}}/* translate/scale, so the desktop translateX(-50%) centring stays */
+.rt-talk-choice{animation:rt-choice-in .34s cubic-bezier(.2,.9,.3,1.1) both}
+.rt-talk-choice:nth-child(2){animation-delay:.06s}.rt-talk-choice:nth-child(3){animation-delay:.12s}.rt-talk-choice:nth-child(n+4){animation-delay:.18s}
+@keyframes rt-choice-in{from{opacity:0;transform:translateX(34px)}to{opacity:1;transform:none}}
+@media (max-width:600px){@keyframes rt-sheet-in{from{opacity:0;transform:translateY(60px) scale(.98)}60%{opacity:1}to{opacity:1;transform:none}}}
+@media (prefers-reduced-motion:reduce){.rt-sheet,.rt-sheet-head,.rt-sheet-body>*,.rt-talk-box,.rt-talk-choice{animation:none}}
+/* 피드백 2026-11-23: 코인 달력 (ui/CoinSheets.tsx) beside the coins, and the payment window */
+.proto3d .rt-coin-cal{display:grid;place-items:center;width:36px;height:36px;padding:0;border-radius:999px;font-size:16px}
+.cc-now{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-radius:14px;background:#fffaf0;border:1px solid #00000010;margin-bottom:14px}
+.cc-now span{color:var(--rt-mute);font-size:13px}.cc-now b{display:inline-flex;align-items:center;gap:6px;font-size:17px}
+.cc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.cc-head h3{font-size:16px;font-weight:700;animation:rt-in .3s ease-out}
+.cc-nav{min-width:38px;min-height:34px;padding:0;font-size:20px}
+.cc-grid{width:100%;border-collapse:separate;border-spacing:3px;table-layout:fixed;animation:cc-swap .35s cubic-bezier(.2,.9,.3,1.05) both}
+@keyframes cc-swap{from{opacity:0;transform:translateX(26px)}to{opacity:1;transform:none}}
+.cc-grid th{font-size:11.5px;font-weight:600;color:var(--rt-mute);padding:2px 0}
+.cc-grid th:first-child{color:#c2463a}.cc-grid th:last-child{color:#3a63c2}
+.cc-grid td{height:50px;vertical-align:top;padding:4px 3px;border-radius:9px;background:#ffffff80;font-size:12px}
+.cc-grid td:not([data-day]){background:none}
+.cc-grid td[data-future=true]{opacity:.45}
+.cc-grid td[data-got=true]{background:#f6d77a59;box-shadow:inset 0 0 0 1px #d6ac3c88}
+.cc-grid td[data-today=true]{box-shadow:inset 0 0 0 2px #22281f}
+.cc-d{display:block;font-weight:600;color:#4a5246}
+.cc-n{display:block;margin-top:3px;font-size:11px;font-weight:700;color:#8a6410;white-space:nowrap;letter-spacing:-.3px}
+.cc-total{margin:12px 0 4px;font-size:14px}.cc-total b{color:#8a6410}
+.cp-step{animation:rt-sheet-in .4s cubic-bezier(.2,.9,.25,1.06) both}
+.cp-packs{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cp-pack{position:relative;width:100%;display:grid;gap:4px;justify-items:start;padding:14px 12px 12px;border-radius:16px;background:#fffaf0;border:1.5px solid #00000014;text-align:left;font:inherit;cursor:pointer;transition:transform .15s,border-color .15s}
+.cp-pack[data-on=true]{border-color:#22281f;background:#fff;transform:translateY(-2px);box-shadow:0 10px 22px -12px #10200d80}
+.cp-pack b{display:inline-flex;align-items:center;gap:5px;font-size:17px}.cp-pack small{color:#8a6410;font-weight:700;font-size:12px}
+.cp-pack em{position:absolute;top:-9px;right:10px;padding:2px 8px;border-radius:999px;background:#c2463a;color:#fff;font-style:normal;font-size:11px;font-weight:700}
+.cp-price{margin-top:4px;font-weight:700;font-size:14px;color:#22281f}
+.cp-sum{display:grid;gap:8px;margin:0 0 14px;padding:12px 14px;border-radius:14px;background:#fffaf0}
+.cp-sum div{display:flex;justify-content:space-between}.cp-sum dt{color:var(--rt-mute);font-size:13px}.cp-sum dd{margin:0;font-weight:600}
+.cp-methods{border:0;margin:0 0 12px;padding:0;display:grid;gap:8px}.cp-methods legend{font-size:13px;color:var(--rt-mute);margin-bottom:6px}
+.cp-method{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:12px;border:1.5px solid #00000014;background:#fff;cursor:pointer}
+.cp-method[data-on=true]{border-color:#22281f}
+.cp-agree{gap:8px;font-size:13px}
+.cp-done{text-align:center;padding:18px 6px}.cp-big{font-size:17px;font-weight:700;margin-bottom:8px}.cp-done p{line-height:1.6}
+@media (prefers-reduced-motion:reduce){.cc-grid,.cp-step,.cc-head h3{animation:none}}
+.proto3d .rt-coins{white-space:nowrap}
+/* a sheet open on a phone: today's quests step aside (they sat over the sheet's title) */
+@media (max-width:700px){.proto3d:has(.rt-sheet) .rt-quests{opacity:0;pointer-events:none;transition:opacity .25s}}
+.cp-method{flex-direction:row!important;justify-content:flex-start;font-size:14.5px;color:var(--rt-ink)!important;margin:0!important}
+.cp-method input{width:18px;height:18px;margin:0;flex:none;accent-color:#22281f}
+/* a sheet open: the coins and the gear step aside (they sat over the sheet's close button) */
+.proto3d:has(.rt-sheet) .rt-top-right{opacity:0;pointer-events:none;transition:opacity .25s}
+@media (max-width:430px){.proto3d .rt-top-right{gap:5px}.proto3d .rt-coins{padding:0 10px 0 7px}.proto3d .rt-coin-cal{width:34px;height:34px}}

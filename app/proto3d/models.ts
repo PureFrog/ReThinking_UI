@@ -16,6 +16,10 @@ export const MODELS={
   // tools/blender/kind_trees.py: the 꽃집's decor flowers and trees (content/flower-shop.ts), and their shop pictures
   decor:(id:string)=>`/models/decor/${id}.glb`,
   decorPic:(id:string)=>`/models/decor/${id}.png`,
+  // 거장의 집 (팀원 제작 2026-11-23, Tripo): simplified to ~8% of its faces and a 1024 texture (gltf-transform)
+  masterHouse:'/models/buildings/master_house.glb',
+  // 오락실 (2026-11-24, a teammate's model; simplified 478k → 24k triangles, texture 1024, quantized: 15.7 MB → 0.6 MB)
+  arcade:'/models/arcade/arcade.glb',
 };
 export const ALL_TREE_FILES=[...GROWTHS.flatMap(g=>Array.from({length:TREE_VARIANTS},(_,v)=>MODELS.tree(g,v))),MODELS.stump];
 

@@ -22,8 +22,8 @@ import {WeatherFx} from './Weather3D';
 import {Analyst} from './Analyst3D';
 import {screenPoints,snapshot,tilt} from './screen';
 import {Signpost,Cart,Pot,Decor} from './Garden3D';
-import {Fields,BuildingLots,Buildings,Landmarks} from './Build3D';
-import {LANDS,BUILDINGS,CITIES,BASE_LAND,ALL_PLOTS,type Built} from '../core/land';
+import {Fields,BuildingLots,Buildings,Landmarks,BuildingGhost} from './Build3D';
+import {LANDS,BUILDINGS,CITIES,BASE_LAND,ALL_PLOTS,buildingAt,type Built} from '../core/land';
 import {tooClose} from '../core/plants';
 import {DECOR_SLOTS,type Shape} from '../content/garden-items';
 import type {AnalystId} from '../content/analysts';
@@ -31,10 +31,10 @@ import {LOOK} from './look';
 import {soft} from './materials';
 import {MODELS,ALL_TREE_FILES,CANOPY,BARK,STUMP_CUT,FRUIT,FRUIT_FALLEN} from './models';
 import {OnGround,surfaceY,tiltAt,rng,UP} from './ground';
-import {PLOTS,PATHS,PLACES,place,inStream,route,WORLD,solids,pushOut,type Solid} from './places';
+import {PLOTS,PATHS,PLACES,place,inStream,route,WORLD,solids,pushOut,BUILDING_R,BRIDGE,streamZ,bridgeBlocks,bridgeLift,FIRE,FIRE_SEAT,type Solid} from './places';
 import {spread,spreadXZ} from '../core/world';
 import {SIGN_PLACES,SIGN_BUILDINGS,SIGN_CITY} from './ui/Signs';
-import {Stream,Bridge,Paths,Forest,Library,Plaza,PlainTree} from './World3D';
+import {Stream,Bridge,Paths,Forest,Library,Plaza,PlainTree,MasterHouse,ArcadeHouse} from './World3D';
 import {Interior,type Book,type Note} from './Interior3D';
 import {Explorer} from './Explorer3D';
 import {mixHex,type Daylight} from '../core/daylight';
@@ -44,7 +44,7 @@ import type {Look} from '../core/wardrobe';
 import {treeSize,worthOf} from '../core/walk';
 import {Villager,GuideTrail,LeadMark,NewsBoard,MerchantStall,FarmCart,type Errand} from './Village3D';
 import {ShopHouse,ShopRoom,SHOP_IDS,SHOP_AT,doorOf,type ShopId} from './Shop3D';
-import {NEWS_BOARD,TAILOR_STALL,MERCHANT_STALL,FARM_CART} from '../content/villagers';
+import {NEWS_BOARD,TAILOR_STALL,MERCHANT_STALL,FARM_CART,VILLAGERS} from '../content/villagers';
 import {POND_AT} from './places';
 
 // The ground (a big sphere's top) is ground.tsx; where everything is, places.ts.
@@ -61,10 +61,12 @@ const testHooks=()=>{const h=(window.__proto3d??={} as Hooks);h.frames??=0;h.rea
 // the garden's own trees, kept off every plot, building lot and landmark place (core/land.ts), open or not
 // 피드백 2026-11-23 "가게 가리는 나무는 없애줘": no tree this close to a shop (its front and sides stay open to the camera)
 const SHOP_CLEAR=7;
+// how far from the water's edge the player stops (the bank's sand is walkable, the water is not)
+const STREAM_PAD=0.15;
 const DECO_TREES=([['c',-3,-8.5,1.1],['c',-3.6,-11.2,1],['c',5.5,-8.8,1.2],['c',9.2,-6.2,1],['c',-6.2,-14.5,1.2],['c',5.8,-17,1.1],['c',-4,-18.2,1],['c',-10.6,-3,0.9],
   ['r',5,-10.4,1.1],['r',-7.6,-6.4,1],['r',17.4,-5.2,0.9],['r',16.6,8.2,1.1],['r',-14,-10,1.2],['r',7,-13.5,1],['r',-11,4,0.8]] as ['c'|'r',number,number,number][]).map(([k,x,z,sc])=>[k,...spread(x,z),sc] as ['c'|'r',number,number,number])
   .filter(([,x,z])=>!ALL_PLOTS.some(p=>Math.hypot(p[0]-x,p[1]-z)<2.4)&&!BUILDINGS.some(b=>Math.hypot(b.at[0]-x,b.at[1]-z)<2.8)&&!CITIES.some(c=>Math.hypot(c.at[0]-x,c.at[1]-z)<4)
-    &&![place('library'),place('cart'),MERCHANT_STALL,TAILOR_STALL].some(q=>Math.hypot(q.x-x,q.z-z)<SHOP_CLEAR));
+    &&![place('library'),place('master'),place('cart'),MERCHANT_STALL,TAILOR_STALL].some(q=>Math.hypot(q.x-x,q.z-z)<SHOP_CLEAR));
 // 2026-11-20: the pond (나루's fishing spot) moved to where the 관측소 stood, west of the middle
 // 피드백 2026-11-22 (village_layout.jpg): the pond moved east of the middle path, between the fields and the stream
 // (the fishing spot); its old place west of the middle is the shops' corner now. Pieces around POND_AT (places.ts)
@@ -72,18 +74,20 @@ const DECO_TREES=([['c',-3,-8.5,1.1],['c',-3.6,-11.2,1],['c',5.5,-8.8,1.2],['c',
 // and its north lobe ran over the path along the fields); its edge is this radius by angle around POND_AT
 const pondR=(a:number)=>{const e=1/Math.hypot(Math.cos(a)/2.35,Math.sin(a)/1.85);return e*(1+0.06*Math.sin(3*a+0.7)+0.03*Math.sin(5*a+2))};
 const inPond=(x:number,z:number,pad=0)=>{const dx=x-POND_AT.x,dz=z-POND_AT.z;return Math.hypot(dx,dz)<pondR(Math.atan2(dz,dx))+pad};
+const POND_PAD=0.2;
+// a point on the water put back on the bank, straight out from the middle
+const outOfPond=(q:{x:number;z:number})=>{const dx=q.x-POND_AT.x,dz=q.z-POND_AT.z,a=Math.atan2(dz,dx),r=pondR(a)+POND_PAD+0.01;q.x=POND_AT.x+Math.cos(a)*r;q.z=POND_AT.z+Math.sin(a)*r};
 // a flat outline laid on the ground: each point follows the terrain, so the water never sinks under a slope
 function pondGeo(grow:number,lift:number){const N=72,pos:number[]=[POND_AT.x,surfaceY(POND_AT.x,POND_AT.z)+lift,POND_AT.z],idx:number[]=[];
   for(let i=0;i<N;i++){const a=i/N*Math.PI*2,r=pondR(a)+grow,x=POND_AT.x+Math.cos(a)*r,z=POND_AT.z+Math.sin(a)*r;pos.push(x,surfaceY(x,z)+lift,z);idx.push(0,1+(i+1)%N,1+i)}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();return g}
 const HOUSE=place('home');
-const FIRE=spread(-1.6,-1.2);
 const ROCKS=([/* (the big rock by the old lookout is gone: it stood in front of the fishing camera, 2026-11-20) */[-5,4.4,0.7,0],[-7.2,4.6,0.55,0],[8.4,6,0.9,0],[3.4,5.2,0.5,0]] as number[][]).map(([x,z,sc,rot])=>[...spread(x,z),sc,rot]);
 const FARM=PLOTS;
 // landmarks (R4–R6, Garden3D.tsx; World3D.tsx) and where grass tufts and flowers keep away from
 const SPOTS={observatory:place('pond'),signpost:spreadXZ({x:-1.9,z:3.5,rot:0.35}),cart:place('cart')};
 const LIB=place('library'),PLAZA=place('plaza');
-const KEEP_CLEAR:[number,number,number][]=[[SPOTS.observatory.x,SPOTS.observatory.z,2.2],[SPOTS.cart.x,SPOTS.cart.z,3.0],[SPOTS.signpost.x,SPOTS.signpost.z,0.6],[LIB.x,LIB.z,3.6],[MERCHANT_STALL.x,MERCHANT_STALL.z,3.0],[TAILOR_STALL.x,TAILOR_STALL.z,3.0],[NEWS_BOARD.x,NEWS_BOARD.z,1.2],[HOUSE.x,HOUSE.z,3.6],[PLAZA.x,PLAZA.z,3.8],...DECOR_SLOTS.filter(d=>!d.room).map(d=>[d.x,d.z,0.8] as [number,number,number]),
+const KEEP_CLEAR:[number,number,number][]=[[place('master').x,place('master').z,4.2],[SPOTS.observatory.x,SPOTS.observatory.z,2.2],[SPOTS.cart.x,SPOTS.cart.z,3.0],[SPOTS.signpost.x,SPOTS.signpost.z,0.6],[LIB.x,LIB.z,3.6],[MERCHANT_STALL.x,MERCHANT_STALL.z,3.0],[TAILOR_STALL.x,TAILOR_STALL.z,3.0],[NEWS_BOARD.x,NEWS_BOARD.z,1.2],[HOUSE.x,HOUSE.z,3.6],[PLAZA.x,PLAZA.z,3.8],...DECOR_SLOTS.filter(d=>!d.room).map(d=>[d.x,d.z,0.8] as [number,number,number]),
   // the building lots and the landmarks' places stay clear of forest and flowers, built or not (core/land.ts)
   ...BUILDINGS.map(b=>[b.at[0],b.at[1],2.2] as [number,number,number]),...CITIES.map(c=>[c.at[0],c.at[1],3.4] as [number,number,number])];
 const clearOf=(x:number,z:number)=>KEEP_CLEAR.some(([cx,cz,r])=>Math.hypot(x-cx,z-cz)<r)||inStream(x,z,0.6)||PATHS.some(l=>l.some(([px,pz])=>Math.hypot(x-px,z-pz)<0.5));
@@ -98,13 +102,34 @@ function plantBlock(x:number,z:number):string|null{
   if(PATHS.some(l=>l.some(([px,pz])=>Math.hypot(x-px,z-pz)<0.7)))return '길 위에는 못 심어요';
   return null;
 }
+// 피드백 2026-11-24: where a bought building may be set down (null = yes, else what to say): on the grass, clear of the
+// water, the fields, the paths, the shops and houses, the people, the trees and the other buildings
+const KEEP_FIXED=KEEP_CLEAR.slice(0,KEEP_CLEAR.length-BUILDINGS.length-CITIES.length);
+const segDist=(x:number,z:number,[ax,az]:[number,number],[bx,bz]:[number,number])=>{const dx=bx-ax,dz=bz-az,l2=dx*dx+dz*dz||1,t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/l2));return Math.hypot(x-ax-dx*t,z-az-dz*t)};
+export function placeBlock(id:string,x:number,z:number,built:Built|null|undefined,plants:{x:number;z:number}[]=[]):string|null{
+  const r=BUILDING_R[id]??1.4;
+  if(Math.hypot(x,z)>WORLD.walk-1.5-r)return '마을 밖이에요';
+  if(inPond(x,z,r))return '연못 위에는 못 지어요';
+  if(inStream(x,z,r+0.3))return '개울 위에는 못 지어요';
+  if(ALL_PLOTS.some(([px,pz])=>Math.hypot(px-x,pz-z)<r+1.6))return '밭 자리예요';
+  if(Math.hypot(x-HOUSE.x,z-HOUSE.z)<r+3)return '집이 있어요';
+  if(Math.hypot(x-FIRE[0],z-FIRE[1])<r+1.6)return '모닥불이 있어요';
+  if(KEEP_FIXED.some(([cx,cz,kr])=>Math.hypot(x-cx,z-cz)<r+kr*0.8))return '다른 건물 자리예요';
+  if(SHOP_IDS.some(s=>Math.hypot(x-SHOP_AT[s].x,z-SHOP_AT[s].z)<r+2.4))return '가게가 있어요';
+  if(PATHS.some(l=>l.some((p,i)=>i>0&&segDist(x,z,l[i-1],p)<r+0.45)))return '길 위에는 못 지어요';
+  for(const b of BUILDINGS)if(b.id!==id&&built?.buildings.includes(b.id)){const [bx,bz]=buildingAt(b,built);if(Math.hypot(x-bx,z-bz)<r+(BUILDING_R[b.id]??1.4)+0.4)return '다른 건물이랑 겹쳐요'}
+  for(const c of CITIES)if(built?.cities.includes(c.id)&&Math.hypot(x-c.at[0],z-c.at[1])<r+2.4)return '다른 건물이랑 겹쳐요';
+  if(VILLAGERS.some(v=>Math.hypot(x-v.x,z-v.z)<r+0.8))return '마을 사람이 서 있어요';
+  if([...DECO_TREES.map(([,tx,tz])=>({x:tx,z:tz})),...plants,...starter()].some(q=>Math.hypot(x-q.x,z-q.z)<r+0.7))return '나무랑 꽃이 있어요';
+  return null;
+}
 // every garden starts with a few of the 꽃집's trees and beds (feedback 11-17 "나무들 추가한거 어디감? 과일나무
 // 꽃나무"): fruit and blossom trees here and there, flower beds by the 꽃집; more are bought there
 const STARTER0:[string,number,number][]=[['cherry',-10,8],['magnolia',8,-13],['mandarin',-13,-10],['lemon',16,10],['apple',-17,2],['cherry',3,-21],
   ['tulips',SPOTS.cart.x+1.0,SPOTS.cart.z+3.1],['hydrangea',SPOTS.cart.x+1.0,SPOTS.cart.z-3.1],['sunflowers',SPOTS.cart.x-3.2,SPOTS.cart.z+0.3]];
 let starterCache:{id:string;item:string;x:number;z:number}[]|null=null;
 // (the flower beds by the cart stand where they are; the trees only where a planted one could go)
-function starter(){return starterCache??=STARTER0.filter(([item,x,z])=>['tulips','hydrangea','sunflowers'].includes(item)||!plantBlock(x,z)&&![place('library'),place('cart'),TAILOR_STALL].some(q=>Math.hypot(q.x-x,q.z-z)<SHOP_CLEAR)).map(([item,x,z],i)=>({id:'starter'+i,item,x,z}))}
+function starter(){return starterCache??=STARTER0.filter(([item,x,z])=>['tulips','hydrangea','sunflowers'].includes(item)||!plantBlock(x,z)&&![place('library'),place('master'),place('cart'),TAILOR_STALL].some(q=>Math.hypot(q.x-x,q.z-z)<SHOP_CLEAR)).map(([item,x,z],i)=>({id:'starter'+i,item,x,z}))}
 // analysts idle around the campfire when nothing is flagged
 const IDLE:Record<AnalystId,{x:number;z:number}>={tori:spreadXZ({x:-3.1,z:-0.2}),moa:spreadXZ({x:-0.2,z:-2.3}),luon:spreadXZ({x:-1.0,z:-2.9})};
 
@@ -122,12 +147,13 @@ function groundGeometry(){
   g.setAttribute('color',new THREE.BufferAttribute(col,3));
   return g;
 }
-function Ground({onWalk}:{onWalk:(p:THREE.Vector3)=>void}){
+function Ground({onWalk,onHover}:{onWalk:(p:THREE.Vector3)=>void;onHover?:(p:THREE.Vector3)=>void}){
   const click=(e:ThreeEvent<MouseEvent>)=>{if(e.delta>6)return;onWalk(e.point)};
+  const move=onHover?(e:ThreeEvent<PointerEvent>)=>onHover(e.point):undefined;
   const geo=useMemo(groundGeometry,[]);
   useEffect(()=>()=>geo.dispose(),[geo]);
   return (
-    <mesh position={[0,-WORLD.R,0]} receiveShadow onClick={click} geometry={geo}>
+    <mesh position={[0,-WORLD.R,0]} receiveShadow onClick={click} onPointerMove={move} geometry={geo}>
       <primitive object={soft('#ffffff',{vertexColors:true})} attach="material"/>
     </mesh>
   );
@@ -201,16 +227,17 @@ function House({onEnter,night}:{onEnter:()=>void;night:number}){
   </group></OnGround>;
 }
 
-function Campfire(){
+function Campfire({onSit}:{onSit?:()=>void}){
   const flame=useRef<THREE.Mesh>(null);
   useFrame(({clock})=>{const f=flame.current;if(!f)return;const t=clock.elapsedTime;f.scale.set(1+Math.sin(t*9)*0.08,1+Math.sin(t*13)*0.15,1+Math.cos(t*7)*0.08)});
-  return <OnGround x={FIRE[0]} z={FIRE[1]}>
+  // 피드백 2026-11-24 "모닥불 앞에 앉기": a tap on the fire or the log walks me to the log and sits me down
+  return <group onClick={onSit?e=>{e.stopPropagation();onSit()}:undefined} onPointerOver={onSit?()=>{document.body.style.cursor='pointer'}:undefined} onPointerOut={onSit?()=>{document.body.style.cursor=''}:undefined}><OnGround x={FIRE[0]} z={FIRE[1]}>
     {[0,1.2,2.4].map(a=><mesh key={a} rotation={[Math.PI/2,0,a]} position-y={0.1} castShadow><cylinderGeometry args={[0.08,0.1,1.1,8]}/><primitive object={soft('#8a6448')} attach="material"/></mesh>)}
     <mesh ref={flame} position-y={0.45}><coneGeometry args={[0.28,0.75,12]}/><meshStandardMaterial color="#ffb02e" emissive="#ff7a1a" emissiveIntensity={1.1} toneMapped={false}/></mesh>
     <pointLight position-y={0.8} color="#ffae5a" intensity={6} distance={5} decay={2}/>
     {/* a fallen log to sit on */}
     <mesh position={[0.6,0.18,-1.3]} rotation={[0,0.4,Math.PI/2]} castShadow><cylinderGeometry args={[0.2,0.2,2.2,12]}/><primitive object={soft('#b18a6b')} attach="material"/></mesh>
-  </OnGround>;
+  </OnGround></group>;
 }
 
 // A bushy round tree or a tall cypress (scenery, not holdings).
@@ -358,7 +385,7 @@ function Keys({pos,target,stops,onMove,enabled,gate}:{gate:(x:number,z:number)=>
     if(mx||mz){f.subVectors(controls?.target??pos.current,camera.position).setY(0);if(f.lengthSq()<1e-6)f.set(0,0,-1);f.normalize();r.set(-f.z,0,f.x);
       v.copy(f).multiplyScalar(mz).addScaledVector(r,mx).normalize().multiplyScalar(LOOK.walk.keyStep);
       const nx=pos.current.x+v.x,nz=pos.current.z+v.z;
-      if(Math.hypot(nx,nz)<WORLD.walk&&!inPond(nx,nz,0.2)&&gate(nx,nz)){target.current.set(nx,0,nz);stops.current=[];onMove()}}
+      if(Math.hypot(nx,nz)<WORLD.walk&&!inPond(nx,nz,POND_PAD)&&!inStream(nx,nz,STREAM_PAD)&&!bridgeBlocks(pos.current,{x:nx,z:nz})&&gate(nx,nz)){target.current.set(nx,0,nz);stops.current=[];onMove()}}
     if(controls){const c=controls.target,turn=(h.has('KeyE')?1:0)-(h.has('KeyQ')?1:0),zoom=(h.has('Minus')||h.has('NumpadSubtract')?1:0)-(h.has('Equal')||h.has('NumpadAdd')?1:0);
       if(turn){v.subVectors(camera.position,c).applyAxisAngle(THREE.Object3D.DEFAULT_UP,turn*LOOK.camera.keyTurn*t);camera.position.copy(c).add(v)}
       if(zoom){v.subVectors(camera.position,c);const d=THREE.MathUtils.clamp(v.length()*(1+zoom*LOOK.camera.keyZoom*t),LOOK.camera.minDist,LOOK.camera.maxDist);camera.position.copy(c).add(v.setLength(d))}
@@ -367,22 +394,37 @@ function Keys({pos,target,stops,onMove,enabled,gate}:{gate:(x:number,z:number)=>
 }
 
 // the player: my observer as I dressed it (Explorer3D.tsx, core/wardrobe.ts), walking where I tap
-function Player({target,stops,pos,hidden,look,walls,onPick,faceTo=null}:{faceTo?:{x:number;z:number}|null;onPick?:()=>void;target:React.MutableRefObject<THREE.Vector3>;stops:React.MutableRefObject<{x:number;z:number}[]>;pos:React.MutableRefObject<THREE.Vector3>;hidden?:boolean;look:Look;walls:Solid[]}){
-  const g=useRef<THREE.Group>(null),body=useRef<THREE.Group>(null),moving=useRef(false),speed=useRef(0);
+function Player({target,stops,pos,hidden,look,walls,onPick,faceTo=null,sit}:{sit?:React.MutableRefObject<{x:number;z:number;face:number}|null>;faceTo?:{x:number;z:number}|null;onPick?:()=>void;target:React.MutableRefObject<THREE.Vector3>;stops:React.MutableRefObject<{x:number;z:number}[]>;pos:React.MutableRefObject<THREE.Vector3>;hidden?:boolean;look:Look;walls:Solid[]}){
+  const g=useRef<THREE.Group>(null),body=useRef<THREE.Group>(null),moving=useRef(false),speed=useRef(0),sitting=useRef(false);
   useFrame((_,dt)=>{const p=pos.current,tg=target.current,gr=g.current,b=body.current;if(!gr||!b)return;const t=Math.min(dt,0.25)/* by time: a slow phone walks as fast */;
     const dx=tg.x-p.x,dz=tg.z-p.z,d=Math.hypot(dx,dz);moving.current=d>0.05;
     // speeds up from a stand, slows down over the last stretch, turns toward where it goes instead of snapping
     const want=moving.current?SPEED*Math.min(1,d/LOOK.walk.brake+0.25):0;speed.current+=(want-speed.current)*Math.min(1,LOOK.walk.accel*t);
-    if(moving.current){const step=Math.min(d,speed.current*t);p.x+=dx/d*step;p.z+=dz/d*step;
+    // 피드백 2026-11-24 "물가를 그냥 건널 수 있어": the stream is crossed only on the wooden bridge; a step into the water
+    // (from the bank) stops at the bank, whatever brought it there (a tap, the keys, a talk's walk)
+    if(moving.current){const step=Math.min(d,speed.current*t),nx=p.x+dx/d*step,nz=p.z+dz/d*step;
+      if((inStream(nx,nz,STREAM_PAD)&&!inStream(p.x,p.z,STREAM_PAD))||bridgeBlocks(p,{x:nx,z:nz})){tg.set(p.x,0,p.z);stops.current=[];moving.current=false;return}
+      p.x=nx;p.z=nz;
+      // 피드백 2026-11-24 "낚시터 지나갈 수 있게 됐어, 물이면 못 지나가게": the pond's water is not walked on either; a step into
+      // it slides along its bank (so a walk round it still gets there), a target on the water ends at the bank
+      if(inPond(p.x,p.z,POND_PAD)){outOfPond(p);if(inPond(tg.x,tg.z,POND_PAD)){const q={x:tg.x,z:tg.z};outOfPond(q);tg.set(q.x,0,q.z)}}
       // buildings are solid: slide along their edge; a target inside one ends at its edge
       if(pushOut(p,walls)){const q={x:tg.x,z:tg.z};if(pushOut(q,walls))tg.set(q.x,0,q.z)}
       const yaw=Math.atan2(dx,dz),diff=Math.atan2(Math.sin(yaw-b.rotation.y),Math.cos(yaw-b.rotation.y));b.rotation.y+=diff*Math.min(1,LOOK.walk.turn*t)}
     else if(stops.current.length){const n=stops.current.shift()!;tg.set(n.x,0,n.z)}
     // standing in a talk: turned to the one I talk to
     else if(faceTo){const yaw=Math.atan2(faceTo.x-p.x,faceTo.z-p.z),diff=Math.atan2(Math.sin(yaw-b.rotation.y),Math.cos(yaw-b.rotation.y));b.rotation.y+=diff*Math.min(1,LOOK.walk.turn*t)}
-    gr.position.set(p.x,surfaceY(p.x,p.z),p.z);gr.quaternion.copy(tiltAt(p.x,p.z))});
+    // on the log by the fire: sat down once there, facing the fire; up again as soon as the walk goes anywhere else
+    const st=sit?.current;
+    if(st){const end=stops.current.length?stops.current[stops.current.length-1]:tg;if(Math.hypot(end.x-st.x,end.z-st.z)>0.25)sit!.current=null}
+    const now=!!sit?.current&&!moving.current&&Math.hypot(p.x-st!.x,p.z-st!.z)<0.3;
+    if(now){const diff=Math.atan2(Math.sin(st!.face-b.rotation.y),Math.cos(st!.face-b.rotation.y));b.rotation.y+=diff*Math.min(1,LOOK.walk.turn*t)}
+    if(now!==sitting.current){sitting.current=now;(testHooks() as {sitting?:boolean}).sitting=now}
+    // on the bridge: up and over its planks
+    const lift=bridgeLift(p.x,p.z),y=lift?Math.max(surfaceY(p.x,p.z),surfaceY(BRIDGE.x,streamZ(BRIDGE.x))+lift):surfaceY(p.x,p.z);
+    gr.position.set(p.x,y,p.z);gr.quaternion.copy(tiltAt(p.x,p.z))});
   return <group ref={g} visible={!hidden} name="player" onClick={onPick?e=>{e.stopPropagation();onPick()}:undefined}><group ref={body} scale={LOOK.explorer.scale}>
-    <Suspense fallback={null}><Explorer look={look} moving={moving}/></Suspense>
+    <Suspense fallback={null}><Explorer look={look} moving={moving} sit={sitting}/></Suspense>
   </group></group>;
 }
 
@@ -541,7 +583,7 @@ function Hooks({pos,treePos,points}:{pos:React.MutableRefObject<THREE.Vector3>;t
 
 // What the overlay tells the world (Proto3D.tsx): where each analyst should be and what their bubble says, cooldown pots,
 // placed items, and what the landmarks show.
-export type Landmark='observatory'|'signpost'|'cart'|'library'|'plaza'|'house';
+export type Landmark='master'|'observatory'|'signpost'|'cart'|'library'|'plaza'|'arcade'|'house';
 export type World={
   // 마을: a tap on my own character (옷 갈아입기)
   onPlayer?:()=>void;
@@ -581,6 +623,8 @@ export type World={
   // the 꽃집 (content/flower-shop.ts): what is planted, and while one is being placed a tap on the grass plants it
   plants?:{id:string;item:string;x:number;z:number;scale:number}[];
   planting?:{item:string}|null;onPlant?:(x:number,z:number,why:string|null)=>void;
+  // a bought building being set down: a tap on the grass puts it there (or says why not)
+  placing?:{id:string}|null;onPlace?:(x:number,z:number,why:string|null)=>void;
   // 보리 came over to talk: the camera frames the point between it and the player (LOOK.camera.talk)
   // eye: 유저 워크플로우 2장, a talk face to face: the camera at my eyes (x,z), looking at the other's face (ax,az)
   talk?:{x:number;z:number;az:number;pitch?:number;dist?:number;lift?:number;eye?:{x:number;z:number;ax:number;az:number}|null}|null;
@@ -602,7 +646,7 @@ export type World={
   inside:boolean;room:{people?:boolean;books:Book[];notes:Note[];resting:AnalystId[];onDesk:()=>void;onShelf:()=>void;onBoard:()=>void;onDoor:()=>void};
 };
 // 게임 구성 3: a mouse over a thing in the village names it (Proto3D's HoverTip turns the name into words)
-const HOVER_NAMES=/^(shop-\w+|house|cart|signpost|signpost-hit|observatory|plaza|library|player|tree-\d+|analyst-\w+|decor-[\w-]+|bridge)$/;
+const HOVER_NAMES=/^(shop-\w+|house|cart|signpost|signpost-hit|observatory|plaza|arcade|library|player|tree-\d+|analyst-\w+|decor-[\w-]+|bridge)$/;
 const hover=(e:ThreeEvent<PointerEvent>)=>{if(e.pointerType!=='mouse')return;let o:THREE.Object3D|null=e.object,name='';
   while(o){if(HOVER_NAMES.test(o.name)){name=o.name;break}o=o.parent}
   window.dispatchEvent(new CustomEvent('rt-hover',{detail:name?{name,x:e.nativeEvent.clientX,y:e.nativeEvent.clientY}:null}))};
@@ -671,7 +715,18 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
   const onWay=(x:number,z:number)=>{const L=world.lead;if(!L)return true;const ax=L.from.x,az=L.from.z,bx=L.to.x-ax,bz=L.to.z-az,l2=bx*bx+bz*bz||1;
     const k=Math.max(0,Math.min(1,((x-ax)*bx+(z-az)*bz)/l2)),dx=x-(ax+bx*k),dz=z-(az+bz*k);return Math.hypot(dx,dz)<LOOK.lead.width||Math.hypot(x-L.to.x,z-L.to.z)<LOOK.lead.near};
   const offAt=useRef(0);const off=()=>{const t=performance.now();if(t-offAt.current>2500){offAt.current=t;world.lead?.off()}};
-  const walk=(p:THREE.Vector3)=>{if(world.planting&&world.onPlant){world.onPlant(p.x,p.z,plantBlock(p.x,p.z)||(tooClose([...(world.plants??[]),...starter()],p.x,p.z)?'다른 꽃·나무랑 너무 가까워요':null));return}const r=route(pos.current,p,(x,z)=>inPond(x,z,0.2));if(!r)return;if(!onWay(p.x,p.z)){off();return}const [first,...rest]=r;target.current.set(first.x,0,first.z);stops.current=rest;onPick(null)};
+  const [ghost,setGhost]=useState<{x:number;z:number;ok:boolean}|null>(null);
+  useEffect(()=>{if(!world.placing)setGhost(null)},[world.placing]);
+  const whyHere=(x:number,z:number)=>world.placing?placeBlock(world.placing.id,x,z,world.build?.built,world.plants):null;
+  const placeHover=(p:THREE.Vector3)=>{if(!world.placing)return;(testHooks() as {placeGhost?:unknown}).placeGhost={x:+p.x.toFixed(1),z:+p.z.toFixed(1)};setGhost(g=>g&&Math.hypot(g.x-p.x,g.z-p.z)<0.15?g:{x:p.x,z:p.z,ok:!whyHere(p.x,p.z)})};
+  useEffect(()=>{const h=testHooks() as {placeAt?:(x:number,z:number)=>string|null};
+    h.placeAt=(x,z)=>{if(!world.placing||!world.onPlace)return 'not placing';const why=whyHere(x,z);setGhost({x,z,ok:!why});world.onPlace(x,z,why);return why}});
+  const sit=useRef<{x:number;z:number;face:number}|null>(null);
+  const sitDown=()=>{if(world.placing||world.planting)return;const s=FIRE_SEAT;if(!onWay(s.x,s.z)){off();return}
+    const r=route(pos.current,s,(x,z)=>inPond(x,z,0.2));if(!r)return;const [first,...rest]=r;target.current.set(first.x,0,first.z);stops.current=rest;sit.current=s;onPick(null)};
+  useEffect(()=>{(testHooks() as {sitDown?:()=>void}).sitDown=sitDown});
+  const walk=(p:THREE.Vector3)=>{if(world.placing&&world.onPlace){const why=whyHere(p.x,p.z);setGhost({x:p.x,z:p.z,ok:!why});world.onPlace(p.x,p.z,why);return}
+    if(world.planting&&world.onPlant){world.onPlant(p.x,p.z,plantBlock(p.x,p.z)||(tooClose([...(world.plants??[]),...starter()],p.x,p.z)?'다른 꽃·나무랑 너무 가까워요':null));return}const r=route(pos.current,p,(x,z)=>inPond(x,z,0.2));if(!r)return;if(!onWay(p.x,p.z)){off();return}const [first,...rest]=r;target.current.set(first.x,0,first.z);stops.current=rest;onPick(null)};
   const reportPoint=useCallback((k:string,v:THREE.Vector3)=>{let p=points.get(k);if(!p){p=new THREE.Vector3();points.set(k,p)}p.copy(v)},[points]);
   useEffect(()=>{testHooks().inside=world.inside;testHooks().stage=world.stage;(testHooks() as unknown as {shop:unknown}).shop=world.shop??null},[world.inside,world.stage,world.shop]);
   // 넓히기 mode: where each closed lot's tag sits (ui/BuildMode.tsx), and the landmarks' (always, for their name tags)
@@ -681,7 +736,7 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
   useEffect(()=>{for(const k of [...points.keys()])if(k.startsWith('sign-'))points.delete(k);
     const put=(k:string,x:number,z:number,y:number)=>points.set('sign-'+k,new THREE.Vector3(x,surfaceY(x,z)+y,z));
     for(const p of PLACES)if(p.id in SIGN_PLACES)put(p.id,p.x,p.z,SIGN_PLACES[p.id]);
-    for(const b of BUILDINGS)if(bl?.buildings.includes(b.id))put(b.id,b.at[0],b.at[1],SIGN_BUILDINGS[b.id]??4);
+    for(const b of BUILDINGS)if(bl?.buildings.includes(b.id)){const [x,z]=buildingAt(b,bl);put(b.id,x,z,SIGN_BUILDINGS[b.id]??4)}
     for(const c of CITIES)if(bl?.cities.includes(c.id))put('city-'+c.id,c.at[0],c.at[1],SIGN_CITY)},[bl,points]);
   useEffect(()=>{for(const k of [...points.keys()])if(k.startsWith('lot-')||k.startsWith('city-'))points.delete(k);if(!bl)return;
     const put=(k:string,x:number,z:number,y:number)=>points.set(k,new THREE.Vector3(x,surfaceY(x,z)+y,z));
@@ -700,7 +755,8 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
     {world.sky?<SkyScene sky={world.sky}/>:world.stage?<Showroom look={world.look}/>:world.shop?<ShopRoom id={world.shop} look={world.look}/>:world.inside?<Interior people={world.room.people} books={world.room.books} notes={world.room.notes} resting={world.room.resting} decor={world.decor}
       onDesk={world.room.onDesk} onShelf={world.room.onShelf} onBoard={world.room.onBoard} onDoor={world.room.onDoor} onAnalyst={world.onAnalyst}
       report={reportPoint} reportAnalyst={reportAnalyst}/>:<group onPointerMove={hover} onPointerOut={hoverOff}>
-    <Ground onWalk={walk}/>
+    <Ground onWalk={walk} onHover={world.placing?placeHover:undefined}/>
+    {world.placing&&<BuildingGhost id={world.placing.id} at={ghost} ok={!!ghost?.ok} rot={BUILDINGS.find(b=>b.id===world.placing!.id)?.rot??0}/>}
     {(world.plants??[]).map(p=><Suspense key={p.id} fallback={null}><DecorPlant item={p.item} x={p.x} z={p.z} scale={p.scale}/></Suspense>)}
     {/* the starter trees are plain round trees (2026-11-18 user: fruit trees mean stocks, so only the fence has them); the beds stay */}
     {starter().map(p=>['tulips','hydrangea','sunflowers'].includes(p.item)
@@ -710,7 +766,7 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
     <Pond dim={world.light.night*0.85}/>
     <Flowers/>
     <House night={world.light.night} onEnter={()=>world.onLandmark('house')}/>
-    <Campfire/>
+    <Campfire onSit={sitDown}/>
     {ROCKS.map(([x,z,sc,rot],i)=><Rock key={i} x={x} z={z} s={sc} rot={rot}/>)}
     {trees.map((t,i)=>{const b=world.birth,k=b?b.ids.indexOf(t.h.id):-1;return <HoldingTree key={t.h.id} id={t.h.id} x={t.x} z={t.z} size={t.size} growth={t.st.growth} condition={t.st.condition} picked={picked===t.h.id} onPick={id=>onPick(id)} onTop={onTops[i]} wind={wl.wind}
       born={b&&k>=0?bornOf(b,k):null} onDeep={world.onDeep} cut={!!cut&&cut.t===t}/>})}
@@ -727,6 +783,8 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
     <Stream dim={world.light.night*0.85}/><Bridge/><Paths/><Forest/>
     {/* 피드백 2026-11-22: the library (사서 and the bookshelf) moved into the house */}
     {false&&<Library open={world.caseOpen} onPick={()=>world.onLandmark('library')}/>}
+    <Suspense fallback={null}><MasterHouse onPick={()=>world.onLandmark('master')}/></Suspense>
+    <Suspense fallback={null}><ArcadeHouse onPick={()=>world.onLandmark('arcade')}/></Suspense>
     <Fields land={world.build?.built.land??[]} mode={!!world.build?.mode} onLot={world.build?.onLot}/>
     {world.build?.mode&&<BuildingLots built={world.build.built} onLot={world.build.onLot}/>}
     {world.build&&<Buildings built={world.build.built}/>}
@@ -750,7 +808,7 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
     </Suspense>
     {/* out of the way while the camera looks into the open ground */}
     <Keys pos={pos} target={target} stops={stops} onMove={()=>onPick(null)} gate={(x,z)=>{const ok=onWay(x,z);if(!ok)off();return ok}} enabled={!world.inside&&!world.shop&&!world.stage&&!world.sky&&!cut&&!world.capsuleFx}/>
-    <Player faceTo={world.talk?.eye?{x:world.talk.eye.ax,z:world.talk.eye.az}:null} onPick={world.onPlayer} walls={walls} look={world.look} target={target} stops={stops} pos={pos} hidden={(!!cut&&!cut.c.closing)||!!world.capsuleFx||(!!world.fp&&!focusPos)||!!world.talk?.eye}/>
+    <Player sit={sit} faceTo={world.talk?.eye?{x:world.talk.eye.ax,z:world.talk.eye.az}:null} onPick={world.onPlayer} walls={walls} look={world.look} target={target} stops={stops} pos={pos} hidden={(!!cut&&!cut.c.closing)||!!world.capsuleFx||(!!world.fp&&!focusPos)||!!world.talk?.eye}/>
     {!world.sky&&<FollowCam pos={pos} recenter={recenter} focus={focusPos} orbit={orbit} near={!!world.capsuleFx} aim={world.view?.az??null} low={cut&&!cut.c.closing?cut.yaw:null} fp={!!world.fp} talk={world.talk&&!world.talk.eye?{az:world.talk.az,pitch:world.talk.pitch,dist:world.talk.dist}:null} eye={world.talk?.eye??null}/>}
     </group>}
     <Hooks pos={pos} treePos={treePos} points={points}/>

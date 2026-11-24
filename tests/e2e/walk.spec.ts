@@ -12,7 +12,7 @@ const hk = (p: Page) => p.evaluate(() => (window as unknown as { __proto3d?: Hk 
 const talk = (p: Page) => p.locator(".vl-villager");
 const say = async (p: Page, choice: string) => { await talk(p).getByRole("button", { name: choice }).click() };
 // a tap on the person's name tag (the far ones are off screen: the same tap through the page's hook)
-const IDS: Record<string, string> = { 농부: "farmer", 상인: "merchant", 사서: "librarian", "신문 배달": "paperboy", "건물 점원": "builder", "옷 점원": "tailor" };
+const IDS: Record<string, string> = { 농부: "farmer", 상인: "merchant", 사서: "librarian", "신문 배달": "paperboy", "건물 상인": "builder", "옷 상인": "tailor" };
 const go = async (p: Page, who: string) => {
   const tag = p.getByRole("button", { name: `${who}에게 말 걸기` });
   if (await tag.isVisible() && await tag.evaluate(el => { const r = el.getBoundingClientRect(); return r.left > 0 && r.top > 0 && r.right < innerWidth && r.bottom < innerHeight })) await tag.click({ force: true, timeout: 5_000 }).catch(() => p.evaluate(id => (window as unknown as { __proto3d: { meet: (id: string) => void } }).__proto3d.meet(id), IDS[who]));
@@ -54,7 +54,7 @@ test("the first walk: entry → room lesson → the village's people one by one"
   const SHOPS = ["librarian", "builder", "tailor"];
   // 유저 워크플로우 (2026-11-23): only its people, in its order (no analysts)
   const MEET_IDS = ["farmer", "merchant", "librarian", "paperboy", "naru", "builder", "tailor"];
-  for (const [i, who] of ["농부", "상인", "사서", "신문 배달", "나루", "건물 점원", "옷 점원"].entries()) {
+  for (const [i, who] of ["농부", "상인", "사서", "신문 배달", "나루", "건물 상인", "옷 상인"].entries()) {
     await expect.poll(async () => (await hk(page) as { walk?: { lead?: unknown } }).walk?.lead, { timeout: 20_000 }).toBeTruthy();
     await expect(page.locator(".vl-guide")).toContainText(who);
     if (i === 0) {
@@ -133,12 +133,12 @@ test("the first walk: entry → room lesson → the village's people one by one"
   await expect.poll(async () => (await hk(page)).walk?.step).toBe("fisher");
   await page.evaluate(() => (window as unknown as { __proto3d: { walkPass: (s: string) => void } }).__proto3d.walkPass("fisher"));
   // the shops
-  await go(page, "건물 점원");
+  await go(page, "건물 상인");
   await expect(talk(page)).toContainText("건물을 코인으로", { timeout: 40_000 });
   await say(page, "물건 보기");
   await page.getByRole("button", { name: "닫기" }).first().click();
   await expect.poll(async () => (await hk(page)).walk?.step).toBe("shop-wear");
-  await go(page, "옷 점원");
+  await go(page, "옷 상인");
   await expect(talk(page)).toContainText("옷 구경", { timeout: 40_000 });
   await say(page, "옷 보기");
   await page.getByRole("button", { name: /닫기|돌아가기/ }).first().click();

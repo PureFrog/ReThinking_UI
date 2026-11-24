@@ -10,7 +10,7 @@ test('보리 placeholder: no buy/sell advice, falls back by turn, the LLM is use
 });
 test('토론 placeholder: asks the other side, never advice', async () => {
   const {debatePlaceholder,debateChat} = await load('core/debate-chat');
-  assert.match(debatePlaceholder([], '실적이 좋아서 팔까 고민').text, /네가 정해/);
-  assert.match(debatePlaceholder([], '실적이 좋아서').text, /생각을 바꿀래/);
+  assert.match(debatePlaceholder([], '실적이 좋아서 팔까 고민').text, /당신 근거로 정하세요/);
+  assert.match(debatePlaceholder([], '실적이 좋아서').text, /생각을 바꿀 건가요/);
   assert.equal((await debateChat([], 'x', async () => ({text: 'LLM'}))).text, 'LLM');
 });

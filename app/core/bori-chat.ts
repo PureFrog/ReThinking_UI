@@ -6,18 +6,18 @@ export type ChatLine={who:'bori'|'me';text:string};
 export type ChatReply={text:string;emotion?:string};
 export type BoriLLM=(history:ChatLine[],message:string)=>Promise<ChatReply>;
 
+// v3 npc_bori: calm 반말, one or two sentences, one question; takes an answer without judging it
 const RULES:[RegExp,ChatReply][]=[
-  [/안녕|하이|반가/,{text:'안녕! 오늘 정원은 어때 보여?',emotion:'happy'}],
-  [/사|팔|매수|매도|오를|떨어|살까|팔까/,{text:'사고팔지는 네가 정하는 거야. 대신 왜 그렇게 보는지 한 줄 들려줘. 일지에 같이 적어 두자.',emotion:'thinking'}],
-  [/퀴즈|레벨/,{text:'퀴즈는 집 책상에서 선생님이랑 풀어. 레벨이 오르면 서랍 속 사건철도 열려.',emotion:'playful'}],
-  [/일지|기록/,{text:'일지는 도서관 사서한테 가면 펼쳐 줘. 오늘 생각 하나만 남겨 봐.',emotion:'happy'}],
-  [/심심|놀/,{text:'그럼 나루한테 가서 낚시 한 판 어때? 잡은 만큼 코인도 들어와.',emotion:'playful'}],
-  [/힘들|피곤|걱정|불안/,{text:'그럴 때도 있지. 숫자 말고 네가 처음에 왜 샀는지부터 천천히 떠올려 보자.',emotion:'concerned'}],
+  [/안녕|하이|반가/,{text:'왔구나. 오늘은 어디부터 둘러볼 거야?',emotion:'happy'}],
+  [/사|팔|매수|매도|오를|떨어|살까|팔까/,{text:'그건 네가 정하는 거야. 대신 왜 그렇게 보는지 한 줄 들려줘. 네 생각이 제일 궁금해.',emotion:'thinking'}],
+  [/퀴즈|레벨/,{text:'퀴즈는 집에서 선생님 담당이야. 레벨이 오르면 서랍 속 사건철도 열려.',emotion:'neutral'}],
+  [/심심|놀/,{text:'연못에 나루 있어. 낚시 한 판 하고 와도 좋고.',emotion:'playful'}],
+  [/힘들|피곤|걱정|불안/,{text:'그럴 때도 있지. 지금 바로 정리 안 해도 돼. 처음에 왜 샀는지부터 천천히 떠올려 보자.',emotion:'concerned'}],
 ];
 const FALLBACK:ChatReply[]=[
-  {text:'오, 그 얘기 더 해 줘. 왜 그렇게 생각했어?',emotion:'curious'},
-  {text:'음… 나는 듣는 담당이야. 네 생각을 한 줄로 정리해 볼래?',emotion:'thinking'},
-  {text:'좋아, 기억해 둘게. 다음에 나무 볼 때 같이 떠올려 보자.',emotion:'happy'},
+  {text:'그렇구나. 말해 줘서 고마워. 왜 그렇게 생각했어?',emotion:'curious'},
+  {text:'내 느낌엔 그 얘기 더 들어 보고 싶어. 한 줄로 말해 줄래?',emotion:'thinking'},
+  {text:'응, 기억해 둘게. 다음에 밭 볼 때 같이 떠올려 보자.',emotion:'happy'},
 ];
 // the placeholder: by the words in the message, else by turn
 export function placeholderReply(history:ChatLine[],message:string):ChatReply{
