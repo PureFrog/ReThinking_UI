@@ -393,3 +393,15 @@ html[data-still="1"] .hs-doc,html[data-still="1"] .hs-ink,html[data-still="1"] .
 /* 도전 고르기 (2026-11-24): take it on one row, the two levels on the next, each a full half — never squeezed letter by letter */
 .hs-acts:has([data-level]){flex-wrap:wrap}.hs-acts:has([data-level]) .hs-cash{flex:1 1 60%}
 .hs-acts [data-level]{flex:1 1 calc(50% - 4px);white-space:nowrap}
+/* the round buttons down the right side (1인칭, 지도, 통신기, 수첩) stand in one column that never overlaps: on a
+   desktop the notebook sat on top of the map and swallowed its taps (e2e 2026-11-24) */
+.proto3d .proto3d-locate.vl-book{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+.proto3d .proto3d-locate.proto3d-map{bottom:calc(170px + env(safe-area-inset-bottom,0px))}
+.proto3d .proto3d-locate.proto3d-view{bottom:calc(224px + env(safe-area-inset-bottom,0px))}
+.proto3d .proto3d-locate.vl-comm{bottom:calc(278px + env(safe-area-inset-bottom,0px))}
+@media(min-width:701px) and (min-height:521px){
+  .proto3d .proto3d-locate.vl-book{bottom:24px}.proto3d .proto3d-locate.proto3d-map{bottom:96px}
+  .proto3d .proto3d-locate.proto3d-view{bottom:168px}.proto3d .proto3d-locate.vl-comm{bottom:240px}}
+@media(orientation:landscape) and (max-height:520px){
+  .proto3d .proto3d-locate.proto3d-map{bottom:calc(10px + env(safe-area-inset-bottom,0px))}.proto3d .proto3d-locate.proto3d-view{bottom:calc(64px + env(safe-area-inset-bottom,0px))}
+  .proto3d .proto3d-locate.vl-book{bottom:calc(118px + env(safe-area-inset-bottom,0px))}.proto3d .proto3d-locate.vl-comm{bottom:calc(172px + env(safe-area-inset-bottom,0px))}}

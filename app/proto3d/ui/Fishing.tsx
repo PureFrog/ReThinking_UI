@@ -77,6 +77,6 @@ export function FishLog({fishing,onClose}:{fishing:Fishing|undefined;onClose:()=
   return <Sheet kicker="나루의 연못" title={`물고기 도감 ${n} / ${FISH.length}`} label="물고기 도감" onClose={onClose}>
     <div className="rt-fish-grid">{FISH.map(f=>{const c=log[f.id];return <div key={f.id} className={'rt-fish-cell'+(c?'':' no')} aria-label={c?`${f.name} ${c.n}마리, 최고 ${c.best}cm`:'아직 못 잡은 물고기'}>
       <FishIcon color={c?f.color:'#1d1f24'} size={0.62}/><b>{c?f.name:'???'}</b><small>{c?`${c.n}마리 · 최고 ${c.best}cm`:f.rarity}</small></div>})}</div>
-    <p className="rt-hint" style={{marginTop:10}}>하루 {FISHING.perDay}번 낚시할 수 있어요. 처음 잡은 물고기는 코인 +{won(FISHING.firstBonus)}.</p>
+    <p className="rt-hint" style={{marginTop:10}}>하루 {FISHING.perDay}번 낚시할 수 있어요. 보통 {won(FISHING.coins['보통'])} · 희귀 {won(FISHING.coins['희귀'])} · 전설 {won(FISHING.coins['전설'])}, 처음 잡은 물고기는 {won(FISHING.firstBonus)} 더.</p>
   </Sheet>;
 }

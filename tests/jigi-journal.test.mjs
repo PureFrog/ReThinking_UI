@@ -20,6 +20,12 @@ test('mock bars: same every time, weekdays only, anchored near the real level, c
   assert.deepEqual(S.searchStocks('하이닉').map(s=>s.code),[]);
   assert.deepEqual(S.searchStocks('하림').map(s=>s.code),['136480']);
   assert.deepEqual(S.searchStocks('13648').map(s=>s.code),['136480']);
+  // my own tree outside the KOSDAQ120 (planted by name) is found too, ahead of the list; nothing else outside it is
+  assert.deepEqual(S.searchStocks('에코프로').map(s=>s.code),[]);
+  S.setOwnCodes(['086520']);
+  assert.deepEqual(S.searchStocks('에코프로').map(s=>s.code),['086520']);
+  assert.deepEqual(S.searchStocks('하이닉').map(s=>s.code),[]);
+  S.setOwnCodes([]);
 });
 
 test('a journal saves only with its nine required things; saving again is a new version', () => {

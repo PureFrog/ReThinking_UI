@@ -6,6 +6,8 @@ export default defineConfig({
   outputDir: "test-results/artifacts",
   reporter: [["list"], ["html", { outputFolder: "playwright-report", open: "never" }]],
   timeout: 60_000,
+  // a 3D page's first paint can take more than the default 5 s with four workers on the dev server (2026-11-24 runs)
+  expect: { timeout: 15_000 },
   use: {
     baseURL: "http://127.0.0.1:5173",
     trace: "retain-on-failure",

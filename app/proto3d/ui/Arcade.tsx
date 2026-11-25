@@ -15,7 +15,7 @@ import {cue} from '../../core/sound';
 import type {Look} from '../../core/wardrobe';
 
 export const ARCADE_GAME='/arcade/ninja/index.html';
-const ROOM={w:9,d:7,h:3.4};
+const ROOM={w:9,d:7,h:5.4};   // tall enough that a phone's view up past the cabinets stays inside the room
 type Cab={id:string;x:number;title:string;sub:string;body:string;trim:string;open:boolean};
 const CABS:Cab[]=[
   {id:'soon-l',x:-2.6,title:'준비 중',sub:'곧 들어와요',body:'#a9c7e8',trim:'#6f9cc9',open:false},
@@ -57,6 +57,15 @@ function Cabinet({c,onPick}:{c:Cab;onPick:()=>void}){
   </group>;
 }
 
+// the sign over the cabinets
+function signTex(){
+  const cv=document.createElement('canvas');cv.width=512;cv.height=140;const g=cv.getContext('2d')!;
+  g.fillStyle='#4a3443';g.beginPath();g.roundRect(4,4,504,132,40);g.fill();
+  g.strokeStyle='#f2a7b8';g.lineWidth=6;g.beginPath();g.roundRect(14,14,484,112,32);g.stroke();
+  g.fillStyle='#ffe9f0';g.shadowColor='#ff8fb0';g.shadowBlur=18;g.textAlign='center';g.textBaseline='middle';
+  g.font='bold 72px "Jua","Gowun Dodum",sans-serif';g.fillText('오락실',256,74);
+  const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;return t;
+}
 function Room({onFloor}:{onFloor:(p:THREE.Vector3)=>void}){
   const {w,d,h}=ROOM;
   // a checked floor in two paper colours
@@ -64,14 +73,19 @@ function Room({onFloor}:{onFloor:(p:THREE.Vector3)=>void}){
     for(let i=0;i<4;i++)for(let j=0;j<4;j++){g.fillStyle=(i+j)%2?'#efe3c8':'#f8f0dd';g.fillRect(i*32,j*32,32,32)}
     const t=new THREE.CanvasTexture(cv);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(w/2,d/2);t.colorSpace=THREE.SRGBColorSpace;t.magFilter=THREE.NearestFilter;return t},[w,d]);
   useEffect(()=>()=>floor.dispose(),[floor]);
+  const sign=useMemo(signTex,[]);useEffect(()=>()=>sign.dispose(),[sign]);
   const bulbs=useMemo(()=>Array.from({length:15},(_,i)=>({x:-w/2+0.4+i*(w-0.8)/14,c:['#f2a7b8','#f2c230','#a9c7e8','#bfe0b0'][i%4]})),[w]);
   return <group>
     <mesh rotation-x={-Math.PI/2} receiveShadow onClick={e=>{e.stopPropagation();if(e.delta<6)onFloor(e.point)}}><planeGeometry args={[w,d+4]}/><meshStandardMaterial map={floor} roughness={0.9}/></mesh>
     <mesh position={[0,h/2,-d/2]} receiveShadow><boxGeometry args={[w,h,0.12]}/>{S('#f6e6ea')}</mesh>
     {[-1,1].map(k=><mesh key={k} position={[k*w/2,h/2,0.6]} receiveShadow><boxGeometry args={[0.12,h,d+3]}/>{S('#f3e9dc')}</mesh>)}
+    {/* the ceiling, a band where the wall meets it, and the sign */}
+    <mesh position={[0,h,0.6]} rotation-x={Math.PI/2}><planeGeometry args={[w,d+3]}/>{S('#ead6dc')}</mesh>
+    <mesh position={[0,h-0.25,-d/2+0.08]}><boxGeometry args={[w,0.5,0.04]}/>{S('#e8c3cd')}</mesh>
+    <mesh position={[0,3.95,-d/2+0.09]} name="arcade-sign"><planeGeometry args={[3.1,0.85]}/><meshBasicMaterial map={sign} transparent toneMapped={false}/></mesh>
     {/* a skirting band and a string of little lights along the back wall */}
     <mesh position={[0,0.2,-d/2+0.07]}><boxGeometry args={[w,0.4,0.04]}/>{S('#d4a5b2')}</mesh>
-    {bulbs.map((b,i)=><mesh key={i} position={[b.x,h-0.35-Math.sin(i/14*Math.PI)*0.25,-d/2+0.12]}><sphereGeometry args={[0.06,10,8]}/><meshBasicMaterial color={b.c} toneMapped={false}/></mesh>)}
+    {bulbs.map((b,i)=><mesh key={i} position={[b.x,3.05-Math.sin(i/14*Math.PI)*0.25,-d/2+0.12]}><sphereGeometry args={[0.06,10,8]}/><meshBasicMaterial color={b.c} toneMapped={false}/></mesh>)}
     {/* a round rug where I come in, a bench and a plant */}
     <mesh rotation-x={-Math.PI/2} position={[0,0.01,START.z+0.2]}><circleGeometry args={[1.1,40]}/>{S('#e8b4c2')}</mesh>
     <group position={[-3.6,0,0.6]}><mesh position-y={0.3} castShadow><boxGeometry args={[0.6,0.12,1.6]}/>{S('#c79362')}</mesh>

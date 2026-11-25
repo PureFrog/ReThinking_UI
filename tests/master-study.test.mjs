@@ -38,6 +38,13 @@ test('pages keep every paragraph once, titles with their first paragraph, and th
     for (const pg of pages) if (pg.length>1) assert.ok(pg.reduce((n,x)=>n+x.text.length+(x.head?24:0),0)<=budget);}
 });
 
+test('the last page keeps room for the source line and the finish button', () => {
+  const b=BOOKS[2],len=pg=>pg.reduce((n,x)=>n+x.text.length+(x.head?24:0),0);
+  for (const budget of [200,400,600]) {const end=90,pages=M.paginate(b,budget,end),last=pages.at(-1);
+    assert.ok(last.length===1||len(last)+end<=budget);
+    assert.deepEqual(pages.flat().map(p=>p.i+(p.cont?'c':'')),M.paginate(b,budget).flat().map(p=>p.i+(p.cont?'c':'')));}
+});
+
 test('reading spot is saved; only the last page button finishes a book', () => {
   let s=M.STUDY0;s=M.putRead(s,'01',3);assert.equal(M.readState(s,'01'),'reading');
   s=M.finishRead(s,'01',5);assert.equal(M.readState(s,'01'),'done');assert.equal(s.nod,'01');

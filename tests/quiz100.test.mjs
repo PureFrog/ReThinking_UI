@@ -41,3 +41,8 @@ test('the day is dealt from the 100 papers; a stamp keeps the response and grade
   d=D.stampPaper(d,P(ids[0]),0,asSent(P(ids[0]).quiz));assert.equal(d.stamps[0].right,true);assert.deepEqual(d.stamps[0].resp,asSent(P(ids[0]).quiz));
   d=D.stampPaper(d,P(ids[1]),null,null);assert.equal(d.stamps[1].right,false);assert.equal(d.stamps[1].choice,null);
 });
+
+test('an answer said back lists each accepted spelling once (EPS and eps are one)', () => {
+  const q={type:'fill_blank',data:{blanks:[{id:'b1'}]}};
+  assert.deepEqual(Q.say(q,{b1:['EPS','eps','주당순이익']}),['EPS 또는 주당순이익']);
+});

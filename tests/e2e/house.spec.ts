@@ -116,15 +116,16 @@ test("Lv.5 first time: straight into the scenario with the spotlight tutorial, o
   const target = () => page.locator(".sc").getAttribute("data-target");
   const lit = async (sel: string) => { await expect.poll(target).toBe(sel); await page.locator(sel).first().click() };
   // what lies under the dim is not pressable
-  const blocked = (sel: string) => page.evaluate((s) => { const b = document.querySelector(s)!.getBoundingClientRect(); return document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2)?.classList.contains("sc-dim") }, sel);
+  // (the press lands on the dim or on the light's own bubble, never on the thing: on a phone the bubble can sit over it)
+  const blocked = (sel: string) => page.evaluate((s) => { const n = document.querySelector(s)!, b = n.getBoundingClientRect(); const e = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return !!e && !n.contains(e) && !!e.closest(".sc") }, sel);
   await expect.poll(target).toBe(".sq-philo");
-  expect(await blocked(".sq-close")).toBe(true);
+  await expect.poll(() => blocked(".sq-close")).toBe(true);// the dim comes up a frame after the light moves
   await page.locator(".sq-next").click();
   await expect.poll(target).toBe(".sq-portfolio");
   await page.locator(".sq-start").click();
   await expect.poll(async () => (await sq(page))?.step, { timeout: 30000 }).toBe("turn");
   await expect.poll(target).toBe(".sq-roll");
-  expect(await blocked(".sq-notebook")).toBe(true);
+  await expect.poll(() => blocked(".sq-notebook")).toBe(true);// the dim comes up a frame after the light moves
   await page.locator(".sq-roll").click();
   await lit(".sq-pg-next");
   await lit(".sq-fold");
@@ -214,7 +215,7 @@ test("토리·모아·루온 are back in the village and talk in their own voice
 
 test("the village: trees carry their names only, no tab dock; a tree opens its stock's notebook", async ({ page }) => {
   await page.goto("/?demo&bori");
-  await expect(page.getByTestId("proto3d")).toHaveAttribute("data-place", "village");
+  await expect(page.getByTestId("proto3d")).toHaveAttribute("data-place", "village", { timeout: 30_000 });// the first page of a run waits on the dev server's build
   await expect(page.locator(".rt-dock")).toHaveCount(0);
   // 보리 comes up first with the demo stop-loss signal (예시 신호); put it off and walk on
   await expect(page.locator(".rt-talk-line")).toContainText("예시 신호", { timeout: 20000 });

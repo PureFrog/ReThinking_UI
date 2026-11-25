@@ -68,8 +68,10 @@
 
 /* settings (ui/Settings.tsx) on <html>: keep still turns every animation off; bigger text scales the panels */
 html[data-still="1"] .proto3d *,html[data-still="1"] .proto3d *::before,html[data-still="1"] .proto3d *::after{animation:none!important;transition:none!important}
-html[data-text="l"] .proto3d :is(.rt-sheet,.rt-me-panel,.rt-me-plate,.proto3d-top,.rt-dock,.rt-tip,.rt-toast,.rt-banner){zoom:1.12}
-html[data-text="xl"] .proto3d :is(.rt-sheet,.rt-me-panel,.rt-me-plate,.proto3d-top,.rt-dock,.rt-tip,.rt-toast,.rt-banner){zoom:1.25}
+/* 글자 크기 (설정): only what flows inside a box is scaled. Scaling the boxes themselves (a sheet pinned to the bottom with
+   a height from the screen) pushed them off the top of a phone (2026-11-24) */
+html[data-text="l"] .proto3d :is(.rt-sheet-head,.rt-sheet-body,.rt-sheet-foot,.rt-talk-name,.rt-talk-line,.rt-talk-choices.on-box,.rt-me-panel>*,.rt-tip,.rt-toast,.ms-quiz>*,.ms-list>*,.hs-doc>*,.ms-page-body){zoom:1.15}
+html[data-text="xl"] .proto3d :is(.rt-sheet-head,.rt-sheet-body,.rt-sheet-foot,.rt-talk-name,.rt-talk-line,.rt-talk-choices.on-box,.rt-me-panel>*,.rt-tip,.rt-toast,.ms-quiz>*,.ms-list>*,.hs-doc>*,.ms-page-body){zoom:1.3}
 .rt-me-chip{white-space:nowrap}
 .proto3d input[type=range]{accent-color:var(--rt-ink);width:100%}
 
@@ -125,3 +127,4 @@ html[data-text="xl"] .proto3d :is(.rt-sheet,.rt-me-panel,.rt-me-plate,.proto3d-t
 @media(min-width:760px) and (min-height:521px){.sky-sheet{left:auto;right:24px;bottom:24px;top:96px;width:400px;max-height:none;border:1px solid var(--rt-rule);outline:1px solid var(--rt-rule);outline-offset:-5px;transform:translateX(calc(100% + 40px))}.sky-sheet.on{transform:none}}
 @media(orientation:landscape) and (max-height:520px){.sky-sheet{left:auto;right:8px;top:8px;bottom:8px;width:min(400px,52vw);max-height:none;transform:translateX(calc(100% + 20px))}.sky-sheet.on{transform:none}.sky-title{font-size:16px}}
 @media(prefers-reduced-motion:reduce){.sky-sheet,.sky-tag{transition:none}}
+.rt-me-only{margin:0 0 10px;font:700 16px/1.3 'Gowun Batang',serif;color:var(--rt-ink);text-align:center}

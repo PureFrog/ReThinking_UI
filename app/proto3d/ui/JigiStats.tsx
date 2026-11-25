@@ -51,7 +51,7 @@ export function JigiStats({ai,journals,today,now,tasks,principles,typeNo,onTask,
     {ymd(j.createdAt).slice(2)} {j.stock?.name}</button>})}</div>:null;
   let body:React.ReactNode;
   if(!A.journals.length)body=<Card title="이 조건에 맞는 일지가 없어요"><p>기간이나 종목 조건을 넓혀 보세요.</p></Card>;
-  else if(sec===0)body=!A.n?<Card title="아직 결과가 나온 가설이 없어요"><p>일지 {A.journals.length}편, 결과를 기다리는 가설 {A.wait}개가 있어요. 지금까지 {A.dom.map(o=>`${o.key} ${o.n+o.ex}개`).join(', ')}를 적었어요.</p></Card>
+  else if(sec===0)body=!A.n?<Card title="아직 결과가 나온 가설이 없어요"><p>일지 {A.journals.length}편, 결과를 기다리는 가설 {A.wait}개가 있어요. {A.dom.length>0&&<> 지금까지 {A.dom.map(o=>`${o.key} ${o.n+o.ex}개`).join(', ')}를 적었어요.</>}</p></Card>
     :<Card title="내 투자 판단 요약" note={dE?`'${dE[0].key}' 전망은 ${dE[0].k}/${dE[0].n}로 결과가 가장 좋았고, '${dE[1].key}' 전망은 ${dE[1].k}/${dE[1].n}로 가장 자주 빗나갔어요. 전체 적중률 하나로 실력을 말하기는 어렵고, 표본이 적어 구간도 넓어요.`:`판정된 가설이 ${A.n}개라 분야별 차이를 말하기엔 아직 일러요. 기록과 복기를 조금 더 쌓아 보세요.`}>
       <div className="jg-big-row"><span className="jg-big rt-num">{pc(A.k/A.n)}</span><span className="rt-num">{A.k} / {A.n}</span>{A.w&&<span className="rt-hint rt-num">95% 구간 {pc(A.w.lo)}~{pc(A.w.hi)}</span>}</div>
       <Ci w={A.w}/>
