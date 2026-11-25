@@ -69,7 +69,7 @@ export function say(q:Q100,r:Resp|null|unknown):string[]{
     case 'ordering':return (r as string[]).map((id,i)=>`${i+1}. ${textOf(d.items,id)}`);
     case 'matching':return (d.left??[]).map(l=>`${l.text} → ${(r as Record<string,string>)[l.id]?textOf(d.right,(r as Record<string,string>)[l.id]):'—'}`);
     case 'direction':return (d.targets??[]).map(t=>`${t.text}: ${(r as Record<string,string>)[t.id]?textOf(d.options,(r as Record<string,string>)[t.id]):'—'}`);
-    case 'fill_blank':return (d.blanks??[]).map(b=>{const v=(r as Record<string,unknown>)[b.id];const s=Array.isArray(v)?v.join(' 또는 '):String(v??'—');return b.unit?`${s}${b.unit}`:s});
+    case 'fill_blank':return (d.blanks??[]).map(b=>{const v=(r as Record<string,unknown>)[b.id];const s=Array.isArray(v)?v.filter((x,i,a)=>a.findIndex(y=>String(y).toLowerCase()===String(x).toLowerCase())===i).join(' 또는 '):String(v??'—');/* EPS and eps: one answer */return b.unit?`${s}${b.unit}`:s});
   }
   return [String(r)];
 }

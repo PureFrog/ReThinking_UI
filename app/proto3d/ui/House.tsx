@@ -178,7 +178,7 @@ function QuizDesk({d,level,onStamp,onStop,onChallenge,onPaw,onUp,first=false}:{f
           <span className="hs-num">No.{String(i+1).padStart(2,'0')}</span><span className="hs-q">{q.q}</span>
           <b>{s.choice===null?'시간 초과':s.right?'맞음':'틀림'}</b></li>})}</ol>
         <p className="hs-total"><b>{right}/{n}</b> 맞힘 · 경험치 +{d.xp} · 퀴즈 Lv.{level}</p>
-        <p className="hs-total hs-coins" data-run={Math.max(0,stepOf(d))}>{coins>0?<>코인 <b>+{coin(coins)}</b> · {stepOf(d)===0?'입장 퀴즈 통과':`${LEVEL_KO[lv]} 도전 ${stepOf(d)}단계${stepOf(d)===steps.length-1?' 완주!':'에서 멈추고 받음'}`}</>:d.stamps.length>DESK.perDay?`${LEVEL_KO[lv]} 도전 실패: 걸었던 코인은 전부 몰수됐어.`:`첫 ${DESK.perDay}장을 다 맞히면 ${coin(steps[0])}과 도전 기회가 열려.`}</p>
+        <p className="hs-total hs-coins" data-run={Math.max(0,stepOf(d))}>{coins>0?<>코인 <b>+{coin(coins)}</b> · {stepOf(d)===0?'입장 퀴즈 통과':`${LEVEL_KO[lv]} 도전 ${stepOf(d)}단계${stepOf(d)===steps.length-1?' 완주!':'에서 멈추고 받음'}`}</>:d.stamps.length>DESK.perDay&&d.stamps.some(x=>!x.right)?`${LEVEL_KO[lv]} 도전 실패: 걸었던 코인은 전부 몰수됐어.`:d.stamps.length>=DESK.perDay&&d.stamps.every(x=>x.right)?`${n}장 모두 맞혔어.`:`첫 ${DESK.perDay}장을 다 맞히면 ${coin(steps[0])}과 도전 기회가 열려.`}</p>
         <p className="hs-pen">오늘도 같이 읽어 줘서 고마워.</p>
       </article>
       <div className="hs-bar"><button type="button" className="rt-btn primary" onClick={onUp}>고개 들기</button></div>

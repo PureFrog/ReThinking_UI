@@ -163,7 +163,10 @@ canvas#game{position:absolute;inset:0;width:100%;height:100%;display:block}
 .tut-dots i{width:7px;height:7px;border-radius:50%;background:rgba(42,38,32,.18)}
 .tut-dots i.on{background:var(--accent)}
 #resGraph{width:100%;height:120px;display:block;margin-top:10px;background:#fff;border:1px solid rgba(42,38,32,.1);border-radius:12px}
+/* inside the village arcade the host puts its own 그만하기 button at the top centre on phones: keep full-screen titles below it */
+@media (max-width:599px){html.embedded #overlay:not(.modal){padding-top:calc(54px + env(safe-area-inset-top))}}
 </style>
+<script>if(window.top!==window.self)document.documentElement.classList.add('embedded')</script>
 </head>
 <body>
 <div id="app">
@@ -736,7 +739,7 @@ function renderTray() {
       <div class="pc-top">${i + 1} ${SLOT.target[i]}${s.cid === G.boriCid ? ' ⚠️' : ''}</div>
       <div class="pc-name">${c.name}</div>
       <div class="pc-w">${(s.value / tot * 100).toFixed(0)}%</div>
-      <div class="pc-r ${r >= 0 ? 'up' : 'down'}">${pctTxt(r, 1)}</div>
+      <div class="pc-r ${s.soldOut ? '' : r >= 0 ? 'up' : 'down'}">${s.soldOut ? '—' : pctTxt(r, 1)}</div>
       <div class="pc-stamp">${s.soldOut ? '매도' : '베기'}</div></div>`;
   }).join('');
 }

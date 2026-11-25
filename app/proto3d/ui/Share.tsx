@@ -55,8 +55,12 @@ export function ShareSheet({card,onClose}:{card:ShareCard;onClose:()=>void}){
   const [blob,setBlob]=useState<Blob|null>(null),[url,setUrl]=useState<string|null>(null),[note,setNote]=useState('');
   useEffect(()=>{let live=true,u='';const shot=snapshot.take?.()??null;
     drawCard(card,shot).then(b=>{if(!live)return;u=URL.createObjectURL(b);setBlob(b);setUrl(u)});
-    return()=>{live=false;if(u)URL.revokeObjectURL(u)}},[card]);
-  const file=()=>new File([blob!],`rethink-${card.mark}일채점.png`,{type:'image/png'});
+    // let go of the picture a moment after the sheet goes: revoked at once, the closing sheet's <img> asked for it again
+    // and the console showed ERR_FILE_NOT_FOUND (2026-11-25)
+    return()=>{live=false;if(u){const v=u;setTimeout(()=>URL.revokeObjectURL(v),2000)}}},[card]);
+  // an ASCII name: some browsers (Chrome on Linux, tried 2026-11-25) drop a Korean download name and save it as "download"
+  // with no .png
+  const file=()=>new File([blob!],`rethink-grade-${card.mark}d.png`,{type:'image/png'});
   const save=()=>{const a=document.createElement('a');a.href=url!;a.download=file().name;document.body.appendChild(a);a.click();a.remove();setNote('이미지로 저장했어요')};
   const share=async()=>{const f=file();
     if(navigator.canShare?.({files:[f]})){try{await navigator.share({files:[f],title:`${card.name} ${card.mark}일 채점`});setNote('')}catch{/* the player closed the share sheet */}}

@@ -17,8 +17,9 @@ async function open(page: Page, errors: string[], query = "") {
   await page.goto("/proto3d?weather=clear" + query);
   await expect(page.locator(".proto3d canvas")).toBeVisible({ timeout: 30_000 });
   await expect.poll(async () => (await hooks(page))?.treeModels ?? 0, { timeout: 30_000 }).toBeGreaterThanOrEqual(7);
-  // the three analysts have loaded and report where they stand
-  await expect.poll(async () => Object.keys((await hooks(page))?.points ?? {}).filter(k => k.startsWith("analyst-")).length, { timeout: 30_000 }).toBe(3);
+  // 루온 has loaded and reports where it stands (토리·모아 left the village on 2026-11-23, d75ab89 "분석가 셋 빼기":
+  // only the 토론 character stands there now, so waiting for three never ended)
+  await expect.poll(async () => Object.keys((await hooks(page))?.points ?? {}).filter(k => k.startsWith("analyst-")), { timeout: 30_000 }).toEqual(["analyst-luon"]);
   await settled(page);
   await V.villageReady(page);
 }
@@ -183,8 +184,8 @@ test("league, game door, cart and drawer", async ({ page }) => {
   await expect(game).toContainText("관측소 숙련도");
   await expect(game.getByRole("button", { name: /의뢰 시작 · 가격표 뒤의 고객/ })).toBeEnabled();
   await game.getByRole("button", { name: "닫기" }).click();
-  // the shop (the coins up top, the cart landmark): its 소품 tab leads to the goods (2026-11-22)
-  await page.getByRole("button", { name: /^코인 .* · 상점$/ }).click();
+  // the shop (the 건물 상인's, since 2026-11-24 the coins up top open the coin top-up instead): its 소품 tab leads to the goods
+  await V.openSheet(page, { kind: "cart" });
   const shop = sheet(page, "상점");
   await shop.getByRole("tab", { name: "소품" }).click();
   await shop.getByRole("button", { name: "소품 보러 가기" }).click();
@@ -199,6 +200,7 @@ test("league, game door, cart and drawer", async ({ page }) => {
   const drawer = sheet(page, /^물건/);
   await drawer.getByLabel("자료 상자 놓을 곳").selectOption({ label: "현관 왼쪽" });
   await page.goto("/proto3d?weather=clear");
+  await V.villageReady(page);// the page's hooks come with the garden: wait for it after the reload
   await more(page, "꾸미기");
   await expect(sheet(page, /^물건/).getByLabel("자료 상자 놓을 곳")).toHaveValue("door-l");
   clean(errors);
@@ -317,13 +319,13 @@ const cutaway = async (page: Page) => ((await hooks(page)) as unknown as { cutaw
 test("a tree's financial health opens as numbers, without a root cut-away", async ({ page }) => {
   const errors: string[] = [];
   await open(page, errors, "&demo");
-  const vp = page.viewportSize()!;
+  // (a long press on a tree no longer opens the numbers: a tree's card has its 재무 체력 button. The start view shows the
+  // orchard, so the card is opened the way a tap on the tree does, through the page's hook)
   const trees = (await hooks(page))!.trees;
-  let id = -1;
-  for (const [k, p] of Object.entries(trees)) if (await tappable(page, p, vp)) { id = Number(k); break; }
+  const id = Number(Object.keys(trees)[0]);
   expect(id).toBeGreaterThan(0);
-  const q = trees[id];
-  await page.mouse.move(q.x, q.y); await page.mouse.down(); await page.waitForTimeout(900); await page.mouse.up();
+  await V.treeCard(page, id);
+  await page.locator(".proto3d-card").getByRole("button", { name: "재무 체력" }).click();
   await expect(sheet(page, "재무 체력")).toBeVisible();
   expect((await cutaway(page))?.open ?? false).toBe(false);
   await sheet(page, "재무 체력").getByRole("button", { name: "닫기" }).click();
@@ -389,7 +391,7 @@ test("a grade becomes a share card that can be saved", async ({ page }) => {
   const card = sheet(page, "공유 카드");
   const img = card.getByRole("img", { name: /POSCO홀딩스 30일 채점 공유 카드/ });
   await expect(img).toBeVisible({ timeout: 20_000 });
-  expect(await img.evaluate(e => [(e as HTMLImageElement).naturalWidth, (e as HTMLImageElement).naturalHeight])).toEqual([1080, 1920]);
+  await expect.poll(() => img.evaluate(e => [(e as HTMLImageElement).naturalWidth, (e as HTMLImageElement).naturalHeight])).toEqual([1080, 1920]);// decoded a moment after it shows
   await expect(card).toContainText("투자 권유 아님");
   const [file] = await Promise.all([page.waitForEvent("download"), card.getByRole("button", { name: "저장" }).click()]);
   expect(file.suggestedFilename()).toMatch(/\.png$/);
@@ -555,8 +557,9 @@ test("my observer's stage: dress up, see my record and stamps, back to the garde
   await me.getByRole("button", { name: /먹/ }).click();
   const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem("rethink-garden-v1")!));
   await expect.poll(async () => (await saved()).look).toMatchObject({ hat: null, palette: "ink" });
-  // (since 2026-11-22 내 프로필 is the wardrobe only: one tab; the record lives in the notebook's 이전 판단)
-  await expect(me.getByRole("tab")).toHaveText(["옷 갈아입기"]);
+  // (since 2026-11-22 내 프로필 is the wardrobe only: its title, no tabs; the record lives in the notebook's 이전 판단)
+  await expect(me.getByRole("heading", { name: "옷 갈아입기" })).toBeVisible();
+  await expect(me.getByRole("tab")).toHaveCount(0);
   expect((await saved()).stamps.map((s: { id: string }) => s.id)).toContain("first-judgment");
   await me.getByRole("button", { name: "닫기" }).click();
   await expect(me).toBeHidden();
@@ -575,6 +578,11 @@ test("settings change the text size and keep things still; the letter and the we
   await st.getByRole("group", { name: "글자 크기" }).getByRole("button", { name: "크게", exact: true }).click();
   await st.getByLabel(/움직임 줄이기/).check();
   await expect(page.locator("html")).toHaveAttribute("data-text", "l");
+  // 2026-11-24: the attribute alone passed while the bigger text pushed the sheet off the top: the text really grows and
+  // the sheet stays on the screen
+  const box = await st.boundingBox(), vh = page.viewportSize()!.height;
+  expect(box!.y).toBeGreaterThanOrEqual(0);expect(box!.y + box!.height).toBeLessThanOrEqual(vh + 1);
+  expect(await st.locator(".rt-sheet-body").evaluate(e => getComputedStyle(e).zoom)).toBe("1.15");
   await expect(page.locator("html")).toHaveAttribute("data-still", "1");
   expect((await page.evaluate(() => JSON.parse(localStorage.getItem("rethink-garden-v1")!))).settings).toMatchObject({text: "l", still: true});
   // starting over asks twice
