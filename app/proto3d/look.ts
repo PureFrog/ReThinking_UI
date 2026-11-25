@@ -160,3 +160,26 @@ export const LOOK={
       desk:'#a77d58',deskEdge:'#6f5040',paper:'#fbf7ec',ink:'#9c9180',stamp:'#b8372b',lock:'#5c5447',file:'#8a6a3f',string:'#d9c7a0'},
   },
 };
+
+// 오락실 색 (피드백 2026-11-24 "오락실 색깔 밝혀줘, 시안부터"): one palette for the room inside and a glow for the building outside.
+// `?arcade=a|b|c` picks a draft to compare; without it the default is used.
+export type ArcadeTone={bg:string;sky:string;ground:string;hemi:number;amb:number;sun:number;stripe:[string,string];side:string;ceil:string;
+  floor:[string,string];rug:string;skirt:string;sign:string;signInk:string;glow:number;flat?:boolean;lift?:number};
+export const ARCADE_TONES:Record<'now'|'a'|'b'|'c',ArcadeTone>={
+  now:{bg:'#fff3ec',sky:'#fffaf2',ground:'#f2c9d2',hemi:1.15,amb:0.12,sun:1.25,stripe:['#ffd3de','#ffe8ee'],side:'#ffe9d6',ceil:'#ffe4ea',
+    floor:['#c6e8d3','#fff6e6'],rug:'#ffd0dc',skirt:'#f5bccb',sign:'#f2a7b8',signInk:'#d4708a',glow:0.28},
+  // A 그대로 더 환하게: the same pink·mint, more light, a soft glow on the building
+  a:{bg:'#fffaf5',sky:'#ffffff',ground:'#f8dde3',hemi:0.95,amb:0.3,sun:0.85,stripe:['#ffdde6','#fff2f5'],side:'#fff2e6',ceil:'#fff4f6',
+    floor:['#d4f0de','#fffbf3'],rug:'#ffd6e0',skirt:'#f8c6d3',sign:'#f5b3c3',signInk:'#e07c97',glow:0.4,flat:true,lift:0.45},
+  // B 버터·하늘: lemon stripes, a sky-blue floor, a sunny building
+  b:{bg:'#fffcee',sky:'#ffffff',ground:'#f4e6c2',hemi:0.95,amb:0.3,sun:0.85,stripe:['#fff0b3','#fffbe3'],side:'#e4f2ff',ceil:'#fffcec',
+    floor:['#d4eaff','#fffdf4'],rug:'#ffdca8',skirt:'#f9d77e',sign:'#f2c230',signInk:'#e08a2a',glow:0.55,flat:true,lift:0.5},
+  // C 솜사탕: lavender and pink, the building glowing a little pink
+  c:{bg:'#fbf4ff',sky:'#ffffff',ground:'#efdcf5',hemi:0.95,amb:0.3,sun:0.85,stripe:['#ebdcff','#f8f1ff'],side:'#ffe8f1',ceil:'#faf4ff',
+    floor:['#e6dbff','#fff8fc'],rug:'#ffc9de',skirt:'#d9c2f5',sign:'#c9a8f0',signInk:'#9a6fd0',glow:0.55,flat:true,lift:0.5},
+};
+export function arcadeTone():ArcadeTone{
+  if(typeof location==='undefined')return ARCADE_TONES.now;
+  const k=new URLSearchParams(location.search).get('arcade');return ARCADE_TONES[(k&&k in ARCADE_TONES?k:'now') as keyof typeof ARCADE_TONES];
+}
+

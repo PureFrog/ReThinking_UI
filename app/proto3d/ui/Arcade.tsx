@@ -10,8 +10,9 @@ import {Canvas,useFrame,useThree,type ThreeEvent} from '@react-three/fiber';
 import * as THREE from 'three';
 import {Explorer} from '../Explorer3D';
 import {soft} from '../materials';
-import {LOOK} from '../look';
+import {LOOK,arcadeTone} from '../look';
 import {cue} from '../../core/sound';
+import {whenFont} from '../canvasFont';
 import type {Look} from '../../core/wardrobe';
 
 export const ARCADE_GAME='/arcade/ninja/index.html';
@@ -25,16 +26,21 @@ const CABS:Cab[]=[
 const CAB_Z=-ROOM.d/2+0.75;
 const S=(c:string)=><primitive object={soft(c)} attach="material"/>;
 const START={x:0,z:1.6};
+const T=arcadeTone();
+// walls, ceiling and floor glow a little in their own colour, so the room reads as bright pastel, not grey in the shade
+const LIT=(c:string,map?:THREE.Texture,k=T.lift??0)=>k>0?<meshLambertMaterial color={c} map={map??null} emissive={c} emissiveMap={map??null} emissiveIntensity={k}/>:map?<meshStandardMaterial map={map} roughness={0.9}/>:S(c);
 
 // a cabinet's screen: its title drawn on a canvas, lit when it runs a game
 function screenTex(c:Cab){
   const cv=document.createElement('canvas');cv.width=256;cv.height=200;const g=cv.getContext('2d')!;
-  const gr=g.createLinearGradient(0,0,0,200);gr.addColorStop(0,c.open?'#fff3d6':'#f5efe4');gr.addColorStop(1,c.open?'#ffd0dc':'#e6ddd0');g.fillStyle=gr;g.fillRect(0,0,256,200);
+  const paint=()=>{const gr=g.createLinearGradient(0,0,0,200);gr.addColorStop(0,c.open?'#fff3d6':'#f5efe4');gr.addColorStop(1,c.open?'#ffd0dc':'#e6ddd0');g.fillStyle=gr;g.fillRect(0,0,256,200);
   g.fillStyle='#2a2620';g.textAlign='center';g.textBaseline='middle';
   if(c.open){g.font='64px sans-serif';g.fillText('🥷',128,70)}
   g.font=`bold ${c.title.length>5?30:36}px "Jua","Gowun Dodum",sans-serif`;g.fillText(c.title,128,c.open?140:90);
-  g.font='20px "Gowun Dodum",sans-serif';g.fillStyle='#6f6656';g.fillText(c.sub,128,c.open?176:130);
-  const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;return t;
+  g.font='20px "Gowun Dodum",sans-serif';g.fillStyle='#6f6656';g.fillText(c.sub,128,c.open?176:130)};
+  paint();const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;
+  whenFont(`bold 36px "Jua"`,c.title,()=>{paint();t.needsUpdate=true});whenFont('20px "Gowun Dodum"',c.sub,()=>{paint();t.needsUpdate=true});
+  return t;
 }
 function Cabinet({c,onPick}:{c:Cab;onPick:()=>void}){
   const tex=useMemo(()=>screenTex(c),[c]),glow=useRef<THREE.MeshBasicMaterial>(null);
@@ -61,32 +67,32 @@ function Room({onFloor}:{onFloor:(p:THREE.Vector3)=>void}){
   const {w,d,h}=ROOM;
   // a checked floor in two paper colours
   const floor=useMemo(()=>{const cv=document.createElement('canvas');cv.width=cv.height=128;const g=cv.getContext('2d')!;
-    for(let i=0;i<4;i++)for(let j=0;j<4;j++){g.fillStyle=(i+j)%2?'#c6e8d3':'#fff6e6';g.fillRect(i*32,j*32,32,32)}
+    for(let i=0;i<4;i++)for(let j=0;j<4;j++){g.fillStyle=(i+j)%2?T.floor[0]:T.floor[1];g.fillRect(i*32,j*32,32,32)}
     const t=new THREE.CanvasTexture(cv);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(w/2,d/2);t.colorSpace=THREE.SRGBColorSpace;t.magFilter=THREE.NearestFilter;return t},[w,d]);
   useEffect(()=>()=>floor.dispose(),[floor]);
   // the back wall: soft pink stripes with the arcade's name in a scalloped sign (bright like the village's paper UI, 2026-11-24 "너무 칙칙해")
   const wall=useMemo(()=>{const cv=document.createElement('canvas');cv.width=1024;cv.height=388;const g=cv.getContext('2d')!;
-    for(let i=0;i<16;i++){g.fillStyle=i%2?'#ffd3de':'#ffe8ee';g.fillRect(i*64,0,64,388)}
-    g.fillStyle='#fffaf0';g.beginPath();g.roundRect(372,14,280,80,40);g.fill();g.lineWidth=8;g.strokeStyle='#f2a7b8';g.stroke();
-    g.fillStyle='#d4708a';g.font='bold 58px "Jua","Gowun Dodum",sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('오락실',512,56);
-    g.font='40px sans-serif';[[330,56,'#f2c230'],[694,56,'#8ab8e2']].forEach(([x,y,c])=>{g.fillStyle=c as string;g.fillText('★',x as number,y as number)});
-    const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;return t},[]);
+    const paint=()=>{for(let i=0;i<16;i++){g.fillStyle=i%2?T.stripe[0]:T.stripe[1];g.fillRect(i*64,0,64,388)}
+    g.fillStyle='#fffaf0';g.beginPath();g.roundRect(372,14,280,80,40);g.fill();g.lineWidth=8;g.strokeStyle=T.sign;g.stroke();
+    g.fillStyle=T.signInk;g.font='bold 58px "Jua","Gowun Dodum",sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('오락실',512,56);
+    g.font='40px sans-serif';[[330,56,'#f2c230'],[694,56,'#8ab8e2']].forEach(([x,y,c])=>{g.fillStyle=c as string;g.fillText('★',x as number,y as number)})};
+    paint();const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;whenFont('bold 58px "Jua"','오락실',()=>{paint();t.needsUpdate=true});return t},[]);
   useEffect(()=>()=>wall.dispose(),[wall]);
   const bulbs=useMemo(()=>Array.from({length:15},(_,i)=>({x:-w/2+0.4+i*(w-0.8)/14,c:['#f2a7b8','#f2c230','#a9c7e8','#bfe0b0'][i%4]})),[w]);
   const balloons:[number,number,number,string][]=[[-4.0,2.1,-2.9,'#f2a7b8'],[-3.6,2.35,-3.0,'#f2c230'],[-3.85,2.5,-2.6,'#a9c7e8'],[3.9,2.2,-2.9,'#bfe0b0'],[3.55,2.4,-3.0,'#f2a7b8'],[3.8,2.55,-2.6,'#f9d38a']];
   return <group>
-    <mesh rotation-x={-Math.PI/2} receiveShadow onClick={e=>{e.stopPropagation();if(e.delta<6)onFloor(e.point)}}><planeGeometry args={[w,d+4]}/><meshStandardMaterial map={floor} roughness={0.9}/></mesh>
-    <mesh position={[0,h/2,-d/2]} receiveShadow><boxGeometry args={[w,h,0.12]}/>{S('#fff1f4')}</mesh>
-    <mesh position={[0,h/2,-d/2+0.065]}><planeGeometry args={[w,h]}/><meshStandardMaterial map={wall} roughness={0.95}/></mesh>
-    {[-1,1].map(k=><mesh key={k} position={[k*w/2,h/2,0.6]} receiveShadow><boxGeometry args={[0.12,h,d+3]}/>{S('#ffe9d6')}</mesh>)}
-    <mesh position={[0,h,0.6]} rotation-x={Math.PI/2}><planeGeometry args={[w,d+3]}/>{S('#ffe4ea')}</mesh>
+    <mesh rotation-x={-Math.PI/2} receiveShadow onClick={e=>{e.stopPropagation();if(e.delta<6)onFloor(e.point)}}><planeGeometry args={[w,d+4]}/>{LIT('#ffffff',floor,(T.lift??0)*0.7)}</mesh>
+    <mesh position={[0,h/2,-d/2]} receiveShadow><boxGeometry args={[w,h,0.12]}/>{S(T.stripe[1])}</mesh>
+    <mesh position={[0,h/2,-d/2+0.065]}><planeGeometry args={[w,h]}/>{LIT('#ffffff',wall)}</mesh>
+    {[-1,1].map(k=><mesh key={k} position={[k*w/2,h/2,0.6]} receiveShadow><boxGeometry args={[0.12,h,d+3]}/>{LIT(T.side)}</mesh>)}
+    <mesh position={[0,h,0.6]} rotation-x={Math.PI/2}><planeGeometry args={[w,d+3]}/>{LIT(T.ceil)}</mesh>
     {balloons.map(([x,y,z,c],i)=><group key={i} position={[x,y,z]}><mesh castShadow><sphereGeometry args={[0.22,16,14]}/>{S(c)}</mesh>
       <mesh position-y={-0.6}><cylinderGeometry args={[0.006,0.006,0.95,4]}/>{S('#c9b8a6')}</mesh></group>)}
     {/* a skirting band and a string of little lights along the back wall */}
-    <mesh position={[0,0.2,-d/2+0.07]}><boxGeometry args={[w,0.4,0.04]}/>{S('#f5bccb')}</mesh>
+    <mesh position={[0,0.2,-d/2+0.07]}><boxGeometry args={[w,0.4,0.04]}/>{S(T.skirt)}</mesh>
     {bulbs.filter(b=>Math.abs(b.x)>1.7).map((b,i)=><mesh key={i} position={[b.x,h-0.35-Math.sin((b.x/w+0.5)*Math.PI)*0.25,-d/2+0.12]}><sphereGeometry args={[0.085,12,10]}/><meshBasicMaterial color={b.c} toneMapped={false}/></mesh>)}
     {/* a round rug where I come in, a bench and a plant */}
-    <mesh rotation-x={-Math.PI/2} position={[0,0.01,START.z+0.2]}><circleGeometry args={[1.1,40]}/>{S('#ffd0dc')}</mesh>
+    <mesh rotation-x={-Math.PI/2} position={[0,0.01,START.z+0.2]}><circleGeometry args={[1.1,40]}/>{S(T.rug)}</mesh>
     <group position={[-3.6,0,0.6]}><mesh position-y={0.3} castShadow><boxGeometry args={[0.6,0.12,1.6]}/>{S('#f6cf96')}</mesh>
       {[-0.6,0.6].map(z=><mesh key={z} position={[0,0.15,z]}><boxGeometry args={[0.5,0.3,0.1]}/>{S('#e3a873')}</mesh>)}</group>
     <group position={[3.7,0,-0.4]}><mesh position-y={0.2} castShadow><cylinderGeometry args={[0.22,0.17,0.4,14]}/>{S('#f2a7b8')}</mesh>
@@ -129,12 +135,12 @@ export function Arcade({look,onOut,hud}:{look:Look;onOut:()=>void;hud?:React.Rea
   useEffect(()=>{const w=window as unknown as {__proto3d?:Record<string,unknown>};if(!w.__proto3d)w.__proto3d={};
     w.__proto3d.arcade={playing,pick:(id:string)=>{const c=CABS.find(x=>x.id===id);if(c)pick(c)}};return()=>{if(w.__proto3d)delete w.__proto3d.arcade}});// eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{if(!playing)return;const k=(e:KeyboardEvent)=>{if(e.key==='Escape')setPlaying(false)};window.addEventListener('keydown',k);return()=>window.removeEventListener('keydown',k)},[playing]);
-  return <div className="ac" data-testid="arcade" data-playing={playing}>
-    <Canvas shadows dpr={[1,1.5]} camera={{fov:50,near:0.1,far:60}} onCreated={()=>setReady(true)} frameloop={playing?'never':'always'}>
-      <color attach="background" args={['#fff3ec']}/>
-      <hemisphereLight args={['#fffaf2','#f2c9d2',1.15]}/>
-      <ambientLight intensity={0.12} color="#fff2e8"/>
-      <directionalLight position={[3,6,5]} intensity={1.25} color="#fff4e2" castShadow shadow-mapSize={[1024,1024]} shadow-bias={-0.0004}/>
+  return <div className="ac" style={{background:T.bg}} data-testid="arcade" data-playing={playing}>
+    <Canvas shadows flat={!!T.flat} dpr={[1,1.5]} camera={{fov:50,near:0.1,far:60}} onCreated={()=>setReady(true)} frameloop={playing?'never':'always'}>
+      <color attach="background" args={[T.bg]}/>
+      <hemisphereLight args={[T.sky,T.ground,T.hemi]}/>
+      <ambientLight intensity={T.amb} color="#fff2e8"/>
+      <directionalLight position={[3,6,5]} intensity={T.sun} color="#fff4e2" castShadow shadow-mapSize={[1024,1024]} shadow-bias={-0.0004}/>
       <pointLight position={[0,2.4,CAB_Z+0.8]} intensity={4} distance={4} color="#ffc6d4"/>
       <Room onFloor={p=>{setSay('');walk(p.x,p.z)}}/>
       {CABS.map(c=><Cabinet key={c.id} c={c} onPick={()=>pick(c)}/>)}

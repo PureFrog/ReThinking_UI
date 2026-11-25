@@ -13,6 +13,7 @@ import {soft} from './materials';
 import {BUILDING_R} from './places';
 import {LOOK} from './look';
 import {OnGround} from './ground';
+import {whenFont} from './canvasFont';
 import {LANDS,BUILDINGS,CITIES,BASE_LAND,buildingAt,type Built} from '../core/land';
 
 const S=(c:string)=><primitive object={soft(c)} attach="material"/>;
@@ -56,7 +57,7 @@ export function signTexture(text:string,color:string){
     x.fillStyle='#4a3424';x.font=font;x.textAlign='center';x.textBaseline='middle';x.fillText(text,256,106)};
   paint();const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;
   // the round 'Jua' face comes from the web font: paint again once it has loaded
-  document.fonts?.load(font).then(()=>{paint();t.needsUpdate=true}).catch(()=>{});
+  whenFont(font,text,()=>{paint();t.needsUpdate=true});
   return t;
 }
 function Sign({color,text}:{color:string;text?:string}){

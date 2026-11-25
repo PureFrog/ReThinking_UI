@@ -94,8 +94,12 @@ export function ShopRoom({id,look}:{id:ShopId;look:Look}){
   const s=SHOP_INFO[id],{w,d,h}=ROOM,kitLook=useMemo(()=>{const r=ROLE_LOOK[id];return r?{...look,coat:r.coat,hat:r.hat,bag:null,tool:null}:look},[id,look]);
   return <group name={'shop-room-'+id}>
     <ShopCam/>
-    <hemisphereLight args={['#fff4e2','#8a6448',0.9]}/>
-    <directionalLight position={[2,5,5]} intensity={1.6} color="#fff1dc"/>
+    {/* the village's own sky and sun stay on in here too (Scene3D), so these only add a little warmth
+        (피드백 2026-11-25 "이거 너무 밝아": was 0.9 + 1.6 on top of the village light, walls and faces blown out) */}
+    {/* the village's own sky and sun stay on in here too (Scene3D), so these only add a little warmth
+        (피드백 2026-11-25 "이거 너무 밝아": was 0.9 + 1.6 on top of the village light, walls and faces blown out) */}
+    <hemisphereLight args={['#fff1dc','#7a5a40',0.5]}/>
+    <directionalLight position={[2,5,5]} intensity={0.9} color="#ffe2b8"/>
     <mesh><sphereGeometry args={[30,24,16]}/><meshBasicMaterial color="#2a2420" side={THREE.BackSide}/></mesh>
     <mesh position={[0,-0.05,3.5]} receiveShadow><boxGeometry args={[w,0.1,d+7]}/>{S(s.floor)}</mesh>
     <mesh position={[0,h/2,-d/2]} receiveShadow><boxGeometry args={[w,h,0.12]}/>{S(s.wall)}</mesh>

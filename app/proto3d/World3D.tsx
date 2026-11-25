@@ -2,15 +2,16 @@
 // The wider map round the first garden (places.ts): the stream with its bridge, the dirt paths as stepping stones,
 // the forest ring at the edge, the case library up the north path and the league square across the stream.
 // Everything is code-made primitives on the shared soft material, instanced where there are many.
-import {useLayoutEffect,useMemo,useRef} from 'react';
+import {useEffect,useLayoutEffect,useMemo,useRef} from 'react';
 import {useFrame,type ThreeEvent} from '@react-three/fiber';
-import {useGLTF} from '@react-three/drei';
+import {useGLTF,RoundedBox} from '@react-three/drei';
 import {MODELS} from './models';
 import * as THREE from 'three';
 import {OnGround,surfaceY,tiltAt,rng,UP} from './ground';
 import {PATHS,PLACES,STREAM,BRIDGE,streamZ,WORLD} from './places';
 import {soft} from './materials';
 import {LOOK} from './look';
+import {whenFont} from './canvasFont';
 import {mixHex} from '../core/daylight';
 
 const S=(c:string)=><primitive object={soft(c)} attach="material"/>;
@@ -162,17 +163,89 @@ export function Plaza({onPick,flags,me}:{onPick:()=>void;flags:string[];me:numbe
   </group></OnGround>;
 }
 
-// 오락실 (피드백 2026-11-24 "왼쪽 리그광장 오른쪽 오락실", a teammate's model): over the bridge, right of the split, its
-// door turned to the path. The file is 1 wide, 0.49 high, 0.91 deep (steps and stones in front); ARCADE_SIZE scales it.
-export const ARCADE_SIZE=5.2;
+// 오락실 (피드백 2026-11-24 "왼쪽 리그광장 오른쪽 오락실"; 2026-11-25 "저 3D대로 안 해도 되니까 오락실 UI랑 잘 맞게"): built here
+// from simple shapes in the room's own look (ui/Arcade.tsx): pink-striped walls, a cream trim, the scalloped 오락실 sign,
+// a candy awning with little lights, a big joystick and three buttons on the roof, balloons by the door.
+// Local +z is the front (the door), turned to the path by PLACE_AT.arcade.rot.
+// 피드백 2026-11-25 "색감·느낌은 전이 나은데, 글씨체 왜 그래, 너무 각져": the warm colours of the model before
+// (butter cream, terracotta, apricot, sage), every block rounded, the sign in the app's own round 'Jua'.
+const AC={stripe:['#f9dcaa','#fcebcb'] as const,trim:'#fdf3e4',band:'#ec8a6c',frame:'#e57a62',glass:'#d9eef4',ink:'#c9634d',
+  awning:['#ec8a6c','#fdf3e4'] as const,base:'#efd9b8',step:'#fdf3e4',peach:'#f8bb98',sage:'#b9dc9b'};
+const AC_FONT="bold 118px 'Jua','Gowun Dodum','Apple SD Gothic Neo','Malgun Gothic',sans-serif";
+function arcadeTex(draw:(g:CanvasRenderingContext2D,w:number,h:number)=>void,w:number,h:number,font?:string,text=''){
+  const cv=document.createElement('canvas');cv.width=w;cv.height=h;const g=cv.getContext('2d')!;draw(g,w,h);
+  const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;
+  // the round face comes from the web font: paint again once it has loaded
+  if(font)whenFont(font,text,()=>{g.clearRect(0,0,w,h);draw(g,w,h);t.needsUpdate=true});
+  return t;
+}
+const RB=({args,r,children,...rest}:{args:[number,number,number];r:number;children:React.ReactNode}&{position?:[number,number,number]})=>
+  <group {...rest}><RoundedBox args={args} radius={r} smoothness={4} castShadow receiveShadow>{children}</RoundedBox></group>;
 export function ArcadeHouse({onPick}:{onPick:()=>void}){
   const p=PLACES.find(x=>x.id==='arcade')!;
-  const {scene}=useGLTF(MODELS.arcade);
-  const obj=useMemo(()=>{const o=scene.clone(true);o.traverse(c=>{const m=c as THREE.Mesh;if(m.isMesh){m.castShadow=true;m.receiveShadow=true;
-    const mat=m.material as THREE.MeshPhysicalMaterial;if(mat&&'transmission' in mat){mat.transmission=0;mat.thickness=0}}});return o},[scene]);
+  const W=3.4,D=2.6,H=2.3,Z0=-0.7;// the body: width, depth, wall height; its centre sits a little back so the door is near the path
+  const fz=Z0+D/2;// the front wall
+  const walls=useMemo(()=>arcadeTex((g,w,h)=>{for(let i=0;i<16;i++){g.fillStyle=AC.stripe[i%2];g.fillRect(i*w/16,0,w/16,h)}},512,256),[]);
+  const sign=useMemo(()=>arcadeTex((g,w,h)=>{g.fillStyle='#fffaf0';g.beginPath();g.roundRect(8,8,w-16,h-16,(h-16)/2);g.fill();
+    g.lineWidth=14;g.strokeStyle=AC.band;g.stroke();g.fillStyle=AC.ink;g.font=AC_FONT;g.textAlign='center';g.textBaseline='middle';
+    g.fillText('오락실',w/2,h/2+8);g.font='64px sans-serif';g.fillStyle='#f2c230';g.fillText('★',74,h/2+4);g.fillStyle=AC.peach;g.fillText('★',w-74,h/2+4)},640,200,AC_FONT,'오락실'),[]);
+  // a window: a small arcade screen glowing inside
+  const screen=useMemo(()=>arcadeTex((g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#fff4dc');gr.addColorStop(1,'#fbd3b4');g.fillStyle=gr;g.fillRect(0,0,w,h);
+    g.fillStyle=AC.band;g.fillRect(w*0.18,h*0.62,w*0.64,h*0.1);g.fillStyle='#8ab8e2';g.beginPath();g.arc(w*0.32,h*0.38,h*0.12,0,7);g.fill();
+    g.fillStyle='#f2c230';g.beginPath();g.arc(w*0.66,h*0.34,h*0.08,0,7);g.fill();g.fillStyle=AC.sage;g.fillRect(w*0.5,h*0.44,w*0.14,h*0.1)},128,128),[]);
+  useEffect(()=>()=>{walls.dispose();sign.dispose();screen.dispose()},[walls,sign,screen]);
+  const blink=useRef<THREE.Mesh[]>([]);
+  useFrame(({clock})=>{const t=clock.elapsedTime;blink.current.forEach((m,i)=>{if(m)(m.material as THREE.MeshBasicMaterial).color.setScalar(0.75+0.25*Math.sin(t*3+i*1.3))})});
+  const scallops=9,bulbs=['#ffd27a','#fff0c2','#f8bb98','#ffd27a'];
   return <OnGround x={p.x} z={p.z} rot={p.rot}><group onClick={click(onPick)} name="arcade">
-    <primitive object={obj} scale={ARCADE_SIZE} position-y={-0.03}/>
-    <mesh position={[0,1.4,-0.2]} visible={false}><boxGeometry args={[5.2,2.8,4.2]}/></mesh>
+    {/* the plinth and the step up to the door */}
+    <RB position={[0,0.09,Z0]} args={[W+0.3,0.18,D+0.3]} r={0.08}>{S(AC.base)}</RB>
+    <RB position={[0,0.06,fz+0.45]} args={[1.5,0.12,0.6]} r={0.05}>{S(AC.step)}</RB>
+    {/* the walls: pink stripes all round, a cream trim at the foot and the top */}
+    <RB position={[0,0.18+H/2,Z0]} args={[W,H,D]} r={0.32}><meshLambertMaterial map={walls} emissive="#ffffff" emissiveMap={walls} emissiveIntensity={0.18}/></RB>
+    <RB position={[0,0.32,Z0]} args={[W+0.1,0.28,D+0.1]} r={0.13}>{S(AC.trim)}</RB>
+    <RB position={[0,0.18+H-0.05,Z0]} args={[W+0.16,0.24,D+0.16]} r={0.11}>{S(AC.band)}</RB>
+    {/* the roof: a cream slab */}
+    <RB position={[0,0.18+H+0.2,Z0]} args={[W+0.34,0.24,D+0.34]} r={0.11}>{S(AC.trim)}</RB>
+    {/* the door: a pink arch with glass */}
+    <group position={[0,0.18,fz+0.01]}>
+      <mesh position={[0,0.7,0]}><boxGeometry args={[1.0,1.4,0.06]}/>{S(AC.glass)}</mesh>
+      <mesh position={[0,1.4,0]} rotation-x={Math.PI/2}><cylinderGeometry args={[0.5,0.5,0.06,24,1,false,0,Math.PI]}/>{S(AC.glass)}</mesh>
+      {[-1,1].map(k=><RB key={k} position={[k*0.58,0.7,0.04]} args={[0.16,1.4,0.14]} r={0.07}>{S(AC.frame)}</RB>)}
+      <mesh position={[0,1.4,0.04]}><torusGeometry args={[0.58,0.08,10,24,Math.PI]}/>{S(AC.frame)}</mesh>
+      <mesh position={[0.3,0.72,0.05]}><sphereGeometry args={[0.05,10,8]}/>{S('#f2c230')}</mesh>
+    </group>
+    {/* two windows, each with a little game screen inside */}
+    {[-1,1].map(k=><group key={k} position={[k*1.1,0.18+1.05,fz+0.02]}>
+      <RB args={[0.86,0.86,0.1]} r={0.045}>{S(AC.trim)}</RB>
+      <mesh position-z={0.058}><planeGeometry args={[0.66,0.66]}/><meshBasicMaterial map={screen} toneMapped={false}/></mesh>
+    </group>)}
+    {/* side windows */}
+    {[-1,1].map(k=><group key={k} position={[k*(W/2+0.01),0.18+1.15,Z0]} rotation-y={k*Math.PI/2}>
+      <RB args={[0.94,0.74,0.1]} r={0.045}>{S(AC.trim)}</RB>
+      <mesh position-z={0.058}><planeGeometry args={[0.74,0.54]}/><meshBasicMaterial map={screen} toneMapped={false}/></mesh>
+    </group>)}
+    {/* the sign over the door */}
+    <RB position={[0,0.18+H+0.66,fz+0.12]} args={[2.34,0.78,0.12]} r={0.055}>{S(AC.band)}</RB>
+    <mesh position={[0,0.18+H+0.66,fz+0.185]}><planeGeometry args={[2.2,0.68]}/><meshBasicMaterial map={sign} transparent toneMapped={false}/></mesh>
+    {/* the awning: candy scallops along the front, a light under each */}
+    {Array.from({length:scallops},(_,i)=>{const x=-W/2+0.2+i*(W-0.4)/(scallops-1);return <group key={i} position={[x,0.18+H-0.2,fz+0.2]}>
+      <mesh rotation-x={Math.PI/2} castShadow><cylinderGeometry args={[0.2,0.2,0.4,14,1,false,Math.PI/2,Math.PI]}/>{S(AC.awning[i%2])}</mesh>
+      <mesh ref={el=>{if(el)blink.current[i]=el}} position={[0,-0.24,0.12]}><sphereGeometry args={[0.055,10,8]}/><meshBasicMaterial color={bulbs[i%4]} toneMapped={false}/></mesh>
+    </group>})}
+    {/* on the roof: a big joystick and three buttons */}
+    <group position={[-0.7,0.18+H+0.27,Z0-0.2]}>
+      <mesh position-y={0.08} castShadow><cylinderGeometry args={[0.42,0.48,0.16,24]}/>{S('#5c5447')}</mesh>
+      <mesh position-y={0.5} castShadow><cylinderGeometry args={[0.07,0.07,0.8,10]}/>{S('#d9d2c6')}</mesh>
+      <mesh position-y={1.0} castShadow><sphereGeometry args={[0.3,20,16]}/>{S(AC.band)}</mesh>
+    </group>
+    {[AC.band,'#f2c230',AC.sage].map((c,i)=><mesh key={c} position={[0.3+i*0.5,0.18+H+0.33,Z0-0.1]} castShadow><cylinderGeometry args={[0.18,0.2,0.14,20]}/>{S(c)}</mesh>)}
+    {/* balloons by the door */}
+    {([[-1.0,AC.peach,2.2],[-1.2,'#f2c230',2.45],[1.0,AC.band,2.3],[1.2,AC.sage,2.05]] as [number,string,number][]).map(([x,c,y],i)=>
+      <group key={i} position={[x*1.55,0,fz+0.35]}>
+        <mesh position-y={y} castShadow><sphereGeometry args={[0.2,16,14]}/>{S(c)}</mesh>
+        <mesh position-y={(y-0.2)/2}><cylinderGeometry args={[0.008,0.008,y-0.2,4]}/>{S('#c9b8a6')}</mesh>
+      </group>)}
+    <mesh position={[0,1.4,Z0]} visible={false}><boxGeometry args={[W+0.4,2.9,D+1.2]}/></mesh>
   </group></OnGround>;
 }
-useGLTF.preload(MODELS.arcade);
