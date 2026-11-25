@@ -66,7 +66,7 @@ export const STEP_GOAL:Record<string,{who:string;what:string}>={
 // 피드백 2026-11-21 "각 캐릭터 역할도 소개": who each one is, under the name in every talk, and what each says the first
 // time I come out to the village (보리 introduces them one by one on the square, the camera in front of each)
 export const ROLE:Record<string,string>={
-  teacher:'방의 선생님 · 퀴즈와 사건철',tori:'분석가 · 돈 버는 힘',moa:'분석가 · 쓰러질 위험',luon:'토론 · 내 종목 반대 근거',bori:'관측소지기 · 마을 동행과 신호 알림',farmer:'실제 종목 밭 · 매도 담당',merchant:'가상 종목 밭 · 매수 담당',librarian:'도서관 · 투자일지',
+  teacher:'방의 선생님 · 퀴즈와 시나리오',tori:'분석가 · 돈 버는 힘',moa:'분석가 · 쓰러질 위험',luon:'토론 · 내 종목 반대 근거',bori:'관측소지기 · 마을 동행과 신호 알림',farmer:'실제 종목 밭 · 매도 담당',merchant:'가상 종목 밭 · 매수 담당',librarian:'도서관 · 투자일지',
   paperboy:'뉴스 표지판 · 내 종목 소식',naru:'낚시터 · 코인 벌기',builder:'건물 상점 · 마을 꾸미기',tailor:'옷 상점 · 옷장',
 };
 // 피드백 2026-11-22 "역할이 드러나게": what each one does, in a word with its sign, on the name tag over them
@@ -92,5 +92,5 @@ export const INTRO:Record<string,string>={
   paperboy:'어, 너구나! 짠! 나는 신문 배달이야. 매일 네 종목 소식을 날짜랑 테마별로 모아서 광장 표지판에 꽂아 둬. 판단은 네 몫이고, 나는 무슨 일이 있었는지만 전해!',
   builder:'어서 오세요, 건물 상인이에요. 마을에 놓을 건물이랑 길, 꽃과 나무를 코인으로 팔아요. 천천히 둘러보세요.',
   tailor:'Oh, hi~ 나는 옷 상인. 네 옷을 코인으로 팔고, 산 옷은 옷장에 넣어 둬. Style은 내가 책임질게.',
-  naru:'어? 아, 안 잤어 안 잤어. …나는 나루야. 이 연못에서 같이 낚시해. 하루 몇 번 휙 던질 수 있고, 잡은 물고기만큼 코인이 들어와. 오늘 대물 나올지도 모른다니까?',
+  naru:'어? 아, 안 잤어 안 잤어. 나는 나루야. 이 연못에서 같이 낚시해. 하루 몇 번 휙 던질 수 있고, 잡은 물고기만큼 코인이 들어와. 오늘 대물 나올지도 모른다니까?',
 };

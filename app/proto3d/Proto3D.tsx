@@ -119,8 +119,9 @@ import {QuizReview} from './ui/QuizReview';
 const OUTSIDE=VILLAGERS.filter(v=>!(SHOP_IDS as string[]).includes(v.id));
 const isShop=(id:string):id is ShopId=>(SHOP_IDS as string[]).includes(id);
 
-const ROOM_TOUR=['흐음~ 다시 왔구나! 첫 퀴즈 다음부터 집은 이렇게 방으로 보여. 나는 책상 뒤에 있을게. 나를 누르면 지금까지 푼 퀴즈랑 해설을 다시 볼 수 있고, 오늘 퀴즈도 거기서 풀러 가.',
-  '옆 책장엔 네 투자일지가 종목마다 책으로 꽂혀. 일지는 마을 도서관 사서한테 쓰고, 여기서도 책장을 누르면 펼쳐 볼 수 있어.'];
+const ROOM_TOUR=['다시 왔구나! 첫 퀴즈 다음부터 집은 이렇게 방으로 보여. 나는 책상 뒤에 있을게. 나를 누르면 지금까지 푼 퀴즈랑 해설을 다시 볼 수 있고, 오늘 퀴즈도 거기서 풀러 가.',
+  // 피드백 2026-11-25 "사서는 도서관에서 나와야": the teacher says both; the shelf is the wardrobe now
+  '저기 옷장에선 산 옷을 골라 입을 수 있어. 투자일지는 마을 도서관 사서한테 가면 쓰고 펼쳐 볼 수 있고.'];
 // the first lesson done (ui/House.tsx keeps its day): from then on the house is the room seen from outside (3인칭)
 const lessonDone=()=>{try{return !!localStorage.getItem('rethink-lesson-v1')}catch{return false}};
 import {SHOP_IDS,SHOP_DOOR,type ShopId} from './Shop3D';
@@ -750,6 +751,10 @@ export default function Proto3D(){
     return()=>clearInterval(t)},[leadKey,leadOn]);// eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{if(!squareOn)return;const t=setInterval(()=>setLookAt(n=>n+1),TIMING.walkLook);return()=>clearInterval(t)},[squareOn]);
   const squareView=squareOn?(()=>{const p=[place('farm'),place('orchard'),place('pond')][lookAt%3];return {x:p.x,z:p.z,y:1.6}})():null;
+  // 피드백 2026-11-25 "튜토리얼 다시 보기 키 누르면 안 가져": the first walk again from 보리 on the square (my trees, coins
+  // and records stay; the trees already planted stay planted), out of a shop or the room first
+  const replayWalk=()=>{setSheet(null);setPicked(null);setVt(null);setMe(false);if(shop)swapShop(null);if(inside)swapRoom(false);
+    putWalk(w=>({...WALK0,planted:w.planted,freeTree:w.freeTree,firstBuy:w.firstBuy}));g.ops.tipsAgain(['tour','room'])};
   const endWalk=()=>setVt({id:'bori',phase:'talk',stand:meNow(),at:meNow(),stage:'end'});
   const pass=(id:WalkStep)=>{if(shop)swapShop(null);putWalk(w=>passStep(w,id));if(id===WALK_STEPS[WALK_STEPS.length-1])endWalk()};
   // the first walk's step after a sheet closes (the board, the shop, the wardrobe)
@@ -785,7 +790,7 @@ export default function Proto3D(){
       }
       if(walkStep==='sell'){const lots=s.virtual??[];
         if(st==='loaded'){const c=(s.cart??[]).filter(x=>x.paid==null&&!x.practice).slice(-1)[0];
-          return {name:'농부',line:`수레에 실었어.${c?` ${c.name} ${c.qty}주. 맞지? 수레가 가져간 열매는 다음 장(${c.settleDay.slice(5).replace('-','월 ')}일)이 끝날 때 팔려.`:' 수레가 가져간 열매는 다음 장이 끝날 때 팔려.'} 그때까진 코인 그대로다. …이제 도서관 사서한테 가 봐.`,
+          return {name:'농부',line:`수레에 실었어.${c?` ${c.name} ${c.qty}주. 맞지? 수레가 가져간 열매는 다음 장(${c.settleDay.slice(5).replace('-','월 ')}일)이 끝날 때 팔려.`:' 수레가 가져간 열매는 다음 장이 끝날 때 팔려.'} 그때까진 코인 그대로다. 이제 도서관 사서한테 가 봐.`,
             choices:[{label:'도서관으로',go:()=>{talkOver();pass('sell')}}]}}
         if(!lots.length)return {name:'농부',line:'팔 가상 나무가 아직 없네. 상인한테 사 오면 그때 따 줄게. 먼저 도서관 사서한테 가 봐.',choices:[{label:'도서관으로',go:()=>{talkOver();pass('sell')}}]};
         return {name:'농부',line:'아까 산 가상 나무. 몇 주 딸지 정해. 내가 가서 따서 수레에 싣는다. 수레가 가져간 열매는 다음 장이 끝날 때 팔려.',
@@ -863,7 +868,7 @@ export default function Proto3D(){
     onPlayer:()=>{},
     // 유저 워크플로우: the village's people, the guide to the next one, the board, the cart and the merchant's stall
     villagers:ready&&!lapse&&!inside&&!me&&!skyOpen&&!(calm&&bStage==='trees')?OUTSIDE.map(v=>({id:v.id,x:v.x,z:v.z,face:v.face,look:v.look,hl:!!walkStep&&PERSON_OF[walkStep]===v.id&&!vtTalk,
-      talking:vt?.id===v.id,away:v.id==='merchant'&&!merchantOpen,onPick:()=>onVillager(v.id),
+      talking:vt?.id===v.id,talkAt:vt?.id===v.id?vt.stand:null,away:v.id==='merchant'&&!merchantOpen,onPick:()=>onVillager(v.id),
       ...(v.id==='farmer'&&errand?{errand:{to:errand.to,cart:{x:FARM_CART.x,z:FARM_CART.z},key:errand.key},onErrandDone:()=>{setErrand(null);const f=errandLoad.current;errandLoad.current=null;f?.()}}:{})})):undefined,
     guide:walkStep&&walkStep!=='square'&&!vt&&!sheet&&!calm&&!fish?goalOf(walkStep):null,
     // the light falls on 나루 himself, not on the spot I fish from (피드백 2026-11-23)
@@ -878,7 +883,7 @@ export default function Proto3D(){
       else g.say(r==='coins'?'코인이 모자라요':'다른 꽃·나무랑 너무 가까워요')},
     // 보리 came over and is talking: the camera comes close on the two of them until the talk opens or is answered
     // with 나루: the camera on the two of them while talking, over the player's shoulder onto the water while fishing
-    talk:vtTalk&&vt&&vt.id!=='bori'&&!shop?{x:vt.at.x,z:vt.at.z,az:0,eye:{x:vt.stand.x,z:vt.stand.z,ax:vt.at.x,az:vt.at.z}}
+    talk:vtTalk&&vt&&vt.id!=='bori'&&!shop?{x:vt.at.x,z:vt.at.z,az:0,eye:{x:vt.stand.x,z:vt.stand.z,ax:vt.at.x,az:vt.at.z,who:vt.id==='luon'||vt.id==='naru'||vt.id==='tori'||vt.id==='moa'?vt.id:'npc-'+vt.id}}
       :tourShow&&tourNear&&(tourStep.at==='tori'||tourStep.at==='moa'||tourStep.at==='luon')?(()=>{const sp=FIXED_SPOT[tourStep.at];const T=LOOK.camera.tour;return {x:sp.x,z:sp.z,az:sp.face+(T.turn[tourStep.at]??0),pitch:T.pitchOf[tourStep.at]??T.pitch,dist:T.dist,lift:T.lift}})()
       :fish==='talk'?{x:(NARU.x+FISH_STAND.x)/2,z:(NARU.z+FISH_STAND.z)/2,az:Math.atan2(FISH_STAND.x-NARU.x,FISH_STAND.z-NARU.z)+LOOK.camera.talk.turn}
       :fish==='play'?{x:FISH_AT.x*0.8+FISH_STAND.x*0.2,z:FISH_AT.z*0.8+FISH_STAND.z*0.2,az:Math.atan2(FISH_STAND.x-FISH_AT.x,FISH_STAND.z-FISH_AT.z)+0.35,pitch:LOOK.camera.fish.pitch,dist:LOOK.camera.fish.dist}
@@ -1032,7 +1037,7 @@ export default function Proto3D(){
         {k:'room-door',text:'밖으로',onClick:()=>swapRoom(false)}]}/>}
       {inside&&!sheet&&!roomTour&&<button type="button" className="rt-btn rt-exit" onClick={()=>swapRoom(false)}>밖으로 나가기</button>}
       {/* 피드백 2026-11-22: the first time back in, the teacher and the librarian say what they do in here */}
-      {inside&&!sheet&&roomTour&&<VillagerTalk key={'room'+roomTour} name={roomTour===1?'선생님':'사서'} who={roomTour===1?'teacher':'librarian'} role={ROLE[roomTour===1?'teacher':'librarian']}
+      {inside&&!sheet&&roomTour&&<VillagerTalk key={'room'+roomTour} name="선생님" who="teacher" role={ROLE.teacher}
         line={ROOM_TOUR[roomTour-1]} choices={[roomTour===1?{label:'다음',go:()=>setRoomTour(2)}:{label:'알겠어',go:()=>{setRoomTour(0);g.ops.tipDone('room')}}]}/>}
       {sheet?.kind==='quizlog'&&<QuizReview now={clock.now} onClose={close} onQuiz={extra=>{if(extra)try{sessionStorage.setItem('rethink-extra-quiz','1')}catch{/* this visit */}setSheet(null);setInside(false);enterHouse()}}/>}
       {fading&&<div className="rt-room-fade" aria-hidden/>}
@@ -1043,7 +1048,7 @@ export default function Proto3D(){
       {sheet?.kind==='settings'&&<SettingsSheet g={g} onClose={close} tilt={tiltCtl} account={account?.email??null}
         onLogOut={account?()=>{void authRepo.logOut();setAccount(null);setSheet(null)}:undefined}
         onDelete={syncOn&&saveRepo?async()=>{const e=await saveRepo!.deleteMe();if(e)return e;try{localStorage.removeItem('rethink-account-v1');localStorage.removeItem('rethink-guest')}catch{/* nothing kept */}g.ops.wipe();return null}:undefined}
-        onWipe={synced&&saveRepo?()=>{void saveRepo!.push({v:1,holdings:null,judgments:[]}).finally(()=>g.ops.wipe())}:undefined} onTutorial={()=>{setSheet(null);setPicked(null);setTutAgain(true)}}/>}
+        onWipe={synced&&saveRepo?()=>{void saveRepo!.push({v:1,holdings:null,judgments:[]}).finally(()=>g.ops.wipe())}:undefined} onTutorial={replayWalk}/>}
       {sheet?.kind==='journal'&&<JigiBook key={(sheet.openId??sheet.stock??'book')+(sheet.stats?':stats':'')} startStock={sheet.stock} stockName={sheet.stock?holdings.find(x=>codeOf(x)===sheet.stock)?.name??null:null} openId={sheet.openId} startTab={sheet.stats?'stats':'book'} ai={syncOn?jigiAI:null} journals={journals} today={clock.today} now={clock.now} oldCount={s.judgments.length} onClose={close}
         onHypos={g.ops.journalHypos} onConfirm={confirmHypo} onReflect={g.ops.journalReflect}
         renderStats={(openJ,stock)=><JigiStats ai={syncOn?jigiAI:null} journals={journals} today={clock.today} now={clock.now} tasks={s.jigi?.tasks??[]} principles={s.jigi?.principles??[]} typeNo={s.jigi?.typeNo??{}}

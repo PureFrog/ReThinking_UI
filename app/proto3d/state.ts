@@ -301,6 +301,8 @@ export function useGarden(){
       if(paid)say(line(UI.weekDone,{n:won(EARN.weekDone)}))},
     letterRead(month:string){setS(p=>p.letters.includes(month)?p:{...p,letters:[...p.letters,month]})},
     tipDone(id:string){setS(p=>p.tips.includes(id)?p:{...p,tips:[...p.tips,id]})},
+    // 피드백 2026-11-25 "튜토리얼 다시 보기": these tips show again (the first walk, the room's first visit)
+    tipsAgain(ids:string[]){setS(p=>({...p,tips:p.tips.filter(t=>!ids.includes(t))}))},
     setLook(look:Look){setS(p=>({...p,look}))},
     // a piece of clothing from the cart's currency (core/wardrobe.ts unlock buy)
     // 가상 종목 (core/virtual.ts): bought at today's price into a free plot of the 과수원; sold back at today's price

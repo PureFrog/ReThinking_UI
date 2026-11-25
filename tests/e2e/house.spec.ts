@@ -45,7 +45,7 @@ test("Lv.5: the scenario quest — 거장, portfolio, three turns of paper · no
   await expect(page.getByTestId("house")).toHaveAttribute("data-state", "quiz-first");
   await doQuiz(page);
   await expect(page.getByTestId("house")).toHaveAttribute("data-state", "unlocked");
-  await btn(page, "사건철 펼치기").click();
+  await btn(page, "시나리오 펼치기").click();
   // ① the portrait in the middle first, then left with the principle; waiting alone does not bring the portfolio
   await expect.poll(async () => (await sq(page))?.step).toBe("mentor");
   await expect.poll(async () => (await sq(page))?.beat).toBe("left");
@@ -77,7 +77,7 @@ test("Lv.5: the scenario quest — 거장, portfolio, three turns of paper · no
       // a bookmark keeps the draft
       await btn(page, "책갈피 끼우고 덮기").click();
       await page.reload();
-      await btn(page, "책갈피부터 이어 보기").click();
+      await btn(page, "이어 보기").click();
       await expect.poll(async () => (await sq(page))?.sub).toBe("note");
       await expect(page.locator(".sq-field textarea")).toHaveValue(/단골/);
     }

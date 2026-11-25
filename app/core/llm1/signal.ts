@@ -31,7 +31,7 @@ export function resolveStock(query:string,holdings:SignalHolding[],listed:Listed
 // what the character says when it cannot open the talk (no LLM call)
 export const SIGNAL_LINES:Record<'bori'|'luon',{empty:string;notHeld:(n:string)=>string;unknown:(q:string)=>string}>={
   bori:{empty:'어떤 종목? /signal 뒤에 종목 이름을 붙여 줘.',notHeld:n=>`어, ${n}은 네 정원에 없는 종목이야. 정원에 있는 종목으로 얘기하자.`,
-    unknown:q=>`'${q}'그런 종목은 못 찾겠어. 이름을 한 번만 다시 써 줄래?`},
+    unknown:q=>`'${q}'? 그런 종목은 못 찾겠어. 이름을 한 번만 다시 써 줄래?`},
   luon:{empty:'어느 종목? 이름을 붙여 줘.',notHeld:n=>`${n}, 네 정원엔 없는 종목이야. 갖고 있는 것부터 보자.`,
-    unknown:q=>`…'${q}'. 그런 종목은 안 보여. 이름 다시 확인해 줄래?`},
+    unknown:q=>`'${q}'? 그런 종목은 안 보여. 이름 다시 확인해 줄래?`},
 };

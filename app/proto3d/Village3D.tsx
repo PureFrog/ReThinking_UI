@@ -21,7 +21,7 @@ const glow=new THREE.MeshBasicMaterial({color:'#ffd66b',transparent:true,opacity
 // filling, carries it to the cart, tips it in and walks home; onErrandDone then
 export type Errand={to:{x:number;z:number};cart:{x:number;z:number};key:number};
 const STEP=2.4,PICK=2.2,DROP=0.8;
-export function Villager({id,x,z,face,look,hl,talking,away=false,errand=null,onErrandDone,player,onPick,report}:{id:string;x:number;z:number;face:number;look:Look;hl:boolean;talking:boolean;away?:boolean;
+export function Villager({id,x,z,face,look,hl,talking,talkAt=null,away=false,errand=null,onErrandDone,player,onPick,report}:{id:string;x:number;z:number;face:number;look:Look;hl:boolean;talking:boolean;talkAt?:{x:number;z:number}|null;away?:boolean;
   errand?:Errand|null;onErrandDone?:()=>void;
   player:React.MutableRefObject<THREE.Vector3>;onPick:()=>void;report:(k:string,v:THREE.Vector3)=>void}){
   const body=useRef<THREE.Group>(null),walker=useRef<THREE.Group>(null),basket=useRef<THREE.Group>(null),ring=useRef<THREE.Mesh>(null),arrow=useRef<THREE.Group>(null);
@@ -50,7 +50,9 @@ export function Villager({id,x,z,face,look,hl,talking,away=false,errand=null,onE
         k.visible=r.leg>=1&&r.leg<=3;k.position.set(Math.sin(b.rotation.y)*0.38,0.78+b.position.y,Math.cos(b.rotation.y)*0.38);
         k.children.forEach((c,i)=>{if(i>0)c.visible=i<=Math.ceil(full*5)})}
     }else{w.position.set(0,0,0);b.position.y=0;b.rotation.x=0;if(basket.current)basket.current.visible=false}
-    if(!busy){const p=player.current,d=Math.hypot(p.x-x,p.z-z);
+    // 피드백 2026-11-25 "앞을 봐야지": in a talk the person turns to where the talk camera stands (the player's talk spot),
+    // not to wherever the player got stuck on the way (a board or a wall between), so the face is always in the picture
+    if(!busy){const p=talking&&talkAt?talkAt:player.current,d=Math.hypot(p.x-x,p.z-z);
       const want=talking||d<4.2?Math.atan2(p.x-x,p.z-z):face,diff=Math.atan2(Math.sin(want-b.rotation.y),Math.cos(want-b.rotation.y));
       b.rotation.y+=diff*Math.min(1,dt*(talking?9:4))}
     if(ring.current){ring.current.scale.setScalar(1+Math.sin(t*3)*0.06)}

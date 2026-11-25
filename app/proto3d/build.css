@@ -52,5 +52,6 @@
 /* name signs over the buildings (ui/Signs.tsx): never in the way of a tap. 2026-11-25 (user "도서관 저 흰색 푯말처럼
    통일"): the same cream pill as the keepers' tags over the shops (house.css .vl-npc-tag), no more wooden board */
 .proto3d .rt-signs{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:hidden}
-.proto3d .rt-sign{position:absolute;left:0;top:0;white-space:nowrap;padding:3px 9px;border-radius:999px;background:#fffdf6e6;color:#3b332a;
+.proto3d .rt-sign{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;gap:1px;white-space:nowrap;padding:3px 10px;border-radius:999px;background:#fffdf6e6;color:#3b332a;
   font-size:12px;font-weight:700;line-height:1.3;border:1px solid var(--rt-line2);box-shadow:var(--rt-shadow)}
+.proto3d .rt-sign small{font-size:10.5px;font-weight:600;color:#8a6a2a;line-height:1.25}

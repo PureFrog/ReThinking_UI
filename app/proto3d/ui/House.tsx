@@ -95,12 +95,12 @@ export function House({g,master,onOut,onSettings,lesson=false}:{g:G;master:boole
   const LV=HOUSE.unlockLevel;
   const lessonLine:Line|null=les==='wave'?{text:'어서 와, 나는 이 방의 선생님이야. 매일 퀴즈를 내고 해설해 줄게. 오늘은 나랑 문제 하나 풀어 보자. 이 종이 한 장 받아 줄래?',choices:[{label:'종이 누르기',go:openPaper}]}
     :les==='level'?{text:`이건 네 퀴즈 레벨이야. 지금은 Lv.${level}. 퀴즈를 풀면서 여기까지 자라는 거야.`,choices:[{label:'응',go:()=>setLes('lock')}]}
-    :les==='lock'?{text:`옆 서랍엔 자물쇠가 있어. 퀴즈 Lv.${LV}에 열려. 그때 사건철을 같이 꺼내 보자. 이제 종이를 펼쳐 볼까?`,choices:[{label:'종이 펼치기',go:openPaper}]}
-    :les==='door'?{text:'오늘 수업 끝! 문 열어 둘게. 마을 일은 보리한테 물어봐. 남은 문서는 언제든 와서 마저 봐도 돼. …졸지 말고 다녀와.',choices:[{label:'밖으로 나가기',go:goOut}]}:null;
+    :les==='lock'?{text:`옆 서랍엔 자물쇠가 있어. 퀴즈 Lv.${LV}에 열려. 그때 시나리오를 같이 꺼내 보자. 이제 종이를 펼쳐 볼까?`,choices:[{label:'종이 펼치기',go:openPaper}]}
+    :les==='door'?{text:'오늘 수업 끝! 문 열어 둘게. 마을 일은 보리한테 물어봐. 남은 문서는 언제든 와서 마저 봐도 돼.',choices:[{label:'밖으로 나가기',go:goOut}]}:null;
   const line:Line=lessonLine??(say?{text:say.text,choices:[{label:'알겠어',go:()=>setSay(null)}]}:{text:boriLine(state,{first,level,caseStatus:today?.status??null,started}),choices:[
     ...(state==='quiz'||state==='quiz-first'?[{label:started?'이어서 보기':'문서 받기',go:openPaper}]:[]),
     ...(quizDone?[{label:'오늘 결과표',go:()=>{setExtra(null);openPaper()}},{label:'추가 퀴즈 풀기',go:openExtra}]:[]),
-    ...((state==='unlocked'||state==='case')&&today?[{label:today.status==='open'?'책갈피부터 이어 보기':'사건철 펼치기',go:openCase}]:[]),
+    ...((state==='unlocked'||state==='case')&&today?[{label:today.status==='open'?'이어 보기':'시나리오 펼치기',go:openCase}]:[]),
     ...(door?[{label:'밖으로 나가기',go:goOut}]:[])]});
   // 보리's paws (9-3): a place for each state of the day, and they keep moving there
   const [quizPaw,setQuizPaw]=useState<Paws>('hold');
@@ -124,7 +124,7 @@ export function House({g,master,onOut,onSettings,lesson=false}:{g:G;master:boole
       <span className="hs-chip hs-day">{day.slice(5).replace('-','월 ')}일</span>
       <button type="button" className="hs-corner" aria-label="설정" onClick={onSettings}>설정</button>
     </div>
-    {view==='desk'&&<TalkBox className="hs-talk" name="선생님" nameWho="teacher" role="방의 선생님 · 퀴즈와 사건철" line={line.text} choices={line.choices}/>}
+    {view==='desk'&&<TalkBox className="hs-talk" name="선생님" nameWho="teacher" role="방의 선생님 · 퀴즈와 시나리오" line={line.text} choices={line.choices}/>}
     {view==='paper'&&extra&&<QuizDesk key={'x'+extraN.current} practice d={extra} level={level}
       onStamp={(p,choice,resp)=>setExtra(e=>{if(!e)return e;const n=stampPaper(e,p,choice,resp);return n.stamps.length>=n.ids.length?{...n,done:true}:n})}
       onStop={()=>{}} onChallenge={()=>{}} onPaw={setQuizPaw} onUp={()=>{setExtra(null);lookUp()}}/>}

@@ -40,11 +40,14 @@ export const SHOP_DOOR=Object.fromEntries(SHOP_IDS.map(id=>[id,doorOf(SHOP_AT[id
 export function BuildingModel({url,scale}:{url:string;scale:number}){
   const {scene}=useGLTF(url);
   const obj=useMemo(()=>{const o=scene.clone(true);o.traverse(c=>{const m=c as THREE.Mesh;if(m.isMesh){m.castShadow=true;m.receiveShadow=true;
-    const mat=m.material as THREE.MeshPhysicalMaterial;if(mat&&'transmission' in mat){mat.transmission=0;mat.thickness=0}}});return o},[scene]);
+    const mat=m.material as THREE.MeshPhysicalMaterial;if(mat&&'transmission' in mat){mat.transmission=0;mat.thickness=0}
+    // 2026-11-25 "건물이 너무 칙칙해": a little of its own colour glows, so the paint stays lively in shade and at night
+    if(mat&&mat.map&&!mat.emissiveMap){mat.emissive=new THREE.Color('#ffffff');mat.emissiveMap=mat.map;mat.emissiveIntensity=BUILDING_GLOW}}});return o},[scene]);
   return <primitive object={obj} scale={scale}/>;
 }
 Object.values(MODELS.building).forEach(u=>useGLTF.preload(u));
 // how big each model stands in the village (the file is about 1 across): roughly the old houses' footprint
+export const BUILDING_GLOW=0.16;
 export const BUILDING_SCALE={library:5.4,builder:4.0,tailor:3.9,home:5.4};
 
 // outside: the shop's own building (2026-11-25 models: 도서관 a book house, 건물 상점 a flower-roof house, 옷 가게 a

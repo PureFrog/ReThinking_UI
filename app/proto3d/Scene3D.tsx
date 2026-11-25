@@ -451,7 +451,7 @@ const easeInOut=(k:number)=>k<0.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
 // low: the root cut-away is open, so the camera comes down to the side of it (keeping the way it faces)
 // near: a capsule is being buried or dug up (W3): the camera comes closer to it
 // aim: a landmark just opened — the camera comes down to a side view from the garden's side, facing it (core/land.ts)
-function FollowCam({pos,recenter,focus,orbit,low,near,aim,fp=false,talk=null,eye=null}:{pos:React.MutableRefObject<THREE.Vector3>;recenter:number;focus:THREE.Vector3|null;orbit:Orbit|null;low:number|null;near:boolean;aim?:number|null;fp?:boolean;talk?:{az:number;pitch?:number;dist?:number}|null;eye?:{x:number;z:number;ax:number;az:number}|null}){
+function FollowCam({pos,recenter,focus,orbit,low,near,aim,fp=false,talk=null,eye=null,livePoints}:{pos:React.MutableRefObject<THREE.Vector3>;recenter:number;focus:THREE.Vector3|null;orbit:Orbit|null;low:number|null;near:boolean;aim?:number|null;fp?:boolean;talk?:{az:number;pitch?:number;dist?:number}|null;eye?:{x:number;z:number;ax:number;az:number;who?:string}|null;livePoints?:Map<string,THREE.Vector3>}){
   const shift=useRef({x:0,y:0}),back=useRef(false),lean=useMemo(()=>new THREE.Vector3(),[]),side=useMemo(()=>new THREE.Vector3(),[]),tv=useRef({x:0,y:0});
   const ctl=useRef<OrbitControlsImpl>(null),{camera,size}=useThree(),fpWas=useRef(false);
   const prev=useMemo(()=>new THREE.Vector3(),[]),want=useMemo(()=>new THREE.Vector3(),[]),fwd=useMemo(()=>new THREE.Vector3(),[]);
@@ -469,13 +469,18 @@ function FollowCam({pos,recenter,focus,orbit,low,near,aim,fp=false,talk=null,eye
     // out to the usual framing where I stand
     const pc0=camera as THREE.PerspectiveCamera,E=LOOK.camera.eyeTalk;
     if(eye){if(!eyeWas.current){eyeWas.current=true;eyeFrom.copy(camera.position)}
-      want.set(eye.ax,surfaceY(eye.ax,eye.az)+E.face,eye.az);c.target.lerp(want,ease(4));
-      const dx=eye.ax-eye.x,dz=eye.az-eye.z,d=Math.hypot(dx,dz)||1;
-      fwd.set(eye.x-dx/d*E.back,surfaceY(eye.x,eye.z)+E.eye,eye.z-dz/d*E.back);camera.position.lerp(fwd,ease(3.2));
+      // 피드백 2026-11-25 "시야가 왜이래", "앞을 봐야지": framed from where the person really stands now (they may have
+      // walked off their spot), the camera always on my side of them and never closer than E.min, so the face and the
+      // upper body fill the picture whoever it is
+      const live=eye.who?livePoints?.get(eye.who):undefined,ax=live?live.x:eye.ax,az=live?live.z:eye.az;
+      want.set(ax,surfaceY(ax,az)+E.face,az);c.target.lerp(want,ease(4));
+      let dx=eye.x-ax,dz=eye.z-az,d=Math.hypot(dx,dz);if(d<0.2){dx=Math.sin(Math.atan2(eye.x-eye.ax,eye.z-eye.az)||0);dz=Math.cos(Math.atan2(eye.x-eye.ax,eye.z-eye.az)||0);d=1}
+      const dist=Math.max(d,E.min)+E.back,cx=ax+dx/d*dist,cz=az+dz/d*dist;
+      fwd.set(cx,surfaceY(cx,cz)+E.eye,cz);camera.position.lerp(fwd,ease(3.2));
       if(pc0.fov!==E.fov){pc0.fov=E.fov;pc0.updateProjectionMatrix()}c.enableZoom=false;c.enableRotate=false;c.minDistance=0.1;c.maxPolarAngle=Math.PI;
-      // 피드백 11-25 "1인칭이 기울어져": on the round world the ground under me leans; the camera's up follows it, so
-      // the horizon in front of me reads level
-      camera.up.copy(normalAt((eye.x+eye.ax)/2,(eye.z+eye.az)/2));c.update();camera.lookAt(c.target);(testHooks() as {view?:unknown}).view={fp:false,eyeTalk:true,eyeGap:+camera.position.distanceTo(c.target).toFixed(2),follow:0};return}
+      // 피드백 11-25 "이거 왜 기울어져있지": the camera stays upright to the world in every talk (the ground's lean on
+      // the round world made the whole picture roll); people and houses stand straight on screen
+      camera.up.copy(UP);c.update();camera.lookAt(c.target);(testHooks() as {view?:unknown}).view={fp:false,eyeTalk:true,eyeGap:+camera.position.distanceTo(c.target).toFixed(2),follow:0};return}
     if(eyeWas.current){eyeWas.current=false;back.current=true;c.enableRotate=true;c.enableZoom=true;pc0.fov=fr.fov;pc0.updateProjectionMatrix();
       c.minDistance=LOOK.camera.minDist;want.set(pos.current.x,surfaceY(pos.current.x,pos.current.z)+0.8,pos.current.z);c.target.copy(want);
       camera.position.copy(want).addScaledVector(camDir(fr.turn,fr.pitch),LOOK.camera.minDist+0.5)}
@@ -522,7 +527,7 @@ function FollowCam({pos,recenter,focus,orbit,low,near,aim,fp=false,talk=null,eye
     tv.current.x+=(tilt.x-tv.current.x)*ease(6);tv.current.y+=(tilt.y-tv.current.y)*ease(6);
     side.set(1,0,0).applyQuaternion(camera.quaternion);lean.copy(side).multiplyScalar(tv.current.x*LOOK.tilt.amount);
     side.set(0,1,0).applyQuaternion(camera.quaternion);lean.addScaledVector(side,-tv.current.y*LOOK.tilt.amount*0.6);
-    camera.up.copy(fpOn?normalAt(pos.current.x,pos.current.z):UP);camera.position.add(lean);camera.lookAt(c.target);
+    camera.up.copy(UP);camera.position.add(lean);camera.lookAt(c.target);
     // e2e: first person or not, how far the camera is from where it looks, how far that is from the player (xz)
     (testHooks() as {view?:unknown}).view={fp:fpOn,eyeGap:+camera.position.distanceTo(c.target).toFixed(2),follow:+Math.hypot(c.target.x-pos.current.x,c.target.z-pos.current.z).toFixed(2)}});
   return <OrbitControls ref={ctl} makeDefault enablePan={false} enableDamping dampingFactor={LOOK.camera.damping} rotateSpeed={LOOK.camera.rotateSpeed} zoomSpeed={LOOK.camera.zoomSpeed}
@@ -642,10 +647,10 @@ export type World={
   placing?:{id:string}|null;onPlace?:(x:number,z:number,why:string|null)=>void;
   // 보리 came over to talk: the camera frames the point between it and the player (LOOK.camera.talk)
   // eye: 유저 워크플로우 2장, a talk face to face: the camera at my eyes (x,z), looking at the other's face (ax,az)
-  talk?:{x:number;z:number;az:number;pitch?:number;dist?:number;lift?:number;eye?:{x:number;z:number;ax:number;az:number}|null}|null;
+  talk?:{x:number;z:number;az:number;pitch?:number;dist?:number;lift?:number;eye?:{x:number;z:number;ax:number;az:number;who?:string}|null}|null;
   // 유저 워크플로우: the village's people (content/villagers.ts), whether each is the one to go to now, who is talking;
   // the guide's footprints to the next one; the news board, the cart's pile and whether the merchant is at the stall
-  villagers?:{id:string;x:number;z:number;face:number;look:Look;hl:boolean;talking:boolean;away?:boolean;errand?:Errand|null;onErrandDone?:()=>void;onPick:()=>void}[];
+  villagers?:{id:string;x:number;z:number;face:number;look:Look;hl:boolean;talking:boolean;talkAt?:{x:number;z:number}|null;away?:boolean;errand?:Errand|null;onErrandDone?:()=>void;onPick:()=>void}[];
   guide?:{x:number;z:number}|null;
   // 피드백 2026-11-22: the tutorial leads: light on the one place to go, the rest dimmed, and I can only walk along the way there
   lead?:{from:{x:number;z:number};to:{x:number;z:number};mark?:{x:number;z:number};off:()=>void}|null;onNews?:()=>void;cartPile?:number;merchantOpen?:boolean;
@@ -828,14 +833,14 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
       {world.analysts.filter(a=>!a.home).map(a=><Analyst key={a.id} id={a.id} to={spotFor(a.id,a.at,a.near,a.spot)} act={a.talking?undefined:a.at===null&&a.spot?a.spot.act:a.at!==null&&!a.near?'look':undefined} faceTo={a.talking?undefined:a.at===null&&a.spot?a.spot.face:undefined} from={world.enterFrom} face={pos} surface={surfaceY} tilt={tiltAt} bubble={a.bubble}
         onPick={()=>world.onAnalyst(a.id)} report={reportAnalyst}/>)}
       {world.naru&&<Analyst key="naru" id="naru" to={world.naru.at} act="look" from={null} face={pos} surface={surfaceY} tilt={tiltAt} bubble={null} onPick={world.naru.onPick} report={reportFriend}/>}
-      {(world.villagers??[]).map(v=><Villager key={v.id} id={v.id} x={v.x} z={v.z} face={v.face} look={v.look} hl={v.hl} talking={v.talking} away={v.away} errand={v.errand} onErrandDone={v.onErrandDone} player={pos} onPick={v.onPick} report={reportPoint}/>)}
+      {(world.villagers??[]).map(v=><Villager key={v.id} id={v.id} x={v.x} z={v.z} face={v.face} look={v.look} hl={v.hl} talking={v.talking} talkAt={v.talkAt} away={v.away} errand={v.errand} onErrandDone={v.onErrandDone} player={pos} onPick={v.onPick} report={reportPoint}/>)}
       {world.fishing&&<Bobber x={world.fishing.x} z={world.fishing.z} bite={world.fishing.phase==='bite'} from={pos}/>}
       {world.friend&&<Analyst key="bori" id="bori" to={world.friend.at} act="look" mood={world.friend.face} from={world.enterFrom} face={pos} surface={surfaceY} tilt={tiltAt} bubble={null} onPick={world.friend.onPick} report={reportFriend}/>}
     </Suspense>
     {/* out of the way while the camera looks into the open ground */}
     <Keys pos={pos} target={target} stops={stops} onMove={()=>onPick(null)} gate={(x,z)=>{const ok=onWay(x,z);if(!ok)off();return ok}} enabled={!world.inside&&!world.shop&&!world.stage&&!world.sky&&!cut&&!world.capsuleFx}/>
     <Player sit={sit} faceTo={world.talk?.eye?{x:world.talk.eye.ax,z:world.talk.eye.az}:null} onPick={world.onPlayer} walls={walls} look={world.look} target={target} stops={stops} pos={pos} hidden={(!!cut&&!cut.c.closing)||!!world.capsuleFx||(!!world.fp&&!focusPos)||!!world.talk?.eye}/>
-    {!world.sky&&<FollowCam pos={pos} recenter={recenter} focus={focusPos} orbit={orbit} near={!!world.capsuleFx} aim={world.view?.az??null} low={cut&&!cut.c.closing?cut.yaw:null} fp={!!world.fp} talk={world.talk&&!world.talk.eye?{az:world.talk.az,pitch:world.talk.pitch,dist:world.talk.dist}:null} eye={world.talk?.eye??null}/>}
+    {!world.sky&&<FollowCam pos={pos} recenter={recenter} focus={focusPos} orbit={orbit} near={!!world.capsuleFx} aim={world.view?.az??null} low={cut&&!cut.c.closing?cut.yaw:null} fp={!!world.fp} talk={world.talk&&!world.talk.eye?{az:world.talk.az,pitch:world.talk.pitch,dist:world.talk.dist}:null} eye={world.talk?.eye??null} livePoints={points}/>}
     </group>}
     <Hooks pos={pos} treePos={treePos} points={points}/>
 

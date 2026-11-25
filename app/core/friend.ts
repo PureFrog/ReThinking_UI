@@ -25,7 +25,7 @@ export function friendOpener(c:FriendCtx,seed:string):{text:string;short:string;
   if(c.signal)return {topic:'signal',short:`${c.signal.name} 위험 신호`,text:`${c.signal.name}에 위험 신호가 잡혔어. 이거 가지고 있는 이유가 뭐야?`};
   return {topic:'chat',short:pick(['있잖아,','왔구나.','여기 좀 봐'],seed),text:pick([
     `${hello(c.hour)} 오늘은 바람이 밭 쪽으로 불었어. 관측 수첩에 적어 뒀어.`,
-    `${hello(c.hour)} 아까 연못에서 개구리랑 눈 마주쳤어. …그냥 그랬다고.`,
+    `${hello(c.hour)} 아까 연못에서 개구리랑 눈 마주쳤어. 그냥 그랬다고.`,
     c.holdings.length?`${hello(c.hour)} ${c.holdings[0]} 나무 요즘 어때 보여? 네 생각이 제일 궁금해.`:`${hello(c.hour)} 마을 한 바퀴 같이 돌래?`,
   ],seed)};
 }

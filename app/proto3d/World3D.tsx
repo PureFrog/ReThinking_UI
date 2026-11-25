@@ -170,9 +170,9 @@ export function Plaza({onPick,flags,me}:{onPick:()=>void;flags:string[];me:numbe
 // 피드백 2026-11-25 "색감·느낌은 전이 나은데, 글씨체 왜 그래, 너무 각져": the warm colours of the model before
 // (butter cream, terracotta, apricot, sage), every block rounded, the sign in the app's own round 'Jua'.
 // 2026-11-25 (user "UI 색감 맞춰"): the game UI's tones (rethink.css paper #f4eedf, terracotta #c4652e, sage #4b6638),
-// warm and calm instead of the candy pastels
-const AC={stripe:['#eedcbc','#f6ecd8'] as const,trim:'#fbf7ec',band:'#c4652e',frame:'#b0583a',glass:'#d6e2dc',ink:'#8e4325',
-  awning:['#c4652e','#fbf7ec'] as const,base:'#d8ccae',step:'#f4eedf',peach:'#dfa07a',sage:'#8fa877',gold:'#d9a441'};
+// warm instead of the candy pastels; 2026-11-25 later ("너무 칙칙해"): a step brighter and livelier
+const AC={stripe:['#f7dfb4','#fdf0d6'] as const,trim:'#fffaf0',band:'#e0743c',frame:'#c9603a',glass:'#d8eeea',ink:'#9a4626',
+  awning:['#e0743c','#fffaf0'] as const,base:'#e6d6b4',step:'#f8f1e2',peach:'#f2a77c',sage:'#a3c98a',gold:'#f0b93e'};
 const AC_FONT="bold 118px 'Jua','Gowun Dodum','Apple SD Gothic Neo','Malgun Gothic',sans-serif";
 function arcadeTex(draw:(g:CanvasRenderingContext2D,w:number,h:number)=>void,w:number,h:number,font?:string,text=''){
   const cv=document.createElement('canvas');cv.width=w;cv.height=h;const g=cv.getContext('2d')!;draw(g,w,h);

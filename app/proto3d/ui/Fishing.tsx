@@ -19,7 +19,7 @@ export function FishIcon({color,size=1}:{color:string;size?:number}){
 // 나루's greeting with the day's casts left
 // intro: the first walk's first visit, 나루 says who it is in the same breath (피드백 2026-11-24 "소개하면서 같이 한 번에")
 export function NaruTalk({left,onFish,onLog,onClose,intro=false}:{left:number;onFish:()=>void;onLog:()=>void;onClose:()=>void;intro?:boolean}){
-  const text=intro&&left>0?`어? 아, 안 잤어 안 잤어. …나는 나루야. 이 연못에서 같이 낚시해. 잡은 물고기만큼 코인이 들어와. 오늘 ${left}번 던질 수 있어. 한 번 해 볼래?`:left>0?`어? 아, 안 잤어 안 잤어. 오늘 물 살랑살랑 좋다. 저 바위 밑에 대물 나온다던데, 해 볼래? 오늘은 ${left}번 남았어.`:'오늘은 다 던졌어. 꾸벅꾸벅… 내일 또 와, 대물은 내일 나올지도? 도감은 볼래?';
+  const text=intro&&left>0?`어? 아, 안 잤어 안 잤어. 나는 나루야. 이 연못에서 같이 낚시해. 잡은 물고기만큼 코인이 들어와. 오늘 ${left}번 던질 수 있어. 한 번 해 볼래?`:left>0?`어? 아, 안 잤어 안 잤어. 오늘 물 살랑살랑 좋다. 저 바위 밑에 대물 나온다던데, 해 볼래? 오늘은 ${left}번 남았어.`:'오늘은 다 던졌어. 꾸벅꾸벅… 내일 또 와, 대물은 내일 나올지도? 도감은 볼래?';
   return <div className="rt-talk" role="dialog" aria-label="나루와 대화">
     <button type="button" className="rt-talk-leave" onClick={onClose}>나중에</button>
     <div className="rt-talk-choices" role="group" aria-label="대답">
