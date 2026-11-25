@@ -6,6 +6,7 @@
 // server first: 보리 then starts that talk instead of the small talk (supabase.ts boriOpen). One look for both: 보리
 // coming over and 보리 tapped. The rest of the screen steps back meanwhile (rethink.css .rt-talk).
 import {useEffect,useRef,useState} from 'react';
+import {josa} from '../../core/memory';
 import {FRIEND,FRIEND_TALK,friendReplies,type FriendTopic,type TalkLine} from '../../core/friend';
 import {TIMING} from '../../core/timing';
 import {FRIEND_FACE,type BoriFace} from '../../core/friend';
@@ -71,7 +72,7 @@ export function FriendSheet({opener,topic,seed,onGo,onClose,talk,opening,onFace,
   const send=async()=>{const m=draft.trim();if(!m||busy||!talk)return;const before=history;setDraft('');setMine(m);setBusy(true);
     setHistory([...before,{who:'me',text:m}]);setFace('thinking');const a=await talk(before,m);setBusy(false);say(a.text,a.emotion??'neutral',a.at??null)};
   const showChoices=mode==='choose'&&done&&!busy&&queue.length<=1&&!!line;
-  return <div className="rt-talk" role="dialog" aria-label={`${name}와 대화`} data-face={face}>
+  return <div className="rt-talk" role="dialog" aria-label={`${josa(name,'와')} 대화`} data-face={face}>
     {mode!=='leaving'&&<button type="button" className="rt-talk-leave" onClick={onClose}>{mode==='type'?'대화 끝내기':'나중에 얘기할게'}</button>}
     {mine&&mode!=='choose'&&<p className="rt-talk-me">{mine}</p>}
     {showChoices&&<div className="rt-talk-choices" role="group" aria-label="대답">

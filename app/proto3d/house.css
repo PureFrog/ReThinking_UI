@@ -405,3 +405,5 @@ html[data-still="1"] .hs-doc,html[data-still="1"] .hs-ink,html[data-still="1"] .
 @media(orientation:landscape) and (max-height:520px){
   .proto3d .proto3d-locate.proto3d-map{bottom:calc(10px + env(safe-area-inset-bottom,0px))}.proto3d .proto3d-locate.proto3d-view{bottom:calc(64px + env(safe-area-inset-bottom,0px))}
   .proto3d .proto3d-locate.vl-book{bottom:calc(118px + env(safe-area-inset-bottom,0px))}.proto3d .proto3d-locate.vl-comm{bottom:calc(172px + env(safe-area-inset-bottom,0px))}}
+/* the scenario quest has the screen: the desk's level and date chips step aside (on a phone 책갈피 끼우고 덮기 sat on the date) */
+.hs:has(.sq-close) .hs-top{display:none}

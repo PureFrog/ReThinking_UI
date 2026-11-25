@@ -1158,10 +1158,15 @@ export default function Proto3D(){
       {sheet?.kind==='friend'&&<FriendSheet opener={opener.text} topic={opener.topic} seed={clock.today} onClose={close}
         talk={(history,m)=>boriChat(history,m,syncOn?(_h,msg)=>boriTalk(boriHoldings,msg):null)} opening={boriTalks?boriOpening:null} onFace={setBoriFace}
         onGo={to=>{if(to==='case')setSheet({kind:'case'});else close()}} stocks={realFirst.map(x=>({id:x.id,name:x.name}))} onStock={openTree}/>}
-      {sheet?.kind==='talk'&&(()=>{const w=VILLAGE_SPEAKERS[sheet.id];return <FriendSheet key={sheet.id} who={w} opener={sheet.id==='luon'?'…어느 종목 얘기할래? 고르면 네 이유부터 들어 볼게.':w.greet[clock.today.length%w.greet.length]} topic="chat" seed={clock.today}
+      {sheet?.kind==='talk'&&(()=>{const w=VILLAGE_SPEAKERS[sheet.id];
+        // 루온's 반박 runs on the team's model, which covers the KOSDAQ120 only (investment-evidence-system ops/live/stock_coverage.csv
+        // = content/kosdaq120.ts): with the server on, only those holdings can be picked (2026-11-25: 한화에어로스페이스 was
+        // sent, the worker failed with no company, and no note ever came back)
+        const luonStocks=sheet.id==='luon'&&syncOn?realFirst.filter(x=>KOSDAQ_STOCKS.some(k=>k.code===codeOf(x))):realFirst;
+        return <FriendSheet key={sheet.id} who={w} opener={sheet.id==='luon'?(luonStocks.length?'…어느 종목 얘기할래? 고르면 네 이유부터 들어 볼게.':'…반박 분석은 지금 코스닥120 종목만 할 수 있어. 네 종목 중엔 아직 없네. 그냥 얘기는 할 수 있어.'):w.greet[clock.today.length%w.greet.length]} topic="chat" seed={clock.today}
         talk={sheet.id==='luon'?(history,m)=>debateChat(history,m,testLuon?.__luonTalk?(_h,msg)=>testLuon.__luonTalk!(msg):syncOn?(_h,msg)=>boriTalk(boriHoldings,msg,'luon'):null):null}
         pickFirst={sheet.id==='luon'} onPickTalk={sheet.id==='luon'&&luonOn?luonPick:null}
-        onClose={close} onGo={to=>{if(to==='case')setSheet({kind:'case'});else close()}} stocks={realFirst.map(x=>({id:x.id,name:x.name}))} onStock={openTree}/>})()}
+        onClose={close} onGo={to=>{if(to==='case')setSheet({kind:'case'});else close()}} stocks={luonStocks.map(x=>({id:x.id,name:x.name}))} onStock={openTree}/>})()}
       {sheet?.kind==='drawer'&&<Drawer g={g} onClose={close} onCart={()=>setSheet({kind:'cart'})}/>}
       {sheet?.kind==='analyst'&&<AnalystCard g={g} id={sheet.id} signal={open.find(x=>x.analyst===sheet.id)??null} onClose={close}
         onBrief={()=>{const sig=open.find(x=>x.analyst===sheet.id);if(sig)setSheet({kind:'brief',start:{signalId:sig.id}})}}/>}

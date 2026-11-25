@@ -26,7 +26,7 @@ test("루온: pick a stock, the talk turns to detection mode on its code, with t
   await expect(go).toBeVisible({ timeout: 90_000 });
   await go.click();
 
-  const talk = page.getByRole("dialog", { name: "루온와 대화" });
+  const talk = page.getByRole("dialog", { name: "루온과 대화" });
   await expect(talk).toBeVisible();
   // the stocks stand first
   const choices = talk.getByRole("group", { name: "대답" });
@@ -65,7 +65,7 @@ test("루온's stock list fits a portrait and a landscape phone", async ({ page 
     await expect(page.locator('.vl-npc-tag[data-npc="luon"]')).toHaveCount(1, { timeout: 30_000 });
     await page.evaluate(() => (document.querySelector('.vl-npc-tag[data-npc="luon"]') as HTMLButtonElement).click());
     await page.getByRole("button", { name: "종목 골라 토론하기" }).click({ timeout: 90_000 });
-    const talk = page.getByRole("dialog", { name: "루온와 대화" });
+    const talk = page.getByRole("dialog", { name: "루온과 대화" });
     const last = talk.getByRole("group", { name: "대답" }).getByRole("button").last();
     await expect(last).toBeVisible({ timeout: 15_000 });
     const b = await last.boundingBox(), list = await talk.getByRole("group", { name: "대답" }).boundingBox();

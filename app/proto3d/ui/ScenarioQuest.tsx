@@ -197,7 +197,7 @@ export function ScenarioQuest({day,onEnd,onClose,onFocus}:{day:string;onEnd:()=>
 type Seen={paper:boolean;doc:boolean};
 export function tutorialCoach(p:SqPack,b:SqBook,beat:'center'|'left'|'out',open:{paper:number}|{doc:string}|null,seen:Seen):{sel:string|null;text:string}|null{
   if(b.step==='mentor')return beat==='center'?{sel:null,text:`시나리오 퀘스트야! 판마다 거장 한 명의 원칙을 배워. 오늘은 ${p.mentor.name}이야.`}
-    :beat==='left'?{sel:'.sq-philo',text:`오른쪽이 오늘의 원칙 ‘${p.mentor.principle}’이야. 이 원칙으로 세 장면을 판단할 거야. 읽고 넘기기를 눌러.`}:null;
+    :beat==='left'?{sel:'.sq-philo',text:`빛나는 쪽이 오늘의 원칙 ‘${p.mentor.principle}’이야. 이 원칙으로 세 장면을 판단할 거야. 읽고 넘기기를 눌러.`}:null;
   if(b.step==='portfolio')return {sel:'.sq-portfolio',text:`이게 네가 들고 있는 종목이야. 회사 이름은 끝날 때까지 가려 둬. 시작하기를 누르면 시장이 흘러.`};
   if(b.step==='run')return b.turn===0?{sel:null,text:'시장이 흐르는 중이야. 판단할 날이 오면 저절로 멈춰.'}
     :b.turn===1?{sel:null,text:'잘했어! 남은 두 장면은 같은 순서야. 이번엔 혼자 해 봐. 결과가 나오면 다시 올게.'}:null;
