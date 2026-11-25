@@ -27,11 +27,13 @@ import type {useGarden} from '../state';
 type G=ReturnType<typeof useGarden>;
 
 // onDeep: the note's 땅 속 보기 (W2 root cut-away under this company's tree)
-export function NoteCard({sig,trustStage,onDeep}:{sig:Signal;trustStage:number;onDeep?:()=>void}){
-  const a=analystById(sig.analyst),m=MODEL_INFO[sig.model];
+// deepWhat: what the 재무 체력 sheet shows for this holding (the team's three models for a real one, the mock roots otherwise)
+export function NoteCard({sig,trustStage,onDeep,deepWhat='F-score · 올슨 · 부채비율'}:{sig:Signal;trustStage:number;onDeep?:()=>void;deepWhat?:string}){
+  const a=analystById(sig.analyst),m=MODEL_INFO[sig.model],own=a.models.includes(sig.model);
   return <article className="rt-note" aria-label={`${a.name} 리서치 노트`}>
     <div className="rt-note-head"><Face id={a.id} name={a.name}/>
-      <div><strong>{a.name} · {a.role}</strong><small>{m.name} · {m.what}</small></div>
+      {/* a note from a model that is not the analyst's own (모아's 급락, 루온's 반박) is headed by that model */}
+      <div><strong>{a.name} · {own?a.role:m.name}</strong><small>{own?`${m.name} · ${m.what}`:m.what}</small></div>
       <span className={`rt-tag ${sig.loss?'signal':'ok'}`} style={{marginLeft:'auto'}}>{sig.loss?'손실 신호':'참고'}</span></div>
     <p className="rt-headline">{sig.headline}</p>
     <ul className="rt-evidence">{sig.evidence.map(e=><li key={e.k}><span>{e.k}</span><b className="rt-num">{e.v}</b></li>)}</ul>
@@ -40,7 +42,7 @@ export function NoteCard({sig,trustStage,onDeep}:{sig:Signal;trustStage:number;o
       ?<details style={{marginTop:12}} open><summary className="rt-link">{sig.deep.title} · {sig.deep.items.filter(i=>i.ok).length}/9</summary>
         <ul className="rt-evidence" style={{marginTop:8}}>{sig.deep.items.map(i=><li key={i.k}><span>{i.k}</span><b className={i.ok?'rt-ok':'rt-bad'}>{i.ok?'통과':'미달'}</b></li>)}</ul></details>
       :<p className="rt-hint" style={{marginTop:10}}>{a.name} {TRUST_LABEL[DEEP_AT]}부터 {sig.deep.title}을 하나씩 볼 수 있어요</p>)}
-    {onDeep&&<button type="button" className="rt-btn rt-deep-btn" onClick={onDeep}>재무 체력 보기<small>F-score · 올슨 · 부채비율</small></button>}
+    {onDeep&&<button type="button" className="rt-btn rt-deep-btn" onClick={onDeep}>재무 체력 보기<small>{deepWhat}</small></button>}
   </article>;
 }
 
@@ -105,7 +107,8 @@ export function Briefing({g,signals,holdings,start,onClose,onDeep,onBury,onWrite
   // the analyst remembers the player's last call on this company (core/recall.ts)
   const recall=sig?recallOf(sig.analyst,g.s.judgments,g.s.graded,g.clock.today,holding.id):null;
   return <Sheet kicker={a?`${a.name} · ${MODEL_INFO[sig!.model].name}`:'판단 기록'} title={holding.name} onClose={leave} label="브리핑">
-    {sig&&<NoteCard sig={sig} trustStage={stageFor(g.s.trust[sig.analyst].stage)} onDeep={!made&&onDeep?()=>onDeep(holding.id):undefined}/>}
+    {sig&&<NoteCard sig={sig} trustStage={stageFor(g.s.trust[sig.analyst].stage)} onDeep={!made&&onDeep?()=>onDeep(holding.id):undefined}
+      deepWhat={holding.real&&!holding.virtual?'F-Score · 올슨 · 듀퐁':undefined}/>}
     {sig&&!made&&recall&&<Said id={sig.analyst} name={analystById(sig.analyst).name} style={{marginTop:10}}>{say(LINES.remember[sig.analyst][recall.kind],g.clock.today+holding.id,recall)}</Said>}
     {!made&&(onWrite?<button type="button" className="rt-btn primary wide" style={{marginTop:16}} onClick={()=>onWrite(holding.id,sig?.id??null)}>이 종목 일지 쓰기</button>
       :<JudgeForm holding={holding} sig={sig} g={g} onDone={setMade}/>)}
@@ -176,7 +179,7 @@ export function Grades({g,onClose,onStamp,onFocus,onRewind,start,onDig}:{g:G;onC
   if(!shown){const d=next;return <Sheet kicker={`채점 결과 ${g.due.length}건`} title={`${d.mark}일 전 내 판단`} onClose={onClose}>
     <div key={d.judgment.id+d.mark} className={`rt-note${buried?' rt-capsule-memo':''}`}><div className="rt-note-head"><div><strong>{d.judgment.name}</strong><small>{buried?line(UI.capsuleMemo,{when:formatDay(d.judgment.day,g.clock.today)}):`${formatDay(d.judgment.day,g.clock.today)} 기록`}</small></div></div>
       <p className="rt-headline">{CHOICE_LABEL[d.judgment.choice]} · 확신 {d.judgment.confidence}</p><p className="rt-say">{d.judgment.reason}</p></div>
-    <button type="button" className="rt-btn primary" style={{width:'100%',marginTop:16}} onClick={()=>setShown({j:d.judgment,mark:d.mark,gr:g.ops.openGrade(d.judgment,d.mark)})}>결과 보기</button>
+    <button type="button" className="rt-btn primary" style={{width:'100%',marginTop:16}} onClick={()=>{const gr=g.ops.openGrade(d.judgment,d.mark);if(gr)setShown({j:d.judgment,mark:d.mark,gr})}}>결과 보기</button>
   </Sheet>}
   const {j,mark,gr}=shown;
   // W4: the grade as a picture to show someone (ui/Share.tsx)

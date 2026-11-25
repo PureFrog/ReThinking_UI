@@ -2,11 +2,12 @@
 // three pages that go on by themselves, a line on the stock's flow, and opens the analysis after saving; the challenge
 // has 게임 끝내기; the 꽃집 sells flowers and trees planted on open grass.
 import { test, expect } from "./fixtures";
+import * as V from "./village";
 import type { Page } from "@playwright/test";
 
 test.beforeEach(({}, info) => test.skip(info.project.name !== "mobile", "a phone screen is enough"));
 test.describe.configure({ timeout: 180_000 });
-const dock = (page: Page) => page.getByRole("navigation", { name: "메뉴" });
+const dock = (page: Page) => V.controls(page);
 
 test("first entry: the four introduce themselves, then 보리 asks for the capture", async ({ page }, info) => {
   const errors: string[] = [];
@@ -22,13 +23,13 @@ test("first entry: the four introduce themselves, then 보리 asks for the captu
     names.push(((await box.locator(".rt-talk-name").textContent()) ?? "").trim());
     await box.click(); await page.waitForTimeout(150);
   }
-  expect(new Set(names)).toEqual(new Set(["보리", "토리", "모아", "루온"]));
+  // (유저 워크플로우 2026-11-23: the analysts are not characters any more, 보리 alone — content/intro.ts)
+  expect(new Set(names)).toEqual(new Set(["보리"]));
   await expect(intro).toContainText("캡처해서 올리면 돼");
   await page.screenshot({ path: info.outputPath("intro-last.png") });
-  // 캡처 올리기 goes straight to the picture picker
-  const chooser = page.waitForEvent("filechooser", { timeout: 10_000 });
+  // 캡처 올리기 goes to 내 종목 넣기 with the picture picker asked for (a headless browser may not show the picker, so
+  // the sheet is what is checked; its own 캡처 card opens the picker on a tap)
   await intro.getByRole("button", { name: "캡처 올리기" }).click();
-  await chooser;
   await expect(page.getByRole("dialog", { name: "내 종목 넣기" })).toBeVisible();
   await expect(intro).toHaveCount(0);
   expect(errors).toEqual([]);
@@ -39,7 +40,7 @@ test("the journal: three pages, a flow line, a filled page goes on by itself, sa
   page.on("pageerror", e => errors.push(e.message));
   await page.goto("/proto3d?demo&weather=clear");
   await expect(dock(page)).toBeVisible({ timeout: 30_000 });
-  await dock(page).getByRole("button", { name: /^일지/ }).click();
+  await V.journal(page);
   const book = page.getByRole("dialog", { name: "투자일지" });
   await book.getByRole("button", { name: /^(새|첫) 일지 쓰기/ }).click();
   const write = page.getByRole("dialog", { name: "일지 쓰기" });
@@ -49,8 +50,9 @@ test("the journal: three pages, a flow line, a filled page goes on by itself, sa
   await expect(write).not.toContainText("몸은");
   // page 1: the stock, what I did, how well I know it; once all three are there the page goes on by itself
   await write.getByRole("button", { name: "종목 고르기" }).click();
-  await write.getByRole("searchbox", { name: "종목 검색" }).fill("삼성전자");
-  await write.getByRole("button", { name: /^삼성전자/ }).first().click();
+  // (since 2026-11-24 the search is the KOSDAQ 120 only, the market the models cover)
+  await write.getByRole("searchbox", { name: "종목 검색" }).fill("에이치엘비");
+  await write.getByRole("button", { name: /^에이치엘비/ }).first().click();
   await expect(write.getByRole("note", { name: "종목 흐름" })).toContainText(/어제보다|최근 한 달/);
   await write.getByRole("button", { name: "한 일 고르기" }).click();
   await write.getByRole("group", { name: "한 일" }).getByRole("button", { name: "보유" }).click();
@@ -100,13 +102,13 @@ test("the 꽃집: buy tulips, plant them on open grass (not off the garden), the
   page.on("pageerror", e => errors.push(e.message));
   await page.goto("/proto3d?demo&weather=clear");
   await expect(dock(page)).toBeVisible({ timeout: 30_000 });
-  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("rethink-garden-v1")!); s.currency = 60; localStorage.setItem("rethink-garden-v1", JSON.stringify(s)) });
+  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("rethink-garden-v1")!); s.currency = 60_000; localStorage.setItem("rethink-garden-v1", JSON.stringify(s)) });
   // (?demo would load the demo garden again; the plain address keeps this save)
   await page.goto("/proto3d?weather=clear");
   await expect(dock(page)).toBeVisible({ timeout: 30_000 });
-  await dock(page).getByRole("button", { name: /^더보기/ }).click();
+  await V.moreSheet(page);
   await page.getByRole("dialog", { name: "더보기" }).getByRole("button", { name: /^꽃집/ }).click();
-  const shop = page.getByRole("dialog", { name: "꽃집" });
+  const shop = page.getByRole("dialog", { name: "상점" });
   await shop.getByRole("tab", { name: "꽃" }).click();
   await shop.getByRole("button", { name: /^튤립/ }).click();
   await page.screenshot({ path: info.outputPath("shop.png") });
@@ -120,7 +122,7 @@ test("the 꽃집: buy tulips, plant them on open grass (not off the garden), the
   await expect.poll(() => page.evaluate(() => (window as unknown as { __proto3d: { decor?: number } }).__proto3d.decor ?? 0)).toBe(1);
   const save = await page.evaluate(() => JSON.parse(localStorage.getItem("rethink-garden-v1")!));
   expect(save.plants.length).toBe(1);
-  expect(save.currency).toBe(52);
+  expect(save.currency).toBe(52_000);// coins in 원 (core/won.ts WON)
   await page.waitForTimeout(1500);
   await page.screenshot({ path: info.outputPath("planted.png") });
   expect(errors).toEqual([]);
@@ -132,15 +134,17 @@ test("My Page is its own place: 보리 does not come over or talk while it is op
   // the stand-in server answers only when the test says so: 보리 is on its way while My Page opens
   await page.addInitScript(() => { const w = window as unknown as { __boriOpen: () => Promise<string>; __boriGo?: () => void };
     w.__boriOpen = () => new Promise(r => { w.__boriGo = () => r("잠깐 얘기할래?") }); });
-  await page.goto("/proto3d?demo&weather=clear");
+  await page.goto("/proto3d?demo&bori&weather=clear");
   await expect(dock(page)).toBeVisible({ timeout: 30_000 });
-  await page.getByRole("button", { name: /^내 프로필/ }).click();
-  await expect.poll(() => page.evaluate(() => !!(window as unknown as { __boriGo?: () => void }).__boriGo), { timeout: 30_000 }).toBe(true);
-  await page.evaluate(() => (window as unknown as { __boriGo: () => void }).__boriGo());
-  await page.waitForTimeout(4000);
+  await V.myPage(page);
+  // (since 2026-11-22 보리 does not even set out while My Page is open: Proto3D friendHere has !me)
+  await page.waitForTimeout(6000);
   await expect(page.getByRole("dialog", { name: "보리와 대화" })).toHaveCount(0);
   await expect(page.locator('.rt-bubble[data-analyst="bori"]')).toHaveCount(0);
-  await page.getByRole("button", { name: "닫기" }).first().click();
+  await page.getByRole("dialog", { name: "내 프로필" }).getByRole("button", { name: "닫기" }).click();
+  // closed: now 보리 comes over and talks
+  await expect.poll(() => page.evaluate(() => !!(window as unknown as { __boriGo?: () => void }).__boriGo), { timeout: 30_000 }).toBe(true);
+  await page.evaluate(() => (window as unknown as { __boriGo: () => void }).__boriGo());
   await expect(page.getByRole("dialog", { name: "보리와 대화" })).toBeVisible({ timeout: 30_000 });
   expect(errors).toEqual([]);
 });

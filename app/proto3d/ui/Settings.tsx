@@ -37,6 +37,6 @@ export function SettingsSheet({g,onClose,tilt,onTutorial,account,onLogOut,onDele
       :<div className="rt-quote"><p>판단 기록, 업적, 꾸미기가 모두 지워지고 되돌릴 수 없어요</p>
         <div className="rt-quote-acts"><button type="button" className="rt-btn primary" onClick={()=>(onWipe??g.ops.wipe)()}>지우고 다시 시작</button>
           <button type="button" className="rt-btn" onClick={()=>setSure(false)}>취소</button></div></div>}
-    <p className="rt-hint" style={{marginTop:14}}>모의 데이터로 동작하는 시연 버전이에요. 투자 권유가 아니에요</p>
+    <p className="rt-hint" style={{marginTop:14}}>실제 종목은 한국거래소 종가로, 예시 종목·모의 재무는 모의 데이터로 보여줘요. 투자 권유가 아니에요</p>
   </Sheet>;
 }

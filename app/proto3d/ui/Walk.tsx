@@ -65,7 +65,9 @@ export function Communicator({cands,day,coins,room,onBuy,onClose}:{cands:Cand[];
         <span className="vl-news-k">전날 뉴스 · {news!.theme} · 예시 기사</span>
         <h3>{news!.title}</h3><small>{news!.day.replaceAll('-','.')} · {c.name}</small>
         {!read.includes(c.code)&&<button type="button" className="rt-btn" onClick={()=>setRead(r=>[...r,c.code])}>기사 읽기</button>}
-        {read.includes(c.code)&&<p>기사 본문은 뉴스 연결 뒤에 실제 기사로 바뀌어요. 지금은 제목만 예시로 보여요.</p>}
+        {/* RSS gives the publisher's short excerpt, not the body (사용자 2026-11-22): that is what 기사 읽기 opens */}
+        {read.includes(c.code)&&<><p className="vl-news-sum">{news!.summary??'이 기사는 요약이 없어요.'}</p>
+          <small className="vl-news-src">언론사 요약 발췌 · 전문은 원문 링크에서 봐요</small></>}
       </article>
       <dl className="vl-order">
         <div><dt>가격</dt><dd className="rt-num">{c.price!=null?won(c.price):'-'}</dd></div>
@@ -94,7 +96,7 @@ export function Harvest({lots,cart,today,onLoad,onClose}:{lots:Lot[];cart:CartLo
       <label className="vl-bar"><span className="rt-num">0</span>
         <input type="range" min={0} max={max} step={1} value={n} aria-label="매도 수량" onChange={e=>setN(Number(e.target.value))}/>
         <span className="rt-num">{max}</span></label>
-      <p className="vl-bar-now rt-num" aria-live="polite">{n}주{l.price!=null&&n>0?` · 오늘 종가로 ${won(l.price*n)}어치`:''}</p>
+      <p className="vl-bar-now rt-num" aria-live="polite">{n}주{l.price!=null&&n>0?` · 지금 값으로 ${won(l.price*n)}어치 (다음 거래일 종가로 팔려요)`:''}</p>
     </div>}
     {waitingLoads.length>0&&<><div className="rt-section">수레표</div><ul className="vl-tags">{waitingLoads.map(c=><li key={c.id}>
       <b>{c.name} {c.qty}주</b><span>정산 예정 {c.settleDay.slice(5).replace('-','.')}</span><em>정산 대기</em></li>)}</ul></>}
@@ -111,6 +113,7 @@ export function NewsBoard({stocks,day,onClose}:{stocks:{code:string;name:string}
       <button type="button" role="tab" aria-selected={theme===null} onClick={()=>setTheme(null)}>전체</button>
       {THEMES.map(t=><button key={t} type="button" role="tab" aria-selected={theme===t} onClick={()=>setTheme(t)}>{t} {all.filter(a=>a.theme===t).length}</button>)}</div>
     {list.length?<ul className="vl-articles">{list.map(a=><li key={a.id}><span className="vl-news-k">{a.theme} · 예시 기사</span><strong>{a.title}</strong>
+      {a.summary&&<p className="vl-news-sum">{a.summary}</p>}
       <small>{a.name} · {a.day.replaceAll('-','.')}</small></li>)}</ul>
     :<p className="vl-empty">{!stocks.length?'보유 종목이 없어서 배달된 기사가 없어요. 밭에 종목이 생기면 그 소식을 모아 올게요.':theme?`오늘은 ${theme} 기사가 없어요.`:'오늘은 내 종목 관련 기사가 없어요.'}</p>}
   </Sheet>;

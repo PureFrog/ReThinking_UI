@@ -40,10 +40,14 @@ import {DEFAULT_LOOK,type Look} from '../core/wardrobe';
 import type {RunRecord} from '../core/game/run';
 import type {Share} from '../core/planets';
 import {stampById,type StampId} from '../core/stamps';
-import {buyVirtual,sellVirtual,quote,type VirtualLot} from '../core/virtual';
+import {buyVirtual,sellVirtual,buyQuote,lotQuote,lotSrc,closeFrom,type VirtualLot} from '../core/virtual';
 import {loadCart,settleCart,type CartLoad} from '../core/walk';
-import {bars as stockBars} from '../core/jigi/stocks';
 import {fieldPlots} from '../core/land';
+import {activeRun,blankProgress,endPlay,packOfRun,playAfter,playAt,playBefore,type QuestDef,type DailyPack,decide as decideQuest,kstDay,setDraft,setPick,setStage,startRun,type DailyRun,type DecideError,type FieldKey,type Fields,type Fraction,type InvestorProgress,type Stage} from '../core/game/daily/model';
+import {settle} from '../core/game/daily/settle';
+import {completionGrants,newGrants,type Grant} from '../core/game/daily/rewards';
+import {packById,packOfDay} from '../content/daily/packs';
+import {SAMPLE_REQUEST} from '../content/daily/request';
 import {addCoins,type CoinLog} from '../core/coinlog';
 
 export type Owned={uid:string;itemId:string;got:string;slot:string|null};
@@ -58,6 +62,8 @@ export type GardenSave={v:1;example?:boolean/* the example garden (예시 정원
   trust:Record<AnalystId,Relation>;owned:Owned[];gifted:AnalystId[];bought:{itemId:string;day:string}[];
   // 관측소 원정 runs (core/game/run.ts): the 판, its decisions and score; the latest of a 판 is the next run's ghost
   expeditions:RunRecord[];
+  // 가상 MTS에서 들어온 정원 (core/holdings-in.ts): the buying days the player gave for lines the broker sent without one, by code (asked once)
+  buyDates?:Record<string,string>;
   // 지기 투자일지 (core/jigi, docs/jigi.md): missing in older saves means none yet
   journals?:Journal[];
   // 부지·건물·랜드마크 (core/land.ts): land opened, buildings built, cities opened with coins
@@ -69,7 +75,16 @@ export type GardenSave={v:1;example?:boolean/* the example garden (예시 정원
   // 유저 워크플로우 4장 (core/walk.ts): the farmer's cart, harvested virtual shares waiting for the next trading day's close
   cart?:CartLoad[];
   // 지기 J3: study tasks taken from the analysis (on the next journal's checklist), my principles, types I said don't fit
-  jigi?:{tasks:StudyTask[];principles:{text:string;at:number}[];typeNo:Record<string,boolean>}};
+  jigi?:{tasks:StudyTask[];principles:{text:string;at:number}[];typeNo:Record<string,boolean>};
+  // 오늘의 관측소 (core/game/daily): its runs (drafts kept, so leaving comes back to the same place) and investor_progress,
+  // the profile v5.0 top-level block kept here until the server's quest-settle owns it. Never mixed into the journals.
+  observatory?:{runs:DailyRun[];progress:InvestorProgress;
+    // signed in: the quests finished on the server (the course order follows it) and when it was read
+    server?:{finished:string[];at:number};
+    // rewards granted (core/game/daily/rewards.ts): each key once; a decoration also lands in `owned`
+    grants?:Grant[];
+    // the KST day the arrival notice was opened or closed (it shows once a day while the request waits)
+    noticed?:string}};
 // '?restart' (미리보기 처음부터_보기.bat): everything this app keeps on the device is wiped before anything reads it, so
 // the visit starts as a brand-new player: the landing (sign up / log in), my real stocks, the first quiz, the first walk.
 // Other address words stay (?restart&hour=10: the merchant is in whatever the time)
@@ -77,6 +92,12 @@ if(typeof window!=='undefined')try{if(new URLSearchParams(location.search).has('
   for(const k of Object.keys(localStorage))if(/^(rethink|little-garden)/.test(k))localStorage.removeItem(k);
   sessionStorage.clear();const q=new URLSearchParams(location.search);q.delete('restart');const rest=q.toString();history.replaceState(null,'',location.pathname+(rest?'?'+rest:''))}}catch{/* storage off: nothing kept anyway */}
 export const SAVE_KEY='rethink-garden-v1';
+// Opened inside a brokerage's web view (/?embed=mts, app/mts/): the balance comes from the broker (core/embed.ts), so this
+// garden is kept apart from the player's own one (its own key, never sent to the server) and starts past the tutorial
+export const isEmbed=()=>{try{return new URLSearchParams(location.search).get('embed')==='mts'}catch{return false}};
+export const EMBED_KEY='rethink-garden-embed';
+export const saveKey=()=>isEmbed()?EMBED_KEY:SAVE_KEY;
+export function embedSave():GardenSave{return {...blankSave(),lookedBack:true,tips:['map','me','house','lapse','tour','room','tutorial']}}
 
 // Clock: real today, or N days ahead with ?ahead=N
 export function clock(){
@@ -108,6 +129,7 @@ function loadSave(today:string):GardenSave{
     // done after that is kept, as any save)
     if(q.has('play')&&!localStorage.getItem(SAVE_KEY))return demoSave(today);
     if(q.has('demo')){const d=demoSave(today);return q.has('tour')?{...d,tips:d.tips.filter(t=>t!=='tour')}:d}
+    if(isEmbed()){const raw=localStorage.getItem(EMBED_KEY);const e=raw?JSON.parse(raw):null;return e?.v===1?{...embedSave(),...e}:embedSave()}
     if(q.has('reset'))localStorage.removeItem(SAVE_KEY);
     // a save from before the onboarding existed was the demo garden, and stays it
     const raw=localStorage.getItem(SAVE_KEY);if(raw){const s=JSON.parse(raw);if(s?.v===1){const m={...(s.holdings?{...blankSave(),lookedBack:true}:demoSave(today)),...s};
@@ -131,7 +153,7 @@ export function useGarden(){
   const [toast,setToast]=useState<Toast|null>(null);
   // when it was last changed goes with it (proto3d/sync.ts compares it with the server's copy); opening is not a change
   const first=useRef(true);
-  useEffect(()=>{try{localStorage.setItem(SAVE_KEY,JSON.stringify(s));if(!first.current)markLocal()}catch{}first.current=false},[s]);
+  useEffect(()=>{try{localStorage.setItem(saveKey(),JSON.stringify(s));if(!first.current&&!isEmbed())markLocal()}catch{}first.current=false},[s]);
   // opening the garden settles the run of days (a missed day opens the rescue or ends the run)
   useEffect(()=>{setS(p=>({...p,streak:checkStreak(p.streak,c.today)}))},[c.today]);
   const say=useCallback((text:string)=>setToast({id:Date.now(),text}),[]);
@@ -145,11 +167,72 @@ export function useGarden(){
     return {save,note};
   };
 
+  // a reward lands once: the grant is kept, a decoration goes into the inventory, and the player hears about it
+  const scoredRanked=(runs:DailyRun[])=>runs.filter(r=>r.finishedAt!==null&&r.mode==='ranked'&&r.result&&!r.result.pending).map(r=>({day:r.day,dailyId:r.dailyId,runId:r.id}));
+  const grantInto=(p:GardenSave,grants:Grant[]):GardenSave=>{const o=p.observatory;if(!o)return p;const fresh=newGrants(o.grants??[],grants);if(!fresh.length)return p;
+    const owned=[...p.owned,...fresh.filter(g=>g.item&&!p.owned.some(x=>x.uid===`grant-${g.key}`)).map(g=>({uid:`grant-${g.key}`,itemId:g.item!,got:c.today,slot:null}))];
+    setTimeout(()=>say(`관측소 보상 · ${fresh.map(g=>g.label).join(' · ')}${fresh.some(g=>g.item)?' · 꾸미기에 넣었어요':''}`),0);
+    return {...p,owned,observatory:{...o,grants:[...(o.grants??[]),...fresh]}}};
   const ops={
     // lookback: the first visit's judgment, dated {LOOKBACK} days back so its 30-day grade opens now (core/judgment.ts)
     // 관측소 원정: a finished run (game/Expedition.tsx); kept for the ghost and the records (the last 50)
     finishExpedition(r:RunRecord){setS(p=>({...p,expeditions:[...(p.expeditions??[]),r].slice(-50)}))},
-    recordJudgment(j:Omit<Judgment,'id'|'day'>,lookback=false){
+    // 오늘의 관측소: open the run to play (the unfinished one first; else the quest asked for, else the course's current
+    // one), move it along, and settle it when the third decision is in. Returns the run id, or null when nothing is open.
+    // def: the request handed out today (this device's sample, or the server's); the open run of it comes back
+    questOpen(def:QuestDef=SAMPLE_REQUEST):string|null{let id:string|null=null;
+      setS(p=>{const o=p.observatory??{runs:[],progress:blankProgress()},act=activeRun(o.runs);
+        if(act&&act.quest===def.id){id=act.id;return p}
+        const q=def;
+        const day=kstDay(c.now),run=startRun(packOfDay(day,q.level),q,day,c.now,o.runs,'q'+c.now.toString(36)+Math.random().toString(36).slice(2,5));
+        id=run.id;return {...p,observatory:{...o,runs:[...o.runs.filter(r=>r.finishedAt!==null||r.id!==act?.id),run].slice(-60)}}});
+      return id},
+    questEdit(id:string,fn:(r:DailyRun)=>DailyRun){setS(p=>{const o=p.observatory;if(!o)return p;return {...p,observatory:{...o,runs:o.runs.map(r=>r.id===id?fn(r):r)}}})},
+    questStage(id:string,stage:Stage){ops.questEdit(id,r=>setStage(r,stage))},
+    // feedback F4: scene 1 opens after the market has played up to it; the flow keeps the day it shows and ends on a stop
+    questBegin(id:string){setS(p=>{const o=p.observatory,r=o?.runs.find(x=>x.id===id),pack=r&&packOfRun(r,packById);if(!o||!r||!pack)return p;
+      return {...p,observatory:{...o,runs:o.runs.map(x=>x.id===id?{...setStage(x,'scene'),play:playBefore(pack)}:x)}}})},
+    questPlayAt(id:string,at:number){ops.questEdit(id,r=>playAt(r,at))},
+    questPlayEnd(id:string){ops.questEdit(id,r=>endPlay(r))},
+    questNoticed(day:string){setS(p=>{const o=p.observatory??{runs:[],progress:blankProgress()};return o.noticed===day?p:{...p,observatory:{...o,noticed:day}}})},
+    // an official run started on the server (quest-play): its id, its day and the pack cut at scene 1
+    questAdopt(a:{run:string;quest:string;def:QuestDef;day:string;dto:DailyPack;drafts?:Record<string,Partial<Fields>>;draftRev?:number}):string{
+      setS(p=>{const o=p.observatory??{runs:[],progress:blankProgress()};if(o.runs.some(r=>r.id===a.run))return p;
+        let run:DailyRun={...startRun(a.dto,a.def,a.day,c.now,o.runs,a.run),dto:a.dto,draftRev:a.draftRev??0};
+        // another device's drafts for this run come along
+        for(const [sc,f] of Object.entries(a.drafts??{}))run=setDraft(run,sc,f);
+        return {...p,observatory:{...o,runs:[...o.runs.filter(r=>r.finishedAt!==null),run].slice(-60)}}});
+      return a.run},
+    questDto(id:string,dto:DailyPack){ops.questEdit(id,r=>({...r,dto}))},
+    questDraftRev(id:string,rev:number){ops.questEdit(id,r=>({...r,draftRev:rev}))},
+    // a draft conflict resolved by taking the other device's version
+    questTakeDrafts(id:string,drafts:Record<string,Partial<Fields>>,rev:number){ops.questEdit(id,r=>{let x:DailyRun={...r,draftRev:rev};for(const [sc,f] of Object.entries(drafts))x=setDraft(x,sc,f);return x})},
+    questDraft(id:string,scene:string,f:Partial<Fields>){ops.questEdit(id,r=>setDraft(r,scene,f))},
+    questPick(id:string,scene:string,f:Fraction|null){ops.questEdit(id,r=>setPick(r,scene,f))},
+    questDecide(id:string,scene:string):{ok:true;done:boolean}|{ok:false;error:DecideError;missing?:FieldKey[]}{let out:{ok:true;done:boolean}|{ok:false;error:DecideError;missing?:FieldKey[]}={ok:false,error:'order'};
+      setS(p=>{const o=p.observatory,r=o?.runs.find(x=>x.id===id),pack=r&&packOfRun(r,packById);if(!o||!r||!pack)return p;
+        const d=decideQuest(pack,r,scene,c.now);if('error' in d){out={ok:false,error:d.error,missing:d.missing};return p}
+        let run=d.run,progress=o.progress;
+        if(run.stage==='result'){const st=settle(pack,run,progress,kstDay(c.now),c.now);run=st.run;progress=st.progress}
+        // the market plays on to the next moment (or the evaluation day) before it opens
+        const play=playAfter(pack,run);if(play)run={...run,play};
+        out={ok:true,done:run.finishedAt!==null};
+        const runs=o.runs.map(x=>x.id===id?run:x);
+        return grantInto({...p,observatory:{...o,runs,progress}},completionGrants(scoredRanked(runs)))});
+      return out},
+    // grants from the server (its ledger is the truth once signed in), applied once each
+    questGrants(grants:Grant[]){setS(p=>grantInto(p,grants))},
+    // the server's answer to a settled run: its replay replaces the local result and its ledger the local XP; an error
+    // (no invite, a run from before signing in…) keeps the local result as this device's own record
+    questSynced(id:string,res:{run:DailyRun;progress:InvestorProgress;grants?:Grant[]}|{error:string}){setS(p=>{const o=p.observatory;if(!o)return p;
+      if('error' in res)return {...p,observatory:{...o,runs:o.runs.map(r=>r.id===id?{...r,synced:{at:c.now,error:res.error}}:r)}};
+      const fin=[...new Set([...(o.server?.finished??[]),res.run.quest])];
+      return grantInto({...p,observatory:{...o,runs:o.runs.map(r=>r.id===id?{...res.run,stage:'result' as const,synced:{at:c.now},...(r.play?{play:r.play}:{})}:r),progress:res.progress,server:{finished:fin,at:c.now}}},
+        'grants' in res&&Array.isArray(res.grants)?res.grants:[])})},
+    questServerState(progress:InvestorProgress,finished:string[]){setS(p=>{const o=p.observatory??{runs:[],progress:blankProgress()};return {...p,observatory:{...o,progress,server:{finished,at:c.now}}}})},
+    recordJudgment(j0:Omit<Judgment,'id'|'day'>,lookback=false){
+      // the stock and whether it is on real prices, so the grade uses real closes even if the tree is gone by then
+      const h=cur.current.holdings.find(x=>x.id===j0.holdingId),j={...j0,...(h?.code?{code:h.code,real:!!h.real&&!h.virtual}:{})};
       const full:Judgment=lookback?{...j,id:`look-${j.holdingId}-${c.now}`,day:shiftDay(c.today,-LOOKBACK),lookback:true}:{...j,id:`j-${j.holdingId}-${c.now}`,day:c.today};let note:string|null=null;
       setS(p=>{const r=record(p.judgments,full);let next={...p,judgments:r.list,lookedBack:p.lookedBack||lookback,currency:p.currency+(r.first?EARN.judgment:0)};
         if(j.analyst&&j.signalId){const t=trusted(next,j.analyst as AnalystId,TRUST.briefing);next=t.save;note=t.note}
@@ -162,8 +245,10 @@ export function useGarden(){
         next={...next,currency:next.currency+EARN.rebuttal};const t=trusted(next,'luon',TRUST.rebuttal);if(t.note)say(t.note);return t.save});
     },
     reviseReason(id:string,reason:string){setS(p=>({...p,judgments:p.judgments.map(j=>j.id===id?{...j,reason}:j)}))},
-    openGrade(j:Judgment,mark:Mark):Graded{
-      const g=grade(j,mark,outcomeProvider.after(j.holdingId,j.day,mark),c.today);
+    openGrade(j:Judgment,mark:Mark):Graded|null{
+      const after=outcomeProvider.after(j,mark,cur.current.holdings.find(x=>x.id===j.holdingId));
+      if(after===null)return null;                  // a real stock whose mark-day close is not in yet (dueGrades hides it)
+      const g=grade(j,mark,after,c.today);
       setS(p=>{if(p.graded.some(x=>x.judgmentId===g.judgmentId&&x.mark===g.mark))return p;let next={...p,graded:[...p.graded,g],currency:p.currency+EARN.grade};
         if(g.signalRight&&j.analyst){const t=trusted(next,j.analyst as AnalystId,TRUST.signalRight);next=t.save;if(t.note)say(t.note)}
         return next});
@@ -186,6 +271,8 @@ export function useGarden(){
     },
     // the onboarding's or a later recapture's confirmed list; demo: swap in the whole demo garden instead
     setHoldings(holdings:Holding[]){setS(p=>({...p,holdings,onboarded:true,example:false}))},
+    // 가상 MTS: the buying days answered once (ui/BuyDates.tsx)
+    setBuyDates(days:Record<string,string>){setS(p=>({...p,buyDates:{...p.buyDates,...days}}))},
     // 피드백 2026-11-22: "예시 정원으로 시작" on the first screen is still a new player: the room's first quiz and the first walk
     // (the introductions) come the same as with my own stocks; only ?demo in the address skips them
     // 피드백 2026-11-22: the example garden from the first screen: KOSDAQ example stocks, marked as an example (the farmer
@@ -208,7 +295,7 @@ export function useGarden(){
     // start over: the save goes and the page opens on the onboarding
     // the server's copy won on sign-in (core/sync.ts): it replaces this device's garden as it is
     adopt(save:GardenSave){noLog.current=true;setS(()=>{const m={...blankSave(),...save};return save.wonV===1?m:{...m,wonV:1,currency:Math.round((Number(save.currency)||0)*WON)}});noLog.current=false},
-    wipe(){try{localStorage.removeItem(SAVE_KEY);localStorage.removeItem('rethink-garden-at')}catch{}location.replace(location.pathname+'?reset')},
+    wipe(){try{localStorage.removeItem(saveKey());localStorage.removeItem('rethink-garden-at')}catch{}location.replace(location.pathname+'?reset')},
     // this week's three goals done (core/weekly.ts): paid once a week
     closeWeek(start:string){let paid=false;setS(p=>{if(p.weeksDone.includes(start))return p;paid=true;return {...p,weeksDone:[...p.weeksDone.slice(-30),start],currency:p.currency+EARN.weekDone}});
       if(paid)say(line(UI.weekDone,{n:won(EARN.weekDone)}))},
@@ -217,27 +304,27 @@ export function useGarden(){
     setLook(look:Look){setS(p=>({...p,look}))},
     // a piece of clothing from the cart's currency (core/wardrobe.ts unlock buy)
     // 가상 종목 (core/virtual.ts): bought at today's price into a free plot of the 과수원; sold back at today's price
-    buyVirtual(code:string,qty:number):ReturnType<typeof buyVirtual>{const q=quote(code,c.today);let out:ReturnType<typeof buyVirtual>={ok:false,why:'unknown'};if(!q)return out;
-      setS(p=>{const plots=fieldPlots(p.built?.land??[],'orchard').filter(i=>!p.holdings.some(h=>h.plot===i));
-        out=buyVirtual({currency:p.currency,virtual:p.virtual??[]},code,qty,q.price,plots,c.today);return out.ok?{...p,currency:out.currency,virtual:out.virtual}:p});
+    buyVirtual(code:string,qty:number):ReturnType<typeof buyVirtual>{let out:ReturnType<typeof buyVirtual>={ok:false,why:'unknown'};
+      setS(p=>{const q=buyQuote(p.virtual??[],code,c.today);if(!q)return p;const plots=fieldPlots(p.built?.land??[],'orchard').filter(i=>!p.holdings.some(h=>h.plot===i));
+        out=buyVirtual({currency:p.currency,virtual:p.virtual??[]},code,qty,q.price,plots,c.today,q.src);return out.ok?{...p,currency:out.currency,virtual:out.virtual}:p});
       return out},
     sellVirtual(id:number,qty:number){let gain:number|null=null;
-      setS(p=>{const l=(p.virtual??[]).find(x=>x.id===id),q=l?quote(l.code,c.today):null;if(!l||!q)return p;
+      setS(p=>{const l=(p.virtual??[]).find(x=>x.id===id),q=l?lotQuote(l,c.today):null;if(!l||!q)return p;
         const r=sellVirtual({currency:p.currency,virtual:p.virtual??[]},id,qty,q.price);if(!r.ok)return p;gain=r.gain;return {...p,currency:r.currency,virtual:r.virtual}});
       return gain},
     // 유저 워크플로우 4장: the merchant's free sapling on the first walk (one share, once per account: grant tag 'free-tree')
-    freeVirtual(code:string):ReturnType<typeof buyVirtual>{const q=quote(code,c.today);let out:ReturnType<typeof buyVirtual>={ok:false,why:'unknown'};if(!q)return out;
-      setS(p=>{if((p.grants??[]).includes('free-tree'))return p;const plots=fieldPlots(p.built?.land??[],'orchard').filter(i=>!p.holdings.some(h=>h.plot===i));
-        out=buyVirtual({currency:p.currency+q.price,virtual:p.virtual??[]},code,1,q.price,plots,c.today);
+    freeVirtual(code:string):ReturnType<typeof buyVirtual>{let out:ReturnType<typeof buyVirtual>={ok:false,why:'unknown'};
+      setS(p=>{if((p.grants??[]).includes('free-tree'))return p;const q=buyQuote(p.virtual??[],code,c.today);if(!q)return p;const plots=fieldPlots(p.built?.land??[],'orchard').filter(i=>!p.holdings.some(h=>h.plot===i));
+        out=buyVirtual({currency:p.currency+q.price,virtual:p.virtual??[]},code,1,q.price,plots,c.today,q.src);
         return out.ok?{...p,virtual:out.virtual,grants:[...(p.grants??[]),'free-tree']}:p});
       return out},
     // the farmer harvests some of a virtual tree into the cart: the shares leave the tree now (it shrinks, or goes when
     // none are left), the coins come once at the next trading day's close (cartSettle)
     cartLoad(lotId:number,qty:number){let ok=false;setS(p=>{const l=(p.virtual??[]).find(x=>x.id===lotId);if(!l||!Number.isInteger(qty)||qty<1||qty>l.qty)return p;
-      const cart=loadCart(p.cart??[],{lotId,code:l.code,name:l.name},qty,c.today);if(!cart)return p;ok=true;
+      const cart=loadCart(p.cart??[],{lotId,code:l.code,name:l.name,src:lotSrc(l)},qty,c.today);if(!cart)return p;ok=true;
       return {...p,cart,virtual:qty===l.qty?(p.virtual??[]).filter(x=>x.id!==lotId):(p.virtual??[]).map(x=>x.id===lotId?{...x,qty:x.qty-qty}:x)}});return ok},
     cartSettle(){let paid=0;setS(p=>{if(!(p.cart??[]).some(x=>x.paid==null))return p;
-      const r=settleCart(p.cart??[],(code,from)=>{const b=stockBars(code).find(x=>x.d>=from&&x.d<c.today);return b?{d:b.d,c:b.c}:null});
+      const r=settleCart(p.cart??[],(code,from,src)=>{const b=closeFrom(code,from,c.today,src);return b?{d:b.d,c:b.c}:null});
       if(!r.settled.length)return p;paid=r.coins;return {...p,cart:r.cart.slice(-60),currency:p.currency+r.coins}});
       if(paid>0)say(`수레 정산: 코인 ${won(paid)}이 들어왔어요`);return paid},
     // a one-off gift of coins (the tutorial's start money): given once per tag
@@ -303,13 +390,15 @@ export function useGarden(){
       const r=res as ReturnType<typeof spend>|null;if(!r)return false;
       const name=w.kind==='land'?LANDS.find(l=>l.id===w.id)?.name:w.kind==='building'?BUILDINGS.find(b=>b.id===w.id)?.name:CITIES.find(x=>x.id===w.id)?.landmark;
       if(r.ok)say(w.kind==='land'?`${name} · 새 나무 자리 ${LANDS.find(l=>l.id===w.id)!.plots.length}칸이 생겼어요`:w.kind==='building'?`${name} · 다 지었어요`:`${name} · 정원 가장자리에 세웠어요`);
-      else say(r.why==='coins'?`코인이 ${r.need} 모자라요. 일지를 쓰고 복기하면 모여요`:r.why==='have'?'이미 있어요':'지금은 할 수 없어요');return r.ok},
+      else say(r.why==='coins'?`코인이 ${won(r.need??0)} 모자라요. 일지를 쓰고 복기하면 모여요`:r.why==='have'?'이미 있어요':'지금은 할 수 없어요');return r.ok},
     journalOpened(id:string,hypoId:string){setS(p=>({...p,journals:(p.journals??[]).map(j=>j.id===id?{...j,hypos:j.hypos.map(h=>h.id===hypoId?{...h,opened:c.now}:h)}:j)}))},
     journalArchive(id:string,on:boolean){setS(p=>({...p,journals:(p.journals??[]).map(j=>j.id===id?{...j,archivedAt:on?c.now:null}:j)}))},
     journalTrash(id:string,on:boolean){setS(p=>({...p,journals:(p.journals??[]).map(j=>j.id===id?{...j,deletedAt:on?c.now:null}:j)}))},
     journalPurge(id:string){setS(p=>({...p,journals:(p.journals??[]).filter(j=>j.id!==id)}))},
     place(uid:string,slot:string|null){setS(p=>({...p,owned:p.owned.map(o=>o.uid===uid?{...o,slot}:o.slot&&o.slot===slot?{...o,slot:null}:o)}))},
   };
-  const due=useMemo(()=>dueGrades(s.judgments,s.graded,c.today),[s.judgments,s.graded,c.today]);
+  // a grade is due once its outcome is known: real stocks wait for the mark day's close (holdings change when bars arrive)
+  const gradeReady=useCallback((j:Judgment,m:Mark)=>outcomeProvider.after(j,m,s.holdings.find(x=>x.id===j.holdingId))!==null,[s.holdings]);
+  const due=useMemo(()=>dueGrades(s.judgments,s.graded,c.today,gradeReady),[s.judgments,s.graded,c.today,gradeReady]);
   return {s,ops,due,clock:c,toast,say,itemById};
 }

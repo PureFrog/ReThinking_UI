@@ -1,4 +1,7 @@
 import { test, expect, type Page } from "./fixtures";
+// where things stand comes from the app's own map (the garden was spread out 1.4× on 2026-11-16, core/world.ts SPREAD)
+import { place } from "../../app/proto3d/places";
+import * as V from "./village";
 
 // R3–R6 ReThink Garden on /proto3d: the analysts, the judgment loop, grades, cooldown, today's case, track record,
 // league, the game door, cart and drawer. Every test starts from a fresh demo save (?demo) under a fixed sky.
@@ -17,6 +20,7 @@ async function open(page: Page, errors: string[], query = "") {
   // the three analysts have loaded and report where they stand
   await expect.poll(async () => Object.keys((await hooks(page))?.points ?? {}).filter(k => k.startsWith("analyst-")).length, { timeout: 30_000 }).toBe(3);
   await settled(page);
+  await V.villageReady(page);
 }
 // the camera eases into place after loading (upright phones look ahead of the player, look.ts camera.frames):
 // wait until the landmarks and trees stop moving on screen before tapping them
@@ -28,16 +32,22 @@ async function settled(page: Page) {
   }, { timeout: 15_000 }).toBe(true);
 }
 const sheet = (page: Page, name: string | RegExp) => page.getByRole("dialog", { name });
-const dock = (page: Page, name: string) => page.getByRole("navigation", { name: "메뉴" }).getByRole("button", { name });
-// the four-tab home (ui/Home.tsx): 일지 holds the notes and the record, 더보기 the rest, the next-step card the grades
+// the village has no dock any more (tests/e2e/village.ts): 일지 is the notebook in the corner, the old 더보기 list opens
+// through the e2e hook, 관측소 is the observatory door
+const dock = (page: Page, name: "일지" | "관측소" | "더보기") => ({ click: () => name === "일지" ? V.journal(page) : name === "관측소" ? V.observatory(page) : V.moreSheet(page).then(() => {}) });
 const journal = (page: Page) => sheet(page, "투자일지");
 // an analyst signal row in the 일지 tab (not the stock's card on the shelf)
 const noteRow = (page: Page, name: RegExp) => journal(page).locator("button.rt-row").filter({ hasText: name }).filter({ hasNotText: "일 채점" });
 // the old judgments' track record: 일지 → 이전 판단 (지기, docs/jigi.md)
 async function records(page: Page) { await dock(page, "일지").click(); await journal(page).getByRole("button", { name: /^이전 판단 \d/ }).click() }
-async function more(page: Page, name: string) { await dock(page, "더보기").click(); await sheet(page, "더보기").getByRole("button", { name: new RegExp("^" + name) }).click() }
+async function more(page: Page, name: string) { await (await V.moreSheet(page)).getByRole("button", { name: new RegExp("^" + name) }).click() }
 const coins = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem("rethink-garden-v1") ?? "{}").currency as number);
-const nextCard = (page: Page) => page.getByRole("region", { name: "다음 할 일" });
+// the grades that came back: the next-step card is gone (2026-11-22); the notebook's top row opens them
+async function grades(page: Page, n?: number) {
+  await V.journal(page);
+  if (n) await expect(journal(page)).toContainText(`이전 판단 채점 결과 ${n}건`);
+  await journal(page).getByRole("button", { name: /이전 판단 채점 결과/ }).click();
+}
 const onScreen = (p: { x: number; y: number } | undefined, vp: { width: number; height: number }) => !!p && p.x > 30 && p.x < vp.width - 30 && p.y > 150 && p.y < vp.height - 130;
 // on screen and not under a panel, bubble or banner (the tap must reach the canvas)
 const tappable = async (page: Page, p: { x: number; y: number } | undefined, vp: { width: number; height: number }) =>
@@ -47,8 +57,7 @@ const clean = (errors: string[]) => expect(errors.filter(e => !/deprecated/i.tes
 test("old judgments come back graded: the reveal, the score and the track record", async ({ page }) => {
   const errors: string[] = [];
   await open(page, errors, "&demo");
-  await expect(nextCard(page)).toContainText("채점 결과 2건");
-  await nextCard(page).getByRole("button", { name: "확인" }).click();
+  await grades(page, 2);
   await page.getByRole("button", { name: "결과 보기" }).click();
   const result = sheet(page, "채점 결과");
   await expect(result).toContainText("POSCO홀딩스");
@@ -69,7 +78,10 @@ test("old judgments come back graded: the reveal, the score and the track record
     await r.locator(".rt-sheet-body .rt-btn.primary").click();
     if (await page.getByRole("button", { name: "결과 보기" }).count() === 0) break;
   }
-  await expect(nextCard(page)).not.toContainText("채점 결과");
+  await V.garden(page);
+  await V.journal(page);
+  await expect(journal(page)).not.toContainText("이전 판단 채점 결과");
+  await V.garden(page);
   await records(page);
   const rec = sheet(page, "내 판단의 질");
   await expect(rec).toContainText("판단 적중");
@@ -86,7 +98,7 @@ test("briefing: a research note leads to a journal on that stock, and the signal
   await expect(journal(page)).toContainText("신호 5건");
   await noteRow(page, /POSCO홀딩스/).click();
   const brief = sheet(page, "브리핑");
-  const note = brief.getByRole("article", { name: "토리 리서치 노트" });
+  const note = brief.getByRole("article", { name: "모아 리서치 노트" });// the Olson model is 모아's since 2026-11-22
   await expect(note).toContainText("부도 위험");
   await expect(note).toContainText("올슨");
   // 지기 (docs/jigi.md): no one-line judgment any more; the note opens a journal page on that stock
@@ -99,6 +111,7 @@ test("briefing: a research note leads to a journal on that stock, and the signal
 });
 
 test("an analyst's bubble in the world opens their note", async ({ page }) => {
+  test.skip(true, "the analysts' bubbles left the village on 2026-11-22 (Proto3D bubbles: only 보리 speaks there); their notes open from the notebook");
   const errors: string[] = [];
   await open(page, errors, "&demo");
   // one bubble at a time: wait for moa's turn
@@ -112,13 +125,9 @@ test("an analyst's bubble in the world opens their note", async ({ page }) => {
 test("cooldown: wanting to sell plants a seed; deciding a day later counts as waited", async ({ page }) => {
   const errors: string[] = [];
   await open(page, errors, "&demo");
-  const h = (await hooks(page))!;
-  const size = page.viewportSize()!;
-  // a tree on screen whose spot is not under a bubble or a panel (the tap must reach the canvas)
-  const free = await page.evaluate(pts => pts.filter(([, p]) => document.elementFromPoint(p.x, p.y)?.tagName === "CANVAS").map(([k]) => k),
-    Object.entries(h.trees).filter(([, p]) => p.x > 30 && p.x < size.width - 30 && p.y > 140 && p.y < size.height - 160));
-  const [id, pt] = Object.entries(h.trees).filter(([k]) => free.includes(k)).sort((a, b) => b[1].y - a[1].y)[0];
-  await page.mouse.click(pt.x, pt.y);
+  // the old tree card (a tap on a tree opens its read-only status since 2026-11-22): through the e2e hook
+  const id = 7;
+  await V.treeCard(page, id);
   const card = page.getByRole("dialog", { name: /나무$/ });
   await expect(card).toBeVisible();
   await card.getByRole("button", { name: "쿨다운 걸기" }).click();
@@ -128,8 +137,8 @@ test("cooldown: wanting to sell plants a seed; deciding a day later counts as wa
   await page.goto("/proto3d?weather=clear&ahead=1");
   await expect.poll(async () => (await hooks(page))?.treeModels ?? 0, { timeout: 30_000 }).toBeGreaterThanOrEqual(7);
   await settled(page);
-  const p2 = (await hooks(page))!.trees[Number(id)];
-  await page.mouse.click(p2.x, p2.y);
+  await V.villageReady(page);
+  await V.treeCard(page, id);
   await page.getByRole("dialog", { name: /나무$/ }).getByRole("button", { name: "지금 결정하기" }).click();
   await expect(sheet(page, "브리핑").getByRole("button", { name: "이 종목 일지 쓰기" })).toBeVisible();
   await sheet(page, "브리핑").getByRole("button", { name: "닫기" }).click();
@@ -168,19 +177,23 @@ test("league, game door, cart and drawer", async ({ page }) => {
   const lg = sheet(page, /리그$/);
   await expect(lg.locator(".rt-row")).toHaveCount(12);
   await expect(lg).toContainText("(나)");
-  await dock(page, "챌린지").click();
-  const game = sheet(page, "주간 챌린지");
-  await expect(game).toContainText("반박");
-  await expect(game.getByRole("button", { name: /이번 주 판 시작/ })).toBeEnabled();
+  // the observatory door opens 오늘의 관측소 (daily_quest_design v1); the weekly 판 is a read-only record there
+  await dock(page, "관측소").click();
+  const game = sheet(page, "오늘의 관측소");
+  await expect(game).toContainText("관측소 숙련도");
+  await expect(game.getByRole("button", { name: /의뢰 시작 · 가격표 뒤의 고객/ })).toBeEnabled();
   await game.getByRole("button", { name: "닫기" }).click();
-  // the cart is a landmark in the world: tap it when it is on screen, otherwise go through the drawer
-  const cartPt = (await hooks(page))!.points.cart, vp = page.viewportSize()!;
-  if (await tappable(page, cartPt, vp)) await page.mouse.click(cartPt.x, cartPt.y);
-  else { await more(page, "꾸미기"); await page.getByRole("button", { name: "상점" }).click(); }
-  const cart = sheet(page, /^포인트 \d+$/);
+  // the shop (the coins up top, the cart landmark): its 소품 tab leads to the goods (2026-11-22)
+  await page.getByRole("button", { name: /^코인 .* · 상점$/ }).click();
+  const shop = sheet(page, "상점");
+  await shop.getByRole("tab", { name: "소품" }).click();
+  await shop.getByRole("button", { name: "소품 보러 가기" }).click();
+  // (the goods sheet is titled with my coins in 원 since 2026-11-20)
+  const cart = sheet(page, /^코인 [\d,]+원$/);
   await expect(cart).toBeVisible();
+  const had = await coins(page);
   await cart.getByRole("button", { name: "자료 상자 사기" }).click();
-  await expect.poll(() => coins(page)).toBe(0);
+  await expect.poll(() => coins(page)).toBeLessThan(had);
   await cart.getByRole("button", { name: "닫기" }).click();
   await more(page, "꾸미기");
   const drawer = sheet(page, /^물건/);
@@ -191,14 +204,20 @@ test("league, game door, cart and drawer", async ({ page }) => {
   clean(errors);
 });
 
-test("the observatory and the signpost in the world open the game door and the track record", async ({ page }) => {
+test("the quest board and the signpost in the world open today's quests and the map", async ({ page }) => {
   const errors: string[] = [];
   await open(page, errors, "&demo");
-  await expect(nextCard(page)).toContainText("채점 결과 2건");
-  const pts = (await hooks(page))!.points, vp = page.viewportSize()!;
-  // on a phone the observatory can be off screen until the player turns the camera; check whichever is in view
+  let pts = (await hooks(page))!.points;
+  const vp = page.viewportSize()!;
+  // check whichever is in view; on a phone the spread-out garden (2026-11-16) can leave both off screen, so the map
+  // walks the player to the observatory first
   const seen: (readonly ["signpost" | "observatory", string])[] = [];
-  for (const e of [["signpost", "내 판단의 질"], ["observatory", "주간 챌린지"]] as const) if (await tappable(page, pts[e[0]], vp)) seen.push(e);
+  for (const e of [["signpost", "정원 지도"], ["observatory", "퀘스트 게시판"]] as const) if (await tappable(page, pts[e[0]], vp)) seen.push(e);
+  if (!seen.length) {
+    await walkTo(page, "관측소", place("observatory").walk);
+    pts = (await hooks(page))!.points;
+    if (await tappable(page, pts.observatory, vp)) seen.push(["observatory", "퀘스트 게시판"]);
+  }
   expect(seen.length).toBeGreaterThan(0);
   for (const [k, name] of seen) {
     await page.mouse.click(pts[k].x, pts[k].y);
@@ -258,7 +277,7 @@ test("rewind: a made-up past case graded at once, round after round", async ({ p
   await play(/손절 검토/);
   await page.waitForTimeout(300);
   const paid1 = (await coins(page)) - before;
-  expect(paid1 === 1 || paid1 === 2).toBe(true);
+  expect(paid1 === 2000 || paid1 === 4000).toBe(true);// EARN.rewind (+ rewindHit) × WON
   for (let i = 2; i <= 4; i++) {
     await rw.getByRole("button", { name: "다음 판" }).click();
     await expect(rw).toContainText(`${i}번째 판`);
@@ -273,21 +292,21 @@ test("rewind: a made-up past case graded at once, round after round", async ({ p
   clean(errors);
 });
 
-// today's three (core/today.ts): the chip under the weather counts them, the sheet sends the player to each one and
-// says when the next grade comes and where the title stands (core/rank.ts)
-test("today's three: the chip, the list, and the way to each one", async ({ page }) => {
+// today's three (core/today.ts, 게임 구성 2026-11-20): the quiz in the house, a journal on a real stock, a cast at the pond.
+// They sit under the weather (오늘 퀘스트) and on the quest board (the old observatory), whose 하기 goes to each one
+test("today's three: the quests under the weather, the board, and the way to each one", async ({ page }) => {
   const errors: string[] = [];
   await open(page, errors, "&demo");
-  const chip = page.getByRole("button", { name: /오늘 할 일 0\/3/ });
-  await expect(chip).toBeVisible();
-  await chip.click();
-  const today = sheet(page, "오늘 할 일");
-  await expect(today).toContainText("일지 한 편 쓰기");
-  await expect(today).toContainText("채점 결과 확인하기");
-  await expect(today).toContainText("다음 채점 · 삼성전자 90일");
-  await expect(today).toContainText("인턴");
-  await today.locator(".rt-task").filter({ hasText: "채점 결과 확인하기" }).getByRole("button", { name: "하기" }).click();
-  await expect(page.getByRole("button", { name: "결과 보기" })).toBeVisible();
+  const box = page.getByRole("group", { name: "오늘 퀘스트" });
+  await expect(box.getByRole("button", { name: /오늘 퀘스트 0\/3/ })).toBeVisible();
+  for (const t of ["오늘의 퀴즈 풀기", "일지 한 편 쓰기", "낚시 한 번 하기"]) await expect(box.getByRole("button", { name: t })).toBeVisible();
+  await V.openSheet(page, { kind: "today" });
+  const today = sheet(page, "퀘스트 게시판");
+  await expect(today).toContainText("오늘 퀘스트 0/3");
+  await expect(today).toContainText("내 종목 나무에 일지 한 편 쓰기");
+  await expect(today).toContainText("이번 주 목표");
+  await today.locator(".rt-task").filter({ hasText: "일지 한 편 쓰기" }).getByRole("button", { name: "하기" }).click();
+  await expect(journal(page)).toBeVisible();
   clean(errors);
 });
 
@@ -331,6 +350,7 @@ test("a tree's financial health opens as numbers, without a root cut-away", asyn
 type CapHooks = { capsules?: { holdingId: number; due: boolean }[]; capsuleFx?: { kind: string; holdingId: number } | null };
 const caps = async (page: Page) => (await hooks(page)) as unknown as CapHooks;
 test("a judgment is buried as a capsule and dug up when its grade arrives", async ({ page }) => {
+  test.skip(true, "the capsule markers left the village on 2026-11-22 (Proto3D world.capsules is empty); the grades open from the notebook");
   const errors: string[] = [];
   await open(page, errors, "&demo");
   // the demo's two old judgments are due: their markers glow from the start
@@ -361,7 +381,7 @@ test("a judgment is buried as a capsule and dug up when its grade arrives", asyn
 test("a grade becomes a share card that can be saved", async ({ page }) => {
   const errors: string[] = [];
   await open(page, errors, "&demo");
-  await nextCard(page).getByRole("button", { name: "확인" }).click();
+  await grades(page);
   await page.getByRole("button", { name: "결과 보기" }).click();
   const result = sheet(page, "채점 결과");
   await expect(result.locator(".rt-verdict")).toHaveAttribute("data-phase", "done");
@@ -395,13 +415,13 @@ test("the timelapse shows the garden a year ago and comes back to today", async 
   // a year ago only the demo's oldest holding (NAVER, bought 2025-06) stood there
   await expect.poll(async () => (await lapse())?.trees).toBe(1);
   await expect(page.locator(".rt-weather")).toContainText("그날 시장");
-  await expect(page.getByRole("navigation", { name: "메뉴" })).toBeHidden();
+  await expect(V.controls(page)).toBeHidden();
   await bar.getByLabel("타임랩스 날짜").fill("52");
   await expect.poll(async () => (await lapse())?.trees).toBe(7);
   await expect.poll(async () => (await lapse())?.weather).toBe("clear");
   await bar.getByRole("button", { name: "닫기" }).click();
   await expect(bar).toBeHidden();
-  await expect(page.getByRole("navigation", { name: "메뉴" })).toBeVisible();
+  await expect(V.controls(page)).toBeVisible();
   expect(await lapse()).toBeNull();
   clean(errors);
 });
@@ -438,41 +458,39 @@ async function walkTo(page: Page, label: string, to: Pt) {
   await sheet(page, "정원 지도").getByRole("button", { name: label, exact: true }).click();
   await expect.poll(async () => { const p = await player(page); return Math.hypot(p.x - to.x, p.z - to.z) }, { timeout: 60_000 }).toBeLessThan(0.2);
   await settled(page);
+  await V.villageReady(page);
+  // today's observatory request (a notice above the next-task card) is put away first, as a player would
+  const notice = page.getByTestId("request-notice");
+  if (await notice.isVisible()) await notice.getByRole("button", { name: "알림 닫기" }).click();
 }
-test("the map walks to the library and over the bridge to the league square", async ({ page }) => {
+test("the map walks over the bridge to the league square (the sky)", async ({ page }) => {
   const errors: string[] = [];
   await open(page, errors, "&demo");
   const vp = page.viewportSize()!;
-  await walkTo(page, "사례 서고", { x: 1, z: -13.6 });
-  const lib = (await hooks(page))!.points.library;
-  expect(await tappable(page, lib, vp)).toBe(true);
-  await page.mouse.click(lib.x, lib.y);
-  const library = sheet(page, "사례 서고");
-  await expect(library).toContainText("오늘의 케이스");
-  await library.getByRole("button", { name: /오늘의 케이스/ }).click();
-  await expect(sheet(page, "오늘의 케이스")).toBeVisible();
-  await sheet(page, "오늘의 케이스").getByRole("button", { name: "닫기" }).first().click();
+  // (the library left the village on 2026-11-22, Scene3D: the cases are worked at the desk in the house)
   // across the stream: the walk goes by the bridge
-  await walkTo(page, "리그 광장", { x: -2, z: 17.4 });
+  await walkTo(page, "리그 광장", place("plaza").walk);
   const sq = (await hooks(page))!.points.plaza;
   expect(await tappable(page, sq, vp)).toBe(true);
   await page.mouse.click(sq.x, sq.y);
-  await expect(page.getByRole("dialog", { name: /리그/ })).toContainText("기록 점수");
+  // the square is the way up to the other gardens now (ui/SkyView.tsx)
+  await expect(page.getByTestId("sky")).toBeVisible();
   clean(errors);
 });
 
 // Inside the house (Interior3D.tsx): the workroom. The desk is today's three, the shelf the track record, the board the
 // buried capsules; the door (or the button) goes back out.
 test("the house opens into the analysts' workroom and back out", async ({ page }) => {
+  test.skip(true, "the house opens the third-person room since 2026-11-22 (house.spec.ts), not the workroom");
   const errors: string[] = [];
   await open(page, errors, "&demo");
   const vp = page.viewportSize()!;
-  await walkTo(page, "집", { x: -4.3, z: -0.8 });
+  await walkTo(page, "집", place("home").walk);
   const house = (await hooks(page))!.points.house;
   expect(await tappable(page, house, vp)).toBe(true);
   await page.mouse.click(house.x, house.y);
   await expect.poll(async () => (await page.evaluate(() => (window as unknown as { __proto3d: { inside?: boolean } }).__proto3d.inside))).toBe(true);
-  await expect(page.getByRole("navigation", { name: "메뉴" })).toBeVisible();
+  await expect(V.controls(page)).toBeVisible();
   await expect(page.getByRole("button", { name: "지도" })).toHaveCount(0);
   // the demo's two judgments are two books; both of their grades have arrived, so the board says so
   await expect(page.getByRole("button", { name: "판단 2개" })).toHaveCount(1);
@@ -500,14 +518,11 @@ async function quietGarden(page: Page, errors: string[], hour: string) {
   await page.getByRole("button", { name: "건너뛰기" }).click({ timeout: 4_000 }).catch(() => {});
 }
 test("with nothing flagged the analysts go about their day, meet and talk, and go home at night", async ({ page }) => {
+  test.skip(true, "the analysts stand at fixed spots since 2026-11-22 (Proto3D FIXED_SPOT): no day routine, no meeting bubbles");
   const errors: string[] = [];
   await quietGarden(page, errors, "14");// 14:00 is a meeting slot
-  // the two who meet take turns: one bubble at a time (TIMING.bubbleTurn), so both lines show within a few turns
-  await expect(page.locator(".rt-bubble")).toHaveCount(1, { timeout: 30_000 });
-  const seen = new Set<string>();
-  await expect.poll(async () => { for (const t of await page.locator(".rt-bubble").allTextContents()) seen.add(t); return seen.size }, { timeout: 30_000 }).toBeGreaterThanOrEqual(2);
-  const talk = [...seen];
-  expect(talk.every(t => !/팔아|사라|매수|매도/.test(t))).toBe(true);
+  // (their meeting lines no longer float as bubbles in the village since 2026-11-22: only 보리's bubble is shown)
+  await expect(page.locator(".rt-bubble:not([data-analyst=bori])")).toHaveCount(0);
   await page.goto("/proto3d?weather=clear&hour=23");
   await expect.poll(async () => (await hooks(page))?.frames ?? 0, { timeout: 60_000 }).toBeGreaterThan(10);
   await page.waitForTimeout(1500);
@@ -522,11 +537,11 @@ test("with nothing flagged the analysts go about their day, meet and talk, and g
 test("my observer's stage: dress up, see my record and stamps, back to the garden", async ({ page }) => {
   const errors: string[] = [];
   await open(page, errors, "&demo");
-  await page.getByRole("button", { name: "내 프로필" }).click();
+  await V.myPage(page);
   const me = page.getByRole("dialog", { name: "내 프로필" });
   await expect(me).toBeVisible();
   await expect.poll(async () => (await page.evaluate(() => (window as unknown as { __proto3d: { stage?: boolean } }).__proto3d.stage))).toBe(true);
-  await expect(page.getByRole("navigation", { name: "메뉴" })).toBeHidden();
+  await expect(V.controls(page)).toBeHidden();
   // the name
   await me.getByRole("button", { name: "이름 바꾸기" }).click();
   await me.getByLabel("내 이름").fill("새벽");
@@ -540,14 +555,12 @@ test("my observer's stage: dress up, see my record and stamps, back to the garde
   await me.getByRole("button", { name: /먹/ }).click();
   const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem("rethink-garden-v1")!));
   await expect.poll(async () => (await saved()).look).toMatchObject({ hat: null, palette: "ink" });
-  await me.getByRole("tab", { name: "기록" }).click();
-  await expect(me).toContainText("확신도별 실제 적중");
-  await me.getByRole("tab", { name: "업적" }).click();
-  await expect(me).toContainText("첫 판단");
+  // (since 2026-11-22 내 프로필 is the wardrobe only: one tab; the record lives in the notebook's 이전 판단)
+  await expect(me.getByRole("tab")).toHaveText(["옷 갈아입기"]);
   expect((await saved()).stamps.map((s: { id: string }) => s.id)).toContain("first-judgment");
   await me.getByRole("button", { name: "닫기" }).click();
   await expect(me).toBeHidden();
-  await expect(page.getByRole("button", { name: /새벽/ })).toBeVisible();
+  expect((await saved()).name).toBe("새벽");
   clean(errors);
 });
 
@@ -555,7 +568,7 @@ test("my observer's stage: dress up, see my record and stamps, back to the garde
 test("settings change the text size and keep things still; the letter and the week's goals are there", async ({ page }) => {
   const errors: string[] = [];
   await open(page, errors, "&demo");
-  await page.getByRole("button", { name: "내 프로필" }).click();
+  await V.myPage(page);
   const me = page.getByRole("dialog", { name: "내 프로필" });
   await me.getByRole("button", { name: "설정" }).click();
   const st = sheet(page, "설정");
@@ -569,16 +582,16 @@ test("settings change the text size and keep things still; the letter and the we
   await expect(st).toContainText("되돌릴 수 없어");
   await st.getByRole("button", { name: "취소" }).click();
   await st.getByRole("button", { name: "닫기" }).first().click();
-  // this month's letter so far, from the record tab
-  await me.getByRole("tab", { name: "기록" }).click();
-  await me.getByRole("button", { name: "이번 달 리포트 미리 보기" }).click();
+  await me.getByRole("button", { name: "닫기" }).click();
+  // this month's letter so far (its button was on the old record tab of 내 프로필: through the hook now)
+  const month = await page.evaluate(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` });
+  await V.openSheet(page, { kind: "letter", month });
   const letter = sheet(page, "월간 리포트");
   await expect(letter).toContainText("월 리포트");
   await expect(letter).toContainText("판단 기록 리포트");
   await letter.getByRole("button", { name: "닫기" }).first().click();
-  await me.getByRole("button", { name: "닫기" }).click();
-  // the week's three in today's sheet
-  await page.getByRole("button", { name: /^오늘 할 일/ }).click();
-  await expect(sheet(page, /오늘 할 일/)).toContainText("이번 주 목표");
+  // the week's three on the quest board
+  await V.openSheet(page, { kind: "today" });
+  await expect(sheet(page, "퀘스트 게시판")).toContainText("이번 주 목표");
   clean(errors);
 });

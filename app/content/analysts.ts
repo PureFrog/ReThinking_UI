@@ -16,7 +16,7 @@ export const MODEL_INFO:Record<ModelId,{name:string;what:string;analyst:AnalystI
   ohlson:{name:'올슨',what:'부실 위험',analyst:'moa'},
   fscore:{name:'F-Score',what:'재무 체력 9항목',analyst:'luon'},
   dupont:{name:'듀퐁',what:'수익성의 출처',analyst:'tori'},
-  gradual:{name:'서서히',what:'완만한 하락 추세',analyst:'moa'},
+  gradual:{name:'주가 흐름',what:'20일선 아래 하락 흐름',analyst:'moa'},
   crash:{name:'급락',what:'급락 패턴',analyst:'moa'},
   rebuttal:{name:'반박',what:'매수 이유의 반대 근거',analyst:'luon'},
 };

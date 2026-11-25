@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "./fixtures";
+import * as V from "./village";
 
 // User feedback 2026-11-16: typing in a sheet took one letter at a time (and broke Korean) because the sheet pulled
 // focus back on every re-render; the garden moved only with the mouse. Fields keep focus while typed into key by key,
@@ -16,7 +17,8 @@ test("typing key by key stays in the field: the nickname and a journal", async (
   await expect(name).toHaveValue("보리친구abc");
   // a journal page: the hypothesis typed key by key
   await page.goto("/proto3d?demo&weather=clear");
-  await page.getByRole("navigation", { name: "메뉴" }).getByRole("button", { name: /^일지/ }).click({ timeout: 30_000 });
+  await V.villageReady(page);
+  await V.journal(page);
   await page.getByRole("dialog", { name: "투자일지" }).getByRole("button", { name: /^(새|첫) 일지 쓰기/ }).click();
   const w = page.getByRole("dialog", { name: "일지 쓰기" });
   await w.getByRole("navigation", { name: "일지 쪽" }).getByRole("button", { name: /가설/ }).click();
@@ -32,7 +34,7 @@ test("typing key by key stays in the field: the nickname and a journal", async (
 
 test("the keyboard walks, turns and zooms the garden", async ({ page }) => {
   await page.goto("/proto3d?demo&weather=clear");
-  await expect(page.getByRole("navigation", { name: "메뉴" })).toBeVisible({ timeout: 30_000 });
+  await expect(V.controls(page)).toBeVisible({ timeout: 30_000 });
   await page.locator(".proto3d canvas").click({ position: { x: 5, y: 5 }, force: true }).catch(() => {});
   await page.keyboard.press("Escape");
   const a = await player(page);

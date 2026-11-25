@@ -5,6 +5,7 @@
 import {Sheet,Said} from './Sheet';
 import {Pill} from './JigiBook';
 import {verdict} from '../../core/jigi/hypothesis';
+import {priceLegal} from '../../core/jigi/stocks';
 import type {Hypo,Journal} from '../../core/jigi/journal';
 
 const won=(n:number)=>n.toLocaleString('ko-KR')+'원';
@@ -26,6 +27,6 @@ export function JigiVerdict({j,h,today,onReview,onClose}:{j:Journal;h:Hypo;today
     {j.f.reason&&<p className="rt-hint" style={{marginTop:10}}>그때 이유: <span className="jg-orig">{j.f.reason}</span></p>}
     <div className="jg-row" style={{marginTop:14}}><button type="button" className="rt-btn primary" onClick={onReview}>복기하기</button><button type="button" className="rt-btn" onClick={onClose}>닫기</button></div>
     {j.practice&&<p className="rt-hint">되돌아보기 연습이라 내 성적에는 들어가지 않아요. 이제 오늘 생각으로 일지를 써 보세요.</p>}
-    <p className="jg-legal">시세는 모의 데이터예요. 투자 권유가 아니에요.</p>
+    <p className="jg-legal">{priceLegal([j.stock?.code])}</p>
   </Sheet>;
 }

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "./fixtures";
+import * as V from "./village";
 
 // 다른 정원들 (docs/planets.md): the map's way up to the sky, the planets with name tags, a visit sheet that shows only
 // what its owner shared, and my own share setting (saved; private keeps my garden out of other skies).
@@ -13,8 +14,9 @@ test("from the map up to the sky: tags, a visit that hides names unless opened, 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?demo&weather=clear");
   await expect(page.locator(".proto3d canvas")).toBeVisible({ timeout: 30_000 });
-  await page.getByRole("button", { name: "지도" }).click();
-  await page.getByRole("button", { name: /다른 유저 보기/ }).click();
+  // the map has no way up any more (2026-11-22): the old 더보기 list's 하늘 opens it
+  await V.villageReady(page);
+  await V.more(page, "sky");
   const view = page.getByTestId("sky");
   await expect(view).toBeVisible();
   await expect(view).toContainText("예시 데이터 · 서버 연결 전");

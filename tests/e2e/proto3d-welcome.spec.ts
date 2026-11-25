@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "./fixtures";
+import * as V from "./village";
 
 // The first screens (app/proto3d/ui/Welcome.tsx): a brand-new visitor lands on the landing with the animated logo;
 // sign up checks its fields and consents, then goes on to putting in holdings, then the tutorial. Log in finds the
@@ -7,7 +8,7 @@ test.describe.configure({ timeout: 180_000 });
 test.beforeEach(({}, info) => test.skip(info.project.name !== "mobile", "a phone screen is enough"));
 const welcome = (page: Page) => page.getByTestId("welcome");
 
-test("sign up: the landing, the checks, then my holdings and the tutorial", async ({ page }) => {
+test("sign up: the landing, the checks, then my holdings and the teacher's room", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(e.message));
   await page.setViewportSize({ width: 390, height: 844 });
@@ -41,10 +42,11 @@ test("sign up: the landing, the checks, then my holdings and the tutorial", asyn
   const kept = await page.evaluate(() => localStorage.getItem("rethink-account-v1") ?? "");
   expect(kept).toContain("north@example.com");
   expect(kept).not.toContain("garden123");
-  // the example garden, then the tutorial
+  // the example garden (the old tutorial is off since 2026-11-22, Proto3D tutOn): a new player starts in the room,
+  // where 선생님 hands over the first quiz paper
   await start.getByRole("button", { name: "예시 정원으로 시작" }).click();
   await page.locator(".rt-skip-layer").click({ timeout: 8_000 }).catch(() => {});
-  await expect(page.getByRole("dialog", { name: "튜토리얼" })).toBeVisible({ timeout: 40_000 });
+  await expect(page.getByRole("dialog", { name: "선생님" })).toContainText("나는 이 방의 선생님이야", { timeout: 60_000 });
   expect(errors).toEqual([]);
 });
 

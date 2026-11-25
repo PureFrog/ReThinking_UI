@@ -1,4 +1,5 @@
 import { test, expect } from "./fixtures";
+import * as V from "./village";
 
 // 보리 the guinea pig (core/friend.ts, ui/Friend.tsx): stands in the garden, starts a talk from today's garden, a few quick
 // replies open the right place, and after one talk a day the bubble stays quiet.
@@ -6,11 +7,12 @@ test.describe.configure({ timeout: 180_000 });
 test.beforeEach(({}, info) => test.skip(info.project.name !== "mobile", "a phone screen is enough"));
 
 test("보리 comes over, talks about today, and a reply opens the grades", async ({ page }, info) => {
+  test.skip(true, "보리 brings the loss-signal talk now (the next test); the grades bubble is gone since 2026-11-22");
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(e.message));
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/proto3d?demo&weather=clear");
-  await expect(page.getByRole("navigation", { name: "메뉴" })).toBeVisible({ timeout: 30_000 });
+  await page.goto("/proto3d?demo&bori&weather=clear");
+  await expect(V.controls(page)).toBeVisible({ timeout: 30_000 });
   // it stands in the scene (its point is reported like the analysts')
   await expect.poll(() => page.evaluate(() => !!(window as unknown as { __proto3d?: { points?: Record<string, unknown> } }).__proto3d?.points?.["friend-bori"]), { timeout: 30_000 }).toBe(true);
   // its bubble comes first: the demo garden has grades waiting, so that is what it brings up
@@ -28,7 +30,7 @@ test("보리 comes over, talks about today, and a reply opens the grades", async
   await expect(page.getByRole("dialog", { name: /전 내 판단|채점/ })).toBeVisible({ timeout: 5_000 });
   // talked today: no more bubble from 보리
   await page.reload();
-  await expect(page.getByRole("navigation", { name: "메뉴" })).toBeVisible({ timeout: 30_000 });
+  await expect(V.controls(page)).toBeVisible({ timeout: 30_000 });
   await page.waitForTimeout(6000);
   await expect(bubble).toHaveCount(0);
   expect(errors).toEqual([]);
@@ -43,8 +45,8 @@ test("with a loss signal, 보리 opens the stop-loss talk instead of small talk"
     w.__boriOpen = async codes => { w.__boriCodes = codes; return "손절 신호가 하나 떴더라. 이 종목은 처음에 어떤 이유로 샀었어?"; };
   });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/proto3d?demo&weather=clear");
-  await expect(page.getByRole("navigation", { name: "메뉴" })).toBeVisible({ timeout: 30_000 });
+  await page.goto("/proto3d?demo&bori&weather=clear");
+  await expect(V.controls(page)).toBeVisible({ timeout: 30_000 });
   // 보리 comes over and the dialogue opens by itself (feedback 11-17)
   const talk = page.getByRole("dialog", { name: "보리와 대화" });
   await expect(talk).toContainText("손절 신호가 하나 떴더라", { timeout: 30_000 });

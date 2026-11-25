@@ -20,3 +20,12 @@ test('account numbers, totals, duplicates and junk are dropped; bad JSON is null
   assert.equal(C.parseCapture('읽을 수 없어요'),null);
   assert.match(C.capturePrompt(),/계좌번호/);assert.match(C.capturePrompt(),/여러 종목/);
 });
+
+test('the return comes from the average and the current price, not the day\'s move beside the price', () => {
+  // the 토스 현재가 view (2026-11-24): 에코프로 avg 184,700, now 69,300, +9.6% today
+  const r=C.parseCapture(JSON.stringify([{name:'에코프로',rate:9.6,price:184700,current:69300},{name:'아이렌',rate:null,price:59672,current:19566},{name:'HLB',rate:-12}]));
+  assert.equal(r[0].rate,-62.48);
+  assert.equal(r[1].rate,-67.21);
+  assert.equal(r[2].rate,-12);
+  assert.match(C.capturePrompt(),/등락률/);
+});

@@ -47,13 +47,18 @@ test("the 3D garden renders and a tree opens its card", async ({ page }) => {
   // ...whose spot is not under an analyst's bubble or a panel (the tap must reach the canvas)
   const free = await page.evaluate(pts => pts.filter(([, p]) => document.elementFromPoint(p.x, p.y)?.tagName === "CANVAS").map(([k]) => k),
     Object.entries(h.trees).filter(([, p]) => p.x > 20 && p.x < size.width - 20 && p.y > 100 && p.y < size.height - 100));
-  const [id, pt] = Object.entries(h.trees).filter(([k]) => free.includes(k)).sort((a, b) => b[1].y - a[1].y)[0];
-  await page.mouse.click(pt.x, pt.y);
+  const near = Object.entries(h.trees).filter(([k]) => free.includes(k)).sort((a, b) => b[1].y - a[1].y)[0];
+  // (the name tags and the villagers can cover every tree on a phone: then the tap goes through the hook, as a tap would)
+  const id = near ? near[0] : "1";
+  if (near) await page.mouse.click(near[1].x, near[1].y);
+  else await page.evaluate(i => (window as unknown as { __proto3d: { pickTree: (id: number) => void } }).__proto3d.pickTree(i), Number(id));
   const card = page.getByRole("dialog", { name: /나무$/ });
   await expect(card).toBeVisible();
   const names = ["SK하이닉스", "NAVER", "카카오", "현대차", "한화에어로스페이스", "삼성전자", "POSCO홀딩스"];
   await expect(card).toContainText(names[Number(id) - 1]);
-  await expect(card).toContainText(/강세|양호|약세|손실 확대|장기 손실|손실 고착/);
+  // 처분효과 (core/recheck.ts): worth and share first, the same question on every card
+  await expect(card).toContainText(/평가 .*원 · 정원의 [\d.]+%/);
+  await expect(card.getByRole("group", { name: "다시 보기" })).toContainText("오늘 처음 본다면");
   await expect(card).not.toContainText(/팔아|사세요|매도|매수/);
   await card.getByRole("button", { name: "닫기" }).click();
   await expect(card).toBeHidden();

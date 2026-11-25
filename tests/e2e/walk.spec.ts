@@ -96,14 +96,15 @@ test("the first walk: entry → room lesson → the village's people one by one"
   await go(page, "상인");
   await expect(talk(page)).toContainText("사고팔기는 여기서", { timeout: 40_000 });
   await say(page, "코인 받고 통신기 보기");
-  const comm = page.getByRole("dialog", { name: "상인의 통신기" });
-  await expect(comm.locator(".vl-cand")).toHaveCount(5);
-  await comm.locator(".vl-cand").first().click();
+  // 2026-11-23: the communicator is the practice-account MTS (ui/Comm.tsx), opened on its 주문 tab
+  const comm = page.getByRole("dialog", { name: "통신기" });
+  await expect(comm.getByRole("list", { name: "살 수 있는 종목" }).getByRole("listitem")).toHaveCount(5);
+  await comm.getByRole("list", { name: "살 수 있는 종목" }).getByRole("button").first().click();
   await expect(comm.getByRole("button", { name: "전날 뉴스를 먼저 읽어요" })).toBeDisabled();
   await comm.getByRole("button", { name: "기사 읽기" }).click();
   await comm.getByRole("button", { name: "한 주 더" }).click();
   await page.screenshot({ path: info.outputPath("3-communicator.png") });
-  await comm.getByRole("button", { name: /주문 확인 · 코인/ }).click();
+  await comm.getByRole("button", { name: /매수 주문 · 코인/ }).click();
   await expect(talk(page)).toContainText("심었어!", { timeout: 30_000 });
   await say(page, "농부한테 가기");
   // selling: 0 cannot be confirmed; the farmer goes to the tree, picks, carries it to the cart, then says when it is paid

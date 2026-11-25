@@ -29,8 +29,10 @@ import {Welcome} from './ui/Welcome';
 import {authRepo} from './server';
 import {boriChat} from '../core/bori-chat';
 import {debateChat} from '../core/debate-chat';
-import {missingConsents,boriTalk,boriOpen,jigiAI,readCapture,hasInvite,isMaster,type BoriLine} from './supabase';
-import {searchNames,loadRealBars,fixturePrices,type PriceFixture} from './prices';
+import {missingConsents,boriTalk,boriOpen,stockSignal,jigiAI,readCapture,hasInvite,isMaster,observatoryServer,type BoriLine} from './supabase';
+import {searchNames,loadRealBars,loadMarket,loadVirtualBars,fixturePrices,type PriceFixture} from './prices';
+import {rowFor} from '../core/model-signals';
+import {loadModelSignals,fixtureModelSignals,type ModelSignalFixture} from './model-signals';
 import {RealEntry,type RealPrices} from './ui/RealEntry';
 import {refreshed} from '../core/real';
 import {codeOf,bars,isReal,KOSDAQ_STOCKS} from '../core/jigi/stocks';
@@ -54,7 +56,7 @@ import {isoDay} from '../core/items';
 import {marketProvider} from '../content/market';
 import {signalProvider,lookbackNote} from '../content/signals';
 import {CASES} from '../content/cases';
-import {CONDITION_LABEL,GROWTH_LABEL} from '../content/demo-garden';
+import {recheckCard} from '../content/recheck';
 import {ANALYSTS,UI,CURRENCY,line,type AnalystId} from '../content/analysts';
 import {itemById} from '../content/garden-items';
 import Scene3D,{type World} from './Scene3D';
@@ -65,8 +67,11 @@ import {paidLeft} from '../core/rewind';
 import {todayTasks,dayDone,type TaskId} from '../core/today';
 import {rankOf,xpOf} from '../core/rank';
 import {Expedition} from './game/Expedition';
+import {DailyQuest} from './game/daily/DailyQuest';
+import {ObservatoryDoor} from './game/daily/Door';
+import {localToday} from '../content/daily/request';
 import {weekStart} from '../core/weekly';
-import {Records,League,GameDoor,CartView,Drawer,AnalystCard,TodaySheet,LibrarySheet,weekCtx} from './ui/Panels';
+import {Records,League,CartView,Drawer,AnalystCard,TodaySheet,LibrarySheet,weekCtx} from './ui/Panels';
 import {MapSheet} from './ui/MapSheet';
 import {RoomTags} from './ui/RoomTags';
 import {routineOf,SPOTS} from '../core/routine';
@@ -97,7 +102,7 @@ import {Bubbles} from './ui/Bubbles';
 import {FriendSheet} from './ui/Friend';
 import {VirtualShop} from './ui/VirtualShop';
 import {HoverTip} from './ui/HoverTip';
-import {quote,virtualTree,VIRTUAL_ID} from '../core/virtual';
+import {quote,lotQuote,buyQuote,virtualTree,VIRTUAL_ID,VIRTUAL_STOCKS} from '../core/virtual';
 import {VILLAGE_SPEAKERS} from '../content/village-talk';
 import {FRIEND,friendOpener,type BoriFace} from '../core/friend';
 import {NaruTalk,FishingPlay,FishLog} from './ui/Fishing';
@@ -119,12 +124,21 @@ const ROOM_TOUR=['흐음~ 다시 왔구나! 첫 퀴즈 다음부터 집은 이�
 // the first lesson done (ui/House.tsx keeps its day): from then on the house is the room seen from outside (3인칭)
 const lessonDone=()=>{try{return !!localStorage.getItem('rethink-lesson-v1')}catch{return false}};
 import {SHOP_IDS,SHOP_DOOR,type ShopId} from './Shop3D';
-import {VillagerTalk,WalkGuide,Communicator,Harvest,NewsBoard,TreeStatus,VillagerTags,type Choice} from './ui/Walk';
+import {Comm,type CommTab} from './ui/Comm';
+import {commAccount} from '../content/comm';
+import {VillagerTalk,WalkGuide,Harvest,NewsBoard,TreeStatus,VillagerTags,type Choice} from './ui/Walk';
 import {hear,deskOf,kstDay} from '../core/house';
 import {House,loadHouse,saveHouse} from './ui/House';
 import {TreeTags} from './ui/TreeTags';
 import {CoinCalendar,CoinPay} from './ui/CoinSheets';
 import {Onboarding} from './ui/Onboarding';
+import {BuyDates} from './ui/BuyDates';
+import {EmbedBridge} from './ui/EmbedBridge';
+import {badgesFor} from '../content/broker/badges';
+import {isEmbed} from './state';
+import {readyMsg,readHoldingsMsg} from '../core/embed';
+import {stdToHoldings,withDates,needsDate,type HoldingsInput} from '../core/holdings-in';
+import {kindOf} from '../content/portfolio';
 import {BirthCards} from './ui/Birth';
 import {DeepSheet} from './ui/Deep';
 import {healthProvider} from '../content/health';
@@ -161,15 +175,17 @@ function useTilt(allowed:boolean){
   const ask=()=>{const D=(window as unknown as {DeviceOrientationEvent:DOE}).DeviceOrientationEvent;D.requestPermission?.().then(r=>{if(r==='granted'){setNeed(false);start()}}).catch(()=>{})};
   return {need,ask};
 }
-function useWeather(){
-  const [w,setW]=useState<{weather:Weather;index:number}|null>(null);
+// asOf: the real KOSDAQ bar's date once the index is loaded (prices.ts loadMarket); none while the weather is a mock
+function useWeather(prices:RealPrices|null){
+  const [w,setW]=useState<{weather:Weather;index:number;asOf?:string}|null>(null),[loaded,setLoaded]=useState(0);
+  useEffect(()=>{if(!prices?.market)return;let on=true;void prices.market().then(n=>{if(on&&n)setLoaded(n)});return()=>{on=false}},[prices]);
   useEffect(()=>{const m=marketProvider.today(isoDay());const q=new URLSearchParams(location.search).get('weather');
-    setW({weather:isWeather(q)?q:weatherOf(m)/* the village's weather is today's market (restored 2026-11-20) */,index:m.index})},[]);
+    setW({weather:isWeather(q)?q:weatherOf(m)/* the village's weather is today's market (restored 2026-11-20) */,index:m.index,asOf:m.asOf})},[loaded]);
   return w;
 }
 // the quest lines under the weather, short (the board itself says them in full)
 const QUEST_SHORT:Record<TaskId,string>={quiz:'오늘의 퀴즈 풀기',judge:'일지 한 편 쓰기',fish:'낚시 한 번 하기'};
-type SheetState={kind:'tree';id:number}|{kind:'comm'}|{kind:'harvest';practice?:boolean}|{kind:'news'}|{kind:'journal';openId?:string;stats?:boolean;stock?:string}|{kind:'more'}|{kind:'onboard';pick?:boolean}|{kind:'intro'}|{kind:'quizlog'}|{kind:'goods'}|{kind:'real'}|{kind:'letter';month:string}|{kind:'settings'}|{kind:'map'}|{kind:'library'}|{kind:'grades';start:string}|{kind:'deep';holdingId:number;back:SheetState}|{kind:'lookback'}|{kind:'brief';start:{signalId?:string;holdingId?:number}|null}|{kind:'grades'|'case'|'rewind'|'today'|'records'|'drawer'|'cart'|'league'|'game'}|{kind:'analyst';id:AnalystId}|{kind:'friend'}|{kind:'talk';id:'tori'|'moa'|'luon'}|{kind:'write';id:string}|{kind:'verdict';journalId:string;hypoId:string}|{kind:'cities'}|{kind:'coincal'}|{kind:'coinpay'}|{kind:'stocks';focus?:number}|null;
+type SheetState={kind:'tree';id:number}|{kind:'comm';tab?:CommTab}|{kind:'harvest';practice?:boolean}|{kind:'news'}|{kind:'journal';openId?:string;stats?:boolean;stock?:string}|{kind:'more'}|{kind:'onboard';pick?:boolean}|{kind:'intro'}|{kind:'quizlog'}|{kind:'goods'}|{kind:'real'}|{kind:'letter';month:string}|{kind:'settings'}|{kind:'map'}|{kind:'library'}|{kind:'grades';start:string}|{kind:'deep';holdingId:number;back:SheetState}|{kind:'lookback'}|{kind:'brief';start:{signalId?:string;holdingId?:number}|null}|{kind:'grades'|'case'|'rewind'|'today'|'records'|'drawer'|'cart'|'league'|'game'}|{kind:'analyst';id:AnalystId}|{kind:'friend'}|{kind:'talk';id:'tori'|'moa'|'luon'}|{kind:'write';id:string}|{kind:'verdict';journalId:string;hypoId:string}|{kind:'cities'}|{kind:'coincal'}|{kind:'coinpay'}|{kind:'stocks';focus?:number}|{kind:'dates'}|null;
 // where each pointer points (core/tips.ts)
 const TIP_AT:Record<TipId,{target?:string;point?:string}>={map:{target:'.proto3d-map'},me:{target:'.rt-me-chip'},house:{point:'house'},lapse:{target:'.rt-dock [data-tab="journal"]'}};
 // which tab a sheet belongs to: the journal's sheets light 일지, the rest of the daily loop's extras light 더보기
@@ -194,22 +210,26 @@ export default function Proto3D(){
   // e2e written for the village start there (tests/e2e/fixtures.ts sets __noHouse unless the address has ?house)
   // 게임 구성 2026-11-20: a new player registers the real stocks in the village first (the house's door comes after);
   // e2e can still open a new player in the house with ?house
-  const firstRun=!g.s.onboarded&&typeof window!=='undefined'&&!new URLSearchParams(location.search).has('house');
+  // inside a brokerage's web view (/?embed=mts): the balance comes from the broker, so no landing, onboarding or house start
+  const embed=typeof window!=='undefined'&&isEmbed();
+  const firstRun=!embed&&!g.s.onboarded&&typeof window!=='undefined'&&!new URLSearchParams(location.search).has('house');
   // ?play (튜토리얼없이_보기.bat): no landing, no lesson, the village with the first walk done (state.ts loadSave)
   const playMode=typeof window!=='undefined'&&new URLSearchParams(location.search).has('play');
-  const [where,setWhere]=useState<'house'|'village'|'master'|'arcade'>(()=>typeof window!=='undefined'&&(playMode||(window as {__noHouse?:boolean;__startVillage?:boolean}).__noHouse||(window as {__startVillage?:boolean}).__startVillage||firstRun)?'village':'house');
+  const [where,setWhere]=useState<'house'|'village'|'master'|'arcade'>(()=>typeof window!=='undefined'&&(embed||playMode||(window as {__noHouse?:boolean;__startVillage?:boolean}).__noHouse||(window as {__startVillage?:boolean}).__startVillage||firstRun)?'village':'house');
   // 종목 등록 waits for the village (설계 1장): no first-run sheets over the house
   // 피드백 2026-11-22: no introductions at the very start (the teacher in the room is the first to speak; the rest are met
   // outside after the quiz), so a new player goes straight to putting in the stocks. ?intro still shows the old one
-  const [sheet,setSheet]=useState<SheetState>(()=>g.s.onboarded||!(typeof window!=='undefined'&&((window as {__noHouse?:boolean}).__noHouse||firstRun))?null:typeof window!=='undefined'&&!new URLSearchParams(location.search).has('intro')?{kind:'onboard'}:{kind:'intro'});
+  const [sheet,setSheet]=useState<SheetState>(()=>embed||g.s.onboarded||!(typeof window!=='undefined'&&((window as {__noHouse?:boolean}).__noHouse||firstRun))?null:typeof window!=='undefined'&&!new URLSearchParams(location.search).has('intro')?{kind:'onboard'}:{kind:'intro'});
   // the first screens (ui/Welcome.tsx): every visit that is not signed in starts on the landing (sign up / log in /
   // look around), even with a garden kept on this device; "가입 없이 둘러보기" lasts for this visit (sessionStorage).
   // Sign up and log in go through authRepo (server.ts). e2e pages skip it unless the address has ?landing (tests/e2e/fixtures.ts)
   const [account,setAccount]=useState<Account|null>(()=>typeof window==='undefined'?null:authRepo.current());
   // 부지·건물·랜드마크 (core/land.ts, ui/Build.tsx): 넓히기 mode shows the closed lots on the garden; a tap asks first
   const [buildMode,setBuildMode]=useState(false),[want,setWant]=useState<Want|null>(null);
-  // looking around without an account: only with the device-only accounts (the private test closes it on the real server)
-  const [guest,setGuest]=useState(()=>{try{return authRepo.local&&sessionStorage.getItem('rethink-guest')==='1'}catch{return false}});
+  // looking around without an account (B2C 기본, 2026-11-23: open on the real server again): the garden stays on this
+  // device, nothing goes to the server, and what needs it (보리 free talk, reading a capture, the observatory's server)
+  // says it opens with a log-in (syncOn is false without an account)
+  const [guest,setGuest]=useState(()=>{try{return sessionStorage.getItem('rethink-guest')==='1'}catch{return false}});
   const [authKnown,setAuthKnown]=useState(()=>typeof window==='undefined'||authRepo.local||!authRepo.maybeSignedIn());
   useEffect(()=>authRepo.onChange(a=>{setAccount(a);setAuthKnown(true)}),[]);
   const owing=account&&missingConsents(account).length?account:null;
@@ -222,7 +242,7 @@ export default function Proto3D(){
   const needInvite=!!account&&!authRepo.local&&!owing&&invited===false;
   // signed in with Supabase: the garden is kept on the server too (proto3d/sync.ts). First the two copies are compared
   // (core/sync.ts), then every change goes up after a quiet moment. Not for guests, device-only accounts or ?demo.
-  const syncOn=!!account&&!authRepo.local&&!!saveRepo&&!owing&&invited!==false&&typeof window!=='undefined'&&!new URLSearchParams(location.search).has('demo')&&!playMode;
+  const syncOn=!embed&&!!account&&!authRepo.local&&!!saveRepo&&!owing&&invited!==false&&typeof window!=='undefined'&&!new URLSearchParams(location.search).has('demo')&&!playMode;
   const [synced,setSynced]=useState(false);
   useEffect(()=>{if(!syncOn||!saveRepo){setSynced(false);return}let on=true;
     saveRepo.pull().then(remote=>{if(!on||remote==='error')return;
@@ -231,7 +251,7 @@ export default function Proto3D(){
       setSynced(true)});
     return()=>{on=false}},[syncOn,account?.email]);// eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{if(!synced||!saveRepo)return;const repo=saveRepo;const t=setTimeout(()=>{void repo.push(g.s).then(at=>{if(at){markLocal(at);void repo.pushJigi(g.s.journals??[])}})},SYNC.pushAfter);return()=>clearTimeout(t)},[synced,g.s]);
-  const welcome=!playMode&&(!!owing||needInvite||(!account&&!guest&&authKnown&&!(typeof window!=='undefined'&&(window as {__noLanding?:boolean}).__noLanding)));
+  const welcome=!embed&&!playMode&&(!!owing||needInvite||(!account&&!guest&&authKnown&&!(typeof window!=='undefined'&&(window as {__noLanding?:boolean}).__noLanding)));
   const [early,setEarly]=useState(false);
   // a grade being revealed makes its tree react in the garden (Scene3D Burst)
   const [burst,setBurst]=useState<World['burst']>(null),[focus,setFocus]=useState<number|null>(null);
@@ -240,6 +260,32 @@ export default function Proto3D(){
   const startBirth=(ids:number[],long:boolean,after?:()=>void)=>{if(!ids.length){after?.();return}const plan=birthPlan(ids.length,long);
     const quietNow=still();setBirth({ids,plan,t0:performance.now()-(quietNow?plan.total:0),after});setBStage('trees');if(long)g.ops.saw('birth')};
   const skipBirth=()=>setBirth(b=>b&&{...b,t0:performance.now()-b.plan.total});
+  // 가상 MTS (core/embed.ts): say ready to the broker app that opened this web view; its balance comes back in the
+  // standard lines (core/holdings-in.ts) and becomes the garden as it is, then the notes open (on the tapped stock,
+  // when a badge was tapped). Lines without a buying day are asked once first (ui/BuyDates.tsx).
+  const [mtsIn,setMtsIn]=useState<HoldingsInput|null>(null);
+  const plantMts=(input:HoldingsInput,known:Record<string,string>)=>{
+    const list=withDates(input.holdings,known);
+    const out=stdToHoldings(g.s.holdings,list,fieldPlots(g.s.built?.land??[],'farm'),kindOf,g.clock.today);
+    g.ops.setHoldings(out.holdings);setMtsIn(null);
+    const focusId=input.focus?out.holdings.find(h=>h.code===input.focus)?.id??null:null;
+    const hk=((window as {__proto3d?:{embed?:unknown}}).__proto3d??={} as {embed?:unknown});
+    hk.embed={source:input.source,broker:input.broker,holdings:out.holdings.length,codes:out.holdings.map(h=>h.code),focus:input.focus??null};
+    setSheet(null);startBirth(out.planted.map(h=>h.id),false,()=>setSheet({kind:'brief',start:focusId!=null?{holdingId:focusId}:null}));
+    if(!out.planted.length)setSheet({kind:'brief',start:focusId!=null?{holdingId:focusId}:null})};
+  // the hand-off (ui/EmbedBridge.tsx): the broker's white list first, the garden after it slides away
+  const [bridge,setBridge]=useState<{input:HoldingsInput|null;lift:boolean}|null>(()=>embed?{input:null,lift:false}:null);
+  const bridgeBadges=useMemo(()=>bridge?.input?badgesFor(bridge.input.holdings,g.clock.today):{},[bridge?.input]);// eslint-disable-line react-hooks/exhaustive-deps
+  const goMts=(input:HoldingsInput,known:Record<string,string>)=>{setBridge(b=>b&&{...b,lift:true});plantMts(input,known)};
+  const bridgeShown=()=>{const input=bridge?.input;if(!input)return;const known=g.s.buyDates??{};
+    if(needsDate(input.holdings,known).length){setMtsIn(input);setSheet({kind:'dates'});return}
+    goMts(input,known)};
+  const onMts=useRef<(i:HoldingsInput)=>void>(()=>{});
+  onMts.current=input=>setBridge({input,lift:false});
+  useEffect(()=>{if(!embed||window.parent===window)return;
+    const on=(e:MessageEvent)=>{if(e.source!==window.parent||e.origin!==location.origin)return;const input=readHoldingsMsg(e.data);if(input)onMts.current(input)};
+    window.addEventListener('message',on);window.parent.postMessage(readyMsg(),location.origin);
+    return()=>window.removeEventListener('message',on)},[embed]);
   useEffect(()=>{if(!birth)return;let raf=0,chord=false;const cracked=new Set<number>();let last:BirthStage|null=null;
     const tick=()=>{const ms=performance.now()-birth.t0,st=stageAt(birth.plan,ms);
       // a low thud as each tree breaks the ground (not a pile of them when skipped)
@@ -295,7 +341,11 @@ export default function Proto3D(){
   // G5: in and out through the observatory door (the paper fade, as for the house); the 판's market each day dresses the
   // garden behind on a wide screen, where the 판 is a column and the garden still shows; on a phone the garden stops drawing
   const [gameMarket,setGameMarket]=useState<number|null>(null);
-  const enterGame=(pack:string|null)=>{setPicked(null);setSheet(null);setFading(true);cue('door');setTimeout(()=>{setExpedition({pack});setTimeout(()=>setFading(false),80)},TIMING.roomFade)};
+  // 오늘의 관측소 (game/daily): the door opens a run; ?quest opens the open quest straight away (tests)
+  const [quest,setQuest]=useState<string|null>(null);
+  useEffect(()=>{try{if(new URLSearchParams(location.search).has('quest')){const id=g.ops.questOpen();if(id)setQuest(id)}}catch{}},[]);// eslint-disable-line react-hooks/exhaustive-deps
+  const enterQuest=(id:string)=>{setPicked(null);setSheet(null);setFading(true);cue('door');setTimeout(()=>{setQuest(id);setTimeout(()=>setFading(false),80)},TIMING.roomFade)};
+  const leaveQuest=(back:boolean)=>{setFading(true);cue('door');setTimeout(()=>{setQuest(null);if(back)setSheet({kind:'game'});setTimeout(()=>setFading(false),80)},TIMING.roomFade)};
   const leaveGame=()=>{setFading(true);cue('door');setTimeout(()=>{setExpedition(null);setGameMarket(null);setTimeout(()=>setFading(false),80)},TIMING.roomFade)};
   const [wide,setWide]=useState(false);
   useEffect(()=>{const q=matchMedia('(min-width:760px) and (min-height:521px)'),f=()=>setWide(q.matches);f();q.addEventListener('change',f);return()=>q.removeEventListener('change',f)},[]);
@@ -303,9 +353,9 @@ export default function Proto3D(){
   const [skyOpen,setSkyOpen]=useState<{focus:string|null}|null>(()=>{try{return new URLSearchParams(location.search).has('sky')?{focus:null}:null}catch{return null}});
   const [neighbours,setNeighbours]=useState<{planets:Planet[];sample:boolean}>({planets:[],sample:true});
   useEffect(()=>{if(!skyOpen)return;let on=true;planetRepo.neighbours(weekStart(clock.today)).then(n=>{if(on)setNeighbours(n)});return()=>{on=false}},[!!skyOpen,clock.today]);// eslint-disable-line react-hooks/exhaustive-deps
-  const quiet=calm||!!lapse||me||!!expedition||!!skyOpen;
+  const quiet=calm||!!lapse||me||!!expedition||!!quest||!!skyOpen;
   // W3 time capsules (core/capsule.ts): one marker per tree; burying after a judgment, digging up as a grade opens
-  const capsules=useMemo(()=>capsulesOf(s.judgments,s.graded,clock.today,s.holdings.map(x=>x.id)),[s.judgments,s.graded,clock.today,s.holdings]);
+  const capsules=useMemo(()=>capsulesOf(s.judgments,s.graded,clock.today,s.holdings.map(x=>x.id),(j,m)=>g.due.some(d=>d.judgment.id===j.id&&d.mark===m)),[s.judgments,s.graded,clock.today,s.holdings,g.due]);// eslint-disable-line react-hooks/exhaustive-deps
   const [capFx,setCapFx]=useState<World['capsuleFx']>(null),[jump,setJump]=useState(false);
   // the first bury plays long (hole, hover, drop, soil, pin: Capsule3D BURY), every one after it short
   const bury=(holdingId:number,then?:()=>void)=>{const t0=performance.now(),long=s.seen.bury===0,len=long?TIMING.capsuleBury:TIMING.capsuleBuryShort;
@@ -334,14 +384,14 @@ export default function Proto3D(){
     // the ground no longer opens under the tree (feedback 11-17: the roots looked odd): just the numbers sheet
     void health;setPicked(null);setSheet({kind:'deep',holdingId,back});g.ops.saw('cutaway')};
   const closeDeep=(back:SheetState)=>{setSheet(back)};
-  const w=useWeather(),tiltCtl=useTilt(g.s.settings.tilt);
+  // real prices (private test, prices.ts): for a signed-in player with an invite code, or an e2e page with a fixture
+  const fixture=typeof window!=='undefined'?(window as unknown as {__priceFixture?:PriceFixture}).__priceFixture:undefined;
+  const realPrices=useMemo<RealPrices|null>(()=>fixture?fixturePrices(fixture):syncOn?{search:searchNames,load:loadRealBars,market:loadMarket,virtual:loadVirtualBars}:null,[fixture,syncOn]);
+  const w=useWeather(realPrices),tiltCtl=useTilt(g.s.settings.tilt);
   const lapseBack=lapse?frames[lapse.i]:0,lapseDay=dayBack(clock.today,lapseBack);
   const lapseMarket=lapse&&lapseBack>0?marketProvider.today(lapseDay):null;
   const weather=expedition&&gameMarket!==null?weatherOf({index:gameMarket,swing:Math.abs(gameMarket)*1.6}):lapseMarket?weatherOf(lapseMarket):w?.weather??'clear',wl=LOOK.weather[weather];
   const holdings=g.s.holdings,ready=g.s.onboarded;
-  // real prices (private test, prices.ts): for a signed-in player with an invite code, or an e2e page with a fixture
-  const fixture=typeof window!=='undefined'?(window as unknown as {__priceFixture?:PriceFixture}).__priceFixture:undefined;
-  const realPrices=useMemo<RealPrices|null>(()=>fixture?fixturePrices(fixture):syncOn?{search:searchNames,load:loadRealBars}:null,[fixture,syncOn]);
   const [pricesAt,setPricesAt]=useState(0);
   const realKey=holdings.filter(h=>h.real&&h.code).map(h=>h.code).join(',');
   // load the bars of the trees on real prices, then bring their return up to the latest close
@@ -350,11 +400,19 @@ export default function Proto3D(){
       const cur=g.s.holdings,next=cur.map(h=>h.real&&h.code&&isReal(h.code)?refreshed(h,bars(h.code)):h);
       if(next.some((h,i)=>h!==cur[i]))g.ops.setHoldings(next);setPricesAt(Date.now())});
     return()=>{on=false}},[realPrices,realKey]);// eslint-disable-line react-hooks/exhaustive-deps
+  // the team's verdicts and 반박 results (model-signals.ts): once per sign-in and whenever the real holdings change
+  const modelFixture=typeof window!=='undefined'?(window as unknown as {__modelSignalFixture?:ModelSignalFixture}).__modelSignalFixture:undefined;
+  const [modelAt,setModelAt]=useState(0);
+  const realDates=holdings.filter(h=>h.real&&h.code).map(h=>`${h.code}|${h.date}`).join(',');
+  useEffect(()=>{const load=modelFixture?fixtureModelSignals(modelFixture):syncOn?loadModelSignals:null;if(!load)return;let on=true;
+    void load().then(n=>{if(!on)return;setModelAt(Date.now());((window as {__proto3d?:{modelSignals?:unknown}}).__proto3d??={} as {modelSignals?:unknown}).modelSignals=n}).catch(()=>{});
+    return()=>{on=false}},[modelFixture,syncOn,realDates]);// eslint-disable-line react-hooks/exhaustive-deps
   // what the garden draws: the holdings now, or as they stood in the timelapse week (absent before they were bought)
   // the first screens stand on the world itself: an example garden grows behind them (shown only, never saved)
   const hoverTree=useCallback((id:number)=>shownRef.current.find(x=>x.id===id)??null,[]);
   // 게임 구성 2026-11-20: my real stocks in the 밭, virtual ones bought with coins in the 과수원
-  const vtrees=useMemo(()=>(g.s.virtual??[]).flatMap(l=>{const q=quote(l.code,clock.today);return q?[virtualTree(l,q.price)]:[]}),[g.s.virtual,clock.today]);
+  // a lot on real closes not loaded yet stands at its cost (0%) rather than vanishing
+  const vtrees=useMemo(()=>(g.s.virtual??[]).map(l=>virtualTree(l,lotQuote(l,clock.today)?.price??l.cost)),[g.s.virtual,clock.today,pricesAt]);
   // 유저 워크플로우 3장: on the first walk my real trees are kept, not drawn, until the farmer plants them
   const [walk,setWalkS]=useState<WalkSave>(()=>{try{return readWalk(JSON.parse(localStorage.getItem('rethink-walk-v1')??'null'))}catch{return WALK0}});
   const putWalk=(f:(w:WalkSave)=>WalkSave)=>setWalkS(w=>{const n=f(w);if(n!==w)try{localStorage.setItem('rethink-walk-v1',JSON.stringify(n))}catch{/* this visit only */}return n});
@@ -366,13 +424,26 @@ export default function Proto3D(){
   const shown=useMemo(()=>welcome?DEMO_KOSDAQ:lapse?holdings.flatMap(x=>{const p=holdingAt(x,lapseBack);return p?[p]:[]}):[...realShown,...vtrees],[realShown,vtrees,lapse?.i,welcome]);// eslint-disable-line react-hooks/exhaustive-deps
   const shownRef=useRef(shown);shownRef.current=shown;
   useEffect(()=>{const hk=((window as {__proto3d?:{lapse?:unknown}}).__proto3d??={} as {lapse?:unknown});hk.lapse=lapse?{day:lapseDay,back:lapseBack,trees:shown.length,weather}:null},[lapse,shown]);// eslint-disable-line react-hooks/exhaustive-deps
-  const signals=useMemo(()=>signalProvider.today(holdings,clock.today),[holdings,clock.today,pricesAt]);// eslint-disable-line react-hooks/exhaustive-deps
+  const signals=useMemo(()=>signalProvider.today(holdings,clock.today),[holdings,clock.today,pricesAt,modelAt]);// eslint-disable-line react-hooks/exhaustive-deps
   // a signal is answered by a journal saved today on its stock (or, before 지기, a judgment)
   const wroteToday=(holdingId:number)=>judgedToday(s.judgments,holdingId,clock.today)||(s.journals??[]).some(j=>j.holdingId===holdingId&&j.status==='saved'&&!j.demo&&!j.practice&&j.savedAt!=null&&isoDay(new Date(j.savedAt))===clock.today);
+  // e2e hooks: today's notes, and a way to open one (or a holding's 재무 체력) without walking to it
+  useEffect(()=>{const w=window as unknown as {__proto3d?:Record<string,unknown>};const h=(w.__proto3d??={});
+    h.signals=signals.map(x=>({id:x.id,holdingId:x.holdingId,analyst:x.analyst,model:x.model,loss:x.loss,headline:x.headline}));
+    h.openBrief=(signalId:string)=>{setPicked(null);setSheet({kind:'brief',start:{signalId}})}},[signals]);
   const open=signals.filter(x=>!wroteToday(x.holdingId));
   // 보리's stop-loss talk (db/functions/bori-talk): today's loss signals by company code
+  // the stock pickers (보리, 루온) list real holdings first: only six fit
+  const realFirst=useMemo(()=>[...holdings].sort((a,b)=>Number(!!b.real)-Number(!!a.real)),[holdings]);
   const boriHoldings=useMemo(()=>holdings.map(x=>({company_id:codeOf(x),name:x.name})),[holdings]);
-  const lossCodes=useMemo(()=>signals.filter(x=>x.loss).map(x=>holdings.find(h=>h.id===x.holdingId)).flatMap(h=>h?[codeOf(h)]:[]),[signals,holdings]);
+  // 루온 (2026-11-24): a stock picked → the server turns the talk to detection mode on it (supabase.ts stockSignal); signed out, the
+  // placeholder lines (core/debate-chat.ts). e2e: window.__luonSignal / __luonTalk stand in for the server
+  const testLuon=typeof window!=='undefined'?(window as unknown as {__luonSignal?:(code:string,name:string)=>Promise<BoriLine|null>;__luonTalk?:(m:string)=>Promise<BoriLine>}):undefined;
+  const luonOn=syncOn||!!testLuon?.__luonSignal;
+  const luonPick=useCallback((id:number,name:string)=>{const h=holdings.find(x=>x.id===id),code=h?codeOf(h):name;
+    return testLuon?.__luonSignal?testLuon.__luonSignal(code,name):stockSignal(boriHoldings,code,'luon')},[holdings,boriHoldings,testLuon]);
+  // with the server, only real holdings' signals go to it (a mock tree's made-up signal must not start a real analysis)
+  const lossCodes=useMemo(()=>signals.filter(x=>x.loss).map(x=>holdings.find(h=>h.id===x.holdingId)).flatMap(h=>h&&(!syncOn||h.real)?[codeOf(h)]:[]),[signals,holdings,syncOn]);
   // e2e: window.__boriOpen stands in for the server (it gets the loss codes)
   const testOpen=typeof window!=='undefined'?(window as unknown as {__boriOpen?:(codes:string[])=>Promise<string|null>}).__boriOpen:undefined;
   // the server opens a stop-loss talk once (a second open returns nothing), so the first line is kept for the day:
@@ -474,7 +545,8 @@ export default function Proto3D(){
   // stamps (core/stamps.ts): whatever newly holds is stamped once, with today's date
   const fresh=ready?newStamps({judgments:s.judgments.length,graded:s.graded.map(x=>({hit:x.hit,confidence:s.judgments.find(j=>j.id===x.judgmentId)?.confidence??3})),
     bestStreak:s.streak.best,rewinds:s.rewinds.length,cases:s.cases.length,daysDone:s.daysDone.length,seen:s.seen,calibration:track.calibration,
-    expeditions:(s.expeditions??[]).map(r=>({week:r.week,sureHit:r.decisions.some((d,i)=>d.chips>=4&&r.results?.[i]==='hit')}))},s.stamps.map(x=>x.id)):[];
+    expeditions:(s.expeditions??[]).map(r=>({week:r.week,sureHit:r.decisions.some((d,i)=>d.chips>=4&&r.results?.[i]==='hit')})),
+    observatoryClears:(s.observatory?.grants??[]).some(x=>x.rule==='first-clear')?1:0},s.stamps.map(x=>x.id)):[];
   useEffect(()=>{if(fresh.length)g.ops.stamp(fresh)},[fresh.join(',')]);// eslint-disable-line react-hooks/exhaustive-deps
   const share:Share=s.settings.share??'hide';
   const myCtx={name:s.name,rank:rank.name,habit:habitOf(s.judgments,s.graded).name,color:(PALETTES.find(p=>p.id===look.palette)??PALETTES[0]).primary,
@@ -601,7 +673,27 @@ export default function Proto3D(){
   // (Village3D Villager errand); the talk goes on when he is back
   const errandLoad=useRef<(()=>void)|null>(null);
   const [errand,setErrand]=useState<{lotId:number;to:{x:number;z:number};key:number;after:string|null}|null>(null);
-  const todays=useMemo(()=>candidates(KOSDAQ_STOCKS,clock.today).map(st=>{const q=quote(st.code,clock.today);return {code:st.code,name:st.name,mkt:st.mkt,price:q?.price??null,real:!!q?.real}}),[clock.today]);
+  const todays=useMemo(()=>candidates(KOSDAQ_STOCKS,clock.today).map(st=>{const q=buyQuote(s.virtual??[],st.code,clock.today);return {code:st.code,name:st.name,mkt:st.mkt,price:q?.price??null,real:!!q?.real}}),[clock.today,pricesAt,s.virtual]);
+  // the virtual stocks' real closes (core/virtual.ts, kept apart from the journals' bars): the shop's stocks, today's
+  // picks and the ones in the orchard, once per sign-in and whenever a new one is planted
+  const virtualKey=[...new Set([...VIRTUAL_STOCKS.map(x=>x.code),...todays.map(x=>x.code),...(s.virtual??[]).map(l=>l.code)])].sort().join(',');
+  useEffect(()=>{if(!realPrices?.virtual||!virtualKey)return;let on=true;
+    void realPrices.virtual(virtualKey.split(',')).then(n=>{if(on&&n)setPricesAt(Date.now())});return()=>{on=false}},[realPrices,virtualKey]);
+  // 통신기 (ui/Comm.tsx) and the merchant/farmer share these: a coin buy plants a virtual tree, a sell goes on the farmer's cart
+  const commRoom=fieldPlots(s.built?.land??[],'orchard').filter(i=>!holdings.some(h=>h.plot===i)&&!(s.virtual??[]).some(l=>l.plot===i)).length;
+  const commBuy=(code:string,n:number):string|null=>{const name=todays.find(c=>c.code===code)?.name??'';
+          const r=g.ops.buyVirtual(code,n);
+          // the first walk's buy: planted before the eyes, then the merchant says what comes next
+          if(r.ok&&walkStep==='merchant'){const lot=r.lot;putWalk(w=>({...w,freeTree:lot.id}));setSheet(null);setVt(null);cue('plant');
+            startBirth([VIRTUAL_ID+lot.id],false,()=>setVt({id:'merchant',phase:'talk',stand:meNow(),at:villager('merchant'),stage:'planted'}));return null}
+          if(r.ok){cue('capsule-mark');return `${name} ${n}주를 샀어요. 가상 밭에 심었어요.`}
+          return r.why==='coins'?`코인이 ${won(r.need??0)} 모자라요`:r.why==='room'?'가상 밭에 빈칸이 없어요':'지금은 살 수 없어요'};
+  const commSell=(lotId:number,n:number)=>{setSheet(null);const l=(s.virtual??[]).find(x=>x.id===lotId);if(!l)return;
+          // the farmer goes for it: the talk closes, he walks to the tree, picks, carries it to the cart; then it is loaded
+          const [tx,tz]=PLOTS[l.plot]??[0,0];setVt(null);
+          setErrand({lotId,to:{x:tx,z:tz},key:Date.now(),after:null});
+          errandLoad.current=()=>{if(g.ops.cartLoad(lotId,n)){cue('capsule-mark');g.say(`${l.name} ${n}주를 수레에 실었어요 · 다음 거래일 종가로 정산돼요`)}
+            setVt({id:'farmer',phase:'talk',stand:meNow(),at:villager('farmer'),stage:'loaded'})}};
   const freeLot=(s.virtual??[]).find(l=>l.id===walk.freeTree)??(s.virtual??[])[0]??null;
   // the cart is paid at the next trading day's close: checked as the village opens and now and then
   useEffect(()=>{if(ready&&(s.cart??[]).some(c=>c.paid==null))g.ops.cartSettle()},[ready,clock.today]);// eslint-disable-line react-hooks/exhaustive-deps
@@ -703,7 +795,7 @@ export default function Proto3D(){
         choices:[{label:walkStep==='merchant'?'농부한테 가기':'고마워',go:()=>{talkOver();if(walkStep==='merchant')pass('merchant');else putWalk(w=>({...w,merchantWait:false}))}}]};
       const first=!(s.grants??[]).includes('tour');
       return {name:'상인',line:first?`어, 왔어? 실제 밭은 기록만 하는 데라 사고팔 수가 없잖아. 사고팔기는 여기서 게임 코인으로 해. 시작 코인 ${(START_GRANT/10000).toLocaleString()}만 원 넣어 줄게. 오늘 후보는 뽑기로 나온 거고, 뉴스 하나는 꼭 읽고 골라.`:'어, 왔어? 오늘 후보 다섯 개야, 뽑기로 나온 거고. 뉴스 하나는 읽고 골라. 오늘 안 사도 돼, 내일 또 다른 후보 와.',
-        choices:[{label:first?'코인 받고 통신기 보기':'통신기 받기',go:()=>{if(first)g.ops.grant('tour',START_GRANT);setSheet({kind:'comm'})}},...(walkStep?[]:[leave])]};
+        choices:[{label:first?'코인 받고 통신기 보기':'통신기 받기',go:()=>{if(first)g.ops.grant('tour',START_GRANT);setVt(null);setSheet({kind:'comm',tab:'order'})}},...(walkStep?[]:[leave])]};
     }
     if(t.id==='librarian'){const fs=freeLot?{code:freeLot.code,name:freeLot.name}:holdings[0]?{code:codeOf(holdings[0]),name:holdings[0].name}:null;
       return {name:'사서',line:walkStep==='librarian'?`어서 와. 아까 심은 나무${fs?` ${fs.name}`:''} 이름을 찾아볼까? 왜 심었는지 한 줄 써 보자. 천천히 해도 돼.`:'어서 와. 책은 그대로 있었어. 종목 색인부터 펼쳐 볼까?',
@@ -752,7 +844,7 @@ export default function Proto3D(){
     pots:holdings.filter(()=>false).map(h=>({holdingId:h.id,open:!!openFor(s.cooldowns,h.id),flowers:flowersOn(s.cooldowns,h.id)})).filter(p=>p.open||p.flowers),
     decor:s.owned.filter(o=>o.slot).map(o=>({slot:o.slot!,shape:itemById(o.itemId)!.shape})),
     burst,focus,birth,enterFrom:calm?DOOR:null,cutaway:cut,onDeep:id=>{if(!calm&&ready)openDeep(id)},
-    capsules:[],capsuleFx:capFx,onCapsule:id=>{if(!calm)onCapsule(id)},hitRate:track.hitRate,cartFlag:CART_FLAGS[Number(clock.today.slice(-2))%CART_FLAGS.length],gameLit:!(s.expeditions??[]).some(r=>r.week===weekStart(clock.today)),
+    capsules:[],capsuleFx:capFx,onCapsule:id=>{if(!calm)onCapsule(id)},hitRate:track.hitRate,cartFlag:CART_FLAGS[Number(clock.today.slice(-2))%CART_FLAGS.length],gameLit:!(s.observatory?.runs??[]).some(r=>r.finishedAt!==null&&r.mode==='ranked'&&r.day===kstDay(clock.now)),
     // 설계 5장: the friends are talked to face to face (the briefing and the grade badges are gone)
     // 9-5: each friend talks in its own voice: small talk or one of my holdings
     onAnalyst:id=>{if(walkOn){if(meet!==null&&(id as string)===MEET[meet]){goMeet();return}walkHint();return}if(id==='luon'){debate();return}if(id in VILLAGE_SPEAKERS){setPicked(null);setSheet({kind:'talk',id:id as 'tori'|'moa'|'luon'})}else talkFriend()},
@@ -812,6 +904,7 @@ export default function Proto3D(){
   const bubbleNow=bubbles.length?[bubbles[heldTurn.current%bubbles.length]]:[];
   const h=holdings.find(t=>t.id===picked);
   const st=h&&treeState(h,defaultRules);
+  const rc=useMemo(()=>h?recheckCard(h,holdings,clock.today):null,[h,holdings,clock.today]);
   const cd=h?openFor(s.cooldowns,h.id):null;
   // the coins, the coin calendar and the settings at the top right: the village's, and the same in 거장의 집 (피드백 2026-11-24)
   const topRight=(<div className="rt-top-right">
@@ -826,14 +919,34 @@ export default function Proto3D(){
   // 설계 6장: a tree opens my notebook at its stock, the camera close on that tree (the tree and its name stay above the book)
   // e2e: talk to a friend as a tap on it would (the 3D figures move about the village)
   useEffect(()=>{const w=window as unknown as {__proto3d?:{talkTo?:(id:string)=>void}};(w.__proto3d??={}).talkTo=id=>world.onAnalyst(id as AnalystId)});
+  // e2e: open a tree's card as a tap on it would (core/recheck.ts card)
+  useEffect(()=>{const w=window as unknown as {__proto3d?:{pickTree?:(id:number)=>void}};(w.__proto3d??={}).pickTree=id=>setPicked(id)});
+  // e2e only: the old 더보기 list (케이스, 되감기, 리그, 서랍, …) has no door in the new village yet, so its tests open
+  // those as the old dock did and keep checking the sheet itself. `more` takes a MoreId (ui/Home.tsx), `open` a sheet,
+  // `pick` opens the tree card as a tap on it would
+  useEffect(()=>{const w=window as unknown as {__proto3d?:{open?:(sh:SheetState)=>void;more?:(id:string)=>void;pick?:(id:number)=>void}};const hk=(w.__proto3d??={});
+    hk.open=sh=>{setPicked(null);setSheet(sh)};hk.more=id=>{setPicked(null);pickMore(id as MoreId)};hk.pick=id=>{setSheet(null);setPicked(id)}});
   // 9-5: the player walks over beside the tree, the camera goes to it, and that stock's notebook opens there
   const openTree=(id:number)=>{const hh=holdings.find(x=>x.id===id)??vtrees.find(x=>x.id===id);if(!hh)return;setPicked(null);setFocus(id);
     const w=(window as unknown as {__proto3d?:{player?:{x:number;z:number};treeAt?:Record<number,{x:number;z:number}>}}).__proto3d,t=w?.treeAt?.[id],me=w?.player;
     if(t){const dx=(me?.x??t.x)-t.x,dz=(me?.z??t.z+1)-t.z,d=Math.hypot(dx,dz)||1;setGoTo({x:t.x+dx/d*1.3,z:t.z+dz/d*1.3,at:Date.now()})}
     // 유저 워크플로우 3장: a tree opens its stock's status, read only (the journal is the library's)
     setSheet({kind:'tree',id})};
+  // today's request (feedback 2026-11-19): it arrives in the garden; untouched today → a notice above the dock and a 1
+  const qDay=kstDay(clock.now),qToday=localToday(s.observatory?.runs??[],qDay),qWaiting=!qToday.done&&!qToday.open&&!(s.observatory?.runs??[]).some(r=>r.day===qDay&&r.finishedAt!==null&&r.mode==='ranked');
+  const qNotice=qWaiting&&s.onboarded&&s.observatory?.noticed!==qDay;
+  // the notice sits just above the next-task card (its height changes with its text), never on top of it
+  // the same moments as the next-task card: not inside the house, not while building, not over a capsule or a jump
+  const showReq=ready&&!quiet&&qNotice&&!sheet&&!picked&&!inside&&!capFx&&!jump&&!buildMode&&h===undefined,[reqBottom,setReqBottom]=useState<number|null>(null);
+  useEffect(()=>{if(!showReq)return;
+    const f=()=>{const host=document.querySelector('.proto3d'),n=host?.querySelector('.rt-next');
+      if(!host||!n){setReqBottom(null);return}const hr=host.getBoundingClientRect(),r=n.getBoundingClientRect();
+      // landscape: the card sits left of the centre column, so the notice keeps its own place
+      setReqBottom(r.right<hr.left+hr.width/2-40?null:Math.round(hr.bottom-r.top+10))};
+    f();const t=setTimeout(f,450);window.addEventListener('resize',f);return()=>{clearTimeout(t);window.removeEventListener('resize',f)}},[showReq,next.kind]);
+  const openRequest=()=>{g.ops.questNoticed(qDay);if(syncOn){setPicked(null);setSheet({kind:'game'});return}const id=g.ops.questOpen();if(id)enterQuest(id)};
   const dock:['garden'|'journal'|'game'|'more',string,typeof Ledger,number][]=[
-    ['garden','정원',Sprout,0],['journal','일지',Ledger,g.due.length+open.length+toReview],['game','챌린지',Scope,0],['more','더보기',More,caseDone?0:1]];
+    ['garden','정원',Sprout,0],['journal','일지',Ledger,g.due.length+open.length+toReview],['game','관측소',Scope,qWaiting?1:0],['more','더보기',More,caseDone?0:1]];
   const pickMore=(id:MoreId)=>{if(id==='build'){setSheet(null);setPicked(null);setBuildMode(true);return}if(id==='cities'){setSheet({kind:'cities'});return}
     if(id==='me'){setSheet(null);setMe(true)}else if(id==='sky'){setSheet(null);setSkyOpen({focus:null})}
     else setSheet(id==='holdings'?{kind:'onboard'}:id==='shop'?{kind:'cart'}:{kind:id})};
@@ -843,7 +956,7 @@ export default function Proto3D(){
     <div className={`proto3d${ready&&!quiet?"":" no-dock"}`} data-testid="proto3d" data-place={where} data-shop={shop??undefined} data-weather={weather} onPointerDownCapture={unlock} onClickCapture={e=>{if((e.target as HTMLElement).closest('button'))cue('ui-button')}}
       data-night={light.night>0.5} style={{background:`linear-gradient(180deg,${sky('top')} 0%,${sky('mid')} 38%,${sky('bottom')} 100%)`}}>
       {light.night>0.05&&<div className="proto3d-stars" aria-hidden style={{opacity:light.night}}/>}
-      {w&&<Canvas frameloop={(expedition&&!wide)||where!=='village'?'never':'always'} shadows="soft" dpr={[1,1.5]} gl={{antialias:false,alpha:true,powerPreference:'high-performance'}}
+      {w&&<Canvas frameloop={((expedition||quest)&&!wide)||where!=='village'?'never':'always'} shadows="soft" dpr={[1,1.5]} gl={{antialias:false,alpha:true,powerPreference:'high-performance'}}
         camera={{fov:46,near:0.5,far:120,position:[0,21,14.5]}}>
         <Scene3D holdings={shown} picked={picked} onPick={id=>{if(id===null){setPicked(null);return}openTree(id)}} recenter={recenter} weather={weather} world={world}/>
       </Canvas>}
@@ -855,8 +968,8 @@ export default function Proto3D(){
       <div className="proto3d-top" style={where==='arcade'?{display:'none'}:undefined}>
         <div className="rt-top-left">
         {/* today's market as weather, top left (restored 2026-11-20: the PM never asked for it to go) */}
-        {w&&where==='village'&&(!expedition||wide)&&!skyOpen&&!welcome&&!me&&<div className="rt-weather" aria-label="오늘 시장 날씨">
-          <span className="rt-weather-k">{lapseMarket||(expedition&&gameMarket!==null)?'그날 시장':'오늘 시장'}</span>
+        {w&&where==='village'&&(!expedition||wide)&&!quest&&!skyOpen&&!welcome&&!me&&<div className="rt-weather" aria-label="오늘 시장 날씨">
+          <span className="rt-weather-k">{expedition&&gameMarket!==null?'그날 시장':lapseMarket?(lapseMarket.asOf?`코스닥 ${lapseMarket.asOf.slice(5)}`:'그날 시장 · 예시'):w.asOf?`코스닥 ${w.asOf.slice(5)}`:'오늘 시장 · 예시'}</span>
           <strong>{WEATHER_LABEL[weather]}</strong>
           <span className="rt-num">{(()=>{const v=expedition&&gameMarket!==null?gameMarket:lapseMarket?.index??w.index;return (v>0?'+':'')+v.toFixed(2)})()}%</span>
           <small>{WEATHER_NOTE[weather]}</small>
@@ -888,25 +1001,16 @@ export default function Proto3D(){
         <button type="button" className="rt-btn primary" onClick={()=>onVillager(shop)}>{VILLAGERS.find(v=>v.id===shop)?.name}에게 말 걸기</button>
         <button type="button" className="rt-btn" onClick={()=>{setVt(null);swapShop(null)}}>밖으로 나가기</button></div>}
       {vtTalk&&where==='village'&&<VillagerTalk key={(vt?.id??'')+(vt?.stage??'')} name={vtTalk.name} who={vt?.id==='bori'||!merchantOpen&&vt?.id==='merchant'&&vt?.stage!=='meet'?'bori':vt?.id} role={ROLE[vt?.id==='bori'||!merchantOpen&&vt?.id==='merchant'&&vt?.stage!=='meet'?'bori':vt?.id??'']} line={vtTalk.line} choices={vtTalk.choices}/>}
-      {sheet?.kind==='tree'&&(()=>{const hh=[...holdings,...vtrees].find(x=>x.id===sheet.id);if(!hh)return null;const q=hh.code?quote(hh.code,clock.today):null;
+      {sheet?.kind==='tree'&&(()=>{const hh=[...holdings,...vtrees].find(x=>x.id===sheet.id);if(!hh)return null;const lot=hh.virtual?(s.virtual??[]).find(l=>VIRTUAL_ID+l.id===hh.id):null;
+        const q=lot?lotQuote(lot,clock.today):hh.code?quote(hh.code,clock.today):null;
         return <TreeStatus h={hh} price={q?.price??null} onClose={close}/>})()}
-      {sheet?.kind==='comm'&&<Communicator cands={todays} day={clock.today} coins={s.currency} onClose={close}
-        room={fieldPlots(s.built?.land??[],'orchard').filter(i=>!holdings.some(h=>h.plot===i)&&!(s.virtual??[]).some(l=>l.plot===i)).length}
-        onBuy={(code,n)=>{const name=todays.find(c=>c.code===code)?.name??'';
-          const r=g.ops.buyVirtual(code,n);
-          // the first walk's buy: planted before the eyes, then the merchant says what comes next
-          if(r.ok&&walkStep==='merchant'){const lot=r.lot;putWalk(w=>({...w,freeTree:lot.id}));setSheet(null);setVt(null);cue('plant');
-            startBirth([VIRTUAL_ID+lot.id],false,()=>setVt({id:'merchant',phase:'talk',stand:meNow(),at:villager('merchant'),stage:'planted'}));return null}
-          if(r.ok){cue('capsule-mark');return `${name} ${n}주를 샀어요. 가상 밭에 심었어요.`}
-          return r.why==='coins'?`코인이 ${won(r.need??0)} 모자라요`:r.why==='room'?'가상 밭에 빈칸이 없어요':'지금은 살 수 없어요'}}/>}
+      {sheet?.kind==='comm'&&<Comm key={sheet.tab??'balance'} start={sheet.tab} acct={commAccount(holdings,s.virtual??[],s.currency,clock.today,id=>VIRTUAL_ID+id)} cands={todays}
+        lots={(s.virtual??[]).map(l=>{const q=lotQuote(l,clock.today);return {id:l.id,name:l.name,qty:l.qty,price:q?.price??null,rate:q?Math.round((q.price/l.cost-1)*1000)/10:null}})}
+        day={clock.today} room={commRoom} open={merchantOpen} openNote={`상인이 ${nextOpenLabel(minutes)}에 와요. 주문은 상인이 있는 동안(8시~20시)만 돼요.`}
+        onBuy={commBuy} onSell={commSell} onTree={id=>{setSheet(null);openTree(id)}} onClose={close}/>}
       {sheet?.kind==='harvest'&&<Harvest today={clock.today} cart={s.cart??[]} onClose={close}
-        lots={(s.virtual??[]).map(l=>({id:l.id,name:l.name,qty:l.qty,price:quote(l.code,clock.today)?.price??null}))}
-        onLoad={(lotId,n)=>{setSheet(null);const l=(s.virtual??[]).find(x=>x.id===lotId);if(!l)return;
-          // the farmer goes for it: the talk closes, he walks to the tree, picks, carries it to the cart; then it is loaded
-          const [tx,tz]=PLOTS[l.plot]??[0,0];setVt(null);
-          setErrand({lotId,to:{x:tx,z:tz},key:Date.now(),after:null});
-          errandLoad.current=()=>{if(g.ops.cartLoad(lotId,n)){cue('capsule-mark');g.say(`${l.name} ${n}주를 수레에 실었어요 · 다음 거래일 종가로 정산돼요`)}
-            setVt({id:'farmer',phase:'talk',stand:meNow(),at:villager('farmer'),stage:'loaded'})}}}/>}
+        lots={(s.virtual??[]).map(l=>({id:l.id,name:l.name,qty:l.qty,price:lotQuote(l,clock.today)?.price??null}))}
+        onLoad={commSell}/>}
       {sheet?.kind==='news'&&<NewsBoard day={clock.today} onClose={close}
         stocks={[...realShown.map(h=>({code:codeOf(h),name:h.name})),...(s.virtual??[]).map(l=>({code:l.code,name:l.name}))].filter((x,i,a)=>a.findIndex(y=>y.code===x.code)===i)}/>}
       {tourShow&&<Tour step={tourStep} n={tourN} total={tour.length} onNext={tourNext} onAct={tourAct} onSkip={()=>{g.ops.tipDone('tour');setTourN(0)}}/>}
@@ -959,15 +1063,27 @@ export default function Proto3D(){
 
       {/* 설계 6·7장: the four tabs are gone; a small notebook button opens my journal where I stand (the stock index first) */}
       {ready&&!quiet&&!inside&&where==='village'&&!sheet&&<button type="button" className="proto3d-locate vl-book" aria-label="수첩 펼치기" onClick={()=>{setPicked(null);setSheet({kind:'journal'})}}><Ledger size={20}/></button>}
+      {/* 통신기 (ui/Comm.tsx): once the merchant has handed it over, a button on the screen opens the practice-account MTS */}
+      {ready&&!quiet&&!inside&&where==='village'&&!sheet&&(s.grants??[]).includes('tour')&&<button type="button" className="proto3d-locate vl-comm" aria-label="통신기" onClick={()=>{setPicked(null);setSheet({kind:'comm',tab:'balance'})}}>
+        <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M10 7l2 2 2-3M11 17h2"/></svg></button>}
+      {showReq&&<div className="rt-request" role="status" data-testid="request-notice" style={reqBottom!=null?{bottom:reqBottom}:undefined}>
+        <button type="button" className="rt-request-go" onClick={openRequest}><Scope size={18}/><span><b>오늘의 관측 의뢰가 도착했어</b><small>눌러서 열기</small></span></button>
+        <button type="button" className="rt-request-x" aria-label="알림 닫기" onClick={()=>g.ops.questNoticed(qDay)}><Cross size={16}/></button></div>}
 
       {h&&st&&!sheet&&(
         <section role="dialog" aria-label={`${h.name} 나무`} className="proto3d-card">
           <div>
             <h2>{h.name}</h2>
-            <p>{CONDITION_LABEL[st.condition]} · {GROWTH_LABEL[st.growth]}</p>
-            <small className="rt-num">{st.days}일 보유 · 수익률 {h.rate>0?'+':''}{h.rate}%</small>
+            {/* 처분효과 (멘토링 1.7, content/recheck.ts): worth now and its share first, the days held last and small */}
+            <p>평가 <span className="rt-num">{won(rc!.worth)}</span> · 정원의 <span className="rt-num">{rc!.weight}%</span></p>
+            <small className="rt-num">수익률 {h.rate>0?'+':''}{h.rate}% · 산 지 {st.days}일</small>
           </div>
           <button type="button" aria-label="닫기" onClick={()=>setPicked(null)}><Cross size={18}/></button>
+          <div className="rt-recheck" role="group" aria-label="다시 보기">
+            <p>{rc!.ask}</p>
+            {rc!.views&&<p className="rt-recheck-views">{rc!.views.book&&<span>기업 체력 <b>{rc!.views.book}</b></span>}{rc!.views.path&&<span>주가 흐름 <b>{rc!.views.path}</b></span>}{rc!.views.split&&<em>엇갈림</em>}</p>}
+            <p className="rt-recheck-note">{rc!.note}</p>
+          </div>
           {early&&cd&&<p className="rt-hint" style={{flexBasis:'100%',marginTop:8}}>{line(UI.cooldownEarly,{left:leftLabel(cd,clock.now)})}</p>}
           {!s.seen.cutaway&&<p className="rt-hint rt-deep-hint" style={{flexBasis:'100%',marginTop:8}}>{UI.deepHint}</p>}
           {/* the old one-tap judgment, now a quick start: a journal with 한 일 filled (손절 검토 opens the exit plan) */}
@@ -984,10 +1100,15 @@ export default function Proto3D(){
         </section>
       )}
 
+      {/* over the hand-off's white panel (rt-bridge z 25), so the question sits on the broker's list */}
+      {sheet?.kind==='dates'&&mtsIn&&<div style={{position:'relative',zIndex:30}}><BuyDates lines={needsDate(mtsIn.holdings,s.buyDates??{})} today={clock.today} broker={mtsIn.broker}
+        onDone={days=>{g.ops.setBuyDates(days);goMts(mtsIn,{...s.buyDates,...days})}}/></div>}
+      {bridge&&<EmbedBridge lines={bridge.input?.holdings??null} broker={bridge.input?.broker} focus={bridge.input?.focus} badges={bridgeBadges}
+        lift={bridge.lift} onShown={bridgeShown} onGone={()=>setBridge(null)}/>}
       {sheet?.kind==='brief'&&<Briefing key={JSON.stringify(sheet.start)} g={g} signals={signals} holdings={holdings} start={sheet.start} onClose={close}
         onDeep={id=>openDeep(id,{kind:'brief',start:{holdingId:id}})} onBury={id=>bury(id)} onWrite={(id,sig)=>writeNew({holdingId:id,signalId:sig})}/>}
       {sheet?.kind==='deep'&&(()=>{const hh=holdings.find(x=>x.id===sheet.holdingId);const back=sheet.back;
-        return hh&&<DeepSheet holding={hh} health={healthProvider.of(hh,signals.find(x=>x.holdingId===hh.id)??null)} onClose={()=>closeDeep(back)}/>})()}
+        return hh&&<DeepSheet holding={hh} health={healthProvider.of(hh,signals.find(x=>x.holdingId===hh.id)??null)} row={rowFor(hh)} onClose={()=>closeDeep(back)}/>})()}
       {sheet?.kind==='grades'&&<Grades g={g} onClose={close} start={'start' in sheet?sheet.start:undefined} onDig={dig} onStamp={(holdingId,hit)=>setBurst({holdingId,hit,stamp:Date.now()})} onFocus={setFocus} onRewind={()=>setSheet({kind:'rewind'})}/>}
       {sheet?.kind==='rewind'&&<RewindView g={g} onClose={close}/>}
       {sheet?.kind==='today'&&<TodaySheet g={g} tasks={tasks} onGo={goTask} onClose={close}/>}
@@ -1006,7 +1127,8 @@ export default function Proto3D(){
       {sheet?.kind==='league'&&<League g={g} onClose={close}/>}
       {sheet?.kind==='map'&&<MapSheet me={(window as unknown as {__proto3d?:{player?:{x:number;z:number}}}).__proto3d?.player??{x:0,z:0}} onGo={goPlace} onClose={close}/>}
       {sheet?.kind==='library'&&<LibrarySheet caseDone={caseDone} rewindLeft={paidLeft(s.rewinds,clock.today)} onCase={()=>setSheet({kind:'case'})} onRewind={()=>setSheet({kind:'rewind'})} onClose={close}/>}
-      {sheet?.kind==='game'&&<GameDoor runs={s.expeditions??[]} week={weekStart(clock.today)} onEnter={()=>enterGame(null)} onClose={close}/>}
+      {sheet?.kind==='game'&&<ObservatoryDoor g={g} onPlay={enterQuest} onClose={close} server={syncOn?observatoryServer:null}/>}
+      {quest&&<DailyQuest g={g} runId={quest} onClose={()=>leaveQuest(true)} server={syncOn?observatoryServer:null}/>}
       {expedition&&<Expedition packId={expedition.pack} today={clock.today} history={s.expeditions??[]} handle={s.name} onFinish={g.ops.finishExpedition} onClose={()=>leaveGame()}
         garden={open.map(x=>({holdingId:x.holdingId,name:holdings.find(h=>h.id===x.holdingId)?.name??'',model:x.model}))}
         onSimilar={id=>{leaveGame();setSheet({kind:'brief',start:{holdingId:id}})}} onMarket={setGameMarket}/>}
@@ -1028,10 +1150,11 @@ export default function Proto3D(){
         <button type="button" onClick={()=>setPlanting(null)}>취소</button></div>}
       {sheet?.kind==='friend'&&<FriendSheet opener={opener.text} topic={opener.topic} seed={clock.today} onClose={close}
         talk={(history,m)=>boriChat(history,m,syncOn?(_h,msg)=>boriTalk(boriHoldings,msg):null)} opening={boriTalks?boriOpening:null} onFace={setBoriFace}
-        onGo={to=>{if(to==='case')setSheet({kind:'case'});else close()}} stocks={holdings.map(x=>({id:x.id,name:x.name}))} onStock={openTree}/>}
+        onGo={to=>{if(to==='case')setSheet({kind:'case'});else close()}} stocks={realFirst.map(x=>({id:x.id,name:x.name}))} onStock={openTree}/>}
       {sheet?.kind==='talk'&&(()=>{const w=VILLAGE_SPEAKERS[sheet.id];return <FriendSheet key={sheet.id} who={w} opener={sheet.id==='luon'?'…어느 종목 얘기할래? 고르면 네 이유부터 들어 볼게.':w.greet[clock.today.length%w.greet.length]} topic="chat" seed={clock.today}
-        talk={sheet.id==='luon'?(history,m)=>debateChat(history,m,null):null}
-        onClose={close} onGo={to=>{if(to==='case')setSheet({kind:'case'});else close()}} stocks={holdings.map(x=>({id:x.id,name:x.name}))} onStock={openTree}/>})()}
+        talk={sheet.id==='luon'?(history,m)=>debateChat(history,m,testLuon?.__luonTalk?(_h,msg)=>testLuon.__luonTalk!(msg):syncOn?(_h,msg)=>boriTalk(boriHoldings,msg,'luon'):null):null}
+        pickFirst={sheet.id==='luon'} onPickTalk={sheet.id==='luon'&&luonOn?luonPick:null}
+        onClose={close} onGo={to=>{if(to==='case')setSheet({kind:'case'});else close()}} stocks={realFirst.map(x=>({id:x.id,name:x.name}))} onStock={openTree}/>})()}
       {sheet?.kind==='drawer'&&<Drawer g={g} onClose={close} onCart={()=>setSheet({kind:'cart'})}/>}
       {sheet?.kind==='analyst'&&<AnalystCard g={g} id={sheet.id} signal={open.find(x=>x.analyst===sheet.id)??null} onClose={close}
         onBrief={()=>{const sig=open.find(x=>x.analyst===sheet.id);if(sig)setSheet({kind:'brief',start:{signalId:sig.id}})}}/>}
@@ -1041,7 +1164,7 @@ export default function Proto3D(){
       {where==='house'&&!welcome&&<House lesson={walkAllowed&&!s.tips.includes('tour')} g={g} master={master} onSettings={()=>setSheet({kind:'settings'})}
         onOut={()=>{setSheet(null);setFading(true);cue('door');setTimeout(()=>{setWhere('village');setRecenter(n=>n+1);setTimeout(()=>setFading(false),80)},TIMING.roomFade)}}/>}
       {welcome&&<Welcome owing={owing} invite={needInvite} onInvited={()=>setInvited(true)} onAccount={(a,isNew)=>{setAccount(a);if(isNew||!s.name)g.ops.setName(a.nickname)}}
-        onGuest={authRepo.local?()=>{try{sessionStorage.setItem('rethink-guest','1')}catch{/* this page only */}setGuest(true)}:null}/>}
+        onGuest={()=>{try{sessionStorage.setItem('rethink-guest','1')}catch{/* this page only */}setGuest(true)}}/>}
     </div>
   );
 }

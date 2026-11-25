@@ -27,8 +27,11 @@ test("a new player puts a stock in on real prices: buying close from that day, r
   await page.addInitScript(f => { (window as unknown as { __priceFixture?: unknown }).__priceFixture = f }, fx);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/proto3d?fresh&weather=clear");
-  const start = page.getByRole("dialog", { name: "내 종목 넣기" });
-  await start.getByRole("button", { name: /실제 시세로/ }).click({ timeout: 30_000 });
+  // (the onboarding has no 실제 시세로 button since 2026-11-23: typed lines resolve real names, next test; the exact-day
+  // entry is still the 'real' sheet, opened here as the hook opens any sheet)
+  await expect(page.getByRole("dialog", { name: "내 종목 넣기" })).toBeVisible({ timeout: 30_000 });
+  await expect.poll(() => page.evaluate(() => typeof (window as unknown as { __proto3d?: { open?: unknown } }).__proto3d?.open), { timeout: 30_000 }).toBe("function");
+  await page.evaluate(() => (window as unknown as { __proto3d: { open: (s: unknown) => void } }).__proto3d.open({ kind: "real" }));
   const sheet = page.getByRole("dialog", { name: "실제 시세로 넣기" });
   await sheet.getByLabel("1번 종목 찾기").fill("삼성");
   await sheet.getByRole("option", { name: /^삼성전자 005930/ }).click();
@@ -71,4 +74,28 @@ test("typed lines: a KRX name goes in on real prices, an unknown one stays mock"
   expect(sam).toMatchObject({ real: true, code: "005930", asOf: fx.bars["005930"].at(-1)!.d });
   expect(sam.price).toBeGreaterThan(0);
   expect(han.real).toBeFalsy();
+});
+
+// the market weather from the real KOSDAQ index (content/market.ts): the chip names the index and the bar's date, and
+// the sky follows the day (-2.5% → 비바람); without index bars it says 예시
+test("the weather is the real KOSDAQ day once the index is loaded", async ({ page }) => {
+  const fx = { ...fixture(), bars: { ...fixture().bars, KOSDAQ: [
+    { d: "2026-11-19", o: 900, h: 905, l: 895, c: 900 },
+    { d: "2026-11-20", o: 900, h: 902, l: 870, c: 877.5 },
+  ] } };
+  await page.addInitScript(f => { (window as unknown as { __priceFixture?: unknown }).__priceFixture = f }, fx);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/proto3d?demo");
+  const chip = page.getByLabel("오늘 시장 날씨");
+  await expect(chip).toContainText("코스닥 11-20", { timeout: 30_000 });
+  await expect(chip).toContainText("비바람");
+  await expect(chip).toContainText("-2.50%");
+  await expect(page.getByTestId("proto3d")).toHaveAttribute("data-weather", "storm");
+  await page.screenshot({ path: test.info().outputPath("market-real.png") });
+});
+
+test("without index bars the weather is a mock and says so", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/proto3d?demo");
+  await expect(page.getByLabel("오늘 시장 날씨")).toContainText("예시", { timeout: 30_000 });
 });

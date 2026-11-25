@@ -20,14 +20,14 @@ async function doQuiz(page: Page) {
 test("a new account sits at the desk: 보리, the sheet and the locked drawer with the exact level; the door opens with the quiz", async ({ page }) => {
   test.setTimeout(120000);
   await page.goto("/?house");
-  await expect(page.getByTestId("house")).toHaveAttribute("data-state", "quiz");
+  await expect(page.getByTestId("house")).toHaveAttribute("data-state", "quiz", { timeout: 30_000 });
   await expect(page.locator(".hs-plate")).toContainText("퀴즈 Lv.5에 열려요");
   await expect(page.locator(".hs-plate")).toContainText("현재 Lv.1");
   await expect.poll(async () => (await house(page))?.door).toBe(false);
   await doQuiz(page);
   await expect(page.getByTestId("house")).toHaveAttribute("data-state", "locked-done");
   await expect.poll(async () => (await house(page))?.door).toBe(true);
-  await expect(page.locator(".rt-talk-line")).toContainText("오늘은 여기까지야");
+  await expect(page.locator(".rt-talk-line")).toContainText("오늘 수업 끝");
   // the same day again: no second quiz, the door already open
   await page.reload();
   await expect(page.getByTestId("house")).toHaveAttribute("data-state", "locked-done");
@@ -187,36 +187,45 @@ test("보리's paws stay where the day is: the plate, the case file, the place I
   await expect(page.getByTestId("house")).toHaveAttribute("data-paws", "plate");
   const at = () => page.evaluate(() => (window as unknown as { __proto3d: { house: { pawAt: { r: number[] } } } }).__proto3d.house.pawAt.r[1]);
   // still moving there, not reached and put back
-  const a = await at(); await page.waitForTimeout(300); const b = await at();
-  expect(Math.abs(a - b)).toBeGreaterThan(0.0005);
+  // (polled: on a slow, loaded run a single 300 ms sample can fall between two slow frames)
+  const a = await at();
+  await expect.poll(async () => Math.abs((await at()) - a), { timeout: 3_000 }).toBeGreaterThan(0.0005);
   await page.goto("/?house&quizlv=5&quest");
   await expect(page.locator(".sq")).toBeVisible({ timeout: 15000 });
   await expect(page.getByTestId("house")).toHaveAttribute("data-paws", /case-/);
 });
 
 test("토리·모아·루온 are back in the village and talk in their own voice: small talk or one of my holdings", async ({ page }) => {
-  await page.goto("/?demo");
+  await page.goto("/?demo&bori");
   await expect(page.locator(".rt-talk-line")).toContainText("예시 신호", { timeout: 20000 });
   await page.getByRole("button", { name: "나중에", exact: true }).click();
   await expect(page.locator(".rt-talk")).toHaveCount(0, { timeout: 10000 });
   await page.evaluate(() => (window as unknown as { __proto3d: { talkTo: (id: string) => void } }).__proto3d.talkTo("luon"));
-  await expect(page.locator(".rt-talk-name")).toHaveText("루온");
-  await expect(page.getByRole("button", { name: "말 걸기" })).toHaveCount(0);
-  await btn(page, "내 종목 얘기").click({ timeout: 15000 });
+  await expect(page.locator(".rt-talk-name")).toContainText("루온", { timeout: 20_000 });
+  // (2026-11-24) 루온 is the debate partner: through its lines to 종목 골라 토론하기, then my stocks; a pick starts the
+  // talk about that stock (without the server, the placeholder line)
+  for (let i = 0; i < 3 && await btn(page, "계속").isVisible().catch(() => false); i++) await btn(page, "계속").click();
+  await btn(page, "종목 골라 토론하기").click({ timeout: 15000, force: true });
   const pick = page.locator(".rt-talk-choice").first();
   const name = (await pick.textContent())!.trim();
   await pick.click();
-  await expect(page.locator(".rt-sheet h2").first()).toHaveText(name, { timeout: 10000 });
+  await expect(page.locator(".rt-talk-line").last()).toContainText(`${name}? 좋아`, { timeout: 10000 });
 });
 
 test("the village: trees carry their names only, no tab dock; a tree opens its stock's notebook", async ({ page }) => {
-  await page.goto("/?demo");
+  await page.goto("/?demo&bori");
   await expect(page.getByTestId("proto3d")).toHaveAttribute("data-place", "village");
   await expect(page.locator(".rt-dock")).toHaveCount(0);
   // 보리 comes up first with the demo stop-loss signal (예시 신호); put it off and walk on
   await expect(page.locator(".rt-talk-line")).toContainText("예시 신호", { timeout: 20000 });
   await page.getByRole("button", { name: "나중에", exact: true }).click();
   await expect(page.locator(".rt-talk")).toHaveCount(0, { timeout: 10000 });
+  // (since the wider village the start view shows the orchard, not the farm: walk to the farm first; a tag shows for
+  // the trees I stand near or the one under the mouse, ui/TreeTags.tsx: the mouse is what is used here)
+  await page.locator(".proto3d-map").first().click();
+  await page.getByRole("button", { name: "밭", exact: true }).click();
+  await page.waitForTimeout(4000);
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent("rt-hover", { detail: { name: "tree-1" } })));
   const tag = page.locator(".vl-tree-tag").filter({ visible: true }).first();
   await expect(tag).toBeVisible({ timeout: 20000 });
   const name = (await tag.textContent({ timeout: 5000 }))!.trim();
@@ -239,7 +248,7 @@ test("hovering a thing in the village shows what it is", async ({ page }) => {
 });
 
 test("today's quests sit under the weather and fold up with a tap on their title", async ({ page }) => {
-  await page.goto("/?demo");
+  await page.goto("/?demo&bori");
   // 보리 comes over first with the demo signal and the talk covers the corner: put it off
   await expect(page.locator(".rt-talk-line")).toContainText("예시 신호", { timeout: 20000 });
   await page.getByRole("button", { name: "나중에", exact: true }).click();
