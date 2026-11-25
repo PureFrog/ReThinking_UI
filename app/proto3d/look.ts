@@ -123,7 +123,9 @@ export const LOOK={
   },
 
   post:{
-    bloom:{threshold:0.9,smoothing:0.2,intensity:0.35,radius:0.6},
+    // 피드백 11-25 "중간중간 밝은게": a bright sky (폭염) bled a white halo over tree and awning edges; now only real
+    // light (emissive above 1) blooms
+    bloom:{threshold:1.02,smoothing:0.12,intensity:0.28,radius:0.5},
     tiltShift:{taper:0.55},// blur strength is per screen shape (camera.frames)
     vignette:{offset:0.3,darkness:0.38},
     // D2 (direction A, field notebook): a faint paper grain over the world so it sits in the same book as the UI

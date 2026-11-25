@@ -4,6 +4,7 @@
 // Accounts go through authRepo (server.ts): on this device only until the server is connected, never the password.
 import {useEffect,useState} from 'react';
 import {Logo} from './Logo';
+import {useProgress} from '@react-three/drei';
 import {authRepo} from '../server';
 import {authNotice,redeemInvite} from '../supabase';
 import {CONSENTS,NICK_MAX,checkSignUp,type Account,type ConsentId} from '../../core/auth';
@@ -24,9 +25,15 @@ export function Welcome({onAccount,onGuest,owing,invite,onInvited,shot='/brand/s
 }
 
 // a title screen over the live garden: the logo, one line under it, two buttons and a link, the notice at the foot
+// 피드백 11-25 "시작 화면 배경 왜 안떠": a still of the garden stays behind until the 3D garden has loaded (drei's
+// loading store), so a slow connection never shows the empty sky. The second 로그인 at the top right is gone.
+const LANDING_BG='/brand/landing-bg.webp';
 function Landing({onSignup,onLogin,onGuest}:{shot:string;onSignup:()=>void;onLogin:()=>void;onGuest:(()=>void)|null}){
+  const {active,loaded}=useProgress();
+  const [live,setLive]=useState(false);
+  useEffect(()=>{if(active||loaded===0||live)return;const t=setTimeout(()=>setLive(true),900);return()=>clearTimeout(t)},[active,loaded,live]);
   return <section className="rt-wel-title" aria-label="시작">
-    <button type="button" className="rt-wel-pill rt-wel-top" onClick={onLogin}>로그인</button>
+    <div className={`rt-wel-still${live?' gone':''}`} style={{backgroundImage:`url(${LANDING_BG})`}} aria-hidden="true" data-testid="welcome-still"/>
     <div className="rt-wel-mark"><Logo animate height="var(--logo-h)"/><p className="rt-wel-tag">내 종목으로 키우는 투자 판단 정원</p></div>
     <Notice/>
     <div className="rt-wel-panel">

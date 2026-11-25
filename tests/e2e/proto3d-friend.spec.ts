@@ -18,7 +18,7 @@ test("보리 comes over, talks about today, and a reply opens the grades", async
   // its bubble comes first: the demo garden has grades waiting, so that is what it brings up
   const bubble = page.locator('.rt-bubble[data-analyst="bori"]');
   // (the bubbles take turns, one at a time: wait for 보리's turn)
-  const graded = page.locator('.rt-bubble[data-analyst="bori"]', { hasText: "채점" });
+  const graded = page.locator('.rt-bubble[data-analyst="bori"]', { hasText: "결과" });
   await expect(graded).toBeVisible({ timeout: 30_000 });
   await page.screenshot({ path: info.outputPath("friend-bubble.png") });
   await graded.click();
@@ -26,8 +26,9 @@ test("보리 comes over, talks about today, and a reply opens the grades", async
   await expect(talk).toBeVisible();
   await expect(talk).not.toContainText(/팔아|사 둬|살까|매도|매수|오를 거|내릴 거/);
   await page.screenshot({ path: info.outputPath("friend-talk.png") });
-  await talk.getByRole("button", { name: "응, 보여줘" }).click();
-  await expect(page.getByRole("dialog", { name: /전 내 판단|채점/ })).toBeVisible({ timeout: 5_000 });
+  await talk.getByRole("button", { name: "응, 도서관 가자" }).click();
+  // 피드백 11-25: the grades are at the librarian's — 보리 sends me there
+  await expect(talk).toBeHidden({ timeout: 5_000 });
   // talked today: no more bubble from 보리
   await page.reload();
   await expect(V.controls(page)).toBeVisible({ timeout: 30_000 });
@@ -51,7 +52,7 @@ test("with a loss signal, 보리 opens the stop-loss talk instead of small talk"
   const talk = page.getByRole("dialog", { name: "보리와 대화" });
   await expect(talk).toContainText("손절 신호가 하나 떴더라", { timeout: 30_000 });
   await expect(talk.getByRole("button", { name: "얘기해 줄게" })).toBeVisible({ timeout: 10_000 });
-  await expect(talk.getByRole("button", { name: "응, 보여줘" })).toHaveCount(0);
+  await expect(talk.getByRole("button", { name: "응, 도서관 가자" })).toHaveCount(0);
   const codes = await page.evaluate(() => (window as unknown as { __boriCodes?: string[] }).__boriCodes ?? []);
   expect(codes.length).toBeGreaterThan(0);
   await expect(talk).not.toContainText(/팔아|사 둬|매도|매수|오를 거|내릴 거/);

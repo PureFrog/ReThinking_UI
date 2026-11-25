@@ -14,7 +14,7 @@ const RULES:[RegExp,ChatReply][]=[
 const FALLBACK:ChatReply[]=[
   {text:'그렇게 보는 이유를 하나만 더 들어 보죠. 근거가 하나뿐이면 흔들리기 쉽거든요.',emotion:'curious'},
   {text:'좋아요. 그럼 어떤 일이 생기면 이 판단을 다시 생각해 볼 건가요?',emotion:'thinking'},
-  {text:'…나쁘지 않네요. 그런데 반대편에 선 사람은 뭐라고 말할 것 같아요?',emotion:'curious'},
+  {text:'나쁘지 않네요. 그런데 반대편에 선 사람은 뭐라고 말할 것 같아요?',emotion:'curious'},
 ];
 export function debatePlaceholder(history:ChatLine[],message:string):ChatReply{
   const hit=RULES.find(([re])=>re.test(message));if(hit)return hit[1];

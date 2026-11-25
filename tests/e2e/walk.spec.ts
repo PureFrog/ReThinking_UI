@@ -76,7 +76,7 @@ test("the first walk: entry → room lesson → the village's people one by one"
   const comm = page.getByRole("dialog", { name: "통신기" });
   await expect(comm.getByRole("list", { name: "살 수 있는 종목" }).getByRole("listitem")).toHaveCount(5);
   await comm.getByRole("list", { name: "살 수 있는 종목" }).getByRole("button").first().click();
-  await expect(comm.getByRole("button", { name: "전날 뉴스를 먼저 읽어요" })).toBeDisabled();
+  await expect(comm.getByRole("button", { name: /매수 주문 · 코인/ })).toBeEnabled();
   await comm.getByRole("button", { name: "기사 읽기" }).click();
   await comm.getByRole("button", { name: "한 주 더" }).click();
   await page.screenshot({ path: info.outputPath("3-communicator.png") });

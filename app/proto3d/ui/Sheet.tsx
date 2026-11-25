@@ -23,7 +23,7 @@ export function Sheet({kicker,title,onClose,children,foot,label,compact}:{kicker
 export const Face=({id,name,sm}:{id:string;name:string;sm?:boolean})=><span className={`rt-face ${id}${sm?' sm':''}`} aria-hidden>{name[0]}</span>;
 export const pct=(n:number)=>`${n>0?'+':''}${n}%`;
 // a figure set like a printed table (D3): the digits in full, the sign and the unit small beside them
-export const Num=({v,unit='%'}:{v:number;unit?:string})=><><span className="rt-sign">{v>0?'+':v<0?'-':''}</span>{Math.abs(v)}<span className="rt-unit">{unit}</span></>;
+export const Num=({v,unit='%'}:{v:number;unit?:string})=><><span className="rt-pm">{v>0?'+':v<0?'-':''}</span>{Math.abs(v)}<span className="rt-unit">{unit}</span></>;
 // A line one of the analysts says, with their face in front (not a quote: the face says who is talking)
 export const Said=({id,name,children,style}:{id:string;name:string;children:ReactNode;style?:React.CSSProperties})=>
   <p className="rt-said" style={style}><span className={`rt-face ${id} sm`} aria-label={name}>{name[0]}</span><span>{children}</span></p>;

@@ -49,7 +49,8 @@ const PLACES1=PLACES0.map(p=>{const dx=(SPREAD-1)*p.x,dz=(SPREAD-1)*p.z;return {
 // 피드백 2026-11-23 "맵을 넓게": the shop goes out to the far west, the library stands again as a building north-east
 // (spread coordinates, written directly)
 const PLACE_AT:Partial<Record<PlaceId,{x:number;z:number;rot:number;walk:{x:number;z:number}}>>={
-  cart:{x:-19.0,z:0.8,rot:1.2,walk:{x:-16.4,z:1.8}},
+  // 피드백 2026-11-25 (user sketch): the building shop at the end of the west path's right branch, door to the east
+  cart:{x:-19.6,z:-1.6,rot:Math.PI/2,walk:{x:-16.8,z:-1.6}},
   library:{x:11.5,z:-12.5,rot:-0.74,walk:{x:9.3,z:-10.1}},
   // 피드백 2026-11-24 "돌길 일직선으로 볼 때 앞에 보이게, 집처럼": the house stands on the straight path's line, its door facing back down it
   master:{x:-15.8,z:-14.6,rot:0.366,walk:{x:-14.5,z:-11.2}},
@@ -106,12 +107,13 @@ const HOME_WALK=PLACES.find(p=>p.id==='home')!.walk;
 PATHS1[0]=[[HOME_WALK.x,PATHS1[0][0][1]],[HOME_WALK.x,HOME_WALK.z]];
 // 피드백 2026-11-23: the west path runs on to the shop's new corner; a path north-east to the library
 {const cw=PLACES.find(p=>p.id==='cart')!.walk,lw=PLACES.find(p=>p.id==='library')!.walk,st=PATHS1[3][0];
-  PATHS1[3]=[st,[(st[0]+cw.x)/2,(st[1]+cw.z)/2+0.6],[cw.x,cw.z]];
+  // 피드백 2026-11-25 (user sketch): the west path runs to a fork, one branch to each shop's door (clothes left, building right)
+  const J:[number,number]=[-12.6,2.5];
+  PATHS1[3]=[st,[(st[0]+J[0])/2,(st[1]+J[1])/2+0.6],J];
   PATHS1.push([[1.2*SPREAD,-2*SPREAD],[(1.7+lw.x)/2,(-2.8+lw.z)/2],[lw.x,lw.z]]);
   const mw=PLACES.find(p=>p.id==='master')!.walk;{const st=PATHS1[3][1];PATHS1.push([[st[0],st[1]-0.5],[mw.x,mw.z]])}
-  // and on from the building shop's door to the clothes shop's beside it (it stood alone off the paths)
-  const td={x:TAILOR_STALL.x+Math.sin(TAILOR_STALL.rot)*2.6,z:TAILOR_STALL.z+Math.cos(TAILOR_STALL.rot)*2.6};
-  PATHS1.push([[cw.x,cw.z],[(cw.x+td.x)/2+0.3,(cw.z+td.z)/2],[td.x,td.z]]);}
+  const td={x:TAILOR_STALL.x+Math.sin(TAILOR_STALL.rot)*2.8,z:TAILOR_STALL.z+Math.cos(TAILOR_STALL.rot)*2.8};
+  PATHS1.push([J,[-14.9,J[1]+2.6],[td.x,td.z]],[J,[-14.9,J[1]-2.7],[cw.x,cw.z]]);}
 // 피드백 2026-11-24: over the bridge the path ends at a split, one branch west to the plaza, one east to the arcade's door
 {const i=PATHS1.findIndex(l=>l.some(([x,z])=>z>22));const pz=place('plaza').walk,ar=place('arcade').walk,J:[number,number]=[BRIDGE.x,24.4];
   if(i>=0){PATHS1[i]=[...PATHS1[i].filter(([,z])=>z<=22.5),J];PATHS1.push([J,[pz.x,pz.z]],[J,[(J[0]+ar.x)/2,(J[1]+ar.z)/2+0.2],[ar.x,ar.z]])}}

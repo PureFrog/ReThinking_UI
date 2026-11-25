@@ -89,3 +89,7 @@
 .rt-wel-legal{max-width:360px;margin:14px auto 0;font-size:10.5px;line-height:1.55;color:#ffffffb3;text-align:center;letter-spacing:-.1px;text-shadow:0 1px 2px #10200d99}
 @media(prefers-reduced-motion:reduce){.rt-gbtn{transition:none}}
 .rt-wel-notice{max-width:360px;margin:10px auto 0;padding:10px 14px;border-radius:14px;background:#fff3f0e6;border:1px solid #f3c2b8;color:#8a2b1f;font-size:13px;line-height:1.5;text-align:center;backdrop-filter:blur(10px)}
+
+/* 피드백 11-25: the garden still behind the title until the live garden has loaded */
+.rt-wel-still{position:fixed;inset:0;z-index:-1;background:#9cc47a center/cover no-repeat;transition:opacity .8s ease;pointer-events:none}
+.rt-wel-still.gone{opacity:0}

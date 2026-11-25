@@ -15,6 +15,8 @@ import {LOOK} from './look';
 import type {Look} from '../core/wardrobe';
 import {place} from './places';
 import {TAILOR_STALL} from '../content/villagers';
+import {useGLTF} from '@react-three/drei';
+import {MODELS} from './models';
 
 // 피드백 2026-11-23: the merchant (가상 종목) keeps the open stall outside, no building
 export type ShopId='builder'|'tailor'|'librarian';
@@ -34,10 +36,30 @@ export const doorOf=(p:{x:number;z:number;rot:number},out=DOOR_OUT)=>({x:p.x+Mat
 export const SHOP_AT:Record<ShopId,{x:number;z:number;rot:number}>={builder:place('cart'),tailor:TAILOR_STALL,librarian:place('library')};
 export const SHOP_DOOR=Object.fromEntries(SHOP_IDS.map(id=>[id,doorOf(SHOP_AT[id],id==='librarian'?DOOR_OUT+0.9:DOOR_OUT)])) as Record<ShopId,{x:number;z:number}>;
 
-// outside: a small house, 3.6 wide; the library is a size bigger with columns
+// 2026-11-25 (user): a building model (models.ts MODELS.building), shadows on, the glass-like volume material drawn as paint
+export function BuildingModel({url,scale}:{url:string;scale:number}){
+  const {scene}=useGLTF(url);
+  const obj=useMemo(()=>{const o=scene.clone(true);o.traverse(c=>{const m=c as THREE.Mesh;if(m.isMesh){m.castShadow=true;m.receiveShadow=true;
+    const mat=m.material as THREE.MeshPhysicalMaterial;if(mat&&'transmission' in mat){mat.transmission=0;mat.thickness=0}}});return o},[scene]);
+  return <primitive object={obj} scale={scale}/>;
+}
+Object.values(MODELS.building).forEach(u=>useGLTF.preload(u));
+// how big each model stands in the village (the file is about 1 across): roughly the old houses' footprint
+export const BUILDING_SCALE={library:5.4,builder:4.0,tailor:3.9,home:5.4};
+
+// outside: the shop's own building (2026-11-25 models: 도서관 a book house, 건물 상점 a flower-roof house, 옷 가게 a
+// shop with a hanger on the roof); the old box house stays as the stand-in while the file loads
 export function ShopHouse({id,x,z,rot,open=true,onPick}:{id:ShopId;x:number;z:number;rot:number;open?:boolean;onPick:()=>void}){
-  const s=SHOP_INFO[id],big=id==='librarian',W=big?4.6:3.6,D=big?3.6:3.0,H=big?2.6:2.2;
   return <OnGround x={x} z={z} rot={rot}><group name={'shop-'+id} onClick={click(onPick)}>
+    <Suspense fallback={<BoxHouse id={id} open={open}/>}><BuildingModel url={MODELS.building[id==='librarian'?'library':id]} scale={BUILDING_SCALE[id==='librarian'?'library':id]}/></Suspense>
+    {/* an easy thing to tap */}
+    <mesh position-y={1.5} visible={false}><boxGeometry args={[id==='librarian'?5:4.2,3,id==='librarian'?3.6:4.2]}/></mesh>
+  </group></OnGround>;
+}
+// the old box house (before the models): a small house, 3.6 wide; the library a size bigger with columns
+function BoxHouse({id,open}:{id:ShopId;open:boolean}){
+  const s=SHOP_INFO[id],big=id==='librarian',W=big?4.6:3.6,D=big?3.6:3.0,H=big?2.6:2.2;
+  return <group>
     <mesh position-y={0.08} receiveShadow><boxGeometry args={[W+0.5,0.16,D+0.5]}/>{S('#d9cfba')}</mesh>
     <mesh position-y={0.16+H/2} castShadow receiveShadow><boxGeometry args={[W,H,D]}/>{S(s.wall)}</mesh>
     {/* the roof: two slopes and the gable ends */}
@@ -58,9 +80,7 @@ export function ShopHouse({id,x,z,rot,open=true,onPick}:{id:ShopId;x:number;z:nu
     </group>
     {big&&[-1,1].map(k=><mesh key={'c'+k} position={[k*0.95,0.16+0.85,D/2+0.35]} castShadow><cylinderGeometry args={[0.11,0.13,1.7,12]}/>{S('#f4f1ea')}</mesh>)}
     {big&&<mesh position={[0,0.16+1.75,D/2+0.35]} castShadow><boxGeometry args={[2.4,0.14,0.5]}/>{S('#f4f1ea')}</mesh>}
-    {/* an easy thing to tap */}
-    <mesh position-y={1.4} visible={false}><boxGeometry args={[W+0.6,2.8,D+1.2]}/></mesh>
-  </group></OnGround>;
+  </group>;
 }
 
 // inside: the counter, shelves of the shop's goods, the keeper behind the counter
@@ -71,7 +91,7 @@ const ME_AT={x:-1.05,z:1.5},ME_TURN=Math.atan2(0-ME_AT.x,-0.9-ME_AT.z);
 function ShopCam(){
   const {camera,size}=useThree(),tall=size.width<size.height;
   useMemo(()=>{const c=camera as THREE.PerspectiveCamera;c.clearViewOffset();c.fov=tall?55:42;c.updateProjectionMatrix();
-    c.position.set(tall?0.2:0.9,tall?2.9:2.75,tall?7.6:5.6);c.lookAt(tall?-0.45:-0.35,tall?0.85:1.15,-0.5)},[camera,tall]);
+    c.up.set(0,1,0);c.position.set(tall?0.2:0.9,tall?2.9:2.75,tall?7.6:5.6);c.lookAt(tall?-0.45:-0.35,tall?0.85:1.15,-0.5)},[camera,tall]);
   return null;
 }
 function Goods({id}:{id:ShopId}){const s=SHOP_INFO[id];

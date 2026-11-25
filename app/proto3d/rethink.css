@@ -468,8 +468,10 @@ button.rt-row:hover{filter:none;background:#16211b05}
 
 /* ===== D3: details ===== */
 /* figures: sign and unit small and raised a little, the digits carry the weight */
-.proto3d .rt-sign,.proto3d .rt-unit{font-size:.58em;font-weight:500;vertical-align:.32em;letter-spacing:0}
-.proto3d .rt-sign{margin-right:.06em}.proto3d .rt-unit{margin-left:.08em}
+/* 피드백 11-25 "- 표시같은데 왜 이렇게": the number sign shared its class with the place signboards (build.css), so a minus
+   showed as a brown board at the corner; its own class now */
+.proto3d .rt-pm,.proto3d .rt-unit{font-size:.58em;font-weight:500;vertical-align:.32em;letter-spacing:0}
+.proto3d .rt-pm{margin-right:.06em}.proto3d .rt-unit{margin-left:.08em}
 .proto3d .rt-evidence b,.proto3d .rt-facts b{text-align:right;font-variant-numeric:tabular-nums}
 /* Korean lines: break between words, keep headings even, no single syllable left on a line */
 .proto3d{word-break:keep-all;overflow-wrap:anywhere}
@@ -877,3 +879,28 @@ button.rt-row:hover{filter:none;background:#16211b05}
 @media (max-width:430px){.proto3d .rt-top-right{gap:5px}.proto3d .rt-coins{padding:0 10px 0 7px}.proto3d .rt-coin-cal{width:34px;height:34px}}
 /* the 통신기's day-before news: the publisher's excerpt once 기사 읽기 is tapped (RSS, 사용자 2026-11-22) */
 .rt-comm-news p.vl-news-sum{color:inherit;font-size:13px;line-height:1.5}.rt-comm-news .vl-news-src{font-size:11px;color:var(--mts-sub)}
+
+/* 피드백 11-25: the first run's recommended way in (the capture) leads, full width */
+.rt-pick-card.rec{grid-column:1/-1;border-color:#5fae4a;background:#f2faec}
+.proto3d .rt-pick-card.rec{background:#f2faecee;border-color:#7cc160}
+.rt-pick-rec{font-style:normal;font-size:11px;font-weight:700;color:#fff;background:#5fae4a;border-radius:999px;padding:2px 8px;margin-left:8px;vertical-align:2px}
+
+/* 피드백 11-25 "UI 그림체가 다름 (색감은 맞추고 기능은 똑같이)": the communicator keeps the MTS layout and every
+   button, in the game's own paper colours and fonts (cream sheet, warm ink, rounded cards, Jua on the buttons) */
+.rt-comm .mts-shell{--mts-ink:#2b2620;--mts-sub:#7a6f5e;--mts-line:#eadfcb;--mts-bg:#f4ecdf;--mts-brand:#3d5f37;--mts-up:#d65c4c;--mts-down:#4c7fc4;
+  font-family:'Gowun Dodum','Noto Sans KR',sans-serif}
+.rt-comm .mts-phone{background:var(--mts-bg);box-shadow:0 24px 60px -24px #2b201066,0 0 0 1px #ffffff80}
+.rt-comm :is(.mts-top,.mts-acct,.mts-sum,.mts-list,.mts-tabs,.mts-sheet,.mts-web,.mts-web-bar,.rt-comm-form){background:#fffaf0}
+.rt-comm :is(.mts-link,.mts-sheet-close,.rt-comm-side button){background:#fffdf7}
+.rt-comm .rt-comm-form{border-radius:16px;box-shadow:0 2px 0 #eadfcb}
+.rt-comm .rt-comm-news{background:#f8f1e4;border:1px solid #eadfcb}
+.rt-comm .mts-brand{color:var(--mts-ink);font-family:'Jua',sans-serif;font-weight:400;font-size:19px}
+.rt-comm .mts-mark i{background:#5fae4a}.rt-comm .mts-mark i:last-child{background:#a8d08c}
+.rt-comm :is(.rt-comm-go,.rt-comm-side button,.mts-check,.mts-link,.mts-tabs button){font-family:'Jua',sans-serif;font-weight:400;letter-spacing:0}
+.rt-comm .rt-comm-go{border-radius:14px;font-size:16px;box-shadow:0 3px 0 #0000001f}
+.rt-comm .rt-comm-go:disabled{background:#d8cfbf;color:#fffaf0;box-shadow:none}
+.rt-comm .rt-comm-side button{border-radius:12px}
+.rt-comm .mts-check{background:#3d5f37;border-radius:14px}
+.rt-comm .rt-comm-x{background:#f1e7d6;color:#5a4f40}
+.rt-comm .mts-demo{border-color:#eadfcb;background:#f8f1e4}
+.rt-comm .rt-comm-msg{background:#eef6e6;color:#2f4a2a}

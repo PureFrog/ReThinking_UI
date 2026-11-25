@@ -239,10 +239,11 @@ export default function Proto3D(){
   setMasterOn(master);
   useEffect(()=>{if(!account||authRepo.local){setMaster(false);return}let on=true;void isMaster().then(v=>{if(on)setMaster(v)});return()=>{on=false}},[account?.email]);// eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{if(!account||authRepo.local||owing){setInvited(null);return}let on=true;void hasInvite().then(v=>{if(on)setInvited(v)});return()=>{on=false}},[account?.email,!!owing]);// eslint-disable-line react-hooks/exhaustive-deps
-  const needInvite=!!account&&!authRepo.local&&!owing&&invited===false;
+  // 피드백 11-25 "초대코드 없애": no invite step after logging in any more (the server side is db/migrations/016)
+  const needInvite=false;void invited;
   // signed in with Supabase: the garden is kept on the server too (proto3d/sync.ts). First the two copies are compared
   // (core/sync.ts), then every change goes up after a quiet moment. Not for guests, device-only accounts or ?demo.
-  const syncOn=!embed&&!!account&&!authRepo.local&&!!saveRepo&&!owing&&invited!==false&&typeof window!=='undefined'&&!new URLSearchParams(location.search).has('demo')&&!playMode;
+  const syncOn=!embed&&!!account&&!authRepo.local&&!!saveRepo&&!owing&&typeof window!=='undefined'&&!new URLSearchParams(location.search).has('demo')&&!playMode;
   const [synced,setSynced]=useState(false);
   useEffect(()=>{if(!syncOn||!saveRepo){setSynced(false);return}let on=true;
     saveRepo.pull().then(remote=>{if(!on||remote==='error')return;
@@ -301,7 +302,7 @@ export default function Proto3D(){
   useEffect(()=>{const q=Number(new URLSearchParams(location.search).get('hour'));const fixed=new URLSearchParams(location.search).has('hour')&&Number.isFinite(q);const at=()=>{if(fixed)return Math.round(q*60);const d=new Date();return d.getHours()*60+d.getMinutes()};
     setMinutes(at());const t=setInterval(()=>setMinutes(at()),20000);return()=>clearInterval(t)},[]);
   // my observer's page (ui/MyPage.tsx): the garden is put away for the stage while it is open
-  const [me,setMe]=useState(false);
+  const [me,setMe]=useState<false|'shop'|'closet'>(false);
   // inside the house (Interior3D.tsx): a paper-coloured fade covers the swap between the garden and the room
   const [inside,setInside]=useState(false),[fading,setFading]=useState(false);
   // the room's first visit (after the first walk): the teacher, then the librarian, say what each is for (tips 'room')
@@ -461,7 +462,7 @@ export default function Proto3D(){
   const markHeard=(id:string)=>{const h=hear(loadHouse(),id);saveHouse(h);setHeard(h.heard)};
   const boriOpening=useCallback(async():Promise<BoriLine|null>=>{const today=clock.today,c=openedRef.current;
     if(!syncOn&&!testOpen){if(!lossNow||!lossHolding)return null;markHeard(lossNow.id);setAskedAbout(codeOf(lossHolding));
-      return {text:`${lossHolding.name}에서 위험 신호가 잡혔어${lossHolding.real?'':' (예시 신호)'}. 지금도 이 종목을 보유하는 이유가 뭐야?`,emotion:'concerned'}}
+      return {text:`${lossHolding.name}에 위험 신호가 잡혔어${lossHolding.real?'':' (예시 신호)'}. 이거 가지고 있는 이유가 뭐야?`,emotion:'concerned'}}
     if(c&&c.day===today)return {text:c.text,emotion:c.emotion??'curious'};
     // (the e2e stand-in answers with a plain line)
     const t=testOpen?await testOpen(lossCodes).then(x=>x?{text:x,emotion:'curious'}:null):await boriOpen(boriHoldings,lossCodes);
@@ -772,26 +773,26 @@ export default function Proto3D(){
       choices:[{label:'종목 골라 토론하기',go:()=>{talkOver();setSheet({kind:'talk',id:'luon'})}},leave]};
     if(t.id==='farmer'){
       if(walkStep==='farmer'){
-        if(st==='planted')return {name:'농부',line:'…다 심었어. 자리 잡았다. 나무 크기는 지금 가진 금액만큼, 잎이랑 열매는 수익률만큼 달라져. 나무 누르면 상태 보여.',choices:[{label:'알겠어',go:()=>say('edit')}]};
-        if(st==='edit')return {name:'농부',line:'…실제로 더 사거나 팔면 나한테 "종목 수정"이라고 해. 여긴 기록만 하는 밭이다. 사고팔기는 가상 밭에서 코인으로.',choices:[{label:'가상 밭으로',go:()=>{talkOver();pass('farmer')}}]};
+        if(st==='planted')return {name:'농부',line:'다 심었어. 자리 잡았다. 나무 크기는 지금 가진 금액만큼, 잎이랑 열매는 수익률만큼 달라져. 나무 누르면 상태 보여.',choices:[{label:'알겠어',go:()=>say('edit')}]};
+        if(st==='edit')return {name:'농부',line:'실제로 더 사거나 팔면 나한테 "종목 수정"이라고 해. 여긴 기록만 하는 밭이다. 사고팔기는 가상 밭에서 코인으로.',choices:[{label:'가상 밭으로',go:()=>{talkOver();pass('farmer')}}]};
         // 피드백 2026-11-22 "입력 안 했는데 알아서 채운다": the example garden's stocks are not mine, so he asks first
-        if(holdings.length&&!walk.planted&&s.example&&st!=='ok')return {name:'농부',line:`…여긴 네 실제 종목 밭이다. 지금 있는 ${holdings.length}개는 예시 정원의 코스닥 예시 종목. 네가 산 게 아니니까 심을지는 네가 정해.`,
+        if(holdings.length&&!walk.planted&&s.example&&st!=='ok')return {name:'농부',line:`여긴 네 실제 종목 밭이다. 지금 있는 ${holdings.length}개는 예시 정원의 코스닥 예시 종목. 네가 산 게 아니니까 심을지는 네가 정해.`,
           choices:[{label:'내 종목 넣기',go:()=>{talkOver();g.ops.setHoldings([]);setSheet({kind:'onboard'})}},{label:'예시로 심어 보기',go:()=>say('ok')},{label:'비워 두기',go:()=>{g.ops.setHoldings([]);putWalk(w=>({...w,planted:true}));say('edit')}}]};
-        if(holdings.length&&!walk.planted)return {name:'농부',line:s.example?`…예시 종목 ${holdings.length}개. 심어 줄게. 나중에 "종목 수정"으로 네 걸로 바꾸면 돼.`:`…가져온 거 봤다. ${holdings.length}개. 심어 줄게.`,choices:[{label:'심어 줘',go:()=>{
+        if(holdings.length&&!walk.planted)return {name:'농부',line:s.example?`예시 종목 ${holdings.length}개. 심어 줄게. 나중에 "종목 수정"으로 네 걸로 바꾸면 돼.`:`가져온 거 봤다. ${holdings.length}개. 심어 줄게.`,choices:[{label:'심어 줘',go:()=>{
           putWalk(w=>({...w,planted:true}));talkOver();
           startBirth(holdings.map(x=>x.id),s.seen.birth===0,()=>setVt({id:'farmer',phase:'talk',stand:meNow(),at:villager('farmer'),stage:'planted'}))}}]};
-        return {name:'농부',line:'…여긴 아직 비었네. 나중에 실제로 가진 종목이 생기면 나한테 알려 줘. 없는 걸 꾸며 넣진 않는다.',choices:[{label:'알겠어',go:()=>say('edit')}]};
+        return {name:'농부',line:'여긴 아직 비었네. 나중에 실제로 가진 종목이 생기면 나한테 알려 줘. 없는 걸 꾸며 넣진 않는다.',choices:[{label:'알겠어',go:()=>say('edit')}]};
       }
       if(walkStep==='sell'){const lots=s.virtual??[];
         if(st==='loaded'){const c=(s.cart??[]).filter(x=>x.paid==null&&!x.practice).slice(-1)[0];
-          return {name:'농부',line:`…수레에 실었어.${c?` ${c.name} ${c.qty}주. 맞지? 수레가 가져간 열매는 다음 장(${c.settleDay.slice(5).replace('-','월 ')}일)이 끝날 때 팔려.`:' 수레가 가져간 열매는 다음 장이 끝날 때 팔려.'} 그때까진 코인 그대로다. …이제 도서관 사서한테 가 봐.`,
+          return {name:'농부',line:`수레에 실었어.${c?` ${c.name} ${c.qty}주. 맞지? 수레가 가져간 열매는 다음 장(${c.settleDay.slice(5).replace('-','월 ')}일)이 끝날 때 팔려.`:' 수레가 가져간 열매는 다음 장이 끝날 때 팔려.'} 그때까진 코인 그대로다. …이제 도서관 사서한테 가 봐.`,
             choices:[{label:'도서관으로',go:()=>{talkOver();pass('sell')}}]}}
-        if(!lots.length)return {name:'농부',line:'…팔 가상 나무가 아직 없네. 상인한테 사 오면 그때 따 줄게. 먼저 도서관 사서한테 가 봐.',choices:[{label:'도서관으로',go:()=>{talkOver();pass('sell')}}]};
-        return {name:'농부',line:'…아까 산 가상 나무. 몇 주 딸지 정해. 내가 가서 따서 수레에 싣는다. 수레가 가져간 열매는 다음 장이 끝날 때 팔려.',
+        if(!lots.length)return {name:'농부',line:'팔 가상 나무가 아직 없네. 상인한테 사 오면 그때 따 줄게. 먼저 도서관 사서한테 가 봐.',choices:[{label:'도서관으로',go:()=>{talkOver();pass('sell')}}]};
+        return {name:'농부',line:'아까 산 가상 나무. 몇 주 딸지 정해. 내가 가서 따서 수레에 싣는다. 수레가 가져간 열매는 다음 장이 끝날 때 팔려.',
           choices:[{label:'매도할 수량 정하기',go:()=>setSheet({kind:'harvest'})}]};
       }
-      if(st==='loaded')return {name:'농부',line:'…수레에 실었어. 다음 장이 끝날 때 팔리면 코인 들어온다. 그때까진 못 바꿔.',choices:[leave]};
-      return {name:'농부',line:'…고칠 거 있어? 실제 종목 기록 고치기, 가상 나무 열매 따기. 둘 중 하나.',
+      if(st==='loaded')return {name:'농부',line:'수레에 실었어. 다음 장이 끝날 때 팔리면 코인 들어온다. 그때까진 못 바꿔.',choices:[leave]};
+      return {name:'농부',line:'고칠 거 있어? 실제 종목 기록 고치기, 가상 나무 열매 따기. 둘 중 하나.',
         choices:[{label:'종목 수정',go:()=>{talkOver();setSheet({kind:'onboard'})}},{label:'가상 종목 매도',go:()=>setSheet({kind:'harvest'})},leave]};
     }
     if(t.id==='merchant'){
@@ -800,13 +801,14 @@ export default function Proto3D(){
       if(st==='planted')return {name:'상인',line:'심었어! 가상 나무 값은 실제 종목 등락률을 따라 움직여. 아, 파는 건 농부 아저씨 담당이야. 저기 수레 옆에 있어.',
         choices:[{label:walkStep==='merchant'?'농부한테 가기':'고마워',go:()=>{talkOver();if(walkStep==='merchant')pass('merchant');else putWalk(w=>({...w,merchantWait:false}))}}]};
       const first=!(s.grants??[]).includes('tour');
-      return {name:'상인',line:first?`어, 왔어? 실제 밭은 기록만 하는 데라 사고팔 수가 없잖아. 사고팔기는 여기서 게임 코인으로 해. 시작 코인 ${(START_GRANT/10000).toLocaleString()}만 원 넣어 줄게. 오늘 후보는 뽑기로 나온 거고, 뉴스 하나는 꼭 읽고 골라.`:'어, 왔어? 오늘 후보 다섯 개야, 뽑기로 나온 거고. 뉴스 하나는 읽고 골라. 오늘 안 사도 돼, 내일 또 다른 후보 와.',
+      return {name:'상인',line:first?`어, 왔어? 실제 밭은 기록만 하는 데라 사고팔 수가 없잖아. 사고팔기는 여기서 게임 코인으로 해. 시작 코인 ${(START_GRANT/10000).toLocaleString()}만 원 넣어 줄게. 오늘 후보는 뽑기로 나온 거고, 옆에 뉴스도 있으니까 참고해.`:'어, 왔어? 오늘 후보 다섯 개야, 뽑기로 나온 거고. 뉴스는 참고로 봐. 오늘 안 사도 돼, 내일 또 다른 후보 와.',
         choices:[{label:first?'코인 받고 통신기 보기':'통신기 받기',go:()=>{if(first)g.ops.grant('tour',START_GRANT);setVt(null);setSheet({kind:'comm',tab:'order'})}},...(walkStep?[]:[leave])]};
     }
     if(t.id==='librarian'){const fs=freeLot?{code:freeLot.code,name:freeLot.name}:holdings[0]?{code:codeOf(holdings[0]),name:holdings[0].name}:null;
-      return {name:'사서',line:walkStep==='librarian'?`어서 와. 아까 심은 ${fs?`${fs.name} 나무`:'나무'}, 왜 심었는지 한 줄 써 보자. 천천히 해도 돼.`:'어서 와. 책은 그대로 있었어. 종목 색인부터 펼쳐 볼까?',
+      return {name:'사서',line:walkStep==='librarian'?`어서 와. 아까 심은 ${fs?`${fs.name} 나무`:'나무'}, 왜 심었는지 한 줄 써 보자.`:'도서관에 어서 와~ 오늘은 어떤 종목 일지를 펼쳐 볼까?',
         choices:[{label:'일지 펼치기',go:()=>{if(walkStep==='librarian')afterSheet.current='librarian';// the first walk opens that tree's page, where today's journal starts with it
-          setSheet(walkStep==='librarian'&&fs?{kind:'journal',stock:fs.code}:{kind:'journal'})}},...(walkStep==='librarian'?[]:[leave])]};
+          setSheet(walkStep==='librarian'&&fs?{kind:'journal',stock:fs.code}:{kind:'journal'})}},
+          ...(!walkStep&&g.due.length?[{label:`채점 결과 ${g.due.length}개 보기`,go:()=>setSheet({kind:'grades'})}]:[]),...(walkStep==='librarian'?[]:[leave])]};
     }
     if(t.id==='paperboy'){
       if(walkStep==='news')return {name:'신문 배달',line:'어, 너구나! 잠깐만, 짠! 네가 가진 종목 소식을 모아 왔어. 표지판에 꽂아 뒀어. 궁금한 주제를 하나 짚어 볼래?',
@@ -817,8 +819,8 @@ export default function Proto3D(){
       return {name:'건물 상인',line,choices:[{label:'물건 보기',go:()=>{if(walkStep==='shop-build')afterSheet.current='shop-build';setSheet({kind:'cart'})}},
         // 피드백 2026-11-22 "튜토리얼 중에 이 화면에서 벗어날 수가 없다": a way out on the first walk too (the stop counts as seen)
         walkStep==='shop-build'?{label:'다음에 볼게',go:()=>{talkOver();pass('shop-build')}}:leave]}}
-    if(t.id==='tailor')return {name:'옷 상인',line:'Oh, welcome~ 딱 맞춰 왔네. 옷 구경해 볼래? 사면 바로 네 옷장 가서 입어 봐. 너를 누르면 언제든 갈아입을 수 있어. Trust me.',
-      choices:[{label:'옷 보기',go:()=>{if(walkStep==='shop-wear')afterSheet.current='shop-wear';talkOver();setMe(true)}},walkStep==='shop-wear'?{label:'다음에 볼게',go:()=>{talkOver();pass('shop-wear')}}:leave]};
+    if(t.id==='tailor')return {name:'옷 상인',line:'Oh, welcome~ 딱 맞춰 왔네. 옷 구경해 볼래? 골라서 사면 바로 입어 봐도 돼. 갈아입는 건 집 옷장에서도 언제든 할 수 있어. Trust me.',
+      choices:[{label:'옷 보기',go:()=>{if(walkStep==='shop-wear')afterSheet.current='shop-wear';talkOver();setMe('shop')}},walkStep==='shop-wear'?{label:'다음에 볼게',go:()=>{talkOver();pass('shop-wear')}}:leave]};
     return {name:'',line:'',choices:[leave]};
   };
   // every station done but 보리's last line not answered yet (a reload in between): it is said again
@@ -857,7 +859,8 @@ export default function Proto3D(){
     onAnalyst:id=>{if(walkOn){if(meet!==null&&(id as string)===MEET[meet]){goMeet();return}walkHint();return}if(id==='luon'){debate();return}if(id in VILLAGE_SPEAKERS){setPicked(null);setSheet({kind:'talk',id:id as 'tori'|'moa'|'luon'})}else talkFriend()},
     // 피드백 2026-11-22: during the first walk a tap that lands on my own figure (it stands mid-screen) no longer opens the
     // wardrobe; the tailor's stop opens it, and afterwards a tap on me does
-    onPlayer:()=>{if(walkOn&&!walkDone(walk))return;setPicked(null);setSheet(null);setMe(true)},
+    // 피드백 11-25: tapping my figure no longer opens the clothes (they change at the wardrobe in my room)
+    onPlayer:()=>{},
     // 유저 워크플로우: the village's people, the guide to the next one, the board, the cart and the merchant's stall
     villagers:ready&&!lapse&&!inside&&!me&&!skyOpen&&!(calm&&bStage==='trees')?OUTSIDE.map(v=>({id:v.id,x:v.x,z:v.z,face:v.face,look:v.look,hl:!!walkStep&&PERSON_OF[walkStep]===v.id&&!vtTalk,
       talking:vt?.id===v.id,away:v.id==='merchant'&&!merchantOpen,onPick:()=>onVillager(v.id),
@@ -867,8 +870,8 @@ export default function Proto3D(){
     lead:leadTo?{from:leadFrom.current.p,to:leadTo,mark:(meet!==null?MEET[meet]==='naru':walkStep==='fisher')?NARU:undefined,off:walkHint}:null,
     onNews:()=>{if(walkOn&&walkStep!=='news'&&walk.step<=WALK_STEPS.indexOf('news')){walkHint();return}onVillager('paperboy')},
     cartPile:pile,merchantOpen,shop,onShop:id=>onVillager(id),
-    flags:LEAGUE_FLAGS,myFlag:0,caseOpen:!caseDone,goTo,inside,look,stage:me,light,sky:skyWorld,fp:fp&&!inside,
-    plants:(s.plants??[]).map(p=>({...p,scale:shopPlant(p.item)?.scale??1})),planting:planting&&!sheet?planting:null,placing:placing&&!sheet?placing:null,
+    flags:LEAGUE_FLAGS,myFlag:0,caseOpen:!caseDone,goTo,inside,look,stage:!!me,light,sky:skyWorld,fp:fp&&!inside,
+    plants:(s.plants??[]).map(p=>({...p,scale:shopPlant(p.item)?.scale??1})),planting:planting&&!sheet?{...planting,scale:shopPlant(planting.item)?.scale??1}:null,placing:placing&&!sheet?placing:null,
     onPlace:(x,z,why)=>{if(!placing)return;if(why){g.say(why);return}if(g.ops.build({kind:'building',id:placing.id},[x,z])){setPlacing(null);cue('capsule-mark')}},
     onPlant:(x,z,why)=>{if(!planting)return;const it=shopPlant(planting.item);if(!it)return;if(why){g.say(why);return}
       const r=g.ops.plant(it,x,z);if(r==='ok'){g.say(`${it.name} 심었어요 · -${won(it.price)}`);setPlanting(null);cue('capsule-mark')}
@@ -886,7 +889,7 @@ export default function Proto3D(){
       notes:capsules.map(c=>({holdingId:c.holdingId,due:c.due})),
       resting:[],
       // 피드백 2026-11-22: the teacher's desk keeps the quizzes I did; the librarian's shelf is the journal
-      people:true,onDesk:()=>setSheet({kind:'quizlog'}),onShelf:()=>setSheet({kind:'journal'}),
+      people:true,onDesk:()=>setSheet({kind:'quizlog'}),onShelf:()=>setMe('closet'),
       onBoard:()=>{if(g.due.length)setSheet({kind:'grades'});else g.say(capsules.length?line(UI.boardWait,{n:capsules.length}):UI.boardEmpty)},onDoor:()=>swapRoom(false)},
     naru:ready&&!lapse&&!calm&&!inside&&!me&&!skyOpen?{at:NARU,onPick:naruPick}:null,
     fishing:fish==='play'&&bob?{...FISH_AT,phase:bob}:null,
@@ -955,7 +958,7 @@ export default function Proto3D(){
   const dock:['garden'|'journal'|'game'|'more',string,typeof Ledger,number][]=[
     ['garden','정원',Sprout,0],['journal','일지',Ledger,g.due.length+open.length+toReview],['game','관측소',Scope,qWaiting?1:0],['more','더보기',More,caseDone?0:1]];
   const pickMore=(id:MoreId)=>{if(id==='build'){setSheet(null);setPicked(null);setBuildMode(true);return}if(id==='cities'){setSheet({kind:'cities'});return}
-    if(id==='me'){setSheet(null);setMe(true)}else if(id==='sky'){setSheet(null);setSkyOpen({focus:null})}
+    if(id==='me'){setSheet(null);setMe('closet')}else if(id==='sky'){setSheet(null);setSkyOpen({focus:null})}
     else setSheet(id==='holdings'?{kind:'onboard'}:id==='shop'?{kind:'cart'}:{kind:id})};
   const decideCooldown=()=>{if(!cd||!h)return;const waited=g.ops.finishCooldown(cd.id);if(waited)g.say(UI.cooldownBloom);setEarly(false);setPicked(null);setSheet({kind:'brief',start:{holdingId:h.id}})};
 
@@ -993,7 +996,7 @@ export default function Proto3D(){
         {/* the top holds the weather, my coins and me; my numbers, sound and tilt live in 더보기 and 설정 */}
         {ready&&!quiet&&topRight}
       </div>
-      {ready&&!h&&!quiet&&!inside&&!sheet&&!capFx&&!me&&<Signs built={built}/>}
+      {ready&&!h&&!quiet&&!inside&&!shop&&!sheet&&!capFx&&!me&&<Signs built={built}/>}
       {where==='village'&&<HoverTip tree={hoverTree} off={!!sheet||inside}/>}
       {ready&&!quiet&&!inside&&!sheet&&!capFx&&!planting&&!placing&&where==='village'&&<TreeTags items={shown.map(x=>({id:x.id,name:x.name,virtual:x.virtual}))} onPick={openTree}/>}
       {jump&&<div className="rt-jump" role="status">{UI.jump}</div>}
@@ -1022,20 +1025,21 @@ export default function Proto3D(){
         stocks={[...realShown.map(h=>({code:codeOf(h),name:h.name})),...(s.virtual??[]).map(l=>({code:l.code,name:l.name}))].filter((x,i,a)=>a.findIndex(y=>y.code===x.code)===i)}/>}
       {tourShow&&<Tour step={tourStep} n={tourN} total={tour.length} onNext={tourNext} onAct={tourAct} onSkip={()=>{g.ops.tipDone('tour');setTourN(0)}}/>}
       {tutOn&&<Tutorial trees={holdings.map(x=>x.id)}onDone={then=>{g.ops.tipDone('tutorial');setTutAgain(false);if(then)setSheet({kind:'journal'})}}/>}
-      {inside&&!sheet&&!roomTour&&<RoomTags items={[{k:'room-desk',text:'선생님 · 지난 퀴즈',onClick:()=>setSheet({kind:'quizlog'})},
-        {k:'room-shelf',text:'사서 · 투자일지',onClick:()=>setSheet({kind:'journal'})},
-        {k:'room-board',text:g.due.length?`채점 완료 ${g.due.length}`:`채점 대기 ${capsules.length}`,alert:g.due.length>0,onClick:()=>g.due.length?setSheet({kind:'grades'}):g.say(capsules.length?line(UI.boardWait,{n:capsules.length}):UI.boardEmpty)},
+      {inside&&!sheet&&!me&&!roomTour&&<RoomTags items={[{k:'room-desk',text:'선생님 · 지난 퀴즈',onClick:()=>setSheet({kind:'quizlog'})},
+        // 피드백 11-25: the bookshelf is the wardrobe now (the journal is the librarian's, in the library)
+        {k:'room-shelf',text:'옷장 · 옷 갈아입기',onClick:()=>setMe('closet')},
+        // 피드백 11-25 "채점 이거 빼줘": no grades board in the room; the grades are the librarian's (도서관)
         {k:'room-door',text:'밖으로',onClick:()=>swapRoom(false)}]}/>}
       {inside&&!sheet&&!roomTour&&<button type="button" className="rt-btn rt-exit" onClick={()=>swapRoom(false)}>밖으로 나가기</button>}
       {/* 피드백 2026-11-22: the first time back in, the teacher and the librarian say what they do in here */}
       {inside&&!sheet&&roomTour&&<VillagerTalk key={'room'+roomTour} name={roomTour===1?'선생님':'사서'} who={roomTour===1?'teacher':'librarian'} role={ROLE[roomTour===1?'teacher':'librarian']}
         line={ROOM_TOUR[roomTour-1]} choices={[roomTour===1?{label:'다음',go:()=>setRoomTour(2)}:{label:'알겠어',go:()=>{setRoomTour(0);g.ops.tipDone('room')}}]}/>}
-      {sheet?.kind==='quizlog'&&<QuizReview onClose={close} onQuiz={()=>{setSheet(null);setInside(false);enterHouse()}}/>}
+      {sheet?.kind==='quizlog'&&<QuizReview now={clock.now} onClose={close} onQuiz={extra=>{if(extra)try{sessionStorage.setItem('rethink-extra-quiz','1')}catch{/* this visit */}setSheet(null);setInside(false);enterHouse()}}/>}
       {fading&&<div className="rt-room-fade" aria-hidden/>}
       {tip&&<Tip text={tipText(tip)} target={TIP_AT[tip].target} point={TIP_AT[tip].point} onDone={()=>g.ops.tipDone(tip)}/>}
       {skyOpen&&!sheet&&<SkyView planets={skyPlanets} sample={neighbours.sample} share={share} focus={skyOpen.focus} onPick={id=>setSkyOpen({focus:id})}
         onShare={v=>g.ops.setSettings({...s.settings,share:v})} onClose={()=>setSkyOpen(null)}/>}
-      {me&&!sheet&&<MyPage wearOnly g={g} onClose={()=>setMe(false)} onRecords={()=>setSheet({kind:'records'})} onSettings={()=>setSheet({kind:'settings'})} onLetter={()=>setSheet({kind:'letter',month:monthOf(clock.today)})}/>}
+      {me&&!sheet&&<MyPage wearOnly mode={me} g={g} onClose={()=>setMe(false)} onRecords={()=>setSheet({kind:'records'})} onSettings={()=>setSheet({kind:'settings'})} onLetter={()=>setSheet({kind:'letter',month:monthOf(clock.today)})}/>}
       {sheet?.kind==='settings'&&<SettingsSheet g={g} onClose={close} tilt={tiltCtl} account={account?.email??null}
         onLogOut={account?()=>{void authRepo.logOut();setAccount(null);setSheet(null)}:undefined}
         onDelete={syncOn&&saveRepo?async()=>{const e=await saveRepo!.deleteMe();if(e)return e;try{localStorage.removeItem('rethink-account-v1');localStorage.removeItem('rethink-guest')}catch{/* nothing kept */}g.ops.wipe();return null}:undefined}
@@ -1153,15 +1157,15 @@ export default function Proto3D(){
       {fish==='log'&&!sheet&&<FishLog fishing={s.fishing} onClose={()=>setFish(null)}/>}
       {placing&&!sheet&&<div className="rt-plant-bar" role="status"><span>{BUILDINGS.find(b=>b.id===placing.id)?.name} 놓을 자리를 눌러요 · 초록 동그라미면 놓을 수 있어요</span>
         <button type="button" onClick={()=>setPlacing(null)}>취소</button></div>}
-      {planting&&!sheet&&<div className="rt-plant-bar" role="status"><span>{shopPlant(planting.item)?.name} 심을 풀밭을 눌러요</span>
+      {planting&&!sheet&&<div className="rt-plant-bar" role="status"><span>{shopPlant(planting.item)?.name} 심을 풀밭을 눌러요 · 초록 동그라미면 심을 수 있어요</span>
         <button type="button" onClick={()=>setPlanting(null)}>취소</button></div>}
       {sheet?.kind==='friend'&&<FriendSheet opener={opener.text} topic={opener.topic} seed={clock.today} onClose={close}
         talk={(history,m)=>boriChat(history,m,syncOn?(_h,msg)=>boriTalk(boriHoldings,msg):null)} opening={boriTalks?boriOpening:null} onFace={setBoriFace}
-        onGo={to=>{if(to==='case')setSheet({kind:'case'});else close()}} stocks={realFirst.map(x=>({id:x.id,name:x.name}))} onStock={openTree}/>}
-      {sheet?.kind==='talk'&&(()=>{const w=VILLAGE_SPEAKERS[sheet.id];return <FriendSheet key={sheet.id} who={w} opener={sheet.id==='luon'?'…어느 종목 얘기할래? 고르면 네 이유부터 들어 볼게.':w.greet[clock.today.length%w.greet.length]} topic="chat" seed={clock.today}
+        onGo={to=>{if(to==='case')setSheet({kind:'case'});else if(to==='grades'){close();onVillager('librarian')}else close()}} stocks={realFirst.map(x=>({id:x.id,name:x.name}))} onStock={openTree}/>}
+      {sheet?.kind==='talk'&&(()=>{const w=VILLAGE_SPEAKERS[sheet.id];return <FriendSheet key={sheet.id} who={w} opener={sheet.id==='luon'?'어느 종목 얘기할래? 고르면 네 이유부터 들어 볼게.':w.greet[clock.today.length%w.greet.length]} topic="chat" seed={clock.today}
         talk={sheet.id==='luon'?(history,m)=>debateChat(history,m,testLuon?.__luonTalk?(_h,msg)=>testLuon.__luonTalk!(msg):syncOn?(_h,msg)=>boriTalk(boriHoldings,msg,'luon'):null):null}
         pickFirst={sheet.id==='luon'} onPickTalk={sheet.id==='luon'&&luonOn?luonPick:null}
-        onClose={close} onGo={to=>{if(to==='case')setSheet({kind:'case'});else close()}} stocks={realFirst.map(x=>({id:x.id,name:x.name}))} onStock={openTree}/>})()}
+        onClose={close} onGo={to=>{if(to==='case')setSheet({kind:'case'});else if(to==='grades'){close();onVillager('librarian')}else close()}} stocks={realFirst.map(x=>({id:x.id,name:x.name}))} onStock={openTree}/>})()}
       {sheet?.kind==='drawer'&&<Drawer g={g} onClose={close} onCart={()=>setSheet({kind:'cart'})}/>}
       {sheet?.kind==='analyst'&&<AnalystCard g={g} id={sheet.id} signal={open.find(x=>x.analyst===sheet.id)??null} onClose={close}
         onBrief={()=>{const sig=open.find(x=>x.analyst===sheet.id);if(sig)setSheet({kind:'brief',start:{signalId:sig.id}})}}/>}

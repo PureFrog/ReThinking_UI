@@ -35,13 +35,17 @@ export function wearCtx(g:G):WearCtx{
   const rank=rankOf(xpOf({graded:g.s.graded.length,cases:g.s.cases.length,rewinds:g.s.rewinds.length,work:workOf(g.s)})).index;
   return {rank,stamps:g.s.stamps.map(s=>s.id),trust:{tori:g.s.trust.tori.stage,moa:g.s.trust.moa.stage,luon:g.s.trust.luon.stage},bought:g.s.wardrobe,all:masterOn()};
 }
-export function MyPage({g,onClose,onRecords,onSettings,onLetter,wearOnly}:{wearOnly?:boolean;g:G;onClose:()=>void;onRecords:()=>void;onSettings?:()=>void;onLetter?:()=>void}){
+// 피드백 11-25: mode 'shop' (옷 가게) picks a piece, then 구매 and 입기 are two buttons, so buying feels like buying;
+// mode 'closet' (the wardrobe in my room, the only other place to change) wears what I have, and names the shop for the rest
+export function MyPage({g,onClose,onRecords,onSettings,onLetter,wearOnly,mode='closet'}:{wearOnly?:boolean;mode?:'shop'|'closet';g:G;onClose:()=>void;onRecords:()=>void;onSettings?:()=>void;onLetter?:()=>void}){
   const [tab,setTab]=useState<'wear'|'record'|'stamps'>('wear'),[slot,setSlot]=useState<Slot|'color'>('coat'),[naming,setNaming]=useState(false),[name,setName]=useState(g.s.name);
   const ctx=wearCtx(g),look=fitLook(g.s.look,ctx),rk=rankOf(xpOf({graded:g.s.graded.length,cases:g.s.cases.length,rewinds:g.s.rewinds.length,work:workOf(g.s)}));
   const habit=habitOf(g.s.judgments,g.s.graded),t=trackOf(g.s.judgments,g.s.graded);
   const names={rank:(i:number)=>RANKS[i].name,stamp:(id:Parameters<typeof stampById>[0])=>stampById(id).name,who:(w:'tori'|'moa'|'luon')=>analystById(w).name};
   const wear=(l:Look)=>g.ops.setLook(l);
   const pieces=slot==='color'?[]:WEAR.filter(w=>w.slot===slot);
+  const [sel,setSel]=useState<string|null>(null),[got,setGot]=useState<string|null>(null);
+  const shop=mode==='shop',chosen=shop&&sel?WEAR.find(w=>w.id===sel&&w.slot===slot)??null:null;
   return <div className="rt-me" role="dialog" aria-label="내 프로필">
     <header className="rt-me-plate">
       {!wearOnly&&<div className="rt-me-rank">{rk.name}</div>}
@@ -53,19 +57,28 @@ export function MyPage({g,onClose,onRecords,onSettings,onLetter,wearOnly}:{wearO
     <div className="rt-me-top">{onSettings&&<button type="button" className="rt-btn" onClick={onSettings}>설정</button>}<button type="button" className="rt-btn" onClick={onClose}><Cross size={18}/>닫기</button></div>
     <section className="rt-me-panel">
       {/* the clothes shop opens the wardrobe alone: a title, not a row of one tab */}
-      {wearOnly?<h2 className="rt-me-only">옷 갈아입기</h2>:<div className="rt-tabs" role="tablist">{([['wear','꾸미기'],['record','기록'],['stamps','업적']] as const).map(([k,l])=>
+      {wearOnly?<h2 className="rt-me-only">{shop?'옷 가게':'옷장'}</h2>:<div className="rt-tabs" role="tablist">{([['wear','꾸미기'],['record','기록'],['stamps','업적']] as const).map(([k,l])=>
         <button key={k} type="button" role="tab" aria-selected={tab===k} onClick={()=>setTab(k)}>{l}</button>)}</div>}
       {tab==='wear'&&<>
         <div className="rt-me-slots">{[...SLOTS,{id:'color' as const,label:'색'}].map(s=><button key={s.id} type="button" aria-pressed={slot===s.id} onClick={()=>setSlot(s.id)}>{s.label}</button>)}</div>
         <div className="rt-me-grid">
           {slot!=='color'&&slot!=='coat'&&<button type="button" className="rt-me-tile" aria-pressed={!look[slot]} onClick={()=>wear({...look,[slot]:null})}><strong>없음</strong></button>}
           {pieces.map(w=>{const open=isOpen(w.unlock,ctx,w.id),on=look[w.slot]===w.id,price=w.unlock.kind==='buy'?w.unlock.price:0;
+            if(shop)return <button key={w.id} type="button" className="rt-me-tile" data-locked={!open&&!price} aria-pressed={sel===w.id}
+              onClick={()=>{setSel(w.id);setGot(null)}}>
+              <strong>{w.name}</strong><small>{open?(on?(VERB[w.slot]??VERB.coat)[1]:'가지고 있어요'):price?`${won(price)} 코인`:<><Lock size={12}/> {howTo(w.unlock,names)}</>}</small></button>;
             return <button key={w.id} type="button" className="rt-me-tile" data-locked={!open} aria-pressed={on}
-              onClick={()=>{if(open)wear({...look,[w.slot]:w.id});else if(price&&g.s.currency>=price){if(g.ops.buyWear(w.id,price))wear({...look,[w.slot]:w.id})}}}>
-              <strong>{w.name}</strong>{open?<small>{(VERB[w.slot]??VERB.coat)[on?1:0]}</small>:<small><Lock size={12}/> {howTo(w.unlock,names)}{price?` · 지금 ${won(g.s.currency)}`:''}</small>}</button>})}
+              onClick={()=>{if(open)wear({...look,[w.slot]:w.id})}}>
+              <strong>{w.name}</strong>{open?<small>{(VERB[w.slot]??VERB.coat)[on?1:0]}</small>:<small><Lock size={12}/> {price?'옷 가게에서 사요':howTo(w.unlock,names)}</small>}</button>})}
           {slot==='color'&&PALETTES.map(p=>{const open=isOpen(p.unlock,ctx,p.id);return <button key={p.id} type="button" className="rt-me-tile" data-locked={!open} aria-pressed={look.palette===p.id} onClick={()=>open&&wear({...look,palette:p.id})}>
             <span className="rt-me-swatch">{[p.primary,p.secondary,p.accent].map(c=><i key={c} style={{background:c}}/>)}</span><strong>{p.name}</strong>{!open&&<small><Lock size={12}/> {howTo(p.unlock,names)}</small>}</button>})}
-        </div></>}
+        </div>
+        {shop&&chosen&&(()=>{const w=chosen,open=isOpen(w.unlock,ctx,w.id),on=look[w.slot]===w.id,price=w.unlock.kind==='buy'?w.unlock.price:0,v=VERB[w.slot]??VERB.coat;
+          return <div className="rt-me-buy" data-testid="wear-buy">
+            <div className="rt-me-buy-t"><strong>{w.name}</strong><small>{got===w.id?'샀어요! 입어 볼래요?':open?'가지고 있는 옷이에요':price?`${won(price)} 코인 · 지금 ${won(g.s.currency)}`:howTo(w.unlock,names)}</small></div>
+            {!open&&price>0&&<button type="button" className="rt-btn primary" disabled={g.s.currency<price} onClick={()=>{if(g.ops.buyWear(w.id,price))setGot(w.id)}}>{g.s.currency<price?'코인 부족':'구매'}</button>}
+            {open&&<button type="button" className="rt-btn primary" disabled={on} onClick={()=>wear({...look,[w.slot]:w.id})}>{on?v[1]:v[0]}</button>}
+          </div>})()}</>}
       {tab==='record'&&<div className="rt-me-record">
         {/* 관측소 숙련도 (game/daily): investor_progress — title, level, the bar to the next, the quests opened */}
         <div className="rt-section">관측소 숙련도</div>

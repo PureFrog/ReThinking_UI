@@ -76,8 +76,9 @@ export function Onboarding({g,onClose,onPlanted,onDemo,reader,onReal,real,pick=f
       <input className="rt-input" value={g.s.name} maxLength={12} placeholder="닉네임 (선택)" aria-label="내 이름" onChange={e=>g.ops.setName(e.target.value)}/></label>
     <p className="rt-hint" style={{marginTop:14}}>종목 하나가 나무 하나예요. 분석가 셋이 손실 신호를 찾아 알려줘요.</p>
     <div className="rt-pick">
-      <button type="button" className="rt-pick-card" disabled={reading} onClick={()=>file.current?.click()}>
-        <Lens size={20}/><strong>{reading?'읽는 중':'캡처 올리기'}</strong><small>{reader?'증권 앱 보유 종목 화면. 여러 종목도 한 번에 읽어요.':'증권 앱 보유 종목 화면. 이 기기 밖으로 보내지 않아요.'}</small></button>
+      {/* 피드백 11-25 "튜토리얼일때는 캡처가 나아": on the first run the capture is the one to take, so it leads, full width */}
+      <button type="button" className={`rt-pick-card${first?' rec':''}`} disabled={reading} onClick={()=>file.current?.click()}>
+        <Lens size={20}/><strong>{reading?'읽는 중':'캡처 올리기'}{first&&!reading&&<em className="rt-pick-rec">추천</em>}</strong><small>{reader?'증권 앱 보유 종목 화면. 여러 종목도 한 번에 읽어요.':'증권 앱 보유 종목 화면. 이 기기 밖으로 보내지 않아요.'}</small></button>
       <button type="button" className="rt-pick-card" onClick={()=>setRows([blankDraft()])}>
         <Plus size={20}/><strong>직접 입력</strong><small>종목명과 수익률만 있으면 돼요.</small></button>
       {onReal&&<button type="button" className="rt-pick-card" onClick={onReal}>

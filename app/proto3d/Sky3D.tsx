@@ -84,7 +84,7 @@ function SkyCam({planets,focus}:{planets:Planet[];focus:string|null}){
     if(f){const p=planets.find(x=>x.id===focus),R=p?.me?5.2:2.4+(p?.trees.length??0)*.12;want.current.copy(f.position).add(new THREE.Vector3(0,portrait?-R*1.6:0,0));dist=R*(portrait?9.5:6)}
     else if(intro<1){const me=scene.getObjectByName('planet-'+planets[0]?.id);if(me)want.current.lerp(me.position,1-ease);dist=10+(dist-10)*ease}
     s.look.lerp(want.current,k);cur.current.dist+=(dist-cur.current.dist)*k;cur.current.yaw+=(s.yaw-cur.current.yaw)*k;cur.current.pitch+=(s.pitch-cur.current.pitch)*k;
-    const c=cur.current;camera.position.set(s.look.x+Math.sin(c.yaw)*Math.cos(c.pitch)*c.dist,s.look.y+Math.sin(c.pitch)*c.dist,s.look.z+Math.cos(c.yaw)*Math.cos(c.pitch)*c.dist);camera.lookAt(s.look);
+    camera.up.set(0,1,0);const c=cur.current;camera.position.set(s.look.x+Math.sin(c.yaw)*Math.cos(c.pitch)*c.dist,s.look.y+Math.sin(c.pitch)*c.dist,s.look.z+Math.cos(c.yaw)*Math.cos(c.pitch)*c.dist);camera.lookAt(s.look);
   });
   return null;
 }

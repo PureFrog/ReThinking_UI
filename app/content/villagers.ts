@@ -25,7 +25,7 @@ const V:Villager[]=[
 // building shop far west, the clothes stall south-west by the stream, the news board north-west of the middle, the
 // library (with the 사서) north-east (spread coordinates, written directly)
 const PLACED:Partial<Record<VillagerId,{x:number;z:number;face?:number}>>={farmer:{x:12.4,z:0.1,face:-1.57},
-  builder:{x:-18.1,z:2.3,face:1.4},tailor:{x:-14.4,z:11.2,face:1.2},paperboy:{x:-5.4,z:-6.1,face:0.6},librarian:{x:9.9,z:-10.0,face:-0.74},
+  builder:{x:-16.4,z:-0.6,face:Math.PI/2},tailor:{x:-16.4,z:7.8,face:Math.PI/2},paperboy:{x:-5.4,z:-6.1,face:0.6},librarian:{x:9.9,z:-10.0,face:-0.74},
   merchant:{x:16.2,z:12.9,face:-1.57}};
 export const VILLAGERS:Villager[]=V.map(v=>{const p=PLACED[v.id];return p?{...v,x:p.x,z:p.z,face:p.face??v.face}:spreadXZ(v)});
 export const villager=(id:VillagerId)=>VILLAGERS.find(v=>v.id===id)!;
@@ -36,7 +36,8 @@ export const villager=(id:VillagerId)=>VILLAGERS.find(v=>v.id===id)!;
 export const NEWS_BOARD={x:-6.8,z:-6.9,rot:0.6};
 // 피드백 2026-11-23 "건물점원 옆에 옷 상인": the clothes shop right beside the building shop (place('cart', -19,0.8),
 // facing the same way), a step south of it
-export const TAILOR_STALL={x:-21.4,z:7.2,rot:1.2};
+// 피드백 2026-11-25 (user sketch): at the end of the west path's left branch, door to the east, the building shop on its right
+export const TAILOR_STALL={x:-19.6,z:6.8,rot:Math.PI/2};
 // 피드백 2026-11-24: the farmer and his cart between the two fields, the merchant's shop past 가상 종목 밭 (across the path)
 // the merchant faces the middle (피드백 2026-11-24 "상인은 앞보라고"), no stepping stones out to the shop
 export const MERCHANT_STALL={x:17.4,z:12.9,rot:-Math.PI/2};
@@ -73,7 +74,7 @@ export const ROLE_TAG:Record<string,string>={luon:'💬 종목 토론',farmer:'�
 // 피드백 2026-11-24 "소개하면서 같이 한 번에": on the first walk each one's first talk opens with this, then goes straight
 // on with what we do together (the task's own greeting is dropped: Proto3D introLine)
 export const INTRO_WALK:Record<string,string>={
-  farmer:'…농부다. 네가 실제로 가진 종목을 이 밭에 나무로 심어 주고, 나중에 사거나 팔면 기록을 고쳐 준다.',
+  farmer:'농부다. 네가 실제로 가진 종목을 이 밭에 나무로 심어 주고, 나중에 사거나 팔면 기록을 고쳐 준다.',
   merchant:'어, 왔어? 나는 상인이야. 아침 8시부터 저녁 8시까지 여기 있어.',
   librarian:'어서 와, 나는 사서야. 이 도서관엔 네가 쓴 투자일지만 모아 둬.',
   paperboy:'어, 너구나! 나는 신문 배달이야. 매일 네 종목 소식을 모아서 표지판에 꽂아 둬. 판단은 네 몫이고, 나는 무슨 일이 있었는지만 전해!',
@@ -85,7 +86,7 @@ export const INTRO:Record<string,string>={
   tori:'안녕, 나는 토리야. 나는 회사가 돈을 어떻게 버는지 봐. 물건을 많이 팔아서 버는지, 하나 팔 때 많이 남겨서 버는지, 빚을 내서 크게 굴려서 버는지 나눠서 살펴. 네 나무 중에 돈 버는 힘이 약해진 회사가 보이면, 내가 그 나무 옆에서 말풍선으로 알려 줄게.',
   moa:'나는 모아야. 나는 회사가 혹시 쓰러질 위험은 없는지 봐. 빚이 너무 많지는 않은지, 당장 쓸 돈이 모자라지는 않은지, 손해가 계속 나고 있지는 않은지 살펴. 위험해 보이는 나무가 있으면 내가 먼저 너한테 찾아갈게.',
   luon:'루온이에요. 종목 토론 담당이죠. 그 종목을 왜 갖고 있는지 들어 보고, 빈틈이랑 다시 확인할 조건을 찾아 드려요. 사라, 팔아라는 안 해요. 그건 당신 투자니까요.',
-  farmer:'…농부다. 네가 실제로 가진 종목을 이 밭에 나무로 심고, 나중에 사거나 팔면 기록을 고쳐 준다. 가상 나무 팔 땐 열매 따서 수레에 싣고.',
+  farmer:'농부다. 네가 실제로 가진 종목을 이 밭에 나무로 심고, 나중에 사거나 팔면 기록을 고쳐 준다. 가상 나무 팔 땐 열매 따서 수레에 싣고.',
   merchant:'어, 왔어? 나는 상인이야. 아침 8시부터 저녁 8시까지 여기 있어. 통신기로 오늘 후보를 보여 주는데, 뽑기로 나온 거야. 게임 코인으로 가상 종목을 사.',
   librarian:'어서 와, 나는 사서야. 이 도서관엔 네가 쓴 투자일지만 모아 둬. 종목마다 책이 있고, 쓴 날마다 갈피가 꽂혀. 천천히 같이 써 보자.',
   paperboy:'어, 너구나! 짠! 나는 신문 배달이야. 매일 네 종목 소식을 날짜랑 테마별로 모아서 광장 표지판에 꽂아 둬. 판단은 네 몫이고, 나는 무슨 일이 있었는지만 전해!',

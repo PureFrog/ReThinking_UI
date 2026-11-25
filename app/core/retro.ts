@@ -31,6 +31,6 @@ export function answerRetro(retros:Retro[],due:DueRetro,verdict:Verdict,reply:st
 // knots on each tree's ribbon = retrospectives answered for it
 export function knots(retros:Retro[]){const out:Record<number,number>={};for(const r of retros)out[r.holdingId]=(out[r.holdingId]??0)+1;return out}
 
-export const retroLine=(d:DueRetro)=>`…${d.days}일 전에 이렇게 써놨더라.`;
+export const retroLine=(d:DueRetro)=>`${d.days}일 전에 이렇게 써놨더라.`;
 // the biggest reward of all (12.4): sunlight pieces and closeness with luon
 export const RETRO_SUN=3,RETRO_CLOSENESS=3;

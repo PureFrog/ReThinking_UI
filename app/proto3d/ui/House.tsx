@@ -67,6 +67,13 @@ export function House({g,master,onOut,onSettings,lesson=false}:{g:G;master:boole
   const lessonDone=()=>{try{localStorage.setItem(LESSON_KEY,day)}catch{/* this visit only */}};
   const door=doorOpen(state)||les==='door'||lessonDay()===day;
   const [view,setView]=useState<'desk'|'paper'|'case'>('desk');
+  // 피드백 11-25 "추가 퀴즈 풀기": after the day's papers, a practice round of more (not saved as the day's, no coins, no
+  // challenge); the papers it deals are new ones where there are
+  const [extra,setExtra]=useState<DeskDay|null>(null),extraN=useRef(0);
+  useEffect(()=>{let go=false;try{go=sessionStorage.getItem('rethink-extra-quiz')==='1';sessionStorage.removeItem('rethink-extra-quiz')}catch{/* none */}
+    if(go&&desk?.done)openExtra()},[!!desk]);// eslint-disable-line react-hooks/exhaustive-deps
+  const openExtra=()=>{extraN.current++;const ids=bundleOfDay(PAPERS.filter(p=>!desk?.ids.includes(p.id)),day+':extra'+extraN.current,seenPapers(h),DESK.perDay+1);
+    setExtra(newDay(day,ids));setSay(null);setView('paper')};
   // the reveal of the unlock day plays once, as the player looks up from the papers
   const [rising,setRising]=useState(false);
   const [say,setSay]=useState<{text:string;at:'plate'|'paper'}|null>(null);
@@ -92,7 +99,7 @@ export function House({g,master,onOut,onSettings,lesson=false}:{g:G;master:boole
     :les==='door'?{text:'오늘 수업 끝! 문 열어 둘게. 마을 일은 보리한테 물어봐. 남은 문서는 언제든 와서 마저 봐도 돼. …졸지 말고 다녀와.',choices:[{label:'밖으로 나가기',go:goOut}]}:null;
   const line:Line=lessonLine??(say?{text:say.text,choices:[{label:'알겠어',go:()=>setSay(null)}]}:{text:boriLine(state,{first,level,caseStatus:today?.status??null,started}),choices:[
     ...(state==='quiz'||state==='quiz-first'?[{label:started?'이어서 보기':'문서 받기',go:openPaper}]:[]),
-    ...(quizDone?[{label:'오늘 결과표',go:openPaper}]:[]),
+    ...(quizDone?[{label:'오늘 결과표',go:()=>{setExtra(null);openPaper()}},{label:'추가 퀴즈 풀기',go:openExtra}]:[]),
     ...((state==='unlocked'||state==='case')&&today?[{label:today.status==='open'?'책갈피부터 이어 보기':'사건철 펼치기',go:openCase}]:[]),
     ...(door?[{label:'밖으로 나가기',go:goOut}]:[])]});
   // 보리's paws (9-3): a place for each state of the day, and they keep moving there
@@ -118,7 +125,10 @@ export function House({g,master,onOut,onSettings,lesson=false}:{g:G;master:boole
       <button type="button" className="hs-corner" aria-label="설정" onClick={onSettings}>설정</button>
     </div>
     {view==='desk'&&<TalkBox className="hs-talk" name="선생님" nameWho="teacher" role="방의 선생님 · 퀴즈와 사건철" line={line.text} choices={line.choices}/>}
-    {view==='paper'&&desk&&<QuizDesk first={les==='solve'} d={desk} level={level}
+    {view==='paper'&&extra&&<QuizDesk key={'x'+extraN.current} practice d={extra} level={level}
+      onStamp={(p,choice,resp)=>setExtra(e=>{if(!e)return e;const n=stampPaper(e,p,choice,resp);return n.stamps.length>=n.ids.length?{...n,done:true}:n})}
+      onStop={()=>{}} onChallenge={()=>{}} onPaw={setQuizPaw} onUp={()=>{setExtra(null);lookUp()}}/>}
+    {view==='paper'&&!extra&&desk&&<QuizDesk first={les==='solve'} d={desk} level={level}
       onStamp={(p,choice,resp)=>put(x=>{const cur=deskOf(x,day);if(!cur)return x;const n=finishDay(stampPaper(cur,p,choice,resp));
         if(n===cur)return x;const y=putDesk(x,n);return afterQuiz(y,Math.max(levelOf(y.xp).lv,master?HOUSE.unlockLevel:0),day)})}
       onStop={()=>put(x=>{const cur=deskOf(x,day);if(!cur)return x;const n=stopRun(cur);if(n===cur)return x;const y=putDesk(x,n);return afterQuiz(y,Math.max(levelOf(y.xp).lv,master?HOUSE.unlockLevel:0),day)})}
@@ -147,7 +157,7 @@ const coin=(n:number)=>n.toLocaleString('ko-KR')+'코인';
 const STAMP_TEXT=(p:Paper,s:Stamp)=>s.choice===null?'시간 초과':p.quiz?(s.right?'정답':'오답'):p.options[s.choice];
 const INK=(p:Paper,s:Stamp)=>s.choice===null?'late':p.quiz?(s.right?'yes':'no'):s.choice===0?'yes':'no';
 const secondsFor=(p:Paper)=>p.quiz?QUIZ_SECONDS[p.quiz.type]??TIMING.quizPaper:TIMING.quizPaper;
-function QuizDesk({d,level,onStamp,onStop,onChallenge,onPaw,onUp,first=false}:{first?:boolean;d:DeskDay;level:number;onStamp:(p:Paper,choice:0|1|null,resp?:Resp|null)=>void;onStop:()=>void;onChallenge:(lv:Level)=>void;onPaw:(p:Paws)=>void;onUp:()=>void}){
+function QuizDesk({d,level,onStamp,onStop,onChallenge,onPaw,onUp,first=false,practice=false}:{practice?:boolean;first?:boolean;d:DeskDay;level:number;onStamp:(p:Paper,choice:0|1|null,resp?:Resp|null)=>void;onStop:()=>void;onChallenge:(lv:Level)=>void;onPaw:(p:Paws)=>void;onUp:()=>void}){
   // waiting on the challenge choice (left and came back): the last paper's back again, with the choice on it
   const id=nextPaper(d)??(choosing(d)?d.stamps[d.stamps.length-1].id:null);
   // the paper whose back is showing (the one just stamped), until 다음 장
@@ -173,12 +183,12 @@ function QuizDesk({d,level,onStamp,onStop,onChallenge,onPaw,onUp,first=false}:{f
     return <section className="hs-quiz" data-side="results" aria-label="오늘의 결과표">
       <article className="hs-doc hs-results">
         <p className="hs-type">결과표 · {d.day}</p>
-        <h2>오늘 문서 {n}장</h2>
+        <h2>{practice?`추가 문서 ${n}장`:`오늘 문서 ${n}장`}</h2>
         <ol className="hs-rows">{d.stamps.map((s,i)=>{const q=paperOf(s.id);return <li key={s.id} data-r={s.choice===null?'late':s.right?'ok':'no'}>
           <span className="hs-num">No.{String(i+1).padStart(2,'0')}</span><span className="hs-q">{q.q}</span>
           <b>{s.choice===null?'시간 초과':s.right?'맞음':'틀림'}</b></li>})}</ol>
         <p className="hs-total"><b>{right}/{n}</b> 맞힘 · 경험치 +{d.xp} · 퀴즈 Lv.{level}</p>
-        <p className="hs-total hs-coins" data-run={Math.max(0,stepOf(d))}>{coins>0?<>코인 <b>+{coin(coins)}</b> · {stepOf(d)===0?'입장 퀴즈 통과':`${LEVEL_KO[lv]} 도전 ${stepOf(d)}단계${stepOf(d)===steps.length-1?' 완주!':'에서 멈추고 받음'}`}</>:d.stamps.length>DESK.perDay&&d.stamps.some(x=>!x.right)?`${LEVEL_KO[lv]} 도전 실패: 걸었던 코인은 전부 몰수됐어.`:d.stamps.length>=DESK.perDay&&d.stamps.every(x=>x.right)?`${n}장 모두 맞혔어.`:`첫 ${DESK.perDay}장을 다 맞히면 ${coin(steps[0])}과 도전 기회가 열려.`}</p>
+        <p className="hs-total hs-coins" data-run={Math.max(0,stepOf(d))}>{practice?'추가 퀴즈는 연습이라 코인과 경험치는 없어. 해설은 다시 봐 둬.':coins>0?<>코인 <b>+{coin(coins)}</b> · {stepOf(d)===0?'입장 퀴즈 통과':`${LEVEL_KO[lv]} 도전 ${stepOf(d)}단계${stepOf(d)===steps.length-1?' 완주!':'에서 멈추고 받음'}`}</>:d.stamps.length>DESK.perDay&&d.stamps.some(x=>!x.right)?`${LEVEL_KO[lv]} 도전 실패: 걸었던 코인은 전부 몰수됐어.`:d.stamps.length>=DESK.perDay&&d.stamps.every(x=>x.right)?`${n}장 모두 맞혔어.`:`첫 ${DESK.perDay}장을 다 맞히면 ${coin(steps[0])}과 도전 기회가 열려.`}</p>
         <p className="hs-pen">오늘도 같이 읽어 줘서 고마워.</p>
       </article>
       <div className="hs-bar"><button type="button" className="rt-btn primary" onClick={onUp}>고개 들기</button></div>

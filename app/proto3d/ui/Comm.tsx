@@ -31,7 +31,7 @@ function TabIcon({id}:{id:CommTab}){
 
 export function Comm({acct,cands,lots,day,room,open,openNote,start='balance',onBuy,onSell,onTree,onClose}:{acct:CommAccount;cands:Cand[];lots:Lot[];day:string;room:number;
   open:boolean;openNote:string;start?:CommTab;onBuy:(code:string,qty:number)=>string|null;onSell:(lotId:number,qty:number)=>void;onTree:(id:number)=>void;onClose:()=>void}){
-  const [tab,setTab]=useState<CommTab>(start),[side,setSide]=useState<'buy'|'sell'>('buy');
+  const [tab,setTab]=useState<CommTab>(start),[side,setSide]=useState<'buy'|'sell'>('buy');void setSide;
   const [sheet,setSheet]=useState<string|null>(null),[pick,setPick]=useState<string|null>(null),[read,setRead]=useState<string[]>([]);
   const [qty,setQty]=useState(1),[msg,setMsg]=useState<string|null>(null),[lotId,setLotId]=useState<number|null>(null),[n,setN]=useState(0);
   const c=cands.find(x=>x.code===pick)??null,cost=c?.price!=null?c.price*qty:0,news=useMemo(()=>c?dayBeforeArticle(c,day):null,[c,day]);
@@ -92,8 +92,8 @@ export function Comm({acct,cands,lots,day,room,open,openNote,start='balance',onB
       </main>}
 
       {tab==='order'&&<main className="mts-main rt-comm-order" aria-label="주문">
-        <div className="rt-comm-side" role="tablist" aria-label="주문 종류">
-          {(['buy','sell'] as const).map(s=><button key={s} type="button" role="tab" aria-selected={side===s} className={`s-${s}`} onClick={()=>{setSide(s);setMsg(null)}}>{s==='buy'?'매수':'매도'}</button>)}</div>
+        {/* 피드백 11-25 "상인 매도는 없애, 농부가 하는 거": the communicator only buys; selling is the farmer's (수레) */}
+        <p className="rt-comm-msg rt-comm-farmer">파는 건 농부 아저씨한테 가서 해요. 수레 옆에 있어요.</p>
         {msg&&<p className="rt-comm-msg" role="status">{msg}</p>}
         {side==='buy'&&(!open?<p className="mts-hint">{openNote}</p>
           :!c?<ul className="mts-list" aria-label="살 수 있는 종목">{cands.map(x=><li key={x.code} className="mts-row">
@@ -103,7 +103,7 @@ export function Comm({acct,cands,lots,day,room,open,openNote,start='balance',onB
             <button type="button" className="mts-link" onClick={()=>setPick(null)}>← 종목 고르기</button>
             <h3>{c.name} <small>{c.price!=null?won(c.price):'-'}원</small></h3>
             <article className="rt-comm-news" data-read={read.includes(c.code)}>
-              <span>전날 뉴스 · {news!.theme} · 예시 기사</span><strong>{news!.title}</strong>
+              <span>참고용 · 전날 뉴스 · {news!.theme} · 예시 기사</span><strong>{news!.title}</strong>
               {!read.includes(c.code)?<button type="button" className="mts-link" onClick={()=>setRead(r=>[...r,c.code])}>기사 읽기</button>
                 :<>{/* RSS gives the publisher's short excerpt, not the body (사용자 2026-11-22): that is what 기사 읽기 opens */}<p className="vl-news-sum">{news!.summary??'이 기사는 요약이 없어요.'}</p>
                 <small className="vl-news-src">언론사 요약 발췌 · 전문은 원문 링크에서 봐요</small></>}
@@ -115,9 +115,9 @@ export function Comm({acct,cands,lots,day,room,open,openNote,start='balance',onB
               <div><dt>주문 금액</dt><dd>{won(cost)} 코인</dd></div>
               <div><dt>가진 코인</dt><dd>{won(acct.coins)}</dd></div>
             </dl>
-            <button type="button" className="rt-comm-go buy" disabled={!read.includes(c.code)||cost>acct.coins||room<=0||c.price==null}
+            <button type="button" className="rt-comm-go buy" disabled={cost>acct.coins||room<=0||c.price==null}
               onClick={()=>{const r=onBuy(c.code,qty);setMsg(r)}}>
-              {room<=0?'가상 밭에 빈칸이 없어요':!read.includes(c.code)?'전날 뉴스를 먼저 읽어요':cost>acct.coins?`코인 ${won(cost-acct.coins)} 부족`:`매수 주문 · 코인 ${won(cost)}`}</button>
+              {room<=0?'가상 밭에 빈칸이 없어요':cost>acct.coins?`코인 ${won(cost-acct.coins)} 부족`:`매수 주문 · 코인 ${won(cost)}`}</button>
           </section>)}
         {side==='sell'&&(!lot?<ul className="mts-list" aria-label="팔 수 있는 종목">{lots.map(l=><li key={l.id} className="mts-row">
             <button type="button" className="mts-row-btn" onClick={()=>{setLotId(l.id);setN(0);setMsg(null)}}><div className="mts-row-top"><div className="mts-name"><strong>{l.name}</strong></div>

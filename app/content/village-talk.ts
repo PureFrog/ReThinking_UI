@@ -11,6 +11,6 @@ export const VILLAGE_SPEAKERS:Record<'tori'|'moa'|'luon',Speaker&{greet:string[]
     stockLine:n=>`${n}? 좋다, 장부부터 같이 펴 보재이. 니 수첩 옆에 놓고 보자!`},
   moa:{id:'moa',name:'모아',greet:plain(moa as Book,'greet'),smalls:[...plain(moa as Book,'talk'),'오늘은 망원경으로 구름만 봤어. 그것도 나름 공부야.'],
     stockLine:n=>`${n} 나무로 가 볼까. 요즘 어떻게 움직였는지 네 수첩이랑 같이 보자.`},
-  luon:{id:'luon',name:'루온',greet:plain(luon as Book,'greet'),smalls:[...plain(luon as Book,'talk'),'…다들 맞다고 하면, 난 일단 의심부터 해. 버릇이야.'],
-    stockLine:n=>`…${n}. 반대로 볼 이유도 하나 적어 봐. 수첩은 저 나무 옆에 있어.`},
+  luon:{id:'luon',name:'루온',greet:plain(luon as Book,'greet'),smalls:[...plain(luon as Book,'talk'),'다들 맞다고 하면, 난 일단 의심부터 해. 버릇이야.'],
+    stockLine:n=>`${n}. 반대로 볼 이유도 하나 적어 봐. 수첩은 저 나무 옆에 있어.`},
 };

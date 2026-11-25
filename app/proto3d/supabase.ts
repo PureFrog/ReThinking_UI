@@ -128,7 +128,7 @@ export type BoriLine={text:string;emotion:string;at?:string};
 // speaker 'luon': 토론 캐릭터 루온 (its own persona and conversation on the server, 2026-11-24)
 export type Talker='bori'|'luon';
 export async function boriTalk(holdings:BoriHolding[],message:string,speaker:Talker='bori'):Promise<BoriLine>{
-  const fallback=speaker==='luon'?{text:'…지금은 대답이 안 나와. 조금 있다 다시 얘기하자.',emotion:'tired'}:{text:'지금은 대답을 못 하겠어. 이따 다시 말 걸어 줘.',emotion:'tired'};
+  const fallback=speaker==='luon'?{text:'지금은 대답이 안 나와. 조금 있다 다시 얘기하자.',emotion:'tired'}:{text:'지금은 대답을 못 하겠어. 이따 다시 말 걸어 줘.',emotion:'tired'};
   try{const {data,error}=await supabase().functions.invoke('bori-talk',{body:{action:'message',text:message,holdings,speaker,client_message_id:`c${Date.now().toString(36)}${++boriSeq}`}});
     return !error&&typeof data?.reply?.text==='string'?{text:data.reply.text,emotion:typeof data.reply.emotion==='string'?data.reply.emotion:'neutral',...(typeof data.at==='string'?{at:data.at}:{})}:fallback}catch{return fallback}
 }

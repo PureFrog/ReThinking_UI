@@ -169,8 +169,10 @@ export function Plaza({onPick,flags,me}:{onPick:()=>void;flags:string[];me:numbe
 // Local +z is the front (the door), turned to the path by PLACE_AT.arcade.rot.
 // 피드백 2026-11-25 "색감·느낌은 전이 나은데, 글씨체 왜 그래, 너무 각져": the warm colours of the model before
 // (butter cream, terracotta, apricot, sage), every block rounded, the sign in the app's own round 'Jua'.
-const AC={stripe:['#f9dcaa','#fcebcb'] as const,trim:'#fdf3e4',band:'#ec8a6c',frame:'#e57a62',glass:'#d9eef4',ink:'#c9634d',
-  awning:['#ec8a6c','#fdf3e4'] as const,base:'#efd9b8',step:'#fdf3e4',peach:'#f8bb98',sage:'#b9dc9b'};
+// 2026-11-25 (user "UI 색감 맞춰"): the game UI's tones (rethink.css paper #f4eedf, terracotta #c4652e, sage #4b6638),
+// warm and calm instead of the candy pastels
+const AC={stripe:['#eedcbc','#f6ecd8'] as const,trim:'#fbf7ec',band:'#c4652e',frame:'#b0583a',glass:'#d6e2dc',ink:'#8e4325',
+  awning:['#c4652e','#fbf7ec'] as const,base:'#d8ccae',step:'#f4eedf',peach:'#dfa07a',sage:'#8fa877',gold:'#d9a441'};
 const AC_FONT="bold 118px 'Jua','Gowun Dodum','Apple SD Gothic Neo','Malgun Gothic',sans-serif";
 function arcadeTex(draw:(g:CanvasRenderingContext2D,w:number,h:number)=>void,w:number,h:number,font?:string,text=''){
   const cv=document.createElement('canvas');cv.width=w;cv.height=h;const g=cv.getContext('2d')!;draw(g,w,h);
@@ -188,15 +190,15 @@ export function ArcadeHouse({onPick}:{onPick:()=>void}){
   const walls=useMemo(()=>arcadeTex((g,w,h)=>{for(let i=0;i<16;i++){g.fillStyle=AC.stripe[i%2];g.fillRect(i*w/16,0,w/16,h)}},512,256),[]);
   const sign=useMemo(()=>arcadeTex((g,w,h)=>{g.fillStyle='#fffaf0';g.beginPath();g.roundRect(8,8,w-16,h-16,(h-16)/2);g.fill();
     g.lineWidth=14;g.strokeStyle=AC.band;g.stroke();g.fillStyle=AC.ink;g.font=AC_FONT;g.textAlign='center';g.textBaseline='middle';
-    g.fillText('오락실',w/2,h/2+8);g.font='64px sans-serif';g.fillStyle='#f2c230';g.fillText('★',74,h/2+4);g.fillStyle=AC.peach;g.fillText('★',w-74,h/2+4)},640,200,AC_FONT,'오락실'),[]);
+    g.fillText('오락실',w/2,h/2+8);g.font='64px sans-serif';g.fillStyle=AC.gold;g.fillText('★',74,h/2+4);g.fillStyle=AC.peach;g.fillText('★',w-74,h/2+4)},640,200,AC_FONT,'오락실'),[]);
   // a window: a small arcade screen glowing inside
-  const screen=useMemo(()=>arcadeTex((g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#fff4dc');gr.addColorStop(1,'#fbd3b4');g.fillStyle=gr;g.fillRect(0,0,w,h);
-    g.fillStyle=AC.band;g.fillRect(w*0.18,h*0.62,w*0.64,h*0.1);g.fillStyle='#8ab8e2';g.beginPath();g.arc(w*0.32,h*0.38,h*0.12,0,7);g.fill();
-    g.fillStyle='#f2c230';g.beginPath();g.arc(w*0.66,h*0.34,h*0.08,0,7);g.fill();g.fillStyle=AC.sage;g.fillRect(w*0.5,h*0.44,w*0.14,h*0.1)},128,128),[]);
+  const screen=useMemo(()=>arcadeTex((g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#fff4dc');gr.addColorStop(1,'#efcfae');g.fillStyle=gr;g.fillRect(0,0,w,h);
+    g.fillStyle=AC.band;g.fillRect(w*0.18,h*0.62,w*0.64,h*0.1);g.fillStyle='#8fa9b4';g.beginPath();g.arc(w*0.32,h*0.38,h*0.12,0,7);g.fill();
+    g.fillStyle=AC.gold;g.beginPath();g.arc(w*0.66,h*0.34,h*0.08,0,7);g.fill();g.fillStyle=AC.sage;g.fillRect(w*0.5,h*0.44,w*0.14,h*0.1)},128,128),[]);
   useEffect(()=>()=>{walls.dispose();sign.dispose();screen.dispose()},[walls,sign,screen]);
   const blink=useRef<THREE.Mesh[]>([]);
   useFrame(({clock})=>{const t=clock.elapsedTime;blink.current.forEach((m,i)=>{if(m)(m.material as THREE.MeshBasicMaterial).color.setScalar(0.75+0.25*Math.sin(t*3+i*1.3))})});
-  const scallops=9,bulbs=['#ffd27a','#fff0c2','#f8bb98','#ffd27a'];
+  const scallops=9,bulbs=['#f3cf86','#fbefcf','#e8b48e','#f3cf86'];
   return <OnGround x={p.x} z={p.z} rot={p.rot}><group onClick={click(onPick)} name="arcade">
     {/* the plinth and the step up to the door */}
     <RB position={[0,0.09,Z0]} args={[W+0.3,0.18,D+0.3]} r={0.08}>{S(AC.base)}</RB>
@@ -213,7 +215,7 @@ export function ArcadeHouse({onPick}:{onPick:()=>void}){
       <mesh position={[0,1.4,0]} rotation-x={Math.PI/2}><cylinderGeometry args={[0.5,0.5,0.06,24,1,false,0,Math.PI]}/>{S(AC.glass)}</mesh>
       {[-1,1].map(k=><RB key={k} position={[k*0.58,0.7,0.04]} args={[0.16,1.4,0.14]} r={0.07}>{S(AC.frame)}</RB>)}
       <mesh position={[0,1.4,0.04]}><torusGeometry args={[0.58,0.08,10,24,Math.PI]}/>{S(AC.frame)}</mesh>
-      <mesh position={[0.3,0.72,0.05]}><sphereGeometry args={[0.05,10,8]}/>{S('#f2c230')}</mesh>
+      <mesh position={[0.3,0.72,0.05]}><sphereGeometry args={[0.05,10,8]}/>{S(AC.gold)}</mesh>
     </group>
     {/* two windows, each with a little game screen inside */}
     {[-1,1].map(k=><group key={k} position={[k*1.1,0.18+1.05,fz+0.02]}>
@@ -239,9 +241,9 @@ export function ArcadeHouse({onPick}:{onPick:()=>void}){
       <mesh position-y={0.5} castShadow><cylinderGeometry args={[0.07,0.07,0.8,10]}/>{S('#d9d2c6')}</mesh>
       <mesh position-y={1.0} castShadow><sphereGeometry args={[0.3,20,16]}/>{S(AC.band)}</mesh>
     </group>
-    {[AC.band,'#f2c230',AC.sage].map((c,i)=><mesh key={c} position={[0.3+i*0.5,0.18+H+0.33,Z0-0.1]} castShadow><cylinderGeometry args={[0.18,0.2,0.14,20]}/>{S(c)}</mesh>)}
+    {[AC.band,AC.gold,AC.sage].map((c,i)=><mesh key={c} position={[0.3+i*0.5,0.18+H+0.33,Z0-0.1]} castShadow><cylinderGeometry args={[0.18,0.2,0.14,20]}/>{S(c)}</mesh>)}
     {/* balloons by the door */}
-    {([[-1.0,AC.peach,2.2],[-1.2,'#f2c230',2.45],[1.0,AC.band,2.3],[1.2,AC.sage,2.05]] as [number,string,number][]).map(([x,c,y],i)=>
+    {([[-1.0,AC.peach,2.2],[-1.2,AC.gold,2.45],[1.0,AC.band,2.3],[1.2,AC.sage,2.05]] as [number,string,number][]).map(([x,c,y],i)=>
       <group key={i} position={[x*1.55,0,fz+0.35]}>
         <mesh position-y={y} castShadow><sphereGeometry args={[0.2,16,14]}/>{S(c)}</mesh>
         <mesh position-y={(y-0.2)/2}><cylinderGeometry args={[0.008,0.008,y-0.2,4]}/>{S('#c9b8a6')}</mesh>

@@ -67,7 +67,7 @@ test('a journal page comes back at 30 and 90 days, once a day, and each answer t
  const R=await load('core/retro');const page=(id,holdingId,day,think='계약이 이어질 것 같아서')=>({id,holdingId,name:'SK하이닉스',day,saw:'',think,mood:''});
  const j=[page('a',1,'2026-10-01'),page('b',2,'2026-10-05'),page('c',1,'2026-10-20'),page('m',1,'2026-09-01',''/* mood only: nothing to reread */)];
  assert.equal(R.dueRetro(j,[],[1,2],'2026-10-30'),null,'29 days is not yet');
- let d=R.dueRetro(j,[],[1,2],'2026-10-31');assert.equal(d.entry.id,'a');assert.equal(d.mark,30);assert.equal(d.days,30);assert.equal(R.retroLine(d),'…30일 전에 이렇게 써놨더라.');
+ let d=R.dueRetro(j,[],[1,2],'2026-10-31');assert.equal(d.entry.id,'a');assert.equal(d.mark,30);assert.equal(d.days,30);assert.equal(R.retroLine(d),'30일 전에 이렇게 써놨더라.');
  assert.equal(R.dueRetro(j,[],[2],'2026-10-31'),null,'a removed tree is not brought back');
  let rs=R.answerRetro([],d,'half','  반쯤은 맞았어 ','2026-10-31');assert.deepEqual(rs[0],{entryId:'a',holdingId:1,mark:30,verdict:'half',reply:'반쯤은 맞았어',day:'2026-10-31'});
  assert.equal(R.dueRetro(j,rs,[1,2],'2026-10-31'),null,'one a day');

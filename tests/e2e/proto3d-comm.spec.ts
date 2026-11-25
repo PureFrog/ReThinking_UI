@@ -50,9 +50,8 @@ test("the communicator: balance, an answer in place, today's five, a coin order"
   const five = comm.getByRole("list", { name: "오늘 들어온 종목" }).getByRole("listitem");
   await expect(five).toHaveCount(5);
   await five.first().getByRole("button").click();
-  await expect(comm.getByRole("tab", { name: "매수" })).toHaveAttribute("aria-selected", "true");
-  const buy = comm.getByRole("button", { name: "전날 뉴스를 먼저 읽어요" });
-  await expect(buy).toBeDisabled();
+  // 피드백 11-25: the article is for reference only, buying does not wait for it
+  await expect(comm.getByRole("button", { name: /매수 주문 · 코인/ })).toBeEnabled();
   await comm.getByRole("button", { name: "기사 읽기" }).click();
   await comm.getByRole("button", { name: "한 주 더" }).click();
   await page.waitForTimeout(200);
@@ -64,15 +63,10 @@ test("the communicator: balance, an answer in place, today's five, a coin order"
   await comm.getByRole("navigation", { name: "아래 메뉴" }).getByRole("button", { name: "잔고" }).click();
   await expect(rows).toHaveCount(8);
   await expect(rows.filter({ hasText: "코인" })).toHaveCount(1);
+  // 피드백 11-25: no selling in the communicator (the farmer sells)
   await comm.getByRole("navigation", { name: "아래 메뉴" }).getByRole("button", { name: "주문" }).click();
-  await comm.getByRole("tab", { name: "매도" }).click();
-  await comm.getByRole("list", { name: "팔 수 있는 종목" }).getByRole("button").first().click();
-  await expect(comm.getByRole("button", { name: "수량을 골라요" })).toBeDisabled();
-  await comm.getByRole("slider", { name: "매도 수량" }).fill("1");
-  await comm.getByRole("button", { name: "매도 주문 · 1주" }).click();
-  await expect(comm).toHaveCount(0);
-  // the farmer walks to the tree and loads the cart
-  await expect(page.getByRole("status").filter({ hasText: "수레에 실었어요" })).toBeVisible({ timeout: 120_000 });
+  await expect(comm.getByRole("tab", { name: "매도" })).toHaveCount(0);
+  await expect(comm).toContainText("농부");
   expect(errors).toEqual([]);
 });
 

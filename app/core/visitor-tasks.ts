@@ -31,7 +31,7 @@ export const TASKS:Record<TaskId,Task>={
  watch:{spot:'far',pose:'stand',ms:3600,emote:'dots',line:'오늘도 열심이네.'},
  chase:{spot:'roam',pose:'hop',ms:1600,emote:'sparkle',line:'나비다!'},
  stretch:{spot:'here',pose:'stretch',ms:1800,emote:'note',line:'으음, 기지개!'},
- hide:{spot:'corner',pose:'hide',ms:7000,emote:'dots',line:'…여기 있을게.'},
+ hide:{spot:'corner',pose:'hide',ms:7000,emote:'dots',line:'여기 있을게.'},
  roam:{spot:'roam',pose:'hop',ms:900,emote:'note',line:'신난다!',hops:3},
  chat:{spot:'player',near:true,pose:'stand',ms:2600,emote:'note',line:'있잖아, 오늘은 뭐 했어?'},
  // rooms of 13.7-5: kitchen (floor 1), bedroom and study (floor 2)

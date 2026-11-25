@@ -20,6 +20,9 @@ export const MODELS={
   masterHouse:'/models/buildings/master_house.glb',
   // 오락실 (2026-11-24, a teammate's model; simplified 478k → 24k triangles, texture 1024, quantized: 15.7 MB → 0.6 MB)
   arcade:'/models/arcade/arcade.glb',
+  // 2026-11-25 (user): the four buildings (teammate's Tripo models), each simplified ~1M → ~29k triangles, texture 1024,
+  // quantized (gltf-transform: 30 MB → 0.7 MB). Front (door) faces +z, base at y 0, about 1 across.
+  building:{library:'/models/buildings/library.glb',home:'/models/buildings/home.glb',builder:'/models/buildings/builder_shop.glb',tailor:'/models/buildings/tailor_shop.glb'} as Record<'library'|'home'|'builder'|'tailor',string>,
 };
 export const ALL_TREE_FILES=[...GROWTHS.flatMap(g=>Array.from({length:TREE_VARIANTS},(_,v)=>MODELS.tree(g,v))),MODELS.stump];
 

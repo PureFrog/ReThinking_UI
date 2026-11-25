@@ -15,15 +15,14 @@ export type FriendTopic='grades'|'signal'|'chat';
 const pick=(list:string[],seed:string)=>{let h=2166136261;for(const c of seed)h=Math.imul(h^c.charCodeAt(0),16777619)>>>0;return list[h%list.length]};
 // 보리 (npc_personas v3 npc_bori): calm, warm 반말, one or two sentences, the point first and one question at a time;
 // opens on a small change instead of a set greeting; a signal goes name → what was seen → one question, never a verdict
-const hello=(hour:number)=>hour<11?'있잖아, 아침 공기가 차다.':hour<17?'있잖아,':hour<21?'있잖아, 해 지는 쪽 하늘 봤어?':'있잖아, 아직 안 잤구나.';
+// 피드백 11-25 "앞에 쓸데없는 이야기 빼줘 · 그냥 인사말": a plain hello by the time of day, then the point
+const hello=(hour:number)=>hour<11?'좋은 아침!':hour<17?'안녕!':hour<21?'왔구나!':'아직 안 잤구나!';
 
 // what 보리 says first, and what it is about (so the reply buttons fit); short is the bubble over its head
 export function friendOpener(c:FriendCtx,seed:string):{text:string;short:string;topic:FriendTopic}{
-  if(c.due>0)return {topic:'grades',short:`채점 ${c.due}개 나왔어`,text:`${hello(c.hour)} 30일 전에 적은 판단 ${c.due}개, 채점 나왔어. 같이 볼래?`};
-  if(c.signal)return {topic:'signal',short:`${c.signal.name} 같이 보자`,text:pick([
-    `잠깐, 이거 하나만 같이 보자. ${c.signal.name}에서 ${c.signal.analyst}가 신호를 짚었어. 지금도 갖고 있으려는 이유가 뭐야? 지금 바로 답 안 해도 돼.`,
-    `잠깐, 이거 하나만 같이 보자. ${c.signal.analyst} 노트에 ${c.signal.name} 얘기가 올라왔어. 네 생각이 제일 궁금해.`,
-  ],seed)};
+  // 피드백 11-25 "보리는 수다·말 걸기만, 신호가 오면 먼저 다가가서 물어봐": no grades talk (they are the librarian's); a
+  // signal is asked about straight out
+  if(c.signal)return {topic:'signal',short:`${c.signal.name} 위험 신호`,text:`${c.signal.name}에 위험 신호가 잡혔어. 이거 가지고 있는 이유가 뭐야?`};
   return {topic:'chat',short:pick(['있잖아,','왔구나.','여기 좀 봐'],seed),text:pick([
     `${hello(c.hour)} 오늘은 바람이 밭 쪽으로 불었어. 관측 수첩에 적어 뒀어.`,
     `${hello(c.hour)} 아까 연못에서 개구리랑 눈 마주쳤어. …그냥 그랬다고.`,
@@ -34,17 +33,10 @@ export function friendOpener(c:FriendCtx,seed:string):{text:string;short:string;
 export type FriendReply={label:string;answer:string;go?:'grades'|'journal'|'case'|null};
 export function friendReplies(topic:FriendTopic,seed:string):FriendReply[]{
   const small=pick(['오늘은 구름이 낮게 깔렸어. 관측 수첩에 적어 뒀어.','루온은 반대만 하는데, 가끔 맞아서 얄미워.','광장 벤치에서 루온이 혼자 체스 두고 있더라.','저녁엔 언덕에서 마을 불빛 세는 게 좋아.'],seed);
-  if(topic==='grades')return [
-    {label:'응, 보여줘',answer:'응, 같이 보자.',go:'grades'},
-    {label:'이따 볼게',answer:'응, 괜찮아. 생각나면 그때 봐.',go:null},
-    {label:'그냥 수다',answer:small,go:null}];
   if(topic==='signal')return [
     {label:'근거가 뭔데?',answer:'근거는 그 분석가 노트에 있어. 더 따져 보고 싶으면 광장에 루온 있어.',go:null},
-    {label:'나중에 답할게',answer:'응, 괜찮아. 생각나면 그때 말해 줘.',go:null},
-    {label:'그냥 수다',answer:small,go:null}];
-  return [
-    {label:'뭐 할까?',answer:'케이스 하나 같이 볼래? 30초면 돼.',go:'case'},
-    {label:'수다 떨자',answer:small,go:null}];
+    {label:'나중에 답할게',answer:'응, 생각나면 그때 말해 줘.',go:null}];
+  return [{label:'수다 떨자',answer:small,go:null}];
 }
 
 // Free talk with 보리 through the LLM (db/functions/friend-chat, OpenAI). The prompt is built here so the server and the

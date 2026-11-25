@@ -8,9 +8,10 @@ const F=await load('core/friend');
 const base={hour:14,due:0,signal:null,holdings:['한빛전자']};
 const BANNED=/팔아|사 둬|사라|매수|매도|오를 거|내릴 거|오른다|떨어진다/;
 
-test('grades come first, then a signal, then small talk', () => {
-  assert.equal(F.friendOpener({...base,due:2},'d').topic,'grades');
-  assert.match(F.friendOpener({...base,due:2},'d').text,/2개/);
+// 피드백 11-25: 보리 no longer brings the grades (the librarian has them); a signal is asked about, otherwise small talk
+test('a signal is asked about first, otherwise small talk (no grades talk)', () => {
+  assert.equal(F.friendOpener({...base,due:2},'d').topic,'chat');
+  assert.match(F.friendOpener({...base,signal:{name:'카카오',analyst:'모아'}},'d').text,/위험 신호.*가지고 있는 이유/);
   assert.equal(F.friendOpener({...base,signal:{name:'카카오',analyst:'모아'}},'d').topic,'signal');
   assert.equal(F.friendOpener(base,'d').topic,'chat');
 });

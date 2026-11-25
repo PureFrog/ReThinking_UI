@@ -50,9 +50,9 @@ export function Communicator({cands,day,coins,room,onBuy,onClose}:{cands:Cand[];
   const [pick,setPick]=useState<string|null>(null),[read,setRead]=useState<string[]>([]),[qty,setQty]=useState(1),[msg,setMsg]=useState<string|null>(null);
   const c=cands.find(x=>x.code===pick)??null,news=c?dayBeforeArticle(c,day):null,cost=c?.price!=null?c.price*qty:0;
   return <Sheet kicker="상인의 통신기" title={pick&&c?c.name:'오늘 들어온 종목 5'} label="상인의 통신기" onClose={onClose}
-    foot={c&&<button type="button" className="rt-btn primary wide" disabled={!read.includes(c.code)||cost>coins||room<=0}
+    foot={c&&<button type="button" className="rt-btn primary wide" disabled={cost>coins||room<=0}
       onClick={()=>{const r=onBuy(c.code,qty);setMsg(r)}}>
-      {room<=0?'가상 밭에 빈칸이 없어요':!read.includes(c.code)?'전날 뉴스를 먼저 읽어요':cost>coins?`코인 ${won(cost-coins)} 부족`:`주문 확인 · 코인 ${won(cost)}`}</button>}>
+      {room<=0?'가상 밭에 빈칸이 없어요':cost>coins?`코인 ${won(cost-coins)} 부족`:`주문 확인 · 코인 ${won(cost)}`}</button>}>
     <p className="rt-hint">매일 실제 종목 다섯 개가 들어와요. 같은 날엔 같은 다섯 개예요. 가상 종목은 게임 코인으로 사고, 값은 실제 종목 등락률을 따라가요. 실제 종목 밭은 기록만 하니까, 사고팔기는 여기서 해 봐요.</p>
     {msg&&<p className="vs-msg" role="status">{msg}</p>}
     {!c?<ul className="vs-list vl-cands">{cands.map(x=><li key={x.code} className="vs-row">
@@ -62,7 +62,7 @@ export function Communicator({cands,day,coins,room,onBuy,onClose}:{cands:Cand[];
     :<div className="vl-cand-detail">
       <button type="button" className="rt-btn ghost" onClick={()=>setPick(null)}>← 다섯 종목으로</button>
       <article className="vl-news" data-read={read.includes(c.code)}>
-        <span className="vl-news-k">전날 뉴스 · {news!.theme} · 예시 기사</span>
+        <span className="vl-news-k">참고용 · 전날 뉴스 · {news!.theme} · 예시 기사</span>
         <h3>{news!.title}</h3><small>{news!.day.replaceAll('-','.')} · {c.name}</small>
         {!read.includes(c.code)&&<button type="button" className="rt-btn" onClick={()=>setRead(r=>[...r,c.code])}>기사 읽기</button>}
         {/* RSS gives the publisher's short excerpt, not the body (사용자 2026-11-22): that is what 기사 읽기 opens */}

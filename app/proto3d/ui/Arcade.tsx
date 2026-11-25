@@ -32,12 +32,12 @@ const LIT=(c:string,map?:THREE.Texture,k=T.lift??0)=>k>0?<meshLambertMaterial co
 
 // a cabinet's screen: its title drawn on a canvas, lit when it runs a game
 function screenTex(c:Cab){
-  const cv=document.createElement('canvas');cv.width=256;cv.height=200;const g=cv.getContext('2d')!;
-  const paint=()=>{const gr=g.createLinearGradient(0,0,0,200);gr.addColorStop(0,c.open?'#fff3d6':'#f5efe4');gr.addColorStop(1,c.open?'#ffd0dc':'#e6ddd0');g.fillStyle=gr;g.fillRect(0,0,256,200);
+  const cv=document.createElement('canvas');cv.width=256;cv.height=148;const g=cv.getContext('2d')!;
+  const paint=()=>{const gr=g.createLinearGradient(0,0,0,148);gr.addColorStop(0,c.open?'#fff3d6':'#f5efe4');gr.addColorStop(1,c.open?'#ffd0dc':'#e6ddd0');g.fillStyle=gr;g.fillRect(0,0,256,148);
   g.fillStyle='#2a2620';g.textAlign='center';g.textBaseline='middle';
-  if(c.open){g.font='64px sans-serif';g.fillText('🥷',128,70)}
-  g.font=`bold ${c.title.length>5?30:36}px "Jua","Gowun Dodum",sans-serif`;g.fillText(c.title,128,c.open?140:90);
-  g.font='20px "Gowun Dodum",sans-serif';g.fillStyle='#6f6656';g.fillText(c.sub,128,c.open?176:130)};
+  if(c.open){g.font='46px sans-serif';g.fillText('🥷',128,40)}
+  g.font=`bold ${c.title.length>5?30:36}px "Jua","Gowun Dodum",sans-serif`;g.fillText(c.title,128,c.open?92:60);
+  g.font='20px "Gowun Dodum",sans-serif';g.fillStyle='#6f6656';g.fillText(c.sub,128,c.open?126:102)};
   paint();const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;
   whenFont(`bold 36px "Jua"`,c.title,()=>{paint();t.needsUpdate=true});whenFont('20px "Gowun Dodum"',c.sub,()=>{paint();t.needsUpdate=true});
   return t;
@@ -50,15 +50,17 @@ function Cabinet({c,onPick}:{c:Cab;onPick:()=>void}){
     <mesh position-y={0.75} castShadow receiveShadow><boxGeometry args={[1.1,1.5,0.8]}/>{S(c.body)}</mesh>
     {/* the top with the screen leaning back, the marquee over it */}
     <mesh position={[0,1.85,-0.08]} castShadow><boxGeometry args={[1.1,0.75,0.64]}/>{S(c.body)}</mesh>
-    <mesh position={[0,1.86,0.25]} rotation-x={-0.18}><planeGeometry args={[0.9,0.7]}/><meshBasicMaterial ref={glow} map={tex} toneMapped={false}/></mesh>
+    {/* 피드백 11-25 "글씨 왜 가려져": the screen stands flat on the cabinet's face (leaning back it sank into the top box)
+        and above the stick */}
+    <mesh position={[0,1.95,0.245]}><planeGeometry args={[0.9,0.52]}/><meshBasicMaterial ref={glow} map={tex} toneMapped={false}/></mesh>
     <mesh position={[0,2.36,0.02]} castShadow><boxGeometry args={[1.18,0.26,0.78]}/>{S(c.trim)}</mesh>
     {/* the control panel: a stick and three buttons */}
     <mesh position={[0,1.42,0.5]} rotation-x={0.35} castShadow><boxGeometry args={[1.1,0.1,0.45]}/>{S(c.trim)}</mesh>
-    <mesh position={[-0.28,1.55,0.52]}><cylinderGeometry args={[0.03,0.03,0.18,8]}/>{S('#5c5447')}</mesh>
-    <mesh position={[-0.28,1.65,0.52]}><sphereGeometry args={[0.07,12,10]}/>{S('#e8705f')}</mesh>
+    <mesh position={[-0.28,1.52,0.52]}><cylinderGeometry args={[0.03,0.03,0.14,8]}/>{S('#5c5447')}</mesh>
+    <mesh position={[-0.28,1.6,0.52]}><sphereGeometry args={[0.065,12,10]}/>{S('#e8705f')}</mesh>
     {['#e8705f','#6fa8dc','#f2c230'].map((col,i)=><mesh key={col} position={[0.06+i*0.17,1.5,0.54]}><cylinderGeometry args={[0.055,0.055,0.04,14]}/>{S(col)}</mesh>)}
     {/* a cover on the ones not in yet */}
-    {!c.open&&<mesh position={[0,1.86,0.27]} rotation-x={-0.18}><planeGeometry args={[0.95,0.75]}/><meshStandardMaterial color="#fffaf0" transparent opacity={0.25}/></mesh>}
+    {!c.open&&<mesh position={[0,1.95,0.25]}><planeGeometry args={[0.9,0.52]}/><meshStandardMaterial color="#fffaf0" transparent opacity={0.25}/></mesh>}
     <mesh position-y={1.2} visible={false}><boxGeometry args={[1.3,2.6,1.4]}/></mesh>
   </group>;
 }

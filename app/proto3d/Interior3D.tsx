@@ -59,7 +59,7 @@ function RoomCam(){
   // (the room's far left) stays in the picture with the shelf and the door
   const tall=size.width<size.height,dist=I().camDist*(tall?I().tallDist:1),tx=tall?I().tallX:0;
   useMemo(()=>{const c=camera as THREE.PerspectiveCamera;c.clearViewOffset();c.fov=fr.fov;c.updateProjectionMatrix();
-    c.position.set(tx,1+Math.cos(I().camPitch)*dist,-0.4+Math.sin(I().camPitch)*dist);c.lookAt(tx,1,-0.4)},[camera,dist,fr.fov,tx]);
+    c.up.set(0,1,0);c.position.set(tx,1+Math.cos(I().camPitch)*dist,-0.4+Math.sin(I().camPitch)*dist);c.lookAt(tx,1,-0.4)},[camera,dist,fr.fov,tx]);
   return <OrbitControls makeDefault enablePan={false} enableDamping dampingFactor={0.12} target={[tx,1,-0.4]}
     minAzimuthAngle={-0.55} maxAzimuthAngle={0.55} minPolarAngle={0.55} maxPolarAngle={1.25} minDistance={dist*0.6} maxDistance={dist*1.15}/>;
 }
@@ -104,20 +104,23 @@ export function Interior({books,notes,resting,decor,onDesk,onShelf,onBoard,onDoo
       <mesh position={[0,0.82,1.15]} castShadow><boxGeometry args={[0.6,0.6,0.06]}/>{S(I().woodDark)}</mesh>
       <mesh position-y={0.8} visible={false}><boxGeometry args={[2.4,1.7,1.4]}/></mesh>
     </group>
-    {/* bookshelf: a book per judgment */}
+    {/* 피드백 11-25: the wardrobe (where the bookshelf stood): two doors, round knobs, a straw hat on top. The journal and
+        its books are the librarian's now; a tap here opens the clothes */}
     <group position={[ROOM_SPOTS.shelf.x,0,ROOM_SPOTS.shelf.z]} onClick={click(onShelf)} name="room-shelf">
-      <mesh position={[0,1.3,-0.24]} castShadow receiveShadow><boxGeometry args={[2.1,2.6,0.06]}/>{S(I().woodDark)}</mesh>
-      {[-1.02,1.02].map(x=><mesh key={x} position={[x,1.3,0]} castShadow><boxGeometry args={[0.06,2.6,0.52]}/>{S(I().wood)}</mesh>)}
-      {[0.28,1.06,1.84,2.58].map(y=><mesh key={y} position={[0,y,0]} castShadow receiveShadow><boxGeometry args={[2.04,0.05,0.52]}/>{S(I().wood)}</mesh>)}
-      <Books books={books}/>
-      <mesh position-y={1.3} visible={false}><boxGeometry args={[2.2,2.7,0.8]}/></mesh>
+      {[-0.66,0.66].map(x=><mesh key={'l'+x} position={[x,0.07,0.05]} castShadow><boxGeometry args={[0.12,0.14,0.12]}/>{S(I().woodDark)}</mesh>)}
+      <mesh position={[0,1.22,-0.02]} castShadow receiveShadow><boxGeometry args={[1.6,2.16,0.58]}/>{S(I().wood)}</mesh>
+      <mesh position={[0,2.34,0]} castShadow><boxGeometry args={[1.74,0.12,0.66]}/>{S(I().woodDark)}</mesh>
+      {[-0.39,0.39].map(x=><mesh key={'d'+x} position={[x,1.24,0.275]} castShadow><boxGeometry args={[0.74,1.96,0.04]}/>{S('#e8c79a')}</mesh>)}
+      {[-0.39,0.39].map(x=><mesh key={'p'+x} position={[x,1.62,0.3]}><boxGeometry args={[0.52,0.7,0.02]}/>{S('#f2d8b0')}</mesh>)}
+      {[-0.39,0.39].map(x=><mesh key={'q'+x} position={[x,0.78,0.3]}><boxGeometry args={[0.52,0.62,0.02]}/>{S('#f2d8b0')}</mesh>)}
+      {[-0.07,0.07].map(x=><mesh key={'k'+x} position={[x,1.24,0.32]}><sphereGeometry args={[0.045,12,10]}/>{S('#c99a3e')}</mesh>)}
+      <group position={[0.35,2.46,0.02]}>
+        <mesh castShadow><cylinderGeometry args={[0.36,0.36,0.03,24]}/>{S('#f1dca0')}</mesh>
+        <mesh position-y={0.09} castShadow><cylinderGeometry args={[0.17,0.19,0.17,20]}/>{S('#f1dca0')}</mesh>
+        <mesh position-y={0.04}><cylinderGeometry args={[0.195,0.195,0.05,20]}/>{S('#e8b04a')}</mesh></group>
+      <mesh position-y={1.3} visible={false}><boxGeometry args={[1.8,2.7,0.8]}/></mesh>
     </group>
-    {/* cork board: a note per buried capsule */}
-    <group position={[ROOM_SPOTS.board.x,2.05,ROOM_SPOTS.board.z+0.02]} onClick={click(onBoard)} name="room-board">
-      <mesh castShadow><boxGeometry args={[2,1.2,0.05]}/>{S(I().trim)}</mesh>
-      <mesh position-z={0.03}><planeGeometry args={[1.86,1.06]}/>{S(I().cork)}</mesh>
-      <group position-z={0.04}><Notes notes={notes}/></group>
-    </group>
+    {/* 피드백 11-25: the cork board of grades is gone from the room (they are seen at the librarian's) */}
     {/* the door out, warm light round it */}
     <group position={[ROOM_SPOTS.door.x,0,ROOM_SPOTS.door.z]} rotation-y={Math.PI/2} onClick={click(onDoor)} name="room-door">
       <mesh position-y={1.05}><boxGeometry args={[1.1,2.1,0.06]}/>{S('#7a3f2c')}</mesh>

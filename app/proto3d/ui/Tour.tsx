@@ -24,7 +24,7 @@ export function tourSteps(o:{journal:number;grant:number;firstTree:string|null})
     {id:'quests',at:'none',line:'오늘 할 일은 왼쪽 위 날씨 밑 "오늘 퀘스트"에 떠. 오늘의 퀴즈, 일지 한 편, 낚시 한 번을 다 하면 코인을 더 줘. 제목을 누르면 접었다 펼 수 있어.'},
     {id:'pond',at:'pond',line:'여기가 낚시터야. 나루랑 낚시할 수 있어. 하루 세 번, 잡은 물고기만큼 코인이 들어와.'},
     {id:'plaza',at:'plaza',line:'광장에 가면 다른 사람들 마을을 구경할 수 있어.'},
-    {id:'wear',at:'player',line:'옷이랑 꾸미기는 상점에서 사고, 너를 누르면 갈아입을 수 있어. 물건에 마우스를 올리면 뭔지 알려 줄게.'},
+    {id:'wear',at:'player',line:'옷이랑 꾸미기는 상점에서 사고, 옷은 집 옷장에서 갈아입어. 물건에 마우스를 올리면 뭔지 알려 줄게.'},
     {id:'end',at:'none',line:'이제 마음대로 다녀. 내일부터는 집에서 오늘의 퀴즈를 풀고 나오면 돼. 레벨이 오르면 서랍 속 사건철도 열려.'},
   ];
 }

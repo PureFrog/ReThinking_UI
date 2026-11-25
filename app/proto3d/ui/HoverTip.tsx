@@ -15,7 +15,6 @@ export function hoverWords(name:string,tree:(id:number)=>{name:string;virtual?:b
   if(name==='shop-builder')return {title:'건물 상점',sub:'꽃·나무·건물 사기'};
   if(name==='shop-tailor')return {title:'옷 가게',sub:'옷 사기'};
   if(name==='shop-librarian')return {title:'도서관',sub:'사서한테 투자일지 쓰기'};
-  if(name==='player')return {title:'나',sub:'눌러서 옷을 갈아입어요'};
   if(name==='bridge')return {title:'다리',sub:'건너면 연못과 광장이에요'};
   if(name.startsWith('decor-'))return {title:'꾸미기',sub:'상점에서 산 소품이에요'};
   const t=/^tree-(\d+)$/.exec(name);

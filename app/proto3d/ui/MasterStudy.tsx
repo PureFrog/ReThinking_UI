@@ -112,7 +112,7 @@ function FlyingBook({id,t0,dir}:{id:string;t0:number;dir:'out'|'back'}){
 // Buffett in his armchair (plain shapes; his head turns to me while we talk, nods once after a book is finished)
 // Buffett in his armchair: the village's figure (Explorer3D) in his own kit (RoleKit master: navy suit, red tie, white
 // hair, round glasses), sat on the cushion; he turns to me while we talk and nods once after a book is finished
-const MASTER_LOOK:Look={coat:'coat_knit',hat:null,bag:null,tool:null,palette:'ink'};
+const MASTER_LOOK:Look={coat:'coat_vest',hat:null,bag:null,tool:null,palette:'ink'};
 function Buffett({look,nod,onTalk,hover,setHover,bubble}:{look:boolean;nod:number;onTalk:()=>void;hover:boolean;setHover:(b:boolean)=>void;bubble:string|null}){
   const B=L().buffett,c=L().color,fig=useRef<THREE.Group>(null);
   const m=useMemo(()=>({chair:soft(c.chair),chairDark:soft(c.chairDark),leg:soft('#3a2a22'),suit:soft(c.suit)}),[c]);

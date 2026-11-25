@@ -54,7 +54,9 @@ export function FriendSheet({opener,topic,seed,onGo,onClose,talk,opening,onFace,
     :picking?[...stocks.slice(0,8).map(x=>({label:x.name,stock:x.id})),{label:'다음에',leave:true}]
     :who&&talk?[...mine0,{label:'말 걸기',talk:true}]
     :who?[{label:'수다 떨자',answer:who.smalls[(seed+who.id).length%who.smalls.length]},...mine0]
-    :[...friendReplies(topic,seed).filter(r=>r.go!=='case').map(r=>({label:r.label,answer:r.answer,go:r.go})),...mine0,...(talk?[{label:'말 걸기',talk:true}]:[])];
+    // 피드백 11-25 "보리는 그냥 수다, 말 걸기만": small talk and free talk; on a signal, tell why I hold it (or later)
+    :topic==='signal'?[...(talk?[{label:'얘기해 줄게',talk:true}]:friendReplies(topic,seed).slice(0,1).map(r=>({label:r.label,answer:r.answer,go:r.go}))),{label:'나중에',leave:true}]
+    :[...friendReplies('chat',seed).map(r=>({label:r.label,answer:r.answer,go:r.go})),...(talk?[{label:'말 걸기',talk:true}]:[])];
   const pick=(c:Choice)=>{setMine(c.label);
     if(c.stocks){setPicking(true);say(who?'어느 나무 얘기 할래?':'어떤 종목? 골라 봐.','curious');return}
     // 토론 캐릭터: the stock picked opens the talk box about it (no tree walk)
