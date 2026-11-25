@@ -35,7 +35,7 @@ import {rowFor} from '../core/model-signals';
 import {loadModelSignals,fixtureModelSignals,type ModelSignalFixture} from './model-signals';
 import {RealEntry,type RealPrices} from './ui/RealEntry';
 import {refreshed} from '../core/real';
-import {codeOf,bars,isReal,KOSDAQ_STOCKS} from '../core/jigi/stocks';
+import {codeOf,bars,isReal,KOSDAQ_STOCKS,setOwnCodes} from '../core/jigi/stocks';
 import {saveRepo,openedAt,markLocal} from './sync';
 import {syncPlan,SYNC} from '../core/sync';
 import type {GardenSave} from './state';
@@ -392,6 +392,8 @@ export default function Proto3D(){
   const lapseMarket=lapse&&lapseBack>0?marketProvider.today(lapseDay):null;
   const weather=expedition&&gameMarket!==null?weatherOf({index:gameMarket,swing:Math.abs(gameMarket)*1.6}):lapseMarket?weatherOf(lapseMarket):w?.weather??'clear',wl=LOOK.weather[weather];
   const holdings=g.s.holdings,ready=g.s.onboarded;
+  // the journal's stock search also finds my own trees (core/jigi/stocks.ts setOwnCodes)
+  useEffect(()=>{setOwnCodes(holdings.map(h=>codeOf(h)))},[holdings]);
   const [pricesAt,setPricesAt]=useState(0);
   const realKey=holdings.filter(h=>h.real&&h.code).map(h=>h.code).join(',');
   // load the bars of the trees on real prices, then bring their return up to the latest close
@@ -492,7 +494,11 @@ export default function Proto3D(){
   // nothing flagged in the new garden: no look-back to show
   useEffect(()=>{if(sheet?.kind==='lookback'&&!lookSig)setSheet(null)},[sheet,lookSig]);
   // sound (core/sound.ts, synthesised): on unless the player turned it off; the browser lets it start on the first press
-  useEffect(()=>{configure({...DEFAULT_SOUND,on:s.sound,sfx:s.settings.sfx})},[s.sound,s.settings.sfx]);
+  useEffect(()=>{configure({...DEFAULT_SOUND,on:s.sound,sfx:s.settings.sfx});if(s.sound)unlock()},[s.sound,s.settings.sfx]);
+  // the browser keeps a page silent until it is pressed: the first press (and any after the sound comes back on) wakes the
+  // audio (core/sound.ts unlock). Without this the 3D garden never made a sound, and 소리 끄기 had nothing to turn off.
+  useEffect(()=>{const wake=()=>unlock();addEventListener('pointerdown',wake,true);addEventListener('keydown',wake,true);
+    return()=>{removeEventListener('pointerdown',wake,true);removeEventListener('keydown',wake,true)}},[]);
   // the settings that every screen follows: keeping still, the text size
   useEffect(()=>{const d=document.documentElement.dataset;d.still=s.settings.still?'1':'0';d.text=s.settings.text},[s.settings.still,s.settings.text]);
   // a run of days that was rescued or lost is said once, as the garden opens
@@ -531,7 +537,7 @@ export default function Proto3D(){
   const [tourNear,setTourNear]=useState(false);
   useEffect(()=>{setTourNear(false);if(!tourShow||!(tourStep.at==='tori'||tourStep.at==='moa'||tourStep.at==='luon'))return;
     const t=setTimeout(()=>setTourNear(true),TIMING.tourZoom);return()=>clearTimeout(t)},[tourShow,tourStep.id]);// eslint-disable-line react-hooks/exhaustive-deps
-  const tip=!tutOn&&!tourOn&&ready&&!quiet&&!inside&&!sheet&&picked===null&&!g.due.length&&!letterWaiting&&!capFx&&!jump&&!buildMode?nextTip(s.tips,{judgments:s.judgments.length,oldestDays:oldest}):null;
+  const tip=!tutOn&&!tourOn&&!walkOn&&ready&&!quiet&&!inside&&!sheet&&picked===null&&!g.due.length&&!letterWaiting&&!capFx&&!jump&&!buildMode?nextTip(s.tips,{judgments:s.judgments.length,oldestDays:oldest}):null;
   // the one next step on the home screen (core/next.ts)
   const firstOpen=open[0],firstHolding=firstOpen?holdings.find(x=>x.id===firstOpen.holdingId):undefined;
   const next=nextStep({due:g.due.length,signal:firstOpen&&firstHolding?{id:firstOpen.id,name:firstHolding.name,analyst:firstOpen.analyst,headline:firstOpen.headline}:null,
@@ -798,8 +804,9 @@ export default function Proto3D(){
         choices:[{label:first?'코인 받고 통신기 보기':'통신기 받기',go:()=>{if(first)g.ops.grant('tour',START_GRANT);setVt(null);setSheet({kind:'comm',tab:'order'})}},...(walkStep?[]:[leave])]};
     }
     if(t.id==='librarian'){const fs=freeLot?{code:freeLot.code,name:freeLot.name}:holdings[0]?{code:codeOf(holdings[0]),name:holdings[0].name}:null;
-      return {name:'사서',line:walkStep==='librarian'?`어서 와. 아까 심은 나무${fs?` ${fs.name}`:''} 이름을 찾아볼까? 왜 심었는지 한 줄 써 보자. 천천히 해도 돼.`:'어서 와. 책은 그대로 있었어. 종목 색인부터 펼쳐 볼까?',
-        choices:[{label:'일지 펼치기',go:()=>{if(walkStep==='librarian')afterSheet.current='librarian';setSheet({kind:'journal'})}},...(walkStep==='librarian'?[]:[leave])]};
+      return {name:'사서',line:walkStep==='librarian'?`어서 와. 아까 심은 ${fs?`${fs.name} 나무`:'나무'}, 왜 심었는지 한 줄 써 보자. 천천히 해도 돼.`:'어서 와. 책은 그대로 있었어. 종목 색인부터 펼쳐 볼까?',
+        choices:[{label:'일지 펼치기',go:()=>{if(walkStep==='librarian')afterSheet.current='librarian';// the first walk opens that tree's page, where today's journal starts with it
+          setSheet(walkStep==='librarian'&&fs?{kind:'journal',stock:fs.code}:{kind:'journal'})}},...(walkStep==='librarian'?[]:[leave])]};
     }
     if(t.id==='paperboy'){
       if(walkStep==='news')return {name:'신문 배달',line:'어, 너구나! 잠깐만, 짠! 네가 가진 종목 소식을 모아 왔어. 표지판에 꽂아 뒀어. 궁금한 주제를 하나 짚어 볼래?',
@@ -819,8 +826,8 @@ export default function Proto3D(){
   // the square: 보리 starts the first walk as soon as I come out of the door
   useEffect(()=>{if(squareOn&&!vt)setVt({id:'bori',phase:'talk',stand:meNow(),at:meNow()})},[squareOn]);// eslint-disable-line react-hooks/exhaustive-deps
   // the introductions on the square (above): who each is and what they do here
-  // 피드백 2026-11-21: right after the room (the teacher's lesson), the introductions start by themselves after 보리's line
-  useEffect(()=>{if(!(walkStep==='square'&&where==='village'&&meet===null&&vt?.id==='bori'&&vt.stage!=='end'))return;const t=setTimeout(()=>startStations(),TIMING.meetLead);return()=>clearTimeout(t)},[walkStep,where,meet,vt]);// eslint-disable-line react-hooks/exhaustive-deps
+  // (2026-11-25) 보리's square talk waits for 가 보자: it used to close by itself after TIMING.meetLead, a leftover from the
+  // introductions round (gone since 2026-11-22), so a slow reader lost the first line of the walk
   const naruPick=()=>{if(fish)return;if(meet!==null){if(MEET[meet]==='naru')goMeet();else meetHint();return}if(walkOn&&!mayTalk(walk,'naru')){walkHint();return}setPicked(null);setSheet(null);setGoTo({...FISH_STAND,at:Date.now()});setFish('talk')};
   const meetOf=(t:Talk)=>t.stage!=='meet'?null:{name:meetName(t.id),
     line:INTRO[t.id]+(t.id==='merchant'&&!merchantOpen?` 지금은 자리에 없어. ${nextOpenLabel(minutes)}에 와.`:''),
@@ -937,7 +944,7 @@ export default function Proto3D(){
   const qNotice=qWaiting&&s.onboarded&&s.observatory?.noticed!==qDay;
   // the notice sits just above the next-task card (its height changes with its text), never on top of it
   // the same moments as the next-task card: not inside the house, not while building, not over a capsule or a jump
-  const showReq=ready&&!quiet&&qNotice&&!sheet&&!picked&&!inside&&!capFx&&!jump&&!buildMode&&h===undefined,[reqBottom,setReqBottom]=useState<number|null>(null);
+  const showReq=ready&&!quiet&&!walkOn&&qNotice&&!sheet&&!picked&&!inside&&!capFx&&!jump&&!buildMode&&h===undefined,[reqBottom,setReqBottom]=useState<number|null>(null);
   useEffect(()=>{if(!showReq)return;
     const f=()=>{const host=document.querySelector('.proto3d'),n=host?.querySelector('.rt-next');
       if(!host||!n){setReqBottom(null);return}const hr=host.getBoundingClientRect(),r=n.getBoundingClientRect();
@@ -1137,7 +1144,7 @@ export default function Proto3D(){
         onBuy={(code,n)=>{const r=g.ops.buyVirtual(code,n);if(r.ok){cue('capsule-mark');return null}return r.why==='coins'?`코인이 ${won(r.need??0)} 모자라요`:r.why==='room'?'과수원에 빈 자리가 없어요':'지금은 살 수 없어요'}}
         onSell={(id,n)=>{const gain=g.ops.sellVirtual(id,n);if(gain!==null)cue(gain>=0?'grade-hit':'grade-miss')}}/>}
       {sheet?.kind==='cart'&&<FlowerShop coins={s.currency} plants={s.plants??[]} onClose={close} onGoods={()=>setSheet({kind:'goods'})}
-        onRemove={id=>g.ops.unplant(id)} onPick={id=>{setSheet(null);setPicked(null);setPlanting({item:id})}}
+        onRemove={id=>g.ops.unplant(id)} onPick={id=>{setSheet(null);setPicked(null);setPlacing(null);setVt(null);if(shop){swapShop(null);setTimeout(()=>setPlanting({item:id}),TIMING.roomFade+120)}else setPlanting({item:id})}}
         built={built} onBuilding={id=>{setSheet(null);setPicked(null);setPlanting(null);setVt(null);if(shop){swapShop(null);setTimeout(()=>setPlacing({id}),TIMING.roomFade+120)}else setPlacing({id})}}/>}
       {sheet?.kind==='goods'&&<CartView g={g} onClose={()=>setSheet({kind:'cart'})}/>}
       {fish==='talk'&&!sheet&&<NaruTalk intro={walkOn&&walkStep==='fisher'&&!introduced.includes('naru')} left={castsLeft(s.fishing,clock.today,master)} onFish={()=>setFish('play')} onLog={()=>setFish('log')} onClose={()=>setFish(null)}/>}

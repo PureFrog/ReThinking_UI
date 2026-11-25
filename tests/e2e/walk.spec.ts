@@ -14,7 +14,7 @@ const say = async (p: Page, choice: string) => { await talk(p).getByRole("button
 // a tap on the person's name tag (the far ones are off screen: the same tap through the page's hook)
 const IDS: Record<string, string> = { 농부: "farmer", 상인: "merchant", 사서: "librarian", "신문 배달": "paperboy", "건물 상인": "builder", "옷 상인": "tailor" };
 const go = async (p: Page, who: string) => {
-  const tag = p.getByRole("button", { name: `${who}에게 말 걸기` });
+  const tag = p.locator(`.vl-npc-tag[data-npc=${IDS[who]}]`);// (by its id: "상인" is also in 건물 상인, 옷 상인)
   if (await tag.isVisible() && await tag.evaluate(el => { const r = el.getBoundingClientRect(); return r.left > 0 && r.top > 0 && r.right < innerWidth && r.bottom < innerHeight })) await tag.click({ force: true, timeout: 5_000 }).catch(() => p.evaluate(id => (window as unknown as { __proto3d: { meet: (id: string) => void } }).__proto3d.meet(id), IDS[who]));
   else await p.evaluate(id => (window as unknown as { __proto3d: { meet: (id: string) => void } }).__proto3d.meet(id), IDS[who]);
 };
@@ -46,35 +46,11 @@ test("the first walk: entry → room lesson → the village's people one by one"
   await page.getByRole("button", { name: "밖으로 나가기" }).click();
   await expect(page.getByTestId("proto3d")).toHaveAttribute("data-place", "village");
   // the square: 보리 shows the way; my tree is not planted yet
-  await expect(talk(page)).toContainText("빛나는 길을 따라");
+  await expect(talk(page)).toContainText("만날 친구한테 빛을 비춰 줄게");// 보리's line since 06f4222 (content/villagers.ts square)
   expect((await hk(page)).walk?.planted).toBe(false);
-  // 보리 introduces each one: the camera comes down to the eye in front of them, they say who they are
-  // 피드백 2026-11-22 (튜토리얼 느낌): nobody walks me. The one to meet is lit (light, ring, a bold trail, the rest dimmed),
-  // I go there myself (here: a tap on them), and the talk opens when I am there, from my eyes
-  const SHOPS = ["librarian", "builder", "tailor"];
-  // 유저 워크플로우 (2026-11-23): only its people, in its order (no analysts)
-  const MEET_IDS = ["farmer", "merchant", "librarian", "paperboy", "naru", "builder", "tailor"];
-  for (const [i, who] of ["농부", "상인", "사서", "신문 배달", "나루", "건물 상인", "옷 상인"].entries()) {
-    await expect.poll(async () => (await hk(page) as { walk?: { lead?: unknown } }).walk?.lead, { timeout: 20_000 }).toBeTruthy();
-    await expect(page.locator(".vl-guide")).toContainText(who);
-    if (i === 0) {
-      const at = (await hk(page) as { player?: { x: number; z: number } }).player;
-      await page.waitForTimeout(2000);
-      const now = (await hk(page) as { player?: { x: number; z: number } }).player;
-      expect(Math.hypot((now?.x ?? 0) - (at?.x ?? 0), (now?.z ?? 0) - (at?.z ?? 0))).toBeLessThan(0.3);
-      expect((await hk(page)).walk?.talk).toBeNull();
-      await page.screenshot({ path: info.outputPath("1a-lead-tori.png") });
-    }
-    await page.evaluate(id => (window as unknown as { __proto3d: { meet: (id: string) => void } }).__proto3d.meet(id), MEET_IDS[i]);
-    await expect(page.locator(".vl-villager .rt-talk-name")).toContainText(who, { timeout: 40_000 });
-    await expect(page.locator(".vl-villager .rt-talk-role")).not.toBeEmpty();
-    // 27장: the shops and the librarian are met inside their own building (3인칭), the rest from my eyes
-    if (SHOPS.includes(MEET_IDS[i])) await expect.poll(async () => (await hk(page) as { shop?: string | null }).shop, { timeout: 15_000 }).toBe(MEET_IDS[i]);
-    else await expect.poll(async () => (await hk(page)).view?.eyeTalk, { timeout: 15_000 }).toBe(true);
-    if (i === 2) await page.screenshot({ path: info.outputPath("1d-meet-librarian.png") });
-    if (i === 0) await page.screenshot({ path: info.outputPath("1c-meet-farmer.png") });
-    await say(page, i === 6 ? "산책 시작" : "다음 사람");
-  }
+  // 피드백 2026-11-22: no round of introductions at the start any more (each person introduces themselves when met on
+  // the walk): 보리's line ends with 가 보자, and the walk's card points at the first one, the farmer, lit
+  await say(page, "가 보자");
   await expect(page.locator(".vl-guide")).toContainText("농부");
   await expect(page.locator(".vl-npc-tag[data-hl=true]")).toHaveText(/농부/);
   // another person does not open yet: 보리's hint, and I walk to the farmer instead
@@ -126,7 +102,7 @@ test("the first walk: entry → room lesson → the village's people one by one"
   await page.evaluate(() => (window as unknown as { __proto3d: { walkPass: (s: string) => void } }).__proto3d.walkPass("librarian"));
   // the news board
   await go(page, "신문 배달");
-  await expect(talk(page)).toContainText("오늘 신문", { timeout: 40_000 });
+  await expect(talk(page)).toContainText("종목 소식을 모아 왔어", { timeout: 40_000 });
   await say(page, "표지판 보기");
   await expect(page.getByRole("dialog", { name: "뉴스 표지판" })).toContainText("예시 기사");
   await page.screenshot({ path: info.outputPath("4-news.png") });
@@ -135,7 +111,7 @@ test("the first walk: entry → room lesson → the village's people one by one"
   await page.evaluate(() => (window as unknown as { __proto3d: { walkPass: (s: string) => void } }).__proto3d.walkPass("fisher"));
   // the shops
   await go(page, "건물 상인");
-  await expect(talk(page)).toContainText("건물을 코인으로", { timeout: 40_000 });
+  await expect(talk(page)).toContainText("코인으로 팔아요", { timeout: 40_000 });
   await say(page, "물건 보기");
   await page.getByRole("button", { name: "닫기" }).first().click();
   await expect.poll(async () => (await hk(page)).walk?.step).toBe("shop-wear");

@@ -29,6 +29,8 @@ function Count({to,suffix=''}:{to:number|null;suffix?:string}){
     const t0=performance.now();let id=0;const f=(n:number)=>{const k=Math.min(1,(n-t0)/900);setV(Math.round(to*(1-Math.pow(1-k,3))));if(k<1)id=requestAnimationFrame(f)};id=requestAnimationFrame(f);return()=>cancelAnimationFrame(id)},[to]);
   return <>{to===null?'—':v}{to===null?'':<span className="rt-unit">{suffix}</span>}</>;
 }
+// what putting each piece on is called: a hat is worn on the head (쓰다), a bag on the back (메다), a tool in the hand (들다)
+const VERB:Record<string,[string,string]>={coat:['입기','입는 중'],hat:['쓰기','쓰는 중'],bag:['메기','메는 중'],tool:['들기','드는 중']};
 export function wearCtx(g:G):WearCtx{
   const rank=rankOf(xpOf({graded:g.s.graded.length,cases:g.s.cases.length,rewinds:g.s.rewinds.length,work:workOf(g.s)})).index;
   return {rank,stamps:g.s.stamps.map(s=>s.id),trust:{tori:g.s.trust.tori.stage,moa:g.s.trust.moa.stage,luon:g.s.trust.luon.stage},bought:g.s.wardrobe,all:masterOn()};
@@ -50,8 +52,9 @@ export function MyPage({g,onClose,onRecords,onSettings,onLetter,wearOnly}:{wearO
     </header>
     <div className="rt-me-top">{onSettings&&<button type="button" className="rt-btn" onClick={onSettings}>설정</button>}<button type="button" className="rt-btn" onClick={onClose}><Cross size={18}/>닫기</button></div>
     <section className="rt-me-panel">
-      <div className="rt-tabs" role="tablist">{(wearOnly?[['wear','옷 갈아입기']] as const:[['wear','꾸미기'],['record','기록'],['stamps','업적']] as const).map(([k,l])=>
-        <button key={k} type="button" role="tab" aria-selected={tab===k} onClick={()=>setTab(k)}>{l}</button>)}</div>
+      {/* the clothes shop opens the wardrobe alone: a title, not a row of one tab */}
+      {wearOnly?<h2 className="rt-me-only">옷 갈아입기</h2>:<div className="rt-tabs" role="tablist">{([['wear','꾸미기'],['record','기록'],['stamps','업적']] as const).map(([k,l])=>
+        <button key={k} type="button" role="tab" aria-selected={tab===k} onClick={()=>setTab(k)}>{l}</button>)}</div>}
       {tab==='wear'&&<>
         <div className="rt-me-slots">{[...SLOTS,{id:'color' as const,label:'색'}].map(s=><button key={s.id} type="button" aria-pressed={slot===s.id} onClick={()=>setSlot(s.id)}>{s.label}</button>)}</div>
         <div className="rt-me-grid">
@@ -59,7 +62,7 @@ export function MyPage({g,onClose,onRecords,onSettings,onLetter,wearOnly}:{wearO
           {pieces.map(w=>{const open=isOpen(w.unlock,ctx,w.id),on=look[w.slot]===w.id,price=w.unlock.kind==='buy'?w.unlock.price:0;
             return <button key={w.id} type="button" className="rt-me-tile" data-locked={!open} aria-pressed={on}
               onClick={()=>{if(open)wear({...look,[w.slot]:w.id});else if(price&&g.s.currency>=price){if(g.ops.buyWear(w.id,price))wear({...look,[w.slot]:w.id})}}}>
-              <strong>{w.name}</strong>{open?<small>{on?'입는 중':'입기'}</small>:<small><Lock size={12}/> {howTo(w.unlock,names)}{price?` · 지금 ${won(g.s.currency)}`:''}</small>}</button>})}
+              <strong>{w.name}</strong>{open?<small>{(VERB[w.slot]??VERB.coat)[on?1:0]}</small>:<small><Lock size={12}/> {howTo(w.unlock,names)}{price?` · 지금 ${won(g.s.currency)}`:''}</small>}</button>})}
           {slot==='color'&&PALETTES.map(p=>{const open=isOpen(p.unlock,ctx,p.id);return <button key={p.id} type="button" className="rt-me-tile" data-locked={!open} aria-pressed={look.palette===p.id} onClick={()=>open&&wear({...look,palette:p.id})}>
             <span className="rt-me-swatch">{[p.primary,p.secondary,p.accent].map(c=><i key={c} style={{background:c}}/>)}</span><strong>{p.name}</strong>{!open&&<small><Lock size={12}/> {howTo(p.unlock,names)}</small>}</button>})}
         </div></>}

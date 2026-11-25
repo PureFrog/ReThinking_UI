@@ -16,7 +16,7 @@ import {whenFont} from '../canvasFont';
 import type {Look} from '../../core/wardrobe';
 
 export const ARCADE_GAME='/arcade/ninja/index.html';
-const ROOM={w:9,d:7,h:3.4};
+const ROOM={w:9,d:7,h:5.4};   // tall enough that a phone's view up past the cabinets stays inside the room
 type Cab={id:string;x:number;title:string;sub:string;body:string;trim:string;open:boolean};
 const CABS:Cab[]=[
   {id:'soon-l',x:-2.6,title:'준비 중',sub:'곧 들어와요',body:'#b9d6f2',trim:'#8ab8e2',open:false},
@@ -63,6 +63,15 @@ function Cabinet({c,onPick}:{c:Cab;onPick:()=>void}){
   </group>;
 }
 
+// the sign over the cabinets (main 2026-11-25: up on the taller wall), in the room's own colours
+function signTex(){
+  const cv=document.createElement('canvas');cv.width=512;cv.height=140;const g=cv.getContext('2d')!;
+  const paint=()=>{g.clearRect(0,0,512,140);g.fillStyle='#fffaf0';g.beginPath();g.roundRect(4,4,504,132,60);g.fill();
+    g.strokeStyle=T.sign;g.lineWidth=8;g.beginPath();g.roundRect(10,10,492,120,56);g.stroke();
+    g.fillStyle=T.signInk;g.textAlign='center';g.textBaseline='middle';g.font='bold 72px "Jua","Gowun Dodum",sans-serif';g.fillText('오락실',256,74);
+    g.font='46px sans-serif';g.fillStyle='#f2c230';g.fillText('★',86,72);g.fillStyle='#8ab8e2';g.fillText('★',426,72)};
+  paint();const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;whenFont('bold 72px "Jua"','오락실',()=>{paint();t.needsUpdate=true});return t;
+}
 function Room({onFloor}:{onFloor:(p:THREE.Vector3)=>void}){
   const {w,d,h}=ROOM;
   // a checked floor in two paper colours
@@ -70,14 +79,12 @@ function Room({onFloor}:{onFloor:(p:THREE.Vector3)=>void}){
     for(let i=0;i<4;i++)for(let j=0;j<4;j++){g.fillStyle=(i+j)%2?T.floor[0]:T.floor[1];g.fillRect(i*32,j*32,32,32)}
     const t=new THREE.CanvasTexture(cv);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(w/2,d/2);t.colorSpace=THREE.SRGBColorSpace;t.magFilter=THREE.NearestFilter;return t},[w,d]);
   useEffect(()=>()=>floor.dispose(),[floor]);
-  // the back wall: soft pink stripes with the arcade's name in a scalloped sign (bright like the village's paper UI, 2026-11-24 "너무 칙칙해")
+  // the back wall: soft stripes (the name is on the sign above the cabinets)
   const wall=useMemo(()=>{const cv=document.createElement('canvas');cv.width=1024;cv.height=388;const g=cv.getContext('2d')!;
-    const paint=()=>{for(let i=0;i<16;i++){g.fillStyle=i%2?T.stripe[0]:T.stripe[1];g.fillRect(i*64,0,64,388)}
-    g.fillStyle='#fffaf0';g.beginPath();g.roundRect(372,14,280,80,40);g.fill();g.lineWidth=8;g.strokeStyle=T.sign;g.stroke();
-    g.fillStyle=T.signInk;g.font='bold 58px "Jua","Gowun Dodum",sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('오락실',512,56);
-    g.font='40px sans-serif';[[330,56,'#f2c230'],[694,56,'#8ab8e2']].forEach(([x,y,c])=>{g.fillStyle=c as string;g.fillText('★',x as number,y as number)})};
-    paint();const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;whenFont('bold 58px "Jua"','오락실',()=>{paint();t.needsUpdate=true});return t},[]);
+    for(let i=0;i<16;i++){g.fillStyle=i%2?T.stripe[0]:T.stripe[1];g.fillRect(i*64,0,64,388)}
+    const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;return t},[]);
   useEffect(()=>()=>wall.dispose(),[wall]);
+  const sign=useMemo(signTex,[]);useEffect(()=>()=>sign.dispose(),[sign]);
   const bulbs=useMemo(()=>Array.from({length:15},(_,i)=>({x:-w/2+0.4+i*(w-0.8)/14,c:['#f2a7b8','#f2c230','#a9c7e8','#bfe0b0'][i%4]})),[w]);
   const balloons:[number,number,number,string][]=[[-4.0,2.1,-2.9,'#f2a7b8'],[-3.6,2.35,-3.0,'#f2c230'],[-3.85,2.5,-2.6,'#a9c7e8'],[3.9,2.2,-2.9,'#bfe0b0'],[3.55,2.4,-3.0,'#f2a7b8'],[3.8,2.55,-2.6,'#f9d38a']];
   return <group>
@@ -85,12 +92,15 @@ function Room({onFloor}:{onFloor:(p:THREE.Vector3)=>void}){
     <mesh position={[0,h/2,-d/2]} receiveShadow><boxGeometry args={[w,h,0.12]}/>{S(T.stripe[1])}</mesh>
     <mesh position={[0,h/2,-d/2+0.065]}><planeGeometry args={[w,h]}/>{LIT('#ffffff',wall)}</mesh>
     {[-1,1].map(k=><mesh key={k} position={[k*w/2,h/2,0.6]} receiveShadow><boxGeometry args={[0.12,h,d+3]}/>{LIT(T.side)}</mesh>)}
+    {/* the ceiling, a band where the wall meets it, and the sign */}
     <mesh position={[0,h,0.6]} rotation-x={Math.PI/2}><planeGeometry args={[w,d+3]}/>{LIT(T.ceil)}</mesh>
+    <mesh position={[0,h-0.25,-d/2+0.08]}><boxGeometry args={[w,0.5,0.04]}/>{S(T.skirt)}</mesh>
+    <mesh position={[0,3.95,-d/2+0.09]} name="arcade-sign"><planeGeometry args={[3.1,0.85]}/><meshBasicMaterial map={sign} transparent toneMapped={false}/></mesh>
     {balloons.map(([x,y,z,c],i)=><group key={i} position={[x,y,z]}><mesh castShadow><sphereGeometry args={[0.22,16,14]}/>{S(c)}</mesh>
       <mesh position-y={-0.6}><cylinderGeometry args={[0.006,0.006,0.95,4]}/>{S('#c9b8a6')}</mesh></group>)}
     {/* a skirting band and a string of little lights along the back wall */}
     <mesh position={[0,0.2,-d/2+0.07]}><boxGeometry args={[w,0.4,0.04]}/>{S(T.skirt)}</mesh>
-    {bulbs.filter(b=>Math.abs(b.x)>1.7).map((b,i)=><mesh key={i} position={[b.x,h-0.35-Math.sin((b.x/w+0.5)*Math.PI)*0.25,-d/2+0.12]}><sphereGeometry args={[0.085,12,10]}/><meshBasicMaterial color={b.c} toneMapped={false}/></mesh>)}
+    {bulbs.map((b,i)=><mesh key={i} position={[b.x,3.05-Math.sin(i/14*Math.PI)*0.25,-d/2+0.12]}><sphereGeometry args={[0.07,10,8]}/><meshBasicMaterial color={b.c} toneMapped={false}/></mesh>)}
     {/* a round rug where I come in, a bench and a plant */}
     <mesh rotation-x={-Math.PI/2} position={[0,0.01,START.z+0.2]}><circleGeometry args={[1.1,40]}/>{S(T.rug)}</mesh>
     <group position={[-3.6,0,0.6]}><mesh position-y={0.3} castShadow><boxGeometry args={[0.6,0.12,1.6]}/>{S('#f6cf96')}</mesh>

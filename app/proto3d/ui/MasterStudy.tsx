@@ -25,11 +25,14 @@ import {STUDY0,readStudy,quizOf,paginate,pageOfPara,pageOfSec,pageBudget,putRead
   quizAt,rightCount,quizStatus,booksRead,firstOffer,offerLabel,type StudySave,type Para} from '../../core/master-study';
 import {EARN} from '../../core/ledger';
 import {won} from '../../core/won';
+import {josa} from '../../core/memory';
 import {STUDY_T} from '../../core/timing';
 import {LOOK} from '../look';
 import {still} from '../still';
 import {cue} from '../../core/sound';
 import type {useGarden} from '../state';
+// 「title」 then the particle that fits the title's last syllable
+const quoted=(t:string,p:string)=>`「${t}」${josa(t,p).slice(t.length)}`;
 type G=ReturnType<typeof useGarden>;
 
 const KEY='rethink-study-v1';
@@ -175,6 +178,16 @@ function Cam({view}:{view:View}){
 }
 
 // ---------------------------------------------------------------- the open book
+// a label pinned over a book stays on the screen: the end books' labels would run off the side on a phone
+function KeepIn({children,className,role}:{children:React.ReactNode;className:string;role?:string}){
+  const r=useRef<HTMLDivElement>(null);
+  useEffect(()=>{const id=requestAnimationFrame(()=>{const el=r.current;if(!el)return;el.style.translate='0px';
+    const b=el.getBoundingClientRect(),m=8,vw=window.innerWidth;el.style.translate=`${b.left<m?m-b.left:b.right>vw-m?vw-m-b.right:0}px 0px`});
+    return()=>cancelAnimationFrame(id)});
+  return <div ref={r} className={className} role={role}>{children}</div>;
+}
+// the last page's source line and button, in the same characters pageBudget counts (about four lines)
+const endRoom=(pw:number)=>Math.round((pw-64)/15.5*4);
 function useSize(){const [s,setS]=useState({w:typeof window!=='undefined'?innerWidth:1200,h:typeof window!=='undefined'?innerHeight:800});
   useEffect(()=>{const f=()=>setS({w:innerWidth,h:innerHeight});addEventListener('resize',f);return ()=>removeEventListener('resize',f)},[]);return s}
 function PageBody({pg,book,n,last,onFinish}:{pg:Para[]|undefined;book:Book;n:number;last:boolean;onFinish?:()=>void}){
@@ -188,7 +201,7 @@ function PageBody({pg,book,n,last,onFinish}:{pg:Para[]|undefined;book:Book;n:num
 function BookReader({book,para,peekSec,onClose,onFinish,onBack}:{book:Book;para:number;peekSec?:number;onClose:(para:number)=>void;onFinish:(para:number)=>void;onBack?:()=>void}){
   const {w,h}=useSize(),wide=w>=760,k=slow();
   const pw=wide?Math.min(430,(w-140)/2):Math.min(460,w-40),ph=Math.min(wide?600:640,h-(wide?170:190));
-  const pages=useMemo(()=>paginate(book,pageBudget(pw-64,ph-120)),[book,pw,ph]);
+  const pages=useMemo(()=>paginate(book,pageBudget(pw-64,ph-120),endRoom(pw)),[book,pw,ph]);
   const per=wide?2:1,views=Math.ceil(pages.length/per);
   const at=useRef(para);
   const viewOf=(p:number)=>Math.floor(pageOfPara(pages,p)/per);
@@ -279,7 +292,7 @@ export function MasterStudy({g,onOut,hud}:{g:G;onOut:()=>void;hud?:React.ReactNo
   const bookById=(id:string)=>BOOKS.find(b=>b.book_id===id)!;
   // what to say about a book on its label: its pages counted at this size
   const {w,h}=useSize(),wide=w>=760,pw=wide?Math.min(430,(w-140)/2):Math.min(460,w-40),ph=Math.min(wide?600:640,h-(wide?170:190));
-  const pageNo=(b:Book)=>pageOfPara(paginate(b,pageBudget(pw-64,ph-120)),study.read[b.book_id]?.para??0)+1;
+  const pageNo=(b:Book)=>pageOfPara(paginate(b,pageBudget(pw-64,ph-120),endRoom(pw)),study.read[b.book_id]?.para??0)+1;
 
   const pick=(id:string,touch=false)=>{if(busy.current||talk||quiz)return;
     if(touch&&tap!==id){setTap(id);setHover(id);if(!study.hint)put(s=>({...s,hint:true}));return}
@@ -308,8 +321,8 @@ export function MasterStudy({g,onOut,hud}:{g:G;onOut:()=>void;hud?:React.ReactNo
     const st=quizStatus(study,offer.book_id);
     const line=st.kind==='missing'?`제 ${offer.no}권 퀴즈를 불러올 수 없어요. 잠시 뒤 다시 해 보거나 다른 책을 골라 보게.`
       :st.kind==='progress'?`「${offer.title}」 퀴즈를 하다 말았지? ${st.k}/${st.n}까지 왔네. 이어서 해 보세.`
-      :st.kind==='done'?`「${offer.title}」은 이미 끝냈군. ${st.paid?'코인은 받았으니 이번엔 복습이야.':''} 다시 풀어 볼 텐가?`
-      :`「${offer.title}」을 다 읽었군. 제 ${offer.no}권에서 몇 가지 물어보지. 틀려도 괜찮아, 끝까지만 풀게.`;
+      :st.kind==='done'?`${quoted(offer.title,'은')} 이미 끝냈군. ${st.paid?'코인은 받았으니 이번엔 복습이야.':''} 다시 풀어 볼 텐가?`
+      :`${quoted(offer.title,'을')} 다 읽었군. 제 ${offer.no}권에서 몇 가지 물어보지. 틀려도 괜찮아, 끝까지만 풀게.`;
     const first:Choice=st.kind==='missing'?{label:'다시 시도',go:()=>{setTalk('menu')}}:{label:st.kind==='done'?`제 ${offer.no}권 다시 풀기`:offerLabel(offer,st),go:()=>openQuiz(offer)};
     return {line,choices:[first,...(read.length>1?[{label:'다른 권 고르기',go:()=>setTalk('list')}]:[]),{label:'나중에',go:endTalk}]}};
 
@@ -330,8 +343,8 @@ export function MasterStudy({g,onOut,hud}:{g:G;onOut:()=>void;hud?:React.ReactNo
       <Room>
         <Shelf study={study} hover={hover} picked={pull?.id??null} onHover={id=>{setHover(id);if(id&&!study.hint)put(s=>({...s,hint:true}))}} onPick={pick} onShelf={()=>{if(!busy.current&&!talk&&!quiz)setView('shelf')}}/>
         {hb&&<Html position={(()=>{const p=slotOf(hb.b.no);return [p[0],p[1]+0.34,p[2]+0.15] as V3})()} center zIndexRange={[25,10]}>
-          <div className="ms-label" role="tooltip"><small>제 {hb.b.no}권</small><b>{hb.b.title}</b>{hb.more&&<em>{hb.more}</em>}
-            {tap===hb.b.book_id&&<button type="button" className="ms-take" onClick={()=>pick(hb.b.book_id)}>꺼내 읽기</button>}</div></Html>}
+          <KeepIn className="ms-label" role="tooltip"><small>제 {hb.b.no}권</small><b>{hb.b.title}</b>{hb.more&&<em>{hb.more}</em>}
+            {tap===hb.b.book_id&&<button type="button" className="ms-take" onClick={()=>pick(hb.b.book_id)}>꺼내 읽기</button>}</KeepIn></Html>}
         <Buffett look={!!talk||!!quiz} nod={nod} onTalk={onTalk} hover={bHover} setHover={setBHover}
           bubble={nodBook&&!talk&&!quiz&&!reading&&!pull?`제 ${nodBook.no}권 퀴즈`:null}/>
       </Room>
@@ -339,7 +352,7 @@ export function MasterStudy({g,onOut,hud}:{g:G;onOut:()=>void;hud?:React.ReactNo
     </Canvas>
     <div className="ms-top">
       <button type="button" className="ms-door" onClick={onOut}>← 마을로</button>
-      <span className="ms-title">거장의 집 · 버핏의 서재</span>
+      <span className="ms-title"><span className="ms-title-pre">거장의 집 · </span>버핏의 서재</span>
       <span className={'ms-hud'+(fly?' got':'')} key={fly}>{hud??<span className="ms-coins rt-num">{won(g.s.currency)}</span>}</span>
     </div>
     {!study.hint&&!reading&&!talk&&!quiz&&<p className="ms-hint">{typeof matchMedia!=='undefined'&&matchMedia('(pointer:coarse)').matches?'책을 눌러 보세요':'책에 마우스를 올려 보세요'}</p>}

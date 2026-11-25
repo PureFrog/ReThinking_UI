@@ -55,10 +55,12 @@ function Notes({notes}:{notes:Note[]}){
 // the camera inside: a fixed look into the open room, a little drag to look around, pinch to come closer
 function RoomCam(){
   const {camera,size}=useThree(),fr=frameFor(LOOK.camera.frames,size.width/Math.max(1,size.height));
-  const tall=size.width<size.height,dist=I().camDist*(tall?1.08:1);
+  // a phone held upright sees less across: back off a little more and aim a little left, so the teacher at the desk
+  // (the room's far left) stays in the picture with the shelf and the door
+  const tall=size.width<size.height,dist=I().camDist*(tall?I().tallDist:1),tx=tall?I().tallX:0;
   useMemo(()=>{const c=camera as THREE.PerspectiveCamera;c.clearViewOffset();c.fov=fr.fov;c.updateProjectionMatrix();
-    c.position.set(0,1+Math.cos(I().camPitch)*dist,-0.4+Math.sin(I().camPitch)*dist);c.lookAt(0,1,-0.4)},[camera,dist,fr.fov]);
-  return <OrbitControls makeDefault enablePan={false} enableDamping dampingFactor={0.12} target={[0,1,-0.4]}
+    c.position.set(tx,1+Math.cos(I().camPitch)*dist,-0.4+Math.sin(I().camPitch)*dist);c.lookAt(tx,1,-0.4)},[camera,dist,fr.fov,tx]);
+  return <OrbitControls makeDefault enablePan={false} enableDamping dampingFactor={0.12} target={[tx,1,-0.4]}
     minAzimuthAngle={-0.55} maxAzimuthAngle={0.55} minPolarAngle={0.55} maxPolarAngle={1.25} minDistance={dist*0.6} maxDistance={dist*1.15}/>;
 }
 
@@ -66,7 +68,7 @@ export function Interior({books,notes,resting,decor,onDesk,onShelf,onBoard,onDoo
   onDesk:()=>void;onShelf:()=>void;onBoard:()=>void;onDoor:()=>void;onAnalyst:(id:AnalystId)=>void;report:(k:string,v:THREE.Vector3)=>void;reportAnalyst:(id:string,v:THREE.Vector3)=>void}){
   const {w,d,h}=ROOM,face=useRef(new THREE.Vector3(0,0,4)),flat=useMemo(()=>()=>0,[]),still=useMemo(()=>()=>new THREE.Quaternion(),[]);
   const v=useMemo(()=>new THREE.Vector3(),[]);
-  useFrame(()=>{for(const [k,p] of Object.entries(ROOM_SPOTS)){v.set(p.x,k==='board'||k==='window'?2.2:k==='door'?2.3:1.4,p.z);report('room-'+k,v)}});
+  useFrame(()=>{for(const [k,p] of Object.entries(ROOM_SPOTS)){v.set(p.x,k==='board'||k==='window'?2.2:k==='door'?2.3:k==='desk'&&people?2.55:1.4,p.z);report('room-'+k,v)}});
   const planks=useMemo(()=>Array.from({length:Math.round(w/0.6)},(_,i)=>-w/2+0.3+i*0.6),[w]);
   return <group name="interior">
     <hemisphereLight args={['#fff4e2','#8a6448',0.65]}/>

@@ -32,7 +32,13 @@ export const KOSDAQ_STOCKS:Stock[]=KOSDAQ_LISTED.map(k=>{const n=parseInt(k.code
 const STOCKS_EXTRA:Stock[]=[];
 export const stockOf=(code:string)=>STOCKS.find(s=>s.code===code)??KOSDAQ_STOCKS.find(s=>s.code===code)??STOCKS_EXTRA.find(s=>s.code===code)??null;
 export const stockByName=(name:string)=>STOCKS.find(s=>s.name===name)??KOSDAQ_STOCKS.find(s=>s.name===name)??null;
-export function searchStocks(q:string){const t=q.trim().toLowerCase();if(!t)return [];return KOSDAQ_STOCKS.filter(s=>s.name.toLowerCase().includes(t)||s.code.includes(t))}
+// the player's own trees (Proto3D setOwnCodes): a holding outside the KOSDAQ120 (planted by name in the onboarding) can still
+// be found for its journal; the rest of the search stays the KOSDAQ120
+let OWN:string[]=[];
+export function setOwnCodes(codes:string[]){OWN=[...new Set(codes.filter(Boolean))]}
+export function searchStocks(q:string){const t=q.trim().toLowerCase();if(!t)return [];const hit=(s:Stock)=>s.name.toLowerCase().includes(t)||s.code.includes(t);
+  const own=OWN.map(c=>KOSDAQ_STOCKS.some(k=>k.code===c)?null:stockOf(c)).filter((s):s is Stock=>!!s&&hit(s));
+  return [...own,...KOSDAQ_STOCKS.filter(hit)]}
 
 // v: volume (real bars only)
 export type Bar={d:string;o:number;h:number;l:number;c:number;v?:number};

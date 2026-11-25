@@ -27,7 +27,8 @@ export const parasOf=(b:Book):Para[]=>{let i=0;const out:Para[]=[];
 const HEAD=24;
 // a paragraph that does not fit what is left of a page is cut between sentences and goes on over the page (the team's
 // paragraphs run long); one sentence longer than a page still gets a page of its own
-export function paginate(b:Book,budget:number):Para[][]{const pages:Para[][]=[];let cur:Para[]=[],used=0;
+// endRoom: what the last page also has to hold (the source line and 다 읽고 덮기); when it does not fit, its last paragraph goes over
+export function paginate(b:Book,budget:number,endRoom=0):Para[][]{const pages:Para[][]=[];let cur:Para[]=[],used=0;
   const put=(p:Para)=>{cur.push(p);used+=p.text.length+(p.head?HEAD:0)};
   const turn=()=>{if(cur.length){pages.push(cur);cur=[];used=0}};
   for(const p of parasOf(b)){const cost=p.text.length+(p.head?HEAD:0);
@@ -39,6 +40,7 @@ export function paginate(b:Book,budget:number):Para[][]{const pages:Para[][]=[];
       if(len+s0.length>room&&(piece.length||cur.length)){out(!first);turn()}
       piece.push(s0)}
     out(!first)}
+  if(endRoom&&cur.length>1&&used+endRoom>budget){const p=cur.pop()!;turn();cur=[p]}
   turn();return pages}
 export const pageOfPara=(pages:Para[][],para:number)=>{const i=pages.findIndex(pg=>pg.some(p=>p.i===para));return i<0?0:i};
 export const pageOfSec=(pages:Para[][],sec:number)=>{const i=pages.findIndex(pg=>pg.some(p=>p.sec===sec));return i<0?0:i};
