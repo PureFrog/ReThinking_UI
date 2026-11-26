@@ -94,6 +94,8 @@
 .rt-art-body h3{font-size:20px;line-height:1.38;margin:8px 0 14px;letter-spacing:-.02em}
 .rt-art-body p{font-size:15.5px;line-height:1.75;margin:0 0 12px;color:#2a3240}
 .rt-art-src{display:block;font-size:11.5px;color:var(--mts-sub);margin-bottom:14px}
+.rt-art-link{display:inline-block;font-size:13px;font-weight:600;color:var(--mts-brand,#2a3f5c);margin:-6px 0 14px;text-decoration:none}
+.rt-art-link:hover,.rt-art-link:focus-visible{text-decoration:underline}
 .rt-art-look{padding:12px 14px;border-radius:12px;background:#f2f6ff;border:1px solid #d9e4fb}
 .rt-art-look b{font-size:13px;color:#2457b8}.rt-art-look p{font-size:13.5px;line-height:1.6;margin:6px 0 0}
 .rt-art-stock{display:flex;gap:8px;padding:10px 12px 22px;border-top:1px solid var(--mts-line)}

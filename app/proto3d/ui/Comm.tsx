@@ -11,7 +11,8 @@ import '../../mts/mts.css';
 import '../comm-plus.css';
 import {StockSheet} from '../../mts/StockSheet';
 import {rateOf} from '../../core/holdings-in';
-import {newsCards,type NewsCard} from '../../content/village-news';
+import {mergeNews,type NewsCard} from '../../content/village-news';
+import {useLiveNews} from '../liveNews';
 import type {CommAccount,CommLine} from '../../content/comm';
 import {Term,CommGuide,guideSeen,markGuide,Spark,StockPage,Missions,Fields,WeeklyCard,FirstBuyCards,firstBuySeen,markFirstBuy,type Mission,type Weekly} from './CommPlus';
 import {history,change} from '../../core/virtual';
@@ -40,7 +41,11 @@ export function Comm({acct,cands,lots,day,room,open,openNote,start='balance',onB
   const [qty,setQty]=useState(1),[msg,setMsg]=useState<string|null>(null),[lotId,setLotId]=useState<number|null>(null),[n,setN]=useState(0);
   const c=cands.find(x=>x.code===pick)??null,cost=c?.price!=null?c.price*qty:0;
   // 피드백 2026-11-26: the news is its own tab, read when I want (no longer a gate in front of 매수)
-  const news=useMemo(()=>newsCards([...cands,...acct.lines.filter(l=>l.kind==='real').map(l=>({code:l.code,name:l.name}))].filter((x,i,a)=>a.findIndex(y=>y.code===x.code)===i),day),[cands,acct.lines,day]);
+  // 실제 기사 (db/functions/news-feed) where the server answers, 모의 기사 for the rest
+  const newsStocks=useMemo(()=>[...cands,...acct.lines.filter(l=>l.kind==='real').map(l=>({code:l.code,name:l.name}))].filter((x,i,a)=>a.findIndex(y=>y.code===x.code)===i).map(x=>({code:x.code,name:x.name})),[cands,acct.lines]);
+  const live=useLiveNews(newsStocks);
+  const news=useMemo(()=>mergeNews(newsStocks,day,live),[newsStocks,day,live]);
+  const anyLive=news.some(a=>a.live),anyMock=news.some(a=>!a.live);
   const [first,setFirst]=useState<{name:string;price:number}|null>(null),[art,setArt]=useState<NewsCard|null>(null),[confirm,setConfirm]=useState<null|{side:'buy'|'sell'}>(null),[booting,setBooting]=useState(true);
   useEffect(()=>{const t=setTimeout(()=>setBooting(false),900);return()=>clearTimeout(t)},[]);
   const readArt=(a:NewsCard)=>{setArt(a);onRead?.()};
@@ -162,10 +167,10 @@ export function Comm({acct,cands,lots,day,room,open,openNote,start='balance',onB
 
       {tab==='news'&&<main className="mts-main rt-news" aria-label="뉴스">
         <div className="mts-acct"><span>종목 뉴스</span><span>오늘 후보 · 내 종목</span></div>
-        <p className="rt-news-note">⚠︎ 모의 기사예요. 실제 뉴스 연결 전까지 연습용으로 만든 기사이고 실제 회사 소식이 아니에요.</p>
+        {anyMock&&<p className="rt-news-note">⚠︎ {anyLive?'"모의" 표시가 붙은 기사는 연습용으로 만든 글이에요. 실제 회사 소식이 아니에요.':'모의 기사예요. 실제 뉴스를 불러오지 못해 연습용으로 만든 기사이고 실제 회사 소식이 아니에요.'}</p>}
         <ul className="rt-news-list">{news.map(a=>{const ch=change(a.code,day);return <li key={a.id}>
           <button type="button" className="rt-news-row" onClick={()=>readArt(a)}>
-            <span className="rt-news-meta"><b className={`t-${a.theme}`}>{a.theme}</b>{a.press} · {a.time}</span>
+            <span className="rt-news-meta"><b className={`t-${a.theme}`}>{a.theme}</b>{a.press} · {a.time}{!a.live&&anyLive&&' · 모의'}</span>
             <strong>{a.title}</strong>
             <span className="rt-news-stock">{a.name}{ch&&<em className={tone(ch.rate)}>{pct(ch.rate)}</em>}</span>
           </button></li>})}</ul>
@@ -200,6 +205,7 @@ function ArticleView({a,ch,onClose,onStock,onOrder}:{a:NewsCard;ch:{rate:number}
       <h3>{a.title}</h3>
       {a.body.map((p,i)=><p key={i}>{p}</p>)}
       <small className="rt-art-src">{a.live?'언론사 요약 발췌 · 전문은 원문에서 봐요':'모의 기사 · 연습용으로 만든 글이에요. 실제 회사 소식이 아니에요.'}</small>
+      {a.live&&a.url&&<a className="rt-art-link" href={a.url} target="_blank" rel="noopener noreferrer">원문 보기 ↗</a>}
       <aside className="rt-art-look"><b>📌 이 기사에서 볼 것</b><p>{a.look}</p></aside>
     </article>
     <div className="rt-art-stock"><button type="button" onClick={onStock}><span>관련 종목</span><b>{a.name}</b>{ch&&<em className={tone(ch.rate)}>{pct(ch.rate)}</em>}<i>차트 ›</i></button>

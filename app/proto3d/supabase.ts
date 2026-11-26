@@ -191,3 +191,16 @@ export const observatoryServer:ObservatoryServer={
   async explain(run){const d=await callQuest({action:'explain',run});return typeof d?.text==='string'?d.text:null},
   async hint(run,field,draft){const d=await callFn('quest-play',{action:'hint',run,field,draft});return typeof d?.question==='string'?d.question:null},
 };
+
+// real news on my stocks (db/functions/news-feed, NAVER API HUB): code → articles, or null when the server cannot
+// answer (signed out, no invite, no key), so the screen keeps its 모의 기사
+import type {LiveNews} from '../core/content/live/naver';
+// NEXT_PUBLIC_NEWS_FEED_URL (local only): tools/news-dev.mjs stands in for the server function before it is deployed
+const NEWS_DEV=process.env.NEXT_PUBLIC_NEWS_FEED_URL??'';
+export async function liveNews(stocks:{code:string;name:string}[]):Promise<Record<string,LiveNews[]>|null>{
+  if(!stocks.length)return null;
+  if(NEWS_DEV){try{const r=await fetch(NEWS_DEV,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({stocks:stocks.map(s=>({code:s.code,name:s.name}))})});
+    const d=(r.ok?await r.json():null) as {news?:unknown}|null;return d&&typeof d.news==='object'&&d.news?d.news as Record<string,LiveNews[]>:null}catch{return null}}
+  if(!supabaseReady)return null;
+  try{const {data,error}=await supabase().functions.invoke('news-feed',{body:{stocks:stocks.map(s=>({code:s.code,name:s.name}))}});
+    return error||!data||typeof data.news!=='object'?null:data.news as Record<string,LiveNews[]>}catch{return null}}
