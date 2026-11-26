@@ -51,3 +51,11 @@ test('typing speed: slow stretches the pauses, at once shows the whole line, unk
  setTypeSpeed('slow');assert.ok(typeScale()>1);setTypeSpeed('instant');assert.equal(typeScale(),0);setTypeSpeed(undefined);assert.equal(typeScale(),1);
  assert.deepEqual(TEXT_SIZES.map(t=>t.id),['small','normal','large']);assert.equal(TYPE_SPEEDS.length,3);
 });
+
+// QA 2026-11-26 "해외주식 이상하게 등록돼": a foreign stock is refused, Korean ones (even in Latin letters) are not
+test('looksForeign: refuses foreign stocks, keeps Korean ones', async()=>{
+  const {looksForeign}=await load('core/portfolio');
+  const known=n=>['삼성전자','NAVER'].includes(n);
+  for(const n of ['테슬라','애플','엔비디아','TSLA','Apple','AAPL','tsmc','알리바바'])assert.equal(looksForeign(n,known),true,n);
+  for(const n of ['삼성전자','NAVER','KT&G','HMM','F&F','LG전자','SK하이닉스','클래시스','에이치엘비',''])assert.equal(looksForeign(n,known),false,n);
+});

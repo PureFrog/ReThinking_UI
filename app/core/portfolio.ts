@@ -57,6 +57,21 @@ export function matchName<T extends {code:string;name:string}>(name:string,hits:
  const n=norm(name);if(!n)return null;
  return hits.find(h=>norm(h.name)===n)??(hits.length===1&&norm(hits[0].name).includes(n)?hits[0]:null);
 }
+// QA 2026-11-26 "해외주식 이상하게 등록돼": the garden takes stocks listed in Korea only. Signed in, a name the KRX list
+// does not have is refused already (Onboarding found=null); signed out there is no list to ask, so a line that is
+// plainly a foreign stock is refused here: a ticker in Latin letters (TSLA, Apple) that is not a Korean one, or one of
+// the foreign names people hold most, written in Korean. known: the Korean names this device has (core/jigi/stocks).
+const FOREIGN=['테슬라','애플','엔비디아','마이크로소프트','아마존','알파벳','구글','메타','페이스북','넷플릭스','팔란티어','브로드컴',
+  '코카콜라','버크셔','스타벅스','디즈니','인텔','퀄컴','코인베이스','아이온큐','일라이릴리','노보노디스크',
+  '알리바바','텐센트','바이두','샤오미','비야디','소니','도요타','닌텐도','루시드','리비안','쿠팡','로블록스','쇼피파이'];
+// Korean companies whose listed name is Latin letters only (they are not foreign)
+const KR_LATIN=new Set(['naver','hlb','kt','kt&g','hmm','f&f','oci','kcc','skc','sk','lg','gs','cj','ls','dl','bgf','nhn','kg','hl','lx',
+  'db','kb','bnk','jb','dgb','ktb','sbs','kbs','mbc','cjenm','hdc','sk텔레콤','lig','hpsp','isc','gst','psk','rfhic','ktcs','nice','s-oil','soil']);
+export function looksForeign(name:string,known:(n:string)=>boolean):boolean{
+  const n=norm(name);if(!n||known(name.trim())||KR_LATIN.has(n))return false;
+  if(/^[a-z0-9.&-]+$/.test(n))return true;
+  return FOREIGN.some(f=>n===f||n.startsWith(f));
+}
 export function draftToReal(d:Draft,stock:{code:string;name:string},today:string,closeOn:(day:string)=>number|null):RealDraft|null{
  const date=isDay(d.date)?d.date:back(HELD.find(x=>x.id===d.held)!.days,today);
  const price=d.price>0?d.price:closeOn(date)??0;

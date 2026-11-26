@@ -30,7 +30,7 @@ import {Welcome} from './ui/Welcome';
 import {authRepo} from './server';
 import {boriChat} from '../core/bori-chat';
 import {debateChat} from '../core/debate-chat';
-import {missingConsents,boriTalk,boriOpen,stockSignal,jigiAI,readCapture,hasInvite,isMaster,observatoryServer,type BoriLine} from './supabase';
+import {missingConsents,boriTalk,boriOpen,stockSignal,jigiAI,readCapture,isMaster,observatoryServer,type BoriLine} from './supabase';
 import {searchNames,loadRealBars,loadMarket,loadVirtualBars,fixturePrices,type PriceFixture} from './prices';
 import {rowFor,luonOpener} from '../core/model-signals';
 import {loadModelSignals,fixtureModelSignals,type ModelSignalFixture} from './model-signals';
@@ -258,16 +258,14 @@ export default function Proto3D(){
   const [authKnown,setAuthKnown]=useState(()=>typeof window==='undefined'||authRepo.local||!authRepo.maybeSignedIn());
   useEffect(()=>authRepo.onChange(a=>{setAccount(a);setAuthKnown(true)}),[]);
   const owing=account&&missingConsents(account).length?account:null;
-  // 입장코드 (private test, db/migrations/007): a server account must have entered one; null = not known yet / not asked
-  const [invited,setInvited]=useState<boolean|null>(null),[master,setMaster]=useState(false);
+  // 입장코드 is gone (db/migrations/021_open_access.sql lets every signed-in player in): no code step any more
+  const [master,setMaster]=useState(false);
   // set while rendering, so the wardrobe and notes below already see it on this render (a flag, not saved)
   setMasterOn(master);
   useEffect(()=>{if(!account||authRepo.local){setMaster(false);return}let on=true;void isMaster().then(v=>{if(on)setMaster(v)});return()=>{on=false}},[account?.email]);// eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(()=>{if(!account||authRepo.local||owing){setInvited(null);return}let on=true;void hasInvite().then(v=>{if(on)setInvited(v)});return()=>{on=false}},[account?.email,!!owing]);// eslint-disable-line react-hooks/exhaustive-deps
-  const needInvite=!!account&&!authRepo.local&&!owing&&invited===false;
   // signed in with Supabase: the garden is kept on the server too (proto3d/sync.ts). First the two copies are compared
   // (core/sync.ts), then every change goes up after a quiet moment. Not for guests, device-only accounts or ?demo.
-  const syncOn=!embed&&!!account&&!authRepo.local&&!!saveRepo&&!owing&&invited!==false&&typeof window!=='undefined'&&!new URLSearchParams(location.search).has('demo')&&!playMode;
+  const syncOn=!embed&&!!account&&!authRepo.local&&!!saveRepo&&!owing&&typeof window!=='undefined'&&!new URLSearchParams(location.search).has('demo')&&!playMode;
   const [synced,setSynced]=useState(false);
   useEffect(()=>{if(!syncOn||!saveRepo){setSynced(false);return}let on=true;
     saveRepo.pull().then(remote=>{if(!on||remote==='error')return;
@@ -276,7 +274,7 @@ export default function Proto3D(){
       setSynced(true)});
     return()=>{on=false}},[syncOn,account?.email]);// eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{if(!synced||!saveRepo)return;const repo=saveRepo;const t=setTimeout(()=>{void repo.push(g.s).then(at=>{if(at){markLocal(at);void repo.pushJigi(g.s.journals??[])}})},SYNC.pushAfter);return()=>clearTimeout(t)},[synced,g.s]);
-  const welcome=!embed&&!playMode&&(!!owing||needInvite||(!account&&!guest&&authKnown&&!(typeof window!=='undefined'&&(window as {__noLanding?:boolean}).__noLanding)));
+  const welcome=!embed&&!playMode&&(!!owing||(!account&&!guest&&authKnown&&!(typeof window!=='undefined'&&(window as {__noLanding?:boolean}).__noLanding)));
   const [early,setEarly]=useState(false);
   // a grade being revealed makes its tree react in the garden (Scene3D Burst)
   const [burst,setBurst]=useState<World['burst']>(null),[focus,setFocus]=useState<number|null>(null);
@@ -795,6 +793,10 @@ export default function Proto3D(){
   // (Village3D Villager errand); the talk goes on when he is back
   const errandLoad=useRef<(()=>void)|null>(null);
   const [errand,setErrand]=useState<{lotId:number;to:{x:number;z:number};key:number;after:string|null}|null>(null);
+  // QA 2026-11-26 (3. 시선이 농부 원래 자리에 고정, 5. 판매 창이 또 뜸): the farmer's talk came straight back as he left
+  // (I stand next to his spot), asking "몇 주 팔지" again and holding the camera face to face with his empty spot. While
+  // he is out on the errand nobody talks to him: the camera follows him (Scene3D view.npc) and he speaks when he is back
+  useEffect(()=>{if(errand&&vt?.id==='farmer'&&vt.stage!=='loaded')setVt(null)},[errand,vt?.id,vt?.stage]);
   const todays=useMemo(()=>candidates(KOSDAQ_STOCKS,clock.today).map(st=>{const q=buyQuote(s.virtual??[],st.code,clock.today);return {code:st.code,name:st.name,mkt:st.mkt,price:q?.price??null,real:!!q?.real}}),[clock.today,pricesAt,s.virtual]);
   // the virtual stocks' real closes (core/virtual.ts, kept apart from the journals' bars): the shop's stocks, today's
   // picks and the ones in the orchard, once per sign-in and whenever a new one is planted
@@ -914,7 +916,10 @@ export default function Proto3D(){
         return {name:'농부',line:'아직 비었네. 종목이 생기면 나한테 넣어 줘.',choices:[{label:'알겠어',go:()=>say('edit')}]};
       }
       if(walkStep==='sell'){const lots=s.virtual??[];
-        if(st==='loaded'){const c=(s.cart??[]).filter(x=>x.paid==null&&!x.practice).slice(-1)[0];
+        // QA 2026-11-26 "튜토리얼 때 농부한테 팔고 나서 얼만큼 파는지 창이 또 뜸": a sale already on the cart (sold through
+        // the 통신기's 매도 tab, or the talk opened again after the errand) ends this step; he never asks for a second one
+        const onCart=(s.cart??[]).some(x=>x.paid==null&&!x.practice);
+        if(st==='loaded'||onCart){const c=(s.cart??[]).filter(x=>x.paid==null&&!x.practice).slice(-1)[0];
           return {name:'농부',line:`수레에 실었어.${c?` ${c.name} ${c.qty}주, ${c.settleDay.slice(5).replace('-','월 ')}일 장 끝나면 팔려.`:' 다음 거래일 장 끝나면 팔려.'} 이제 도서관으로 가 봐.`,
             choices:[{label:'도서관으로',go:()=>{talkOver();pass('sell')}}]}}
         if(!lots.length)return {name:'농부',line:'팔 가상 나무가 아직 없네. 도서관부터 가 봐.',choices:[{label:'도서관으로',go:()=>{talkOver();pass('sell')}}]};
@@ -1028,7 +1033,7 @@ export default function Proto3D(){
     naru:ready&&!lapse&&!calm&&!inside&&!me&&!skyOpen?{at:NARU,onPick:naruPick}:null,
     fishing:fish==='play'&&bob?{...FISH_AT,phase:bob}:null,
     friend:friendHere?{at:talkSpot&&sheet?.kind==='friend'?talkSpot.at:boriAt,onPick:talkFriend,face:boriFace}:null,
-    view:squareView??(placing&&!sheet?{x:3,z:0,y:2}:null)??(errand?{x:(errand.to.x+FARM_CART.x)/2,z:(errand.to.z+FARM_CART.z)/2,y:1.6}:null)??(tourShow?tourView(tourStep.at)??view:view),
+    view:squareView??(placing&&!sheet?{x:3,z:0,y:2}:null)??(errand?{x:(errand.to.x+FARM_CART.x)/2,z:(errand.to.z+FARM_CART.z)/2,y:1.6,npc:'farmer'}:null)??(tourShow?tourView(tourStep.at)??view:view),
     build:ready?{built,mode:false,onLot:key=>{const [k,id]=key.split(':');if(k==='city'){setPicked(null);setSheet({kind:'cities'});return}setWant({kind:k as 'land'|'building',id})}}:null,
     // 게임 구성 2026-11-20: 집 (the quiz), 상점, 표지판 (the map), 퀘스트 게시판 (the old 관측소), 광장 (other people's villages)
     onLandmark:k=>{if(walkOn&&k!=='signpost'&&!(k==='cart'&&walkStep==='shop-build')){walkHint();return}
@@ -1216,7 +1221,7 @@ export default function Proto3D(){
         dots={{case:!caseDone,rewind:paidLeft(s.rewinds,clock.today)>0}} onPick={pickMore} onClose={close}/>}
       {sheet?.kind==='letter'&&<LetterSheet letter={letterFor(sheet.month)} onClose={()=>{g.ops.letterRead(sheet.month);close()}}/>}
       {ready&&!quiet&&!inside&&where==='village'&&!shop&&<button type="button" className="proto3d-locate proto3d-map" data-label="지도" aria-label="지도" onClick={()=>{setPicked(null);setSheet({kind:'map'})}}><MapIcon size={20}/></button>}
-      {ready&&!quiet&&!inside&&where==='village'&&!shop&&<button type="button" className="proto3d-locate proto3d-view" data-label="시점" aria-label={fp?'3인칭으로 보기':'1인칭으로 보기'} aria-pressed={fp} onClick={()=>{setPicked(null);toggleFp()}}><span className="rt-view-label">{fp?'3인칭':'1인칭'}</span></button>}
+      {ready&&!quiet&&!inside&&where==='village'&&!shop&&<button type="button" className="proto3d-locate proto3d-view" aria-label={fp?'3인칭으로 보기':'1인칭으로 보기'} aria-pressed={fp} onClick={()=>{setPicked(null);toggleFp()}}><span className="rt-view-label">{fp?'3인칭':'1인칭'}</span></button>}
 
       {/* 설계 6·7장: the four tabs are gone; a small notebook button opens my journal where I stand (the stock index first) */}
       {/* 피드백 2026-11-26 "수첩 버튼 있으면 도서관이 있을 이유가 사라져": no 수첩 button on the screen; the journal opens at
@@ -1334,7 +1339,7 @@ export default function Proto3D(){
       {where==='master'&&<MasterStudy g={g} hud={topRight} onOut={()=>{setFading(true);cue('door');setTimeout(()=>{setWhere('village');setGoTo({...place('master').walk,at:Date.now()});setRecenter(n=>n+1);setTimeout(()=>setFading(false),80)},TIMING.roomFade)}}/>}
       {where==='house'&&!welcome&&<House lesson={walkAllowed&&!s.tips.includes('tour')} g={g} master={master} onSettings={()=>setSheet({kind:'settings'})}
         onOut={()=>{setSheet(null);setFading(true);cue('door');setTimeout(()=>{setWhere('village');setRecenter(n=>n+1);setTimeout(()=>setFading(false),80)},TIMING.roomFade)}}/>}
-      {welcome&&<Welcome owing={owing} invite={needInvite} onInvited={()=>setInvited(true)} onAccount={(a,isNew)=>{setAccount(a);if(isNew||!s.name)g.ops.setName(a.nickname)}}
+      {welcome&&<Welcome owing={owing}onAccount={(a,isNew)=>{setAccount(a);if(isNew||!s.name)g.ops.setName(a.nickname)}}
         onGuest={()=>{try{sessionStorage.setItem('rethink-guest','1')}catch{/* this page only */}setGuest(true)}}/>}
     </div>
   );
