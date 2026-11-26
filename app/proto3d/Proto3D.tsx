@@ -966,7 +966,7 @@ export default function Proto3D(){
     onNews:()=>{if(walkOn&&walkStep!=='news'&&walk.step<=WALK_STEPS.indexOf('news')){walkHint();return}onVillager('paperboy')},
     cartPile:pile,merchantOpen,shop,onShop:id=>onVillager(id),
     flags:LEAGUE_FLAGS,myFlag:0,caseOpen:!caseDone,goTo,inside,look,stage:me,light,sky:skyWorld,fp:fp&&!inside,
-    plants:(s.plants??[]).map(p=>({...p,scale:shopPlant(p.item)?.scale??1})),planting:planting&&!sheet?planting:null,placing:placing&&!sheet?placing:null,
+    plants:(s.plants??[]).map(p=>({...p,scale:shopPlant(p.item)?.scale??1})),planting:planting&&!sheet?{...planting,scale:shopPlant(planting.item)?.scale??1}:null,placing:placing&&!sheet?placing:null,
     onPlace:(x,z,why)=>{if(!placing)return;if(why){g.say(why);return}if(g.ops.build({kind:'building',id:placing.id},[x,z])){setPlacing(null);cue('capsule-mark')}},
     onPlant:(x,z,why)=>{if(!planting)return;const it=shopPlant(planting.item);if(!it)return;if(why){g.say(why);return}
       const r=g.ops.plant(it,x,z);if(r==='ok'){g.say(`${it.name} 심었어요 · -${won(it.price)}`);setPlanting(null);cue('capsule-mark')}
@@ -1269,7 +1269,7 @@ export default function Proto3D(){
       {fish==='log'&&!sheet&&<FishLog fishing={s.fishing} onClose={()=>setFish(null)}/>}
       {placing&&!sheet&&<div className="rt-plant-bar" role="status"><span>{BUILDINGS.find(b=>b.id===placing.id)?.name} 놓을 자리를 눌러요 · 초록 동그라미면 놓을 수 있어요</span>
         <button type="button" onClick={()=>setPlacing(null)}>취소</button></div>}
-      {planting&&!sheet&&<div className="rt-plant-bar" role="status"><span>{shopPlant(planting.item)?.name} 심을 풀밭을 눌러요</span>
+      {planting&&!sheet&&<div className="rt-plant-bar" role="status"><span>{shopPlant(planting.item)?.name} 심을 풀밭을 눌러요 · 초록 동그라미면 심을 수 있어요</span>
         <button type="button" onClick={()=>setPlanting(null)}>취소</button></div>}
       {sheet?.kind==='friend'&&<FriendSheet opener={opener.text} topic={opener.topic} seed={clock.today} onClose={close}
         talk={(history,m)=>boriChat(history,m,syncOn?(_h,msg)=>boriTalk(boriHoldings,msg):null)} opening={boriTalks?boriOpening:null} onFace={setBoriFace}

@@ -687,7 +687,7 @@ export type World={
   fp?:boolean;
   // the 꽃집 (content/flower-shop.ts): what is planted, and while one is being placed a tap on the grass plants it
   plants?:{id:string;item:string;x:number;z:number;scale:number}[];
-  planting?:{item:string}|null;onPlant?:(x:number,z:number,why:string|null)=>void;
+  planting?:{item:string;scale?:number}|null;onPlant?:(x:number,z:number,why:string|null)=>void;
   // a bought building being set down: a tap on the grass puts it there (or says why not)
   placing?:{id:string}|null;onPlace?:(x:number,z:number,why:string|null)=>void;
   // 보리 came over to talk: the camera frames the point between it and the player (LOOK.camera.talk)
@@ -787,12 +787,21 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
   const placeHover=(p:THREE.Vector3)=>{if(!world.placing)return;(testHooks() as {placeGhost?:unknown}).placeGhost={x:+p.x.toFixed(1),z:+p.z.toFixed(1)};setGhost(g=>g&&Math.hypot(g.x-p.x,g.z-p.z)<0.15?g:{x:p.x,z:p.z,ok:!whyHere(p.x,p.z)})};
   useEffect(()=>{const h=testHooks() as {placeAt?:(x:number,z:number)=>string|null};
     h.placeAt=(x,z)=>{if(!world.placing||!world.onPlace)return 'not placing';const why=whyHere(x,z);setGhost({x,z,ok:!why});world.onPlace(x,z,why);return why}});
+  // 피드백 11-26 "나무 설치할때 투명색으로 대략 느낌": a see-through plant follows the pointer over the village, green
+  // where it can go and red where not; a click plants it there. On a phone (no hover) the first tap puts the ghost down,
+  // a tap on it plants
+  const [pg,setPg]=useState<{x:number;z:number;ok:boolean}|null>(null);
+  useEffect(()=>{if(!world.planting)setPg(null)},[world.planting]);
+  const plantWhy=(x:number,z:number)=>plantBlock(x,z)||(tooClose([...(world.plants??[]),...starter()],x,z)?'다른 꽃·나무랑 너무 가까워요':null);
+  const plantHover=(p:THREE.Vector3)=>{if(!world.planting)return;setPg(g=>g&&Math.hypot(g.x-p.x,g.z-p.z)<0.15?g:{x:p.x,z:p.z,ok:!plantWhy(p.x,p.z)})};
+  const hoverOk=useMemo(()=>typeof matchMedia!=='undefined'&&matchMedia('(hover:hover) and (pointer:fine)').matches,[]);
   const sit=useRef<{x:number;z:number;face:number}|null>(null);
   const sitDown=()=>{if(world.placing||world.planting)return;const s=FIRE_SEAT;if(!onWay(s.x,s.z)){off();return}
     const r=route(pos.current,s,(x,z)=>inPond(x,z,0.2));if(!r)return;const [first,...rest]=r;target.current.set(first.x,0,first.z);stops.current=rest;sit.current=s;onPick(null)};
   useEffect(()=>{const h=testHooks() as {sitDown?:()=>void;sitFire?:()=>void};h.sitDown=sitDown;h.sitFire=sitDown});
   const walk=(p:THREE.Vector3)=>{if(world.placing&&world.onPlace){const why=whyHere(p.x,p.z);setGhost({x:p.x,z:p.z,ok:!why});world.onPlace(p.x,p.z,why);return}
-    if(world.planting&&world.onPlant){world.onPlant(p.x,p.z,plantBlock(p.x,p.z)||(tooClose([...(world.plants??[]),...starter()],p.x,p.z)?'다른 꽃·나무랑 너무 가까워요':null));return}const r=route(pos.current,p,(x,z)=>inPond(x,z,0.2));if(!r)return;if(!onWay(p.x,p.z)){off();return}const [first,...rest]=r;target.current.set(first.x,0,first.z);stops.current=rest;onPick(null)};
+    if(world.planting&&world.onPlant){const why=plantWhy(p.x,p.z);if(!hoverOk&&!(pg&&Math.hypot(pg.x-p.x,pg.z-p.z)<1.2)){setPg({x:p.x,z:p.z,ok:!why});return}
+      setPg({x:p.x,z:p.z,ok:!why});world.onPlant(p.x,p.z,why);return}const r=route(pos.current,p,(x,z)=>inPond(x,z,0.2));if(!r)return;if(!onWay(p.x,p.z)){off();return}const [first,...rest]=r;target.current.set(first.x,0,first.z);stops.current=rest;onPick(null)};
   const reportPoint=useCallback((k:string,v:THREE.Vector3)=>{let p=points.get(k);if(!p){p=new THREE.Vector3();points.set(k,p)}p.copy(v)},[points]);
   useEffect(()=>{testHooks().inside=world.inside;testHooks().stage=world.stage;(testHooks() as unknown as {shop:unknown}).shop=world.shop??null},[world.inside,world.stage,world.shop]);
   // 넓히기 mode: where each closed lot's tag sits (ui/BuildMode.tsx), and the landmarks' (always, for their name tags)
@@ -826,7 +835,8 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
     {world.sky?<SkyScene sky={world.sky}/>:world.stage?<Showroom look={world.look}/>:world.shop?<ShopRoom id={world.shop} look={world.look}/>:world.inside?<Interior me={world.look} people={world.room.people} books={world.room.books} notes={world.room.notes} resting={world.room.resting} decor={world.decor}
       onDesk={world.room.onDesk} onShelf={world.room.onShelf} onBoard={world.room.onBoard} onDoor={world.room.onDoor} onAnalyst={world.onAnalyst}
       report={reportPoint} reportAnalyst={reportAnalyst}/>:<group onPointerMove={hover} onPointerOut={hoverOff}>
-    <Ground onWalk={walk} onHover={world.placing?placeHover:undefined}/>
+    <Ground onWalk={walk} onHover={world.placing?placeHover:world.planting?plantHover:undefined}/>
+    {world.planting&&pg&&<Suspense fallback={null}><PlantGhost item={world.planting.item} scale={world.planting.scale??1} at={pg}/></Suspense>}
     {world.placing&&<BuildingGhost id={world.placing.id} at={ghost} ok={!!ghost?.ok} rot={BUILDINGS.find(b=>b.id===world.placing!.id)?.rot??0}/>}
     {(world.plants??[]).map(p=><Suspense key={p.id} fallback={null}><DecorPlant item={p.item} x={p.x} z={p.z} scale={p.scale}/></Suspense>)}
     {/* the starter trees are plain round trees (2026-11-18 user: fruit trees mean stocks, so only the fence has them); the beds stay */}
@@ -902,6 +912,17 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
 }
 
 // a decor flower bed or tree from the 꽃집, standing on the ground where it was planted (a slow sway like the others)
+// 피드백 11-26: the plant about to go in, see-through, with a green (fits) or red (not here) ring round it
+function PlantGhost({item,scale,at}:{item:string;scale:number;at:{x:number;z:number;ok:boolean}}){
+  const g=useRef<THREE.Group>(null);
+  useFrame(()=>{g.current?.traverse(o=>{const m=o as THREE.Mesh;if(!m.isMesh||m.userData.ghost)return;m.userData.ghost=true;
+    const c=(m.material as THREE.Material).clone();c.transparent=true;c.opacity=0.5;c.depthWrite=false;m.material=c;m.castShadow=false;m.raycast=()=>{}})});
+  return <group name="plant-ghost">
+    <group ref={g}><DecorPlant item={item} x={at.x} z={at.z} scale={scale}/></group>
+    <OnGround x={at.x} z={at.z}><mesh rotation-x={-Math.PI/2} position-y={0.05} raycast={()=>null}><ringGeometry args={[0.55*scale,0.75*scale,36]}/>
+      <meshBasicMaterial color={at.ok?'#5fd17a':'#ff6b6b'} transparent opacity={0.85} depthWrite={false}/></mesh></OnGround></group>;
+}
+
 function DecorPlant({item,x,z,scale}:{item:string;x:number;z:number;scale:number}){
   const {scene}=useGLTF(MODELS.decor(item));
   // 피드백 2026-11-23 (그늘에서 검게): the plants wear the shared soft material too, so a flower seen from below (the big

@@ -60,9 +60,15 @@ export function MyPage({g,onClose,onRecords,onSettings,onLetter,wearOnly}:{wearO
         <div className="rt-me-grid">
           {slot!=='color'&&slot!=='coat'&&<button type="button" className="rt-me-tile" aria-pressed={!look[slot]} onClick={()=>wear({...look,[slot]:null})}><strong>없음</strong></button>}
           {pieces.map(w=>{const open=isOpen(w.unlock,ctx,w.id),on=look[w.slot]===w.id,price=w.unlock.kind==='buy'?w.unlock.price:0;
-            return <button key={w.id} type="button" className="rt-me-tile" data-locked={!open} aria-pressed={on}
-              onClick={()=>{if(open)wear({...look,[w.slot]:w.id});else if(price&&g.s.currency>=price){if(g.ops.buyWear(w.id,price))wear({...look,[w.slot]:w.id})}}}>
-              <strong>{w.name}</strong>{open?<small>{(VERB[w.slot]??VERB.coat)[on?1:0]}</small>:<small><Lock size={12}/> {howTo(w.unlock,names)}{price?` · 지금 ${won(g.s.currency)}`:''}</small>}</button>})}
+            // 피드백 11-26 "옷 살때 구매, 입기 버튼": a piece for sale shows its price and a 구매 button; once mine, an 입기
+            // button (입는 중 while I wear it). Buying no longer puts it on by itself
+            const verb=VERB[w.slot]??VERB.coat;
+            return <div key={w.id} className="rt-me-tile rt-me-shop" data-locked={!open&&!price} data-on={on}>
+              <strong>{w.name}</strong>
+              {open?<button type="button" className="rt-me-act" data-on={on} disabled={on} onClick={()=>wear({...look,[w.slot]:w.id})}>{verb[on?1:0]}</button>
+                :price?<><small>{won(price)} · 지금 {won(g.s.currency)}</small>
+                  <button type="button" className="rt-me-act buy" disabled={g.s.currency<price} onClick={()=>g.ops.buyWear(w.id,price)}>{g.s.currency<price?`${won(price-g.s.currency)} 부족`:'구매'}</button></>
+                :<small><Lock size={12}/> {howTo(w.unlock,names)}</small>}</div>})}
           {slot==='color'&&PALETTES.map(p=>{const open=isOpen(p.unlock,ctx,p.id);return <button key={p.id} type="button" className="rt-me-tile" data-locked={!open} aria-pressed={look.palette===p.id} onClick={()=>open&&wear({...look,palette:p.id})}>
             <span className="rt-me-swatch">{[p.primary,p.secondary,p.accent].map(c=><i key={c} style={{background:c}}/>)}</span><strong>{p.name}</strong>{!open&&<small><Lock size={12}/> {howTo(p.unlock,names)}</small>}</button>})}
         </div></>}
