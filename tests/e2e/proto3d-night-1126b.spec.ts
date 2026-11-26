@@ -25,14 +25,14 @@ test("after today's quiz a new launch opens in the village", async ({ page }) =>
   await expect(page.getByTestId("house")).toHaveCount(0);
 });
 
-test("the merchant away: 보리 offers the 통신기, and it takes an order", async ({ page }) => {
+// 피드백 11-26 "상인한테만 가야 모의투자를 볼 수 있게": with the merchant away 보리 only says when to come back
+test("the merchant away: 보리 says when to come back, and nothing opens 모의투자", async ({ page }) => {
   await page.goto("/proto3d?demo&weather=clear&hour=1");
   await ready(page);
   await page.evaluate(() => (window as any).__proto3d.meet("merchant"));
-  await page.getByRole("button", { name: "통신기로 주문" }).click({ timeout: 30_000 });
-  const comm = page.getByRole("dialog", { name: "통신기" });
-  await expect(comm).toBeVisible();
-  await expect(comm).not.toContainText("주문은 상인이 있는 동안");
+  await expect(page.getByText(/모의투자는 그때 상인한테 와서 하면 돼/)).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("button", { name: "모의투자로 주문" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "모의투자", exact: true })).toHaveCount(0);
 });
 
 test("a rock and the news board can't be walked into", async ({ page }) => {

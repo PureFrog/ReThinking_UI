@@ -36,7 +36,6 @@ export function friendReplies(topic:FriendTopic,seed:string):FriendReply[]{
   const small=pick(['오늘은 구름이 낮게 깔렸어. 관측 수첩에 적어 뒀어.','루온은 반대만 하는데, 가끔 맞아서 얄미워.','광장 벤치에서 루온이 혼자 체스 두고 있더라.','저녁엔 언덕에서 마을 불빛 세는 게 좋아.'],seed);
   if(topic==='grades')return [
     {label:'응, 보여줘',answer:'응, 같이 보자.',go:'grades'},
-    {label:'이따 볼게',answer:'응, 괜찮아. 생각나면 그때 봐.',go:null},
     {label:'그냥 수다',answer:small,go:null}];
   if(topic==='signal')return [
     {label:'근거가 뭔데?',answer:'근거는 그 분석가 노트에 있어. 더 따져 보고 싶으면 광장에 루온 있어.',go:null},

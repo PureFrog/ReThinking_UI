@@ -71,9 +71,9 @@ test("the first walk: entry → room lesson → the village's people one by one"
   // with game coins), the communicator, the day before's news, a buy with coins
   await go(page, "상인");
   await expect(talk(page)).toContainText("사고파는 건 여기서", { timeout: 40_000 });
-  await say(page, "코인 받고 통신기 보기");
+  await say(page, "코인 받고 모의투자 열기");
   // 2026-11-23: the communicator is the practice-account MTS (ui/Comm.tsx), opened on its 주문 tab
-  const comm = page.getByRole("dialog", { name: "통신기" });
+  const comm = page.getByRole("dialog", { name: "모의투자" });
   await expect(comm.getByRole("list", { name: "살 수 있는 종목" }).getByRole("listitem")).toHaveCount(5);
   await comm.getByRole("list", { name: "살 수 있는 종목" }).getByRole("button").first().click();
   await comm.getByRole("button", { name: "한 주 더" }).click();

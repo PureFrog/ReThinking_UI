@@ -58,6 +58,8 @@ export function FriendSheet({opener,topic,seed,onGo,onClose,talk,opening,onFace,
     :picking?[...stocks.slice(0,8).map(x=>({label:x.name,stock:x.id})),{label:'다음에',leave:true}]
     :who&&talk?[...mine0,{label:'말 걸기',talk:true}]
     :who?[{label:'수다 떨자',answer:who.smalls[(seed+who.id).length%who.smalls.length]},...mine0]
+    // 피드백 11-26: 채점 소식엔 "응, 보여줘 · 말 걸기 · 그냥 수다" 한 줄 (이따 볼게 없앰)
+    :topic==='grades'?(([first,...rest])=>[first,...(talk?[{label:'말 걸기',talk:true}]:[]),...rest,...mine0])(friendReplies(topic,seed).map(r=>({label:r.label,answer:r.answer,go:r.go})))
     :[...friendReplies(topic,seed).filter(r=>r.go!=='case').map(r=>({label:r.label,answer:r.answer,go:r.go})),...mine0,...(talk?[{label:'말 걸기',talk:true}]:[])];
   const pick=(c:Choice)=>{setMine(c.label);
     if(c.stocks){setPicking(true);say(who?'어느 나무 얘기 할래?':'어떤 종목? 골라 봐.','curious');return}
@@ -84,7 +86,8 @@ export function FriendSheet({opener,topic,seed,onGo,onClose,talk,opening,onFace,
     setBusy(true);setHistory([...before,{who:'me',text:m}]);setFace('thinking');const a=await talk(before,m);setBusy(false);
     const end=END_MARK.test(a.text),text=a.text.replace(END_MARK,'').trim();if(end)setEnded(true);say(text||BYE[0],a.emotion??'neutral',a.at??null)};
   const showChoices=mode==='choose'&&done&&!busy&&queue.length<=1&&!!line;
-  const manyChoices=choices.length>3;
+  const oneLine=topic==='grades'&&!who&&!stopLoss&&!picking;
+  const manyChoices=choices.length>3||oneLine;
   const choiceList=(cls:string)=><div className={cls} role="group" aria-label="대답">
       {choices.map((c,i)=><button key={c.label} type="button" className={'rt-talk-choice'+(i===0?' first':'')} onClick={()=>pick(c)}>{c.label}</button>)}</div>;
   return <div className="rt-talk" role="dialog" aria-label={`${josa(name,'와')} 대화`} data-face={face}>
@@ -99,7 +102,7 @@ export function FriendSheet({opener,topic,seed,onGo,onClose,talk,opening,onFace,
         <span className="rt-sr">{busy?'':line.slice(shown)}</span>
       </p>
       {done&&!busy&&queue.length>1&&<i className="rt-talk-more" aria-hidden/>}
-      {showChoices&&manyChoices&&<div onClick={e=>e.stopPropagation()}>{choiceList('rt-talk-choices on-box')}</div>}
+      {showChoices&&manyChoices&&<div onClick={e=>e.stopPropagation()}>{choiceList('rt-talk-choices on-box'+(oneLine?' one-line':''))}</div>}
       {mode==='type'&&ended&&!busy&&<div className="rt-talk-choices on-box" onClick={e=>e.stopPropagation()}><button type="button" className="rt-talk-choice first" onClick={onClose}>대화 마치기</button></div>}
       {mode==='type'&&!ended&&<form className="rt-talk-type" onClick={e=>e.stopPropagation()} onSubmit={e=>{e.preventDefault();void send()}}>
         <input ref={input} className="rt-input" disabled={!talk} value={draft} maxLength={FRIEND_TALK.maxIn} onChange={e=>setDraft(e.target.value)}

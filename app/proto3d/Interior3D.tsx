@@ -99,23 +99,23 @@ export function Interior({me,books,notes,resting,decor,onDesk,onShelf,onBoard,on
       <DeskChair position={[0,0,0.9]}/>
       <mesh position-y={0.8} visible={false}><boxGeometry args={[2.4,1.7,1.4]}/></mesh>
     </group>
-    {/* bookshelf: a book per judgment */}
-    <group position={[ROOM_SPOTS.shelf.x,0,ROOM_SPOTS.shelf.z]} onClick={click(onShelf)} name="room-shelf">
-      <mesh position={[0,1.3,-0.24]} castShadow receiveShadow><boxGeometry args={[2.1,2.6,0.06]}/>{S(I().woodDark)}</mesh>
-      {[-1.02,1.02].map(x=><mesh key={x} position={[x,1.3,0]} castShadow><boxGeometry args={[0.06,2.6,0.52]}/>{S(I().wood)}</mesh>)}
-      {[0.28,1.06,1.84,2.58].map(y=><mesh key={y} position={[0,y,0]} castShadow receiveShadow><boxGeometry args={[2.04,0.05,0.52]}/>{S(I().wood)}</mesh>)}
-      <Books books={books}/>
-      {/* the rest of each shelf: books of my own and a few things (the judgment books stay first) */}
-      {[0,1,2].map(r=>{const n=Math.min(12,Math.max(0,books.length-r*12));return <FillerRow key={r} from={-0.95+n*0.15} to={0.98} y={0.305+r*0.78} seed={11+r*17} maxH={0.66}/>})}
-      <mesh position-y={1.3} visible={false}><boxGeometry args={[2.2,2.7,0.8]}/></mesh>
+    {/* 피드백 11-26 "이거 옷장으로 바꿔야": the wardrobe where the bookshelf stood: two doors, round knobs, a straw hat on
+        top. The journal is the librarian's (the village library); a tap here opens the clothes */}
+    <group position={[ROOM_SPOTS.shelf.x,0,ROOM_SPOTS.shelf.z]} onClick={click(onShelf)} name="room-shelf" userData={{books:books.length}}>
+      {[-0.66,0.66].map(x=><mesh key={'l'+x} position={[x,0.07,0.05]} castShadow><boxGeometry args={[0.12,0.14,0.12]}/>{S(I().woodDark)}</mesh>)}
+      <mesh position={[0,1.22,-0.02]} castShadow receiveShadow><boxGeometry args={[1.6,2.16,0.58]}/>{S(I().wood)}</mesh>
+      <mesh position={[0,2.34,0]} castShadow><boxGeometry args={[1.74,0.12,0.66]}/>{S(I().woodDark)}</mesh>
+      {[-0.39,0.39].map(x=><mesh key={'d'+x} position={[x,1.24,0.275]} castShadow><boxGeometry args={[0.74,1.96,0.04]}/>{S('#e8c79a')}</mesh>)}
+      {[-0.39,0.39].map(x=><mesh key={'p'+x} position={[x,1.62,0.3]}><boxGeometry args={[0.52,0.7,0.02]}/>{S('#f2d8b0')}</mesh>)}
+      {[-0.39,0.39].map(x=><mesh key={'q'+x} position={[x,0.78,0.3]}><boxGeometry args={[0.52,0.62,0.02]}/>{S('#f2d8b0')}</mesh>)}
+      {[-0.07,0.07].map(x=><mesh key={'k'+x} position={[x,1.24,0.32]}><sphereGeometry args={[0.045,12,10]}/>{S('#c99a3e')}</mesh>)}
+      <group position={[0.35,2.46,0.02]}>
+        <mesh castShadow><cylinderGeometry args={[0.36,0.36,0.03,24]}/>{S('#f1dca0')}</mesh>
+        <mesh position-y={0.09} castShadow><cylinderGeometry args={[0.17,0.19,0.17,20]}/>{S('#f1dca0')}</mesh>
+        <mesh position-y={0.04}><cylinderGeometry args={[0.195,0.195,0.05,20]}/>{S('#e8b04a')}</mesh></group>
+      <mesh position-y={1.3} visible={false}><boxGeometry args={[1.8,2.7,0.8]}/></mesh>
     </group>
-    {/* cork board: a note per buried capsule */}
-    <group position={[ROOM_SPOTS.board.x,2.05,ROOM_SPOTS.board.z+0.02]} onClick={click(onBoard)} name="room-board">
-      {/* 피드백 2026-11-26 "창문과 칠판이 겹쳐": a smaller board, right of the window's curtains */}
-      <mesh castShadow><boxGeometry args={[1.6,1.0,0.05]}/>{S(I().trim)}</mesh>
-      <mesh position-z={0.03}><planeGeometry args={[1.48,0.88]}/>{S(I().cork)}</mesh>
-      <group position-z={0.04} scale={0.82}><Notes notes={notes}/></group>
-    </group>
+    {/* 피드백 11-26: the cork board of grades is gone from the room (they are seen in the library) */}
     {/* the door out, warm light round it */}
     <group position={[ROOM_SPOTS.door.x,0,ROOM_SPOTS.door.z]} rotation-y={Math.PI/2} onClick={click(onDoor)} name="room-door">
       <mesh position-y={1.05}><boxGeometry args={[1.1,2.1,0.06]}/>{S('#7a3f2c')}</mesh>

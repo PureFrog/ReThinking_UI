@@ -39,7 +39,7 @@ test("the communicator values a real lot at the real close and keeps a mock lot 
   await villageReady(page);
   // (the village screen has no fixed 통신기 button in every state: open the sheet as the button does)
   await openSheet(page, { kind: "comm" });
-  const comm = page.getByRole("dialog", { name: "통신기" });
+  const comm = page.getByRole("dialog", { name: "모의투자" });
   await expect(comm).toContainText("알테오젠");
   await expect(comm).toContainText("123,400");
   await expect(comm).toContainText("HLB");
