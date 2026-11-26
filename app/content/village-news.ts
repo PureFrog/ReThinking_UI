@@ -4,6 +4,7 @@
 // The company overviews are short plain facts for the 종목 상태 창 (3장).
 // summary: the feed's excerpt under the headline (사용자 2026-11-22: RSS has no body but has a short excerpt; the live
 // feed's comes from core/content/live/rss.ts). The examples carry one in the same plain voice.
+import {kstWhen,type LiveNews} from '../core/content/live/naver';
 export type Article={id:string;theme:Theme;title:string;summary:string|null;code:string;name:string;day:string};
 export const THEMES=['실적','업황','정책','공시'] as const;
 export type Theme=typeof THEMES[number];
@@ -83,4 +84,29 @@ export function newsCards(stocks:{code:string;name:string}[],day:string):NewsCar
     return {...a,press:PRESS[h%PRESS.length],time:`${a.day===d0?'어제 ':''}${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`,
       body:[a.summary??'',MORE[a.theme][(h>>>9)%MORE[a.theme].length]].filter(Boolean),look:LOOK[a.theme],live:false}})
     .sort((x,y)=>(y.day+(y.time.replace('어제 ',''))).localeCompare(x.day+(x.time.replace('어제 ',''))));
+}
+
+// 실제 기사 (db/functions/news-feed, NAVER API HUB): a stock with real articles shows those, newest first; a stock the
+// feed could not reach (signed out, no invite, no key, nothing found) keeps its 모의 기사, so the list is never empty
+// and every card still says which it is. The real card's body is the publisher's own short description, and "원문 보기"
+// opens the article; no body is kept (core/content/live/naver.ts).
+export function liveCard(n:LiveNews,name:string,today:string):NewsCard{
+  const {day,time}=kstWhen(n.publishedAt,today);
+  return {id:n.id,theme:n.theme,title:n.title,summary:n.summary,code:n.code,name,day,press:n.press,time,
+    body:n.summary?[n.summary]:[],look:LOOK[n.theme],live:true,url:n.url};
+}
+export function mergeNews(stocks:{code:string;name:string}[],day:string,live:Record<string,LiveNews[]>|null):NewsCard[]{
+  const real=stocks.filter(s=>live?.[s.code]?.length);
+  const realCards=real.flatMap(s=>live![s.code].map(n=>({n,c:liveCard(n,s.name,day)}))).sort((a,b)=>a.n.publishedAt<b.n.publishedAt?1:-1).map(x=>x.c)
+    .filter((c,i,all)=>all.findIndex(o=>o.url===c.url)===i);   // one article naming two of my stocks shows once
+  return [...realCards,...newsCards(stocks.filter(s=>!real.includes(s)),day)];
+}
+// the board on the square: real articles count as today's when they came out today or yesterday
+export function boardArticles(stocks:{code:string;name:string}[],day:string,live:Record<string,LiveNews[]>|null):(Article&{live:boolean;url?:string;press?:string})[]{
+  const real=stocks.filter(s=>live?.[s.code]?.length);
+  const prev=new Date(day+'T00:00:00Z');prev.setUTCDate(prev.getUTCDate()-1);const d0=prev.toISOString().slice(0,10);
+  const realOnes=real.flatMap(s=>live![s.code].map(n=>liveCard(n,s.name,day))).filter(c=>c.day===day||c.day===d0)
+    .filter((c,i,all)=>all.findIndex(o=>o.url===c.url)===i)
+    .map(c=>({id:c.id,theme:c.theme,title:c.title,summary:c.summary,code:c.code,name:c.name,day:c.day,live:true,url:c.url,press:c.press}));
+  return [...realOnes,...articlesFor(stocks.filter(s=>!real.includes(s)),day).map(a=>({...a,live:false}))];
 }

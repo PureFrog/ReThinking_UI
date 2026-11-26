@@ -11,7 +11,8 @@ import {pagesOf} from '../../core/talk';
 import {screenPoints} from '../screen';
 import {Sheet} from './Sheet';
 import {won} from '../../core/won';
-import {THEMES,articlesFor,dayBeforeArticle,overviewOf,type Theme} from '../../content/village-news';
+import {THEMES,boardArticles,dayBeforeArticle,overviewOf,type Theme} from '../../content/village-news';
+import {useLiveNews} from '../liveNews';
 import type {CartLoad} from '../../core/walk';
 import {ROLE_TAG} from '../../content/villagers';
 
@@ -107,16 +108,17 @@ export function Harvest({lots,cart,today,onLoad,onClose}:{lots:Lot[];cart:CartLo
 }
 
 export function NewsBoard({stocks,day,onClose}:{stocks:{code:string;name:string}[];day:string;onClose:()=>void}){
-  const all=articlesFor(stocks,day),[theme,setTheme]=useState<Theme|null>(null);
+  const live=useLiveNews(stocks),all=boardArticles(stocks,day,live),[theme,setTheme]=useState<Theme|null>(null);
+  const anyLive=all.some(a=>a.live),allLive=anyLive&&all.every(a=>a.live);
   const list=theme?all.filter(a=>a.theme===theme):all;
   return <Sheet kicker="뉴스 표지판" title={`오늘 배달된 소식 ${all.length}`} label="뉴스 표지판" onClose={onClose}>
-    <p className="rt-hint">신문 배달이 매일 내 보유 종목 관련 기사를 모아 와요. 지금은 예시 기사예요.</p>
+    <p className="rt-hint">신문 배달이 매일 내 보유 종목 관련 기사를 모아 와요. {allLive?'오늘과 어제 나온 실제 기사예요.':anyLive?'"예시 기사" 표시가 붙은 건 연습용 글이에요.':'지금은 실제 뉴스를 불러오지 못해 예시 기사예요.'}</p>
     <div className="rt-seg vl-themes" role="tablist" aria-label="테마">
       <button type="button" role="tab" aria-selected={theme===null} onClick={()=>setTheme(null)}>전체</button>
       {THEMES.map(t=><button key={t} type="button" role="tab" aria-selected={theme===t} onClick={()=>setTheme(t)}>{t} {all.filter(a=>a.theme===t).length}</button>)}</div>
-    {list.length?<ul className="vl-articles">{list.map(a=><li key={a.id}><span className="vl-news-k">{a.theme} · 예시 기사</span><strong>{a.title}</strong>
+    {list.length?<ul className="vl-articles">{list.map(a=><li key={a.id}><span className="vl-news-k">{a.theme} · {a.live?a.press??'실제 기사':'예시 기사'}</span><strong>{a.title}</strong>
       {a.summary&&<p className="vl-news-sum">{a.summary}</p>}
-      <small>{a.name} · {a.day.replaceAll('-','.')}</small></li>)}</ul>
+      <small>{a.name} · {a.day.replaceAll('-','.')}{a.live&&a.url&&<> · <a href={a.url} target="_blank" rel="noopener noreferrer">원문 보기 ↗</a></>}</small></li>)}</ul>
     :<p className="vl-empty">{!stocks.length?'보유 종목이 없어서 배달된 기사가 없어요. 밭에 종목이 생기면 그 소식을 모아 올게요.':theme?`오늘은 ${theme} 기사가 없어요.`:'오늘은 내 종목 관련 기사가 없어요.'}</p>}
   </Sheet>;
 }
