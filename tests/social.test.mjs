@@ -67,3 +67,13 @@ test('019: the rows the app upserts are readable by their owner (an upsert needs
   assert.match(sql, /create policy planets_read_own on planets for select to authenticated using \(player_id = auth\.uid\(\)\)/);
   assert.match(sql, /create policy player_presence_read_own on player_presence for select to authenticated using \(player_id = auth\.uid\(\)\)/);
 });
+
+test('?skydemo: five example players, two 온라인, one closed, all marked demo', async () => {
+  const P = await load('core/planets');
+  const now = Date.parse('2026-11-26T05:00:00Z'), d = P.demoNeighbours(now);
+  assert.equal(d.length, 5);
+  assert.ok(d.every(p => p.demo));
+  assert.equal(d.filter(p => P.presenceOf(p.seenAt, now).online).length, 2);
+  assert.deepEqual(d.filter(p => p.closed).map(p => p.name), ['분기노트']);
+  assert.equal(P.presenceOf(d.find(p => p.name === '현금비중').seenAt, now).label, '오프라인 · 3시간 전');
+});
