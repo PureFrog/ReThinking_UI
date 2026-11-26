@@ -3,7 +3,7 @@
 // planets, a visit sheet for a tapped planet (its judging numbers, trees by state and sector, names only if its owner
 // opened them, stamps, one cheer), and my own share setting with a preview of what others get.
 import {useEffect,useRef,useState} from 'react';
-import {CONDITION_COLOR,CONDITION_SHORT,SHARE_LABEL,type Planet,type Share} from '../../core/planets';
+import {CONDITION_COLOR,CONDITION_SHORT,SHARE_LABEL,presenceOf,type Planet,type Share} from '../../core/planets';
 import {screenPoints} from '../screen';
 import {Cross} from './Icons';
 import {cue} from '../../core/sound';
@@ -36,7 +36,8 @@ function Tags({planets,focus,onPick}:{planets:Planet[];focus:string|null;onPick:
       if(!p||!p.visible){t.style.opacity='0';continue}t.style.left=p.x+'px';t.style.top=p.y+'px';t.style.opacity=''}id=requestAnimationFrame(f)};id=requestAnimationFrame(f);return()=>cancelAnimationFrame(id)},[]);
   return <div className="sky-tags" ref={box}>{planets.map(p=><button key={p.id} type="button" data-id={p.id} className={`sky-tag${p.me?' me':''}${focus?' dim':''}`} onClick={()=>onPick(p.id)}
     aria-label={p.me?'내 정원':`${p.name}의 정원`}>
-    {p.me?<><b>나</b><small>{SHARE_LABEL[p.share]}</small></>:<><b>{p.name}</b><small className="rt-num">적중 {p.hit??'—'}%</small></>}</button>)}</div>;
+    {p.me?<><b>나</b><small>{SHARE_LABEL[p.share]}</small></>:p.sample?<><b>{p.name}</b><small className="rt-num">적중 {p.hit??'—'}%</small></>
+      :(()=>{const st=presenceOf(p.seenAt,Date.now());return <><b><i className={`sky-dot${st.online?' on':''}`} aria-hidden/>{p.name}</b><small>{st.online?'온라인':'오프라인'}</small></>})()}</button>)}</div>;
 }
 
 export function SkyView({planets,sample,share,focus,week,onPick,onShare,onClose,onLeague}:{planets:Planet[];sample:boolean;share:Share;focus:string|null;week:string;
@@ -57,13 +58,15 @@ export function SkyView({planets,sample,share,focus,week,onPick,onShare,onClose,
     {!p&&!privacy&&<div className="sky-hint">행성을 누르면 정원을 볼 수 있어요 · 끌어서 회전</div>}
     <section className={`sky-sheet${p?' on':''}`} aria-label={p?`${p.name}의 정원`:undefined} aria-hidden={!p}>
       {p&&<div className="sky-body">
-        <div className="sky-name"><span className="sky-avatar" style={{['--c' as string]:p.color}}/><div><span className="sky-seal">{p.rank}</span><span className="sky-who">{p.name}</span><span className="sky-habit">{p.habit}</span></div></div>
+        <div className="sky-name"><span className="sky-avatar" style={{['--c' as string]:p.color}}/><div>{p.rank&&<span className="sky-seal">{p.rank}</span>}<span className="sky-who">{p.name}</span>
+          {!p.sample?(()=>{const st=presenceOf(p.seenAt,Date.now());return <span className={`sky-status${st.online?' on':''}`}><i className={`sky-dot${st.online?' on':''}`} aria-hidden/>{st.label}</span>})():<span className="sky-habit">{p.habit}</span>}</div></div>
+        {p.closed?<p className="sky-note sky-closed">{p.name}님은 아직 정원을 공개하지 않았어요. 응원과 방명록은 남길 수 있어요</p>:<>
         <div className="sky-grid"><div><span>적중률</span><b>{p.hit??'—'}<small>%</small></b></div><div><span>확신 보정</span><b>{p.calibration??'—'}</b></div>
           <div><span>챌린지 최고</span><b>{p.best===null?'—':(p.best>0?'+':'')+p.best}</b></div><div><span>업적</span><b>{p.stamps}<small>/15</small></b></div></div>
         <div className="sky-sec"><span>정원 · 나무 {p.trees.length}그루</span><span className="sky-note">{p.share==='open'?'종목명 공개':'종목명 비공개 · 업종만 표시'}</span></div>
         <div className="sky-trees">{p.trees.map((t,k)=><div key={k} className="sky-tree" style={{['--c' as string]:CONDITION_COLOR[t.condition]}}><i/>
           <span>{t.name?<b>{t.name} · </b>:<span className="sky-ink" aria-label="숨긴 종목명"/>}{t.sector}</span><small>{CONDITION_SHORT[t.condition]}</small></div>)}</div>
-        <p className="sky-note">금액·수량·수익률·메모는 공개되지 않아요</p>
+        <p className="sky-note">금액·수량·수익률·메모는 공개되지 않아요</p></>}
         <div className="sky-row"><button type="button" className="rt-btn" onClick={()=>onPick(null)}>뒤로</button>
           <button type="button" className="rt-btn primary" disabled={cheered.includes(p.id)} onClick={()=>doCheer(p.id)}>{cheered.includes(p.id)?'이번 주 응원함':'응원하기'}</button>
           {cheered.includes(p.id)&&<span className="sky-cheer" aria-hidden>응</span>}</div>
@@ -75,7 +78,7 @@ export function SkyView({planets,sample,share,focus,week,onPick,onShare,onClose,
         <div className="rt-kicker">내 공개 범위</div><div className="sky-title">다른 유저에게 보이는 내 정원</div>
         <div className="sky-opts" role="radiogroup">{(['off','hide','open'] as Share[]).map(k=><button key={k} type="button" role="radio" aria-checked={share===k} className="sky-opt" onClick={()=>onShare(k)}>
           <span className="dot"/><strong>{k==='hide'?'이름 가림 (기본)':SHARE_LABEL[k]}</strong>
-          <small>{k==='off'?'다른 유저에게 내 정원이 보이지 않아요. 리그 순위에는 이름만 나와요':k==='hide'?'나무 상태, 업종, 판단 점수, 등급, 업적이 보여요. 종목명은 숨겨요':'위 내용에 종목명까지 보여요'}</small></button>)}</div>
+          <small>{k==='off'?'내 정원 내용은 보이지 않아요. 하늘에는 이름과 접속 상태만 있는 빈 행성으로 나와요':k==='hide'?'나무 상태, 업종, 판단 점수, 등급, 업적이 보여요. 종목명은 숨겨요':'위 내용에 종목명까지 보여요'}</small></button>)}</div>
         <div className="sky-sec"><span>항상 비공개</span></div>
         <div className="sky-never">{['금액','수량','수익률','판단 메모','캡처 이미지'].map(x=><span key={x}>{x}</span>)}</div>
         <p className="sky-note">나무 색으로 손익 정도가 대략 드러나요. 이것도 숨기려면 비공개를 고르세요</p>

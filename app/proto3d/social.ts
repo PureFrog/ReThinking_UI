@@ -3,7 +3,7 @@
 // invite code is one league group. Signed out, no invite, or no server → null, and the caller keeps its examples.
 // What leaves the device: my week's points, my planet as core/planets.ts wireOf (never amounts), a cheer, a note.
 import {supabase,supabaseReady,hasInvite} from './supabase';
-import {wireOf,type Planet} from '../core/planets';
+import {wireOf,planetOfRow,type Planet} from '../core/planets';
 import {ranked,type Row} from '../core/league';
 
 let gate:Promise<boolean>|null=null,gateAt=0;
@@ -30,8 +30,7 @@ export async function liveLeague(week:string,me:{name:string;points:number}){
 export async function livePlanets():Promise<Planet[]|null>{
   if(!await socialOn())return null;
   try{const {data,error}=await supabase().rpc('social_planets');if(error||!Array.isArray(data))return null;
-    return (data as {player:string;handle:string;body:ReturnType<typeof wireOf>}[]).filter(r=>r.body&&Array.isArray(r.body.trees))
-      .map(r=>({...r.body,id:r.player,name:r.handle||r.body.name}))}catch{return null}
+    return (data as Parameters<typeof planetOfRow>[0][]).map(planetOfRow)}catch{return null}
 }
 export async function publishPlanet(me:Planet|null){
   if(!await socialOn())return;
@@ -69,4 +68,17 @@ export async function deleteNote(id:number):Promise<boolean>{
 // my own id, to read the notes left on my planet
 export async function myId():Promise<string|null>{
   if(!supabaseReady)return null;try{const {data}=await supabase().auth.getSession();return data.session?.user.id??null}catch{return null}
+}
+
+// 접속 신호 (db/migrations/018_presence.sql): every minute while the app is open and in front, "I'm here"; a hidden
+// tab sends nothing, so it turns 오프라인 two minutes later. Returns a stop function.
+export const PRESENCE_MS=60e3;
+export function startPresence():()=>void{
+  if(!supabaseReady||typeof document==='undefined')return ()=>{};
+  let stop=false;
+  const beat=async()=>{if(stop||document.visibilityState!=='visible'||!await socialOn())return;
+    try{await supabase().from('player_presence').upsert({seen_at:new Date().toISOString()},{onConflict:'player_id'})}catch{/* next beat */}};
+  void beat();const t=setInterval(()=>void beat(),PRESENCE_MS);
+  const vis=()=>{if(document.visibilityState==='visible')void beat()};document.addEventListener('visibilitychange',vis);
+  return ()=>{stop=true;clearInterval(t);document.removeEventListener('visibilitychange',vis)};
 }

@@ -91,6 +91,7 @@ import {SkyView} from './ui/SkyView';
 import {Peek} from './Peek';
 import {myPlanet,type Planet,type Share} from '../core/planets';
 import {planetRepo} from './server';
+import {startPresence} from './social';
 import {habitOf} from '../core/profile';
 import {PALETTES} from '../core/wardrobe';
 import {fitLook} from '../core/wardrobe';
@@ -383,7 +384,11 @@ export default function Proto3D(){
   // 다른 정원들 (ui/SkyView.tsx, Sky3D.tsx): ?sky opens it; the garden is put away while it is open
   const [skyOpen,setSkyOpen]=useState<{focus:string|null}|null>(()=>{try{return new URLSearchParams(location.search).has('sky')?{focus:null}:null}catch{return null}});
   const [neighbours,setNeighbours]=useState<{planets:Planet[];sample:boolean}>({planets:[],sample:true});
-  useEffect(()=>{if(!skyOpen)return;let on=true;planetRepo.neighbours(weekStart(clock.today)).then(n=>{if(on)setNeighbours(n)});return()=>{on=false}},[!!skyOpen,clock.today]);// eslint-disable-line react-hooks/exhaustive-deps
+  // the sky reads the planets when it opens and again every minute, so who is 온라인 stays current (018_presence)
+  useEffect(()=>{if(!skyOpen)return;let on=true;const read=()=>planetRepo.neighbours(weekStart(clock.today)).then(n=>{if(on)setNeighbours(n)});void read();
+    const t=setInterval(()=>void read(),60e3);return()=>{on=false;clearInterval(t)}},[!!skyOpen,clock.today]);// eslint-disable-line react-hooks/exhaustive-deps
+  // "I'm here" every minute while the app is open and in front (signed in with an invite code only)
+  useEffect(()=>startPresence(),[]);
   const quiet=calm||!!lapse||me||!!expedition||!!quest||!!skyOpen;
   // W3 time capsules (core/capsule.ts): one marker per tree; burying after a judgment, digging up as a grade opens
   const capsules=useMemo(()=>capsulesOf(s.judgments,s.graded,clock.today,s.holdings.map(x=>x.id),(j,m)=>g.due.some(d=>d.judgment.id===j.id&&d.mark===m)),[s.judgments,s.graded,clock.today,s.holdings,g.due]);// eslint-disable-line react-hooks/exhaustive-deps
