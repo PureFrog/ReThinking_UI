@@ -59,7 +59,7 @@ export function SkyView({planets,sample,share,focus,week,onPick,onShare,onClose,
   const pick=(id:string)=>{const x=planets.find(y=>y.id===id);cue('panel-open');if(x?.me){onPick(null);setPrivacy(true)}else{setPrivacy(false);onPick(id)}};
   return <div className="sky" data-testid="sky">
     <div className="sky-top">
-      <div className="sky-plate"><div className="rt-kicker">이번 주 리그 그룹</div><div className="sky-title">다른 유저</div>{sample?<span className="sky-sample">예시 화면 · 입장코드를 넣은 계정으로 로그인하면 실제 유저가 보여요</span>:planets.some(x=>x.demo)?<span className="sky-sample">예시 화면 · 실제 유저 화면을 흉내 낸 목 데이터예요 (온라인 {planets.filter(x=>x.demo&&presenceOf(x.seenAt,Date.now()).online).length}명)</span>:<span className="sky-sample">입장코드를 넣은 유저 {planets.filter(x=>!x.me).length}명{received!==null?` · 이번 주 받은 응원 ${received}`:''}</span>}</div>
+      <div className="sky-plate"><div className="rt-kicker">이번 주 리그 그룹</div><div className="sky-title">다른 유저</div>{sample?<span className="sky-sample">예시 화면 · 로그인하면 실제 유저가 보여요</span>:planets.some(x=>x.demo)?<span className="sky-sample">예시 화면 · 실제 유저 화면을 흉내 낸 목 데이터예요 (온라인 {planets.filter(x=>x.demo&&presenceOf(x.seenAt,Date.now()).online).length}명)</span>:<span className="sky-sample">함께하는 유저 {planets.filter(x=>!x.me).length}명{received!==null?` · 이번 주 받은 응원 ${received}`:''}</span>}</div>
       <div className="sky-right">{onLeague&&<button type="button" className="sky-pill" onClick={onLeague}>리그 순위</button>}<button type="button" className="sky-pill" onClick={()=>{onPick(null);setPrivacy(true)}}>공개 설정 · <b>{SHARE_LABEL[share]}</b></button>
         <button type="button" className="sky-pill" aria-label="닫기" onClick={onClose}><Cross size={16}/></button></div>
     </div>

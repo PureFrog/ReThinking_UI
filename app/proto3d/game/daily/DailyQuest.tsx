@@ -31,7 +31,7 @@ function fieldsLine(q:QuestDef){return q.fields.map(k=>k==='hypo'&&q.aid?`가설
   :k==='reason'&&q.evFrom==='focus'?'근거(두 자료 중 하나)':k==='shift'?'판단 변화(장면 2부터)':FIELD_LABEL[k]).join(' · ')}
 const NAME={tori:'토리',moa:'모아',luon:'루온'} as const;
 // quest-settle's refusals, in words (db/functions/quest-settle, core/game/daily/server.ts)
-const SYNC_ERR:Record<string,string>={locked:'앞 과제가 서버에 없어요. 로그인 전에 한 판은 이 기기에만 있어요',day:'날짜가 맞지 않아요',invite:'입장 코드가 필요해요',
+const SYNC_ERR:Record<string,string>={locked:'앞 과제가 서버에 없어요. 로그인 전에 한 판은 이 기기에만 있어요',day:'날짜가 맞지 않아요',invite:'아직 서버에 계정이 준비되지 않았어요. 잠시 뒤 다시 해 주세요',
   'sign-in':'로그인이 풀렸어요',pack:'판 버전이 달라요',retry:'잠시 뒤 다시 시도해 주세요'};
 
 // server: signed in (quest-settle); null keeps everything on this device

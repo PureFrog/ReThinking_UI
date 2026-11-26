@@ -527,7 +527,7 @@ const easeInOut=(k:number)=>k<0.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
 // low: the root cut-away is open, so the camera comes down to the side of it (keeping the way it faces)
 // near: a capsule is being buried or dug up (W3): the camera comes closer to it
 // aim: a landmark just opened — the camera comes down to a side view from the garden's side, facing it (core/land.ts)
-function FollowCam({pos,recenter,focus,orbit,low,near,aim,fp=false,talk=null,eye=null}:{pos:React.MutableRefObject<THREE.Vector3>;recenter:number;focus:THREE.Vector3|null;orbit:Orbit|null;low:number|null;near:boolean;aim?:number|null;fp?:boolean;talk?:{az:number;pitch?:number;dist?:number}|null;eye?:{x:number;z:number;ax:number;az:number;h?:number}|null}){
+function FollowCam({pos,recenter,focus,orbit,low,near,aim,fp=false,talk=null,eye=null,follow=null}:{follow?:string|null;pos:React.MutableRefObject<THREE.Vector3>;recenter:number;focus:THREE.Vector3|null;orbit:Orbit|null;low:number|null;near:boolean;aim?:number|null;fp?:boolean;talk?:{az:number;pitch?:number;dist?:number}|null;eye?:{x:number;z:number;ax:number;az:number;h?:number}|null}){
   const shift=useRef({x:0,y:0}),back=useRef(false),lean=useMemo(()=>new THREE.Vector3(),[]),side=useMemo(()=>new THREE.Vector3(),[]),tv=useRef({x:0,y:0});
   const ctl=useRef<OrbitControlsImpl>(null),{camera,size}=useThree(),fpWas=useRef(false),levelUp=useRef(new THREE.Vector3(0,1,0));
   const prev=useMemo(()=>new THREE.Vector3(),[]),want=useMemo(()=>new THREE.Vector3(),[]),fwd=useMemo(()=>new THREE.Vector3(),[]);
@@ -555,7 +555,8 @@ function FollowCam({pos,recenter,focus,orbit,low,near,aim,fp=false,talk=null,eye
     // first person: only when nothing else wants the camera (a tree, a building, a scene); those still win
     const F=LOOK.camera.fp,fpOn=fp&&!focus&&low===null&&!near&&aim==null&&!orbit;
     camera.position.sub(lean);prev.copy(c.target);want.set(pos.current.x,surfaceY(pos.current.x,pos.current.z)+(fpOn?F.eye:0.8),pos.current.z);
-    if(focus)want.copy(focus);
+    // QA 2026-11-26 "농부한테 팔 때 시선이 농부 원래 자리에 고정": an errand's camera goes with the person, where they are now
+    if(focus){want.copy(focus);const L=follow?NPC_LIVE[follow]:null;if(L)want.set(L.x,surfaceY(L.x,L.z)+1.3,L.z)}
     else if(fpOn){/* no lead: the eye is where the player is */}
     else if(fr.lead){fwd.subVectors(c.target,camera.position).setY(0);if(fwd.lengthSq()>1e-6)want.addScaledVector(fwd.normalize(),fr.lead)}
     const cam=camera as THREE.PerspectiveCamera,ins=focus?sheetInset(size.width,size.height):{x:0,y:0},sh=shift.current;
@@ -696,7 +697,7 @@ export type World={
   burst:{holdingId:number;hit:boolean;stamp:number}|null;
   focus:number|null;
   // a spot the camera looks at for a moment instead of the player (a landmark just opened, core/land.ts)
-  view?:{x:number;z:number;y?:number;az?:number}|null;
+  view?:{x:number;z:number;y?:number;az?:number;npc?:string}|null;
   // W1: the trees being born now (core/birth.ts), and where the analysts walk in from as they arrive
   birth:{ids:number[];t0:number;plan:BirthPlan}|null;
   enterFrom:{x:number;z:number}|null;
@@ -927,7 +928,7 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
     {/* out of the way while the camera looks into the open ground */}
     <Keys pos={pos} target={target} stops={stops} onMove={()=>onPick(null)} gate={(x,z)=>{const ok=onWay(x,z);if(!ok)off();return ok}} enabled={!world.inside&&!world.shop&&!world.stage&&!world.sky&&!cut&&!world.capsuleFx}/>
     <Player sit={sit} faceTo={world.talk?.eye?{x:world.talk.eye.ax,z:world.talk.eye.az}:null} onPick={world.onPlayer} walls={walls} look={world.look} target={target} stops={stops} pos={pos} hidden={(!!cut&&!cut.c.closing)||!!world.capsuleFx||(!!world.fp&&!focusPos)||!!world.talk?.eye}/>
-    {!world.sky&&<FollowCam pos={pos} recenter={recenter} focus={focusPos} orbit={orbit} near={!!world.capsuleFx} aim={world.view?.az??null} low={cut&&!cut.c.closing?cut.yaw:null} fp={!!world.fp} talk={world.talk&&!world.talk.eye?{az:world.talk.az,pitch:world.talk.pitch,dist:world.talk.dist}:null} eye={world.talk?.eye??null}/>}
+    {!world.sky&&<FollowCam pos={pos} recenter={recenter} focus={focusPos} orbit={orbit} near={!!world.capsuleFx} aim={world.view?.az??null} low={cut&&!cut.c.closing?cut.yaw:null} fp={!!world.fp} talk={world.talk&&!world.talk.eye?{az:world.talk.az,pitch:world.talk.pitch,dist:world.talk.dist}:null} eye={world.talk?.eye??null} follow={world.view?.npc??null}/>}
     </group>}
     <Hooks pos={pos} treePos={treePos} points={points}/>
 

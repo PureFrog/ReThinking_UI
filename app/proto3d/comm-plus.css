@@ -1,7 +1,7 @@
 /* 통신기 더하기 (ui/CommPlus.tsx): dotted words that explain themselves, the first-time guide, the stock page,
    missions, the two fields; in the MTS's own look (app/mts/mts.css) */
 .rt-term{border-bottom:1.5px dotted #9aa3b5;cursor:help;-webkit-touch-callout:none;user-select:none}
-.rt-term-tip{position:fixed;z-index:200;max-width:240px;padding:9px 12px;border-radius:12px;background:#1f2633;color:#fff;font-size:12.5px;line-height:1.45;
+.rt-term-tip{position:fixed;z-index:200;width:max-content;max-width:min(240px,calc(100vw - 24px));padding:9px 12px;border-radius:12px;background:#1f2633;color:#fff;font-size:12.5px;line-height:1.45;
   box-shadow:0 10px 24px -10px #000a;pointer-events:none;white-space:normal;text-align:left;font-weight:400}
 .rt-term-tip b{display:block;font-size:13px;margin-bottom:2px;color:#ffd447}
 .rt-q{font-style:normal;display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;background:#eef1f6;color:#5b6577;font-size:11px;margin-left:2px}
@@ -126,3 +126,11 @@
 .rt-wk-bar b{text-align:right}.rt-wk-bar b.up{color:var(--mts-up)}.rt-wk-bar b.down{color:var(--mts-down)}
 .rt-wk-say{margin:0;font-size:12.5px;color:#4a5566;line-height:1.5}
 .rt-fb-kick{display:block;font-size:12px;color:#c4432f;font-weight:700;margin-bottom:4px}
+
+/* QA 2026-11-26 (캡처: 폰 안에 또 폰): on a real phone the 통신기 is the app itself, full screen. The bezel, the side
+   buttons, the drawn status bar and home bar stay on bigger screens only; the phone's own status bar is kept clear. */
+@media (max-width:600px) and (orientation:portrait){
+  .rt-comm .rt-phone{--ph:100%;width:100vw;height:100%;padding:0;border-radius:0;background:#fff;box-shadow:none}
+  .rt-comm :is(.rt-phone-btn,.rt-phone-status,.rt-phone-home){display:none}
+  .rt-comm .rt-phone-screen{border-radius:0;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+}

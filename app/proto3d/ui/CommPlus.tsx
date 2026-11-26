@@ -8,6 +8,7 @@
 //   Missions    why practise: four first steps with coin rewards (첫 매수, 뉴스 읽고 사기, 세 종목에 나눠 담기, 수익 실현)
 //   Fields      the two fields in one line each: 기록 (my real stocks, the field) and 코인 (practice, the orchard)
 import {useEffect,useMemo,useRef,useState} from 'react';
+import {createPortal} from 'react-dom';
 import type {Bar} from '../../core/jigi/stocks';
 
 export const GLOSSARY:Record<string,string>={
@@ -49,7 +50,9 @@ export function Term({k,children}:{k:string;children?:React.ReactNode}){
     onPointerDown={e=>{if(e.pointerType!=='mouse'){hold.current=setTimeout(show,450)}}} onPointerUp={()=>{if(hold.current)clearTimeout(hold.current)}}
     onClick={e=>{e.stopPropagation();show()}} onContextMenu={e=>e.preventDefault()}>
     {children??k}
-    {open&&<span className="rt-term-tip" role="tooltip" style={{left:at.x,top:at.y,transform:`translate(-50%,${at.below?'0':'-100%'})`}}><b>{k}</b>{meaning}</span>}
+    {/* QA 2026-11-26: on the body, not inside the phone (its rise animation is a transform, which made "fixed" relative
+        to the phone: the tip came out squeezed into a thin column and in the wrong place) */}
+    {open&&createPortal(<span className="rt-term-tip" role="tooltip" style={{left:at.x,top:at.y,transform:`translate(-50%,${at.below?'0':'-100%'})`}}><b>{k}</b>{meaning}</span>,document.body)}
   </span>;
 }
 

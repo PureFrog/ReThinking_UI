@@ -75,7 +75,7 @@ export function League({g,onClose}:{g:G;onClose:()=>void}){
     <div style={{marginTop:12}}>{rows?rows.map(r=><div key={r.id} className="rt-row" style={r.me?{background:'var(--rt-accent-soft)',borderRadius:10,padding:'12px 8px'}:undefined}>
       <b className="rt-num" style={{width:24,color:r.promote?'var(--rt-accent)':'var(--rt-mute)'}}>{r.rank}</b>
       <div><strong>{r.name}{r.me?' (나)':''}</strong></div><b className="rt-num">{r.points}</b></div>):<p className="rt-empty">불러오는 중</p>}</div>
-    {lg&&<p className="rt-hint" style={{marginTop:12}}>{lg.sample?'지금은 예시 리그예요. 입장코드를 넣은 계정으로 로그인하면 실제 유저와 겨뤄요':'입장코드를 넣은 유저 모두가 한 리그예요 (비공개 테스트)'}</p>}
+    {lg&&<p className="rt-hint" style={{marginTop:12}}>{lg.sample?'지금은 예시 리그예요. 로그인하면 실제 유저와 겨뤄요':'로그인한 유저 모두가 한 리그예요'}</p>}
   </Sheet>;
 }
 

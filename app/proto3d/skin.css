@@ -148,3 +148,32 @@
 .rt-sorry::after{content:'';position:absolute;left:50%;bottom:-8px;width:12px;height:12px;background:#fffbf2;border:2px solid #3b2c20;border-top:0;border-left:0;transform:translateX(-50%) rotate(45deg)}
 @keyframes rt-sorry{0%{opacity:0;scale:.6}12%{opacity:1;scale:1.08}20%{scale:1}85%{opacity:1}100%{opacity:0;scale:.95}}
 @media (prefers-reduced-motion:reduce){.rt-sorry{animation:none}}
+/* the hint toast and banner: rethink.css paints their text paper-white, and in the production bundle that rule lands
+   after this file, so the text came out cream on cream (QA 2026-11-26 "글씨가 희게 보임") */
+.proto3d :is(.rt-toast,.rt-banner){color:var(--sk-ink)!important}
+/* QA 2026-11-26 "답변이 일렬로": the answers in the talk box never wrap into a ragged second row.
+   PC and tablets: one row, right-aligned while it fits, sliding sideways (thin bar) when it does not.
+   Phones: one column, each answer full width, so every one is readable and easy to tap. */
+.proto3d .rt-talk-box .rt-talk-choices.rt-talk-choices.on-box{flex-wrap:nowrap!important;justify-content:flex-start!important;max-height:none;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}
+.proto3d .rt-talk-box .rt-talk-choices.on-box::-webkit-scrollbar{display:block;height:4px}
+.proto3d .rt-talk-box .rt-talk-choices.on-box::-webkit-scrollbar-thumb{background:var(--sk-rim);border-radius:4px}
+.proto3d .rt-talk-box .rt-talk-choices.on-box>.rt-talk-choice:first-child{margin-left:auto}
+.proto3d .rt-talk-box .rt-talk-choices.on-box>.rt-talk-choice{flex:0 0 auto;white-space:nowrap}
+@media (max-width:700px){
+  .proto3d .rt-talk-box .rt-talk-choices.rt-talk-choices.on-box{flex-direction:column;align-items:stretch;overflow-x:hidden;overflow-y:auto;max-height:min(42dvh,300px)}
+  .proto3d .rt-talk-box .rt-talk-choices.on-box>.rt-talk-choice:first-child{margin-left:0}
+  .proto3d .rt-talk-box .rt-talk-choices.on-box>.rt-talk-choice{width:100%;white-space:normal;text-align:center}
+}
+.proto3d .rt-real-tag[data-real="no"]{color:#b4532a}
+/* QA 2026-11-26 (캡처: 보리 힌트가 퀘스트 카드를 덮음): on a phone the hint sits low, left of the round buttons, instead of
+   over the walk's card at the top */
+@media (max-width:700px){
+  .proto3d .rt-toast.rt-toast{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);left:12px;right:78px;transform:none;width:auto;max-width:none;animation:none}
+}
+/* QA 2026-11-26 "power by netlify 때문에 클릭 안 되는 아이콘": Netlify puts its badge (iframe#nl-badge-frame, about 183×50,
+   fixed bottom-right, over everything) on the site. It is left as it is; the app and its full-screen layers end above it,
+   so no button sits under it. Without the badge (another host, or switched off) nothing changes. */
+:root{--nl-safe:0px}
+html:has(#nl-badge-frame){--nl-safe:64px}
+html:has(#nl-badge-frame) body{background:#1d2419}
+html:has(#nl-badge-frame) :is(.proto3d,.proto3d .ac,.hs,.sc,.jf-open,.proto3d .rt-qwin,.ms,.rt-wel,.rt-bridge,.rt-comm){bottom:var(--nl-safe)!important}

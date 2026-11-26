@@ -5,9 +5,9 @@
 // Nothing here buys or sells: removing a tree only takes it out of the garden.
 import {useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {Lens,Plus,Strike} from './Icons';
-import {drafts,applyDrafts,freePlots,blankDraft,matchName,draftToReal,plantReal,isDay,type Draft,type RealDraft} from '../../core/portfolio';
+import {drafts,applyDrafts,freePlots,blankDraft,matchName,draftToReal,plantReal,isDay,looksForeign,type Draft,type RealDraft} from '../../core/portfolio';
 import {buyClose,refreshed} from '../../core/real';
-import {bars,isReal} from '../../core/jigi/stocks';
+import {bars,isReal,stockByName} from '../../core/jigi/stocks';
 import {realToday} from '../../core/model';
 import type {RealPrices} from './RealEntry';
 import {portfolioReader,kindOf,type ReadHolding} from '../../content/portfolio';
@@ -48,11 +48,14 @@ export function Onboarding({g,onClose,onPlanted,onDemo,reader,onReal,real,pick=f
     return()=>{on=false;clearTimeout(t)}},[real,names.join('|')]);// eslint-disable-line react-hooks/exhaustive-deps
   // signed in: a new line not found among the real stocks is not planted, so it does not count (2026-11-25)
   // signed in (real prices), a new line needs its buying day and a real name; a guest's example lines may go without
-  const plantable=real?kept.filter(r=>r.existing!==null||(isDay(r.date)&&found[r.name.trim()]!==null)).length:kept.length;
+  // QA 2026-11-26 "모르는 주식이면 받을 수 없습니다": a new line that is not a Korean listed stock is refused. Signed in: not
+  // among the KRX names; signed out (no list to ask): plainly a foreign one (core/portfolio looksForeign)
+  const refused=(name:string)=>{const n=name.trim();return !!n&&(real?found[n]===null:looksForeign(n,x=>!!stockByName(x)))};
+  const plantable=real?kept.filter(r=>r.existing!==null||(isDay(r.date)&&found[r.name.trim()]!==null)).length:kept.filter(r=>r.existing!==null||!refused(r.name)).length;
   const noDate=real?kept.filter(r=>r.existing===null&&!isDay(r.date)).length:0;
   const [planting,setPlanting]=useState(false);
   const plant=async()=>{
-    const clean=kept.filter(r=>!real||r.existing!==null||isDay(r.date)).map(r=>({...r,name:r.name.trim()}));// a new line without its buying day waits
+    const clean=kept.filter(r=>(!real||r.existing!==null||isDay(r.date))&&(r.existing!==null||!refused(r.name))).map(r=>({...r,name:r.name.trim()}));// a new line without its buying day waits
     const base=holdings.filter(h=>!removed.includes(h.id));
     // lines found among the KRX names go in on real prices; the rest stay as typed (mock)
     const today=realToday(),onReal=real?clean.filter(r=>r.existing===null&&found[r.name]):[];
@@ -112,7 +115,8 @@ export function Onboarding({g,onClose,onPlanted,onDemo,reader,onReal,real,pick=f
           onChange={e=>edit(i,{date:e.target.value})}/></label>}
       </div>}
       {real&&r.keep&&r.existing===null&&r.name.trim()&&(()=>{const f=found[r.name.trim()];
-        return <small className="rt-real-tag" data-real={f?'yes':f===null?'no':'wait'}>{f===undefined?'실제 시세 찾는 중':f?`실제 시세 · ${f.name} ${f.code}${r.price>0?' · 평균단가로':' · 그때 종가로'}`:'찾을 수 없는 종목이에요 · 이름을 확인해 주세요 (이대로면 안 심어요)'}</small>})()}
+        return <small className="rt-real-tag" data-real={f?'yes':f===null?'no':'wait'}>{f===undefined?'실제 시세 찾는 중':f?`실제 시세 · ${f.name} ${f.code}${r.price>0?' · 평균단가로':' · 그때 종가로'}`:'받을 수 없는 종목이에요 · 국내(코스피·코스닥) 상장 종목만 넣을 수 있어요'}</small>})()}
+      {!real&&r.keep&&r.existing===null&&refused(r.name)&&<small className="rt-real-tag" data-real="no">받을 수 없는 종목이에요 · 국내(코스피·코스닥) 상장 종목만 넣을 수 있어요</small>}
     </li>)}</ul>
     <div style={{display:'flex',gap:8,marginTop:10}}>
       <button type="button" className="rt-btn" onClick={()=>setRows(rs=>[...rs!,blankDraft()])}><Plus size={16}/>종목 추가</button>

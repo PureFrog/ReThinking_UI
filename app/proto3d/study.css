@@ -222,3 +222,7 @@
 .ls-opt[data-pick=ok]{background:#e6f3dd;box-shadow:0 3px 0 #3f9e3a}.ls-opt[data-pick=no]{background:#fbe9e4;box-shadow:0 3px 0 #d0806a}
 @media (prefers-reduced-motion:reduce){.ls *,.ls{animation:none!important;transition:none!important}}
 @media (max-height:700px){.ls-title-i{font-size:44px}.ls-bars,.ls-gbars{height:130px}.ls-line{font-size:14.5px}}
+/* QA 2026-11-26 (캡처: 제 14권 머리글): the room's coins and title showed through the lesson's see-through backdrop and
+   ran into its header, and the ✕ took the header's cream text colour on a cream button (it looked empty) */
+.ls{z-index:60;background:radial-gradient(120% 80% at 50% 0%,#3a2c20,#1f1812)}
+.ls-x{color:#3b2c20;font-weight:700}
