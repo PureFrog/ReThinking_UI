@@ -68,7 +68,8 @@ export const place=(id:PlaceId)=>PLACES.find(p=>p.id===id)!;
 // Each place's walk point stays outside its circle. Bought buildings and landmarks join when they stand.
 const SOLID_R:Partial<Record<PlaceId,number>>={master:2.7,home:2.4,library:2.6,observatory:1.5,cart:2.1,arcade:3.1};
 export const BUILDING_R:Record<string,number>={greenhouse:1.7,silo:1.3,windmill:1.4};
-export type Solid={x:number;z:number;r:number};
+// keep: always walked round, even when a goal lies inside it (the fire: a seat by it must not open a way through the flames)
+export type Solid={x:number;z:number;r:number;keep?:boolean};
 // the rocks (Scene3D ROCKS, x z scale, spread) and the signpost, shared with the scene
 export const ROCK_AT=([[-5,4.4,0.7],[-7.2,4.6,0.55],[8.4,6,0.9],[3.4,5.2,0.5]] as number[][]).map(([x,z,sc])=>[...spread(x,z),sc] as [number,number,number]);
 export const SIGNPOST_AT=(()=>{const [x,z]=spread(-1.9,3.5);return {x,z}})();
@@ -85,7 +86,10 @@ export function solids(built:Built|null|undefined,lamps=true):Solid[]{
   {const pz=PLACES.find(p=>p.id==='plaza')!;for(let k=0;k<22;k++){const a=-Math.PI/2+0.75+k*(Math.PI*2-1.5)/21;out.push({x:pz.x+Math.cos(a)*3.45,z:pz.z+Math.sin(a)*3.45,r:0.45})}}
   // the lamps, and the campfire: nobody walks through the flames (피드백 2026-11-26). Not while the lamps are being placed
   // (the fire is declared further down)
-  if(lamps){for(const l of LAMP_AT)out.push({...l,r:0.22});out.push({x:FIRE[0],z:FIRE[1],r:0.7})}
+  // 피드백 2026-11-26 "NPC들이 모닥불에 끼어": the fire covers its whole stone ring (FIRE_R, kept: never dropped as "the
+  // goal is inside it", npcStep), and the stumps, lantern and log basket round it (FIRE_DECOR) are solid too
+  if(lamps){for(const l of LAMP_AT)out.push({...l,r:0.22});out.push({x:FIRE[0],z:FIRE[1],r:FIRE_R,keep:true});
+    for(const [x,z,r] of FIRE_DECOR)out.push({x:FIRE[0]+x,z:FIRE[1]+z,r})}
   return out;
 }
 // 피드백 2026-11-26 "NPC들이 나무도 바위도 통과": what the village's people walk round (Scene3D sets it: the walls above
@@ -108,7 +112,7 @@ export function npcStep(p:Walker,gx:number,gz:number,m:number,list:Solid[]=NPC_W
   if(d<(p.best??Infinity)-0.05){p.best=d;p.since=0}else p.since=(p.since??0)+1;
   if((p.since??0)>200)return false;
   // a goal inside something (a seat, the cart, a spot by a tree): that one is not in the way
-  if(list.some(w=>Math.hypot(gx-w.x,gz-w.z)<w.r+pad))list=list.filter(w=>Math.hypot(gx-w.x,gz-w.z)>=w.r+pad);
+  if(list.some(w=>!w.keep&&Math.hypot(gx-w.x,gz-w.z)<w.r+pad))list=list.filter(w=>w.keep||Math.hypot(gx-w.x,gz-w.z)>=w.r+pad);
   const free=(a:number)=>{const nx=p.x+Math.sin(a)*s,nz=p.z+Math.cos(a)*s;return deeper(nx,nz,p.x,p.z,list,pad)?null:[nx,nz]};
   const go=(xz:number[])=>{p.x=xz[0];p.z=xz[1];return true};
   // straight on when clear and not in the middle of going round
@@ -122,6 +126,12 @@ export function npcStep(p:Walker,gx:number,gz:number,m:number,list:Solid[]=NPC_W
   const r=first(sd)??first(-sd);if(!r)return false;
   if(free(base)&&r.o<=0.4){p.hold=0}else{p.side=sd;p.hold=Math.max(p.hold??0,25)}
   return go(r.xz);
+}
+// a walker that gave up (npcStep false) may push straight on through the small things, never into a kept one (the
+// fire); true if it moved
+export function straightOn(p:{x:number;z:number},gx:number,gz:number,m:number,list:Solid[]=NPC_WALLS,pad=0.3):boolean{
+  const dx=gx-p.x,dz=gz-p.z,d=Math.hypot(dx,dz);if(d<1e-4)return false;const s=Math.min(d,m),nx=p.x+dx/d*s,nz=p.z+dz/d*s;
+  if(deeper(nx,nz,p.x,p.z,list.filter(w=>w.keep),pad))return false;p.x=nx;p.z=nz;return true;
 }
 // moves a point out to the edge of any solid it is inside (pad: the player's own width); true if it moved
 export function pushOut(p:{x:number;z:number},list:Solid[],pad=0.35){let moved=false;
@@ -199,6 +209,10 @@ void at;
 
 // 피드백 2026-11-24 "모닥불 왼쪽으로 조금만": the campfire sits a step west of its old spot, clear of the home path and 보리
 export const FIRE:[number,number]=(([x,z])=>[x-1.5,z])(spread(-1.6,-1.2));
+// the fire's stone ring (VillageNature.tsx CampfireDecor: stones at 0.66, ~0.14 across), and what stands round it,
+// from the fire (x, z, solid radius): three stumps (one with the lantern) and the basket of logs
+export const FIRE_R=0.85;
+export const FIRE_DECOR:[number,number,number][]=[[1.4,0.6,0.3],[-1.3,0.8,0.3],[-0.4,1.5,0.3],[-1.6,-0.6,0.32]];
 // the fallen log beside it (a seat): its middle, and the way one sitting on it faces (toward the fire)
 export const FIRE_LOG={x:FIRE[0]+0.6,z:FIRE[1]-1.3};
 export const FIRE_SEAT={...FIRE_LOG,face:Math.atan2(FIRE[0]-FIRE_LOG.x,FIRE[1]-FIRE_LOG.z)};

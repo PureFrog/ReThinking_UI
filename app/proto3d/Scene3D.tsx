@@ -32,7 +32,7 @@ import {soft} from './materials';
 import {MODELS,ALL_TREE_FILES,CANOPY,BARK,STUMP_CUT,FRUIT,FRUIT_FALLEN} from './models';
 import {shingles,siding,stone,brick,planks,tmat} from './surfaces';
 import {OnGround,surfaceY,tiltAt,normalAt,rng,UP} from './ground';
-import {PLOTS,PATHS,PLACES,place,inStream,route,WORLD,solids,pushOut,BUILDING_R,BRIDGE,streamZ,bridgeBlocks,bridgeLift,FIRE,FIRE_SEAT,FIRE_LOG,setNpcWalls,npcStep,NPC_FIRE_SEATS,type Solid} from './places';
+import {PLOTS,PATHS,PLACES,place,inStream,route,WORLD,solids,pushOut,BUILDING_R,BRIDGE,streamZ,bridgeBlocks,bridgeLift,FIRE,FIRE_SEAT,FIRE_LOG,setNpcWalls,npcStep,NPC_FIRE_SEATS,NPC_LIVE,type Solid} from './places';
 import {spread,spreadXZ} from '../core/world';
 import {SIGN_PLACES,SIGN_BUILDINGS,SIGN_CITY} from './ui/Signs';
 import {VillageLamps} from './VillageLamps';
@@ -806,7 +806,9 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
   const sit=useRef<{x:number;z:number;face:number}|null>(null);
   const sitDown=()=>{if(world.placing||world.planting)return;const s=FIRE_SEAT;if(!onWay(s.x,s.z)){off();return}
     const r=route(pos.current,s,(x,z)=>inPond(x,z,0.2));if(!r)return;const [first,...rest]=r;target.current.set(first.x,0,first.z);stops.current=rest;sit.current=s;onPick(null)};
-  useEffect(()=>{const h=testHooks() as {sitDown?:()=>void;sitFire?:()=>void};h.sitDown=sitDown;h.sitFire=sitDown});
+  useEffect(()=>{const h=testHooks() as {sitDown?:()=>void;sitFire?:()=>void;npcs?:typeof NPC_LIVE;fire?:{x:number;z:number};fireSeat?:{x:number;z:number}};h.sitDown=sitDown;h.sitFire=sitDown;
+    // e2e: where the village's people stand now, the fire, and my seat on its log (proto3d-campfire.spec.ts)
+    h.npcs=NPC_LIVE;h.fire={x:FIRE[0],z:FIRE[1]};h.fireSeat={x:FIRE_SEAT.x,z:FIRE_SEAT.z}});
   const walk=(p:THREE.Vector3)=>{if(world.placing&&world.onPlace){const why=whyHere(p.x,p.z);setGhost({x:p.x,z:p.z,ok:!why});world.onPlace(p.x,p.z,why);return}
     if(world.planting&&world.onPlant){const why=plantWhy(p.x,p.z);if(!hoverOk&&!(pg&&Math.hypot(pg.x-p.x,pg.z-p.z)<1.2)){setPg({x:p.x,z:p.z,ok:!why});return}
       setPg({x:p.x,z:p.z,ok:!why});world.onPlant(p.x,p.z,why);return}const r=route(pos.current,p,(x,z)=>inPond(x,z,0.2));if(!r)return;if(!onWay(p.x,p.z)){off();return}const [first,...rest]=r;target.current.set(first.x,0,first.z);stops.current=rest;onPick(null)};
