@@ -94,6 +94,39 @@ test("a covered stock: moa and luon speak from the verdict, luon brings back the
   expect(errors).toEqual([]);
 });
 
+// S10 (analysis_results.dialogue, db/migrations/020): 루온 says the pipeline's own line on the note and opens the debate with it
+const LINE = "매출액을 보면 2025년 4분기 약 246억 원에서 2026년 2분기 약 220억 원으로 감소했어. 원자재가 안정되면 이익률이 회복된다는 건 가능한 이야기지만, 아직 실제로 그렇게 됐는지는 확인하지 못했어.";
+test("luon says the S10 line: on the rebuttal note and as the debate's first line", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(e.message));
+  const now = new Date().toISOString();
+  await plant(page, buy => ({ verdicts: [verdict({ buy_date: buy })],
+    analyses: [{ ...analysis, analyzed_at: now, dialogue: { character_message: LINE, emotion_code: "thinking", asked_cc_id: null, fallback: false } }] }));
+  await expect.poll(async () => (await signals(page)).some(x => x.model === "rebuttal"), { timeout: 15_000 }).toBe(true);
+  const sheet = await brief(page, "rebuttal");
+  const note = sheet.getByRole("article", { name: "루온 리서치 노트" });
+  await expect(note.locator(".rt-headline")).toHaveText("네 근거 하나가 숫자와 반대야");
+  await expect(note.locator(".rt-say")).toHaveText(LINE);
+  await page.screenshot({ path: test.info().outputPath("model-signals-s10-note.png") });
+  await page.keyboard.press("Escape");
+  await expect(sheet).toHaveCount(0, { timeout: 10_000 });
+
+  const bori = page.getByRole("dialog", { name: "보리와 대화" });
+  if (await bori.isVisible()) await bori.getByRole("button", { name: "나중에 얘기할게" }).click();
+  await expect(page.locator('.vl-npc-tag[data-npc="luon"]')).toHaveCount(1, { timeout: 30_000 });
+  await page.evaluate(() => (document.querySelector('.vl-npc-tag[data-npc="luon"]') as HTMLButtonElement).click());
+  const go = page.getByRole("button", { name: "종목 골라 토론하기" });
+  await expect(go).toBeVisible({ timeout: 90_000 });
+  await go.click();
+  const talk = page.getByRole("dialog", { name: "루온과 대화" });
+  await expect(talk.locator(".rt-talk-line")).toContainText("KCC글라스 얘기, 네 이유를 숫자랑 맞춰 봤어.", { timeout: 15_000 });
+  await expect(talk.locator(".rt-talk-line")).toContainText("확인하지 못했어.");
+  expect(await talk.innerText()).not.toMatch(/팔아|사세요|오를 거|떨어질 거/);
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: test.info().outputPath("model-signals-s10-debate.png") });
+  expect(errors).toEqual([]);
+});
+
 test("a covered stock's 재무 체력 shows the verdict's numbers, not the mock roots", async ({ page }) => {
   await plant(page, buy => ({ verdicts: [verdict({ buy_date: buy })] }));
   await expect.poll(async () => (await signals(page)).length, { timeout: 15_000 }).toBe(2);

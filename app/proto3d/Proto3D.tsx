@@ -32,7 +32,7 @@ import {boriChat} from '../core/bori-chat';
 import {debateChat} from '../core/debate-chat';
 import {missingConsents,boriTalk,boriOpen,stockSignal,jigiAI,readCapture,hasInvite,isMaster,observatoryServer,type BoriLine} from './supabase';
 import {searchNames,loadRealBars,loadMarket,loadVirtualBars,fixturePrices,type PriceFixture} from './prices';
-import {rowFor} from '../core/model-signals';
+import {rowFor,luonOpener} from '../core/model-signals';
 import {loadModelSignals,fixtureModelSignals,type ModelSignalFixture} from './model-signals';
 import {RealEntry,type RealPrices} from './ui/RealEntry';
 import {refreshed} from '../core/real';
@@ -1317,8 +1317,9 @@ export default function Proto3D(){
         // 루온's 반박 runs on the team's model, which covers the KOSDAQ120 only (investment-evidence-system ops/live/stock_coverage.csv
         // = content/kosdaq120.ts): with the server on, only those holdings can be picked (2026-11-25: 한화에어로스페이스 was
         // sent, the worker failed with no company, and no note ever came back)
+        // a finished analysis of one of these (analysis_results.dialogue, S10): 루온 opens with its own line about it
         const luonStocks=sheet.id==='luon'&&syncOn?realFirst.filter(x=>KOSDAQ_STOCKS.some(k=>k.code===codeOf(x))):realFirst;
-        return <FriendSheet key={sheet.id} who={w} opener={sheet.id==='luon'?(luonStocks.length?'…어느 종목 얘기할래? 고르면 네 이유부터 들어 볼게.':(()=>{const out=realFirst.map(x=>x.name).filter(Boolean).slice(0,2);return out.length?`…${out.join(', ')}${realFirst.length>2?' 등':''}은 아직 반박 분석 목록(코스닥 120종목)에 없어. 그냥 얘기는 할 수 있어.`:'…반박 분석은 지금 코스닥 120종목만 할 수 있어. 그냥 얘기는 할 수 있어.'})()):w.greet[clock.today.length%w.greet.length]} topic="chat" seed={clock.today}
+        return <FriendSheet key={sheet.id} who={w} opener={sheet.id==='luon'?(luonOpener(luonStocks,Date.now())?.text??(luonStocks.length?'…어느 종목 얘기할래? 고르면 네 이유부터 들어 볼게.':(()=>{const out=realFirst.map(x=>x.name).filter(Boolean).slice(0,2);return out.length?`…${out.join(', ')}${realFirst.length>2?' 등':''}은 아직 반박 분석 목록(코스닥 120종목)에 없어. 그냥 얘기는 할 수 있어.`:'…반박 분석은 지금 코스닥 120종목만 할 수 있어. 그냥 얘기는 할 수 있어.'})())):w.greet[clock.today.length%w.greet.length]} topic="chat" seed={clock.today}
         talk={sheet.id==='luon'?(history,m)=>debateChat(history,m,testLuon?.__luonTalk?(_h,msg)=>testLuon.__luonTalk!(msg):syncOn?(_h,msg)=>boriTalk(boriHoldings,msg,'luon'):null):null}
         pickFirst={sheet.id==='luon'} onPickTalk={sheet.id==='luon'&&luonOn?luonPick:null}
         onClose={close} onGo={to=>{if(to==='case')setSheet({kind:'case'});else close()}} stocks={luonStocks.map(x=>({id:x.id,name:x.name}))} onStock={openTree}/>})()}

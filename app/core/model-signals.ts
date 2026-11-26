@@ -93,8 +93,18 @@ type Path={path_id?:string;from_mid?:string|null;to_mid?:string|null};
 export type Toulmin={decision?:string|null;as_of?:string|null;claim?:Mention[];grounds?:Mention[];
   warrant?:{explicit?:Path[];bridged?:Path[];chain?:Path[]};rebuttal?:{tag?:string;path_id?:string|null;mid?:string|null}[];
   question_candidates?:{text?:string|null}[];unresolved_items?:unknown[]};
+// dialogue (db/migrations/020): the line 루온 says about the result, written by the pipeline's S10 (generate_momo_dialogue.py:
+// at most four sentences, numbers only inside the company-data quotes it checked, no buy/sell advice); null on older rows
+export type Dialogue={character_message?:string|null;emotion_code?:string|null;asked_cc_id?:string|null;fallback?:boolean|null};
 export type AnalysisRow={request_id:string;company_id:string|null;status:'done'|'insufficient_input'|'failed';decision:string|null;
-  result:Toulmin|null;alert_date:string|null;as_of:string|null;analyzed_at:string|null};
+  result:Toulmin|null;alert_date:string|null;as_of:string|null;analyzed_at:string|null;dialogue?:Dialogue|null};
+// S10's own limit is four sentences; anything far longer than that is not a line from it
+const LINE_MAX=400;
+export function dialogueLine(r:AnalysisRow|null|undefined):{text:string;emotion:string}|null{
+  const d=r?.status==='done'?r.dialogue:null,t=typeof d?.character_message==='string'?d.character_message.replace(/\s+/g,' ').trim():'';
+  if(!t||t.length>LINE_MAX)return null;
+  return {text:t,emotion:typeof d?.emotion_code==='string'&&d.emotion_code?d.emotion_code:'thinking'};
+}
 export type RebuttalNote={holdingId:number;analyst:'luon';model:'rebuttal';loss:false;headline:string;evidence:Fact[];say:string;
   counter:{hold:string;review:string;watch:string};request:string};
 
@@ -142,7 +152,9 @@ export function rebuttalNote(h:Holding,r:AnalysisRow):RebuttalNote|null{
   const open=(t.question_candidates??[]).filter(q=>!!q.text&&!!q.text.trim()).length;
   if(open)facts.push({k:'숫자로 못 가린 조건',v:`${open}개`});
   const asOf=r.as_of??t.as_of;if(asOf)facts.push({k:'기업 데이터 기준',v:asOf});
-  return {holdingId:h.id,analyst:'luon',model:'rebuttal',loss:false,headline:words.headline,evidence:facts,say:words.say,request:r.request_id,
+  // 루온 says the pipeline's own line when it made one (S10); older rows keep the fixed line of the decision
+  const said=dialogueLine(r);
+  return {holdingId:h.id,analyst:'luon',model:'rebuttal',loss:false,headline:words.headline,evidence:facts,say:said?.text??words.say,request:r.request_id,
     counter:{hold:'들고 가는 이유, 숫자로 확인된 것만 남기면 뭐가 남아?',review:'확인 못 한 조건이 풀리면 생각이 바뀔 수도 있지 않아?',
       watch:'못 가린 조건, 언제 어떤 숫자로 확인할 거야?'}};
 }
@@ -154,6 +166,17 @@ export function setVerdicts(rows:readonly HoldingVerdict[]){VERDICTS.clear();for
 export function setAnalyses(rows:readonly AnalysisRow[]){ANALYSES=latestByCompany(rows)}
 export const verdicts=():ReadonlyMap<string,HoldingVerdict>=>VERDICTS;
 export const analysisFor=(code:string|undefined)=>code?ANALYSES.get(code)??null:null;
+// 루온's first line in the debate: the newest S10 line about a stock the player still holds, for LUON_LINE_DAYS after the
+// analysis (then the usual "어느 종목 얘기할래?" comes back)
+export const LUON_LINE_DAYS=3;
+export function luonOpener(holdings:readonly {code?:string;name:string;real?:boolean;virtual?:boolean}[],now:number,
+  rows:ReadonlyMap<string,AnalysisRow>=ANALYSES):{text:string;emotion:string;code:string}|null{
+  let best:{text:string;emotion:string;code:string;at:number}|null=null;
+  for(const h of holdings){if(!h.real||h.virtual||!h.code)continue;const r=rows.get(h.code),line=dialogueLine(r),at=Date.parse(r?.analyzed_at??'');
+    if(!line||!Number.isFinite(at)||now-at>LUON_LINE_DAYS*864e5||now<at-36e5)continue;
+    if(!best||at>best.at)best={text:`…${h.name} 얘기, 네 이유를 숫자랑 맞춰 봤어. ${line.text}`,emotion:line.emotion,code:h.code,at}}
+  return best&&{text:best.text,emotion:best.emotion,code:best.code};
+}
 // the row for a real holding, whatever its status (the deep sheet says not_covered / no_signal in words)
 export const rowFor=(h:Holding)=>h.real&&h.code&&!h.virtual?VERDICTS.get(verdictKey(h.code,h.date))??null:null;
 // ── 급락 (models/sudden/events.py, daily: investment-evidence-system ops/ui/push_drops.py → drop_events). A drop day is

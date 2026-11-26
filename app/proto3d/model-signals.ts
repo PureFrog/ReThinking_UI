@@ -6,7 +6,7 @@ import {supabase,supabaseReady} from './supabase';
 import {setVerdicts,setAnalyses,setDrops,type HoldingVerdict,type AnalysisRow,type DropEvent} from '../core/model-signals';
 
 const VERDICT_COLS='code,buy_date,status,verdict,fscore,ohlson_score,dupont_score,sum_total,eval_date,financial_as_of,price_as_of,release_id,evidence';
-const RESULT_COLS='request_id,company_id,status,decision,result,alert_date,as_of,analyzed_at';
+const RESULT_COLS='request_id,company_id,status,decision,result,alert_date,as_of,analyzed_at,dialogue';  // dialogue: db/migrations/020
 const DROP_COLS='code,drop_date,last_hit_date,n_hit_days,ret_pct,index_ret_pct,ar_pct,sigma_ar_pct,z,market_adjusted';
 
 // returns how many verdict rows and finished analyses came back (0/0 when signed out or the tables are not there yet)
