@@ -177,3 +177,11 @@
 html:has(#nl-badge-frame){--nl-safe:64px}
 html:has(#nl-badge-frame) body{background:#1d2419}
 html:has(#nl-badge-frame) :is(.proto3d,.proto3d .ac,.hs,.sc,.jf-open,.proto3d .rt-qwin,.ms,.rt-wel,.rt-bridge,.rt-comm){bottom:var(--nl-safe)!important}
+/* QA 2026-11-26 (폰 점검): the hint never takes a tap, and while a talk or a sheet is open it moves up to the top
+   (at the bottom it lay over the answer buttons); the round 1인칭·지도 buttons step aside while a sheet is open
+   (they sat over the sheet's right edge) */
+.proto3d .rt-toast{pointer-events:none}
+@media (max-width:700px){
+  .proto3d:has(.vl-villager,.rt-talk-box,.rt-sheet) .rt-toast.rt-toast{top:calc(env(safe-area-inset-top,0px) + 64px);bottom:auto}
+  .proto3d:has(.rt-sheet) .proto3d-locate{display:none}
+}
