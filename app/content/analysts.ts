@@ -116,7 +116,7 @@ export const UI={
   boardWait:'채점 대기 {n}건',
   boardEmpty:'채점 대기 없음 · 판단을 기록하면 여기 쌓여요',
   // today's three (core/today.ts)
-  today:{quiz:'집에서 오늘의 퀴즈 마치기',judge:'내 종목 나무에 일지 한 편 쓰기',fish:'낚시터에서 한 번 낚시하기'} as Record<'quiz'|'judge'|'fish',string>,
+  today:{quiz:'집에서 오늘의 퀴즈 마치기',judge:'도서관에서 내 종목 일지 쓰기',fish:'낚시터에서 한 번 낚시하기'} as Record<'quiz'|'judge'|'fish',string>,
   dayDone:'오늘 할 일 완료 · +{n}',
   nextGrade:'다음 채점 · {name} {mark}일 · D-{d}',
   noNext:'채점 대기 없음 · 판단을 기록하면 30일 뒤에 채점돼요',

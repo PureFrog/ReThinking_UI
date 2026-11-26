@@ -59,12 +59,14 @@
 }
 @media(prefers-reduced-motion:reduce){.rt-me-plate,.rt-me-panel{animation:none}}
 /* a first-time pointer (ui/Tip.tsx): a paper slip with a little arrow toward what it points at */
-.rt-tip{position:absolute;z-index:8;max-width:260px;display:flex;align-items:center;gap:10px;padding:10px 10px 10px 14px;background:var(--rt-paper);border:1px solid var(--rt-ink);
+.rt-tip{position:absolute;z-index:40;max-width:260px;display:flex;align-items:center;gap:10px;padding:10px 10px 10px 14px;background:var(--rt-paper);border:1px solid var(--rt-ink);
   border-radius:2px;box-shadow:0 10px 30px #2a262040;animation:rt-in .3s ease-out both}
 .rt-tip p{font-size:13px;line-height:1.45;font-family:'Gowun Batang',serif;font-weight:700}
 .rt-tip .rt-btn{min-height:34px;padding:0 10px;font-size:12px;flex:none}
 .rt-tip::after{content:'';position:absolute;left:var(--arrow,50%);bottom:-7px;width:12px;height:12px;margin-left:-6px;background:var(--rt-paper);border-right:1px solid var(--rt-ink);border-bottom:1px solid var(--rt-ink);transform:rotate(45deg)}
 .rt-tip[data-below=true]::after{bottom:auto;top:-7px;transform:rotate(225deg)}
+/* 피드백 2026-11-26: beside a right-hand button, the arrow points right at it */
+.rt-tip[data-side=left]::after{left:auto;right:-7px;bottom:auto;top:50%;margin:-6px 0 0;transform:rotate(-45deg)}
 
 /* settings (ui/Settings.tsx) on <html>: keep still turns every animation off; bigger text scales the panels */
 html[data-still="1"] .proto3d *,html[data-still="1"] .proto3d *::before,html[data-still="1"] .proto3d *::after{animation:none!important;transition:none!important}

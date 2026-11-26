@@ -9,7 +9,7 @@ test("PC: the journal sheet is a wide panel, the corner buttons are big enough",
   await page.goto("/proto3d?demo&weather=clear");
   await V.villageReady(page);
   // the village has no tab dock (나현 2026-11-22): the buttons over the garden are big enough to press
-  for (const b of [V.controls(page), page.getByRole("button", { name: "수첩 펼치기" }), page.getByRole("button", { name: "설정" })]) {
+  for (const b of [V.controls(page), page.getByRole("button", { name: "설정" })]) {
     const r = (await b.boundingBox())!;
     expect(Math.min(r.width, r.height)).toBeGreaterThanOrEqual(36);
   }

@@ -28,7 +28,9 @@ test("home: no dock, the corner buttons, today's quests, the notebook, and the o
   // one bubble at a time
   await expect.poll(async () => page.locator(".rt-bubble").count()).toBeLessThanOrEqual(1);
   // the notebook: what came back, what to write, what I wrote
-  await page.getByRole("button", { name: "수첩 펼치기" }).click();
+  // 피드백 2026-11-26: no 수첩 button on the screen (the journal is the library's)
+  await expect(page.getByRole("button", { name: "수첩 펼치기" })).toHaveCount(0);
+  await V.journal(page);
   const j = page.getByRole("dialog", { name: "투자일지" });
   // (지기, docs/jigi.md) the old judgments' grades on top, then today's signals, then my journals by stock
   await expect(j).toContainText("이전 판단 채점 결과 2건");

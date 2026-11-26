@@ -54,7 +54,8 @@ import {POND_AT} from './places';
 
 // The ground (a big sphere's top) is ground.tsx; where everything is, places.ts.
 const SPEED=LOOK.walk.speed;// player walking speed, units per second (look.ts walk)
-const PLAYER_START=new THREE.Vector3(0,0,2.5);
+// 피드백 2026-11-26 "조금만 왼쪽으로, 길 좀 보이게": I start on the grass beside the path below the house, not on it
+const PLAYER_START=new THREE.Vector3(-1.1,0,1.9);
 export {surfaceY};
 
 type Hooks={frames:number;ready:boolean;player:{x:number;z:number};trees:Record<number,{x:number;y:number}>;treeAt?:Record<number,{x:number;z:number}>;softMeshes:number;meshes:number;treeModels:number;fruit?:number;weather?:Weather;points:Record<string,{x:number;y:number}>;camera?:{fov:number;dist:number;turn:number;pitch:number;blur:number;lead:number};burst?:{holdingId:number;hit:boolean};births?:{active:boolean;stage:string;long:boolean;n:number;ms:number};cutaway?:{open:boolean;holdingId:number|null;roots:Roots|null};inside?:boolean;stage?:boolean;capsules?:{holdingId:number;due:boolean}[];capsuleFx?:{kind:string;holdingId:number}|null};

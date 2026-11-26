@@ -34,7 +34,7 @@ const PLACES0:{id:PlaceId;label:string;x:number;z:number;rot:number;walk:{x:numb
   {id:'home',label:'집',x:0,z:-10.5,rot:0,walk:{x:0,z:-7.6}},
   {id:'farm',label:'밭',x:4.6,z:1,rot:0,walk:{x:3.2,z:3}},
   {id:'orchard',label:'과수원',x:12.2,z:1.4,rot:0,walk:{x:8.8,z:1.2}},
-  {id:'library',label:'사례 서고',x:2.571,z:-10.071,rot:0,walk:{x:2.571,z:-8.571}},
+  {id:'library',label:'도서관',x:2.571,z:-10.071,rot:0,walk:{x:2.571,z:-8.571}},
   {id:'plaza',label:'리그 광장',x:-2,z:19.6,rot:0,walk:{x:-2,z:17.4}},
   {id:'arcade',label:'오락실',x:0,z:0,rot:0,walk:{x:0,z:0}},
   // 2026-11-20: the 관측소 (퀘스트 게시판) is gone; the pond and 나루's fishing spot stand in its place (quests: the HUD)

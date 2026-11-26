@@ -78,7 +78,7 @@ export function SkyView({planets,sample,share,focus,week,onPick,onShare,onClose,
         <p className="sky-note">금액·수량·수익률·메모는 공개되지 않아요</p></>}
         <div className="sky-row"><button type="button" className="rt-btn" onClick={()=>onPick(null)}>뒤로</button>
           <button type="button" className="rt-btn primary" disabled={cheered.includes(p.id)} onClick={()=>doCheer(p.id)}>{cheered.includes(p.id)?'이번 주 응원함':'응원하기'}</button>
-          {cheered.includes(p.id)&&<span className="sky-cheer" aria-hidden>응</span>}</div>
+          {cheered.includes(p.id)&&<span className="sky-cheer" aria-hidden>응!</span>}</div>
         {sample?<p className="sky-note">예시 행성이라 방명록은 없어요</p>:p.demo?<DemoBook owner={p.id}/>:<Guestbook owner={p.id} write/>}
       </div>}
     </section>

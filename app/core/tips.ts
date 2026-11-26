@@ -4,8 +4,8 @@
 export type TipId='map'|'me'|'house'|'lapse';
 export type TipCtx={judgments:number;oldestDays:number};
 export const TIPS:{id:TipId;text:string;when:(c:TipCtx)=>boolean}[]=[
-  {id:'map',text:'지도에서 서고·광장·과수원으로 바로 갈 수 있어요',when:()=>true},
-  {id:'me',text:'내 프로필: 꾸미기, 판단 기록, 업적을 볼 수 있어요',when:()=>true},
+  {id:'map',text:'지도에서 도서관·광장·과수원으로 바로 갈 수 있어요',when:()=>true},
+  {id:'me',text:'나를 누르면 옷장이 열려요. 산 옷으로 갈아입을 수 있어요',when:()=>true},
   {id:'house',text:'집을 누르면 안으로 들어가요. 책장에 내 판단이 있어요',when:c=>c.judgments>=1},
   {id:'lapse',text:'일지 → 지난 일지에서 1년 돌려보기를 할 수 있어요',when:c=>c.oldestDays>=30},
 ];

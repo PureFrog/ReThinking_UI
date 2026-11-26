@@ -209,7 +209,7 @@ function useWeather(prices:RealPrices|null){
 // the quest lines under the weather, short (the board itself says them in full)
 type SheetState={kind:'tree';id:number}|{kind:'comm';tab?:CommTab}|{kind:'harvest';practice?:boolean}|{kind:'news'}|{kind:'journal';openId?:string;stats?:boolean;stock?:string}|{kind:'more'}|{kind:'onboard';pick?:boolean}|{kind:'intro'}|{kind:'quizlog'}|{kind:'goods'}|{kind:'real'}|{kind:'letter';month:string}|{kind:'settings'}|{kind:'map'}|{kind:'library'}|{kind:'grades';start:string}|{kind:'deep';holdingId:number;back:SheetState}|{kind:'lookback'}|{kind:'brief';start:{signalId?:string;holdingId?:number}|null}|{kind:'grades'|'case'|'rewind'|'today'|'records'|'drawer'|'cart'|'league'|'game'}|{kind:'analyst';id:AnalystId}|{kind:'friend'}|{kind:'talk';id:'tori'|'moa'|'luon'}|{kind:'write';id:string}|{kind:'verdict';journalId:string;hypoId:string}|{kind:'cities'}|{kind:'coincal'}|{kind:'coinpay'}|{kind:'stocks';focus?:number}|{kind:'dates'}|null;
 // where each pointer points (core/tips.ts)
-const TIP_AT:Record<TipId,{target?:string;point?:string}>={map:{target:'.proto3d-map'},me:{target:'.rt-me-chip'},house:{point:'house'},lapse:{target:'.rt-dock [data-tab="journal"]'}};
+const TIP_AT:Record<TipId,{target?:string;point?:string}>={map:{target:'.proto3d-map'},me:{point:'me'},house:{point:'house'},lapse:{target:'.rt-dock [data-tab="journal"]'}};
 // which tab a sheet belongs to: the journal's sheets light 일지, the rest of the daily loop's extras light 더보기
 const tabOf=(sh:SheetState)=>!sh?'garden':['journal','write','verdict','brief','grades','records','lookback','deep'].includes(sh.kind)?'journal':sh.kind==='game'?'game':
   ['more','case','rewind','drawer','cart','goods','league','settings','onboard','cities'].includes(sh.kind)?'more':'garden';
@@ -558,7 +558,8 @@ export default function Proto3D(){
     if(t==='master'){setSheet(null);world.onLandmark('master');return}if(t==='arcade'){setSheet(null);world.onLandmark('arcade');return}
     if(t==='fire'){setSheet(null);(window as unknown as {__proto3d?:{sitFire?:()=>void}}).__proto3d?.sitFire?.();return}
     if(t==='pet'){setSheet(null);g.say('마을의 고양이나 강아지를 눌러 봐. 집에도 고양이가 있어.');return}
-    setSheet({kind:'journal'})};
+    // 피드백 2026-11-26: the journal is the library's (no 수첩 button); the quest walks me to the librarian
+    setSheet(null);onVillager('librarian')};
   // nothing flagged in the new garden: no look-back to show
   useEffect(()=>{if(sheet?.kind==='lookback'&&!lookSig)setSheet(null)},[sheet,lookSig]);
   // sound (core/sound.ts, synthesised): on unless the player turned it off; the browser lets it start on the first press
@@ -1218,7 +1219,8 @@ export default function Proto3D(){
       {ready&&!quiet&&!inside&&where==='village'&&!shop&&<button type="button" className="proto3d-locate proto3d-view" data-label="시점" aria-label={fp?'3인칭으로 보기':'1인칭으로 보기'} aria-pressed={fp} onClick={()=>{setPicked(null);toggleFp()}}><span className="rt-view-label">{fp?'3인칭':'1인칭'}</span></button>}
 
       {/* 설계 6·7장: the four tabs are gone; a small notebook button opens my journal where I stand (the stock index first) */}
-      {ready&&!quiet&&!inside&&where==='village'&&!sheet&&<button type="button" className="proto3d-locate vl-book" data-label="수첩" aria-label="수첩 펼치기" onClick={()=>{setPicked(null);setSheet({kind:'journal'})}}><Ledger size={20}/></button>}
+      {/* 피드백 2026-11-26 "수첩 버튼 있으면 도서관이 있을 이유가 사라져": no 수첩 button on the screen; the journal opens at
+          the library (사서 · 투자일지) */}
       {/* 피드백 11-26: no 모의투자 button on the screen; the merchant opens it */}
       {/* 피드백 2026-11-26 "어떤 장소로 이동하고 나가기 버튼도 안 보여": in a shop the way out is always there */}
       {shop&&!fading&&!vtTalk&&<button type="button" className="rt-btn vl-shop-back" onClick={()=>{setSheet(null);setMe(false);setVt(null);swapShop(null)}}>← 밖으로 나가기</button>}

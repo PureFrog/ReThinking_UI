@@ -34,5 +34,5 @@ export function nextGrade(list:Judgment[],graded:Graded[],today:string):{name:st
     if(d>0&&(!best||d<best.inDays))best={name:j.name,mark:m,day,inDays:d}}
   return best;
 }
-export const QUEST_LABEL:Record<QuestId,string>={quiz:'오늘의 퀴즈 풀기',news:'모의투자 뉴스 하나 읽기',master:'거장의 집 들르기',judge:'내 종목 일지 한 편 쓰기',
+export const QUEST_LABEL:Record<QuestId,string>={quiz:'오늘의 퀴즈 풀기',news:'모의투자 뉴스 하나 읽기',master:'거장의 집 들르기',judge:'도서관에서 내 종목 일지 쓰기',
   vbuy:'연습 종목 1주 사 보기',chart:'모의투자에서 종목 차트 보기',fish:'낚시 한 번 하기',pet:'동물 쓰다듬어 주기',fire:'모닥불에 앉아 쉬기',arcade:'오락실에서 한 판'};

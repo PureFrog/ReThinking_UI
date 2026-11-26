@@ -305,7 +305,7 @@ test("today's three: the quests under the weather, the board, and the way to eac
   await V.openSheet(page, { kind: "today" });
   const today = sheet(page, "퀘스트 게시판");
   await expect(today).toContainText("오늘 퀘스트 0/3");
-  await expect(today).toContainText("내 종목 나무에 일지 한 편 쓰기");
+  await expect(today).toContainText("도서관에서 내 종목 일지 쓰기");
   await expect(today).toContainText("이번 주 목표");
   await today.locator(".rt-task").filter({ hasText: "일지 한 편 쓰기" }).getByRole("button", { name: "하기" }).click();
   await expect(journal(page)).toBeVisible();

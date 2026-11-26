@@ -51,7 +51,7 @@ test("turned on its side: the corner buttons in reach, a sheet on the right, and
   await page.setViewportSize(SIDEWAYS);
   await expect.poll(async () => (await hooks(page))?.camera?.turn ?? 1).toBe(0);
   // the buttons over the garden stay big enough to press and inside the screen (no dock or rail since 2026-11-22)
-  for (const b of [dock(page), page.getByRole("button", { name: "수첩 펼치기" }), page.getByRole("button", { name: "설정" })]) {
+  for (const b of [dock(page), page.getByRole("button", { name: "설정" })]) {
     const r = (await b.boundingBox())!;
     expect(Math.min(r.width, r.height)).toBeGreaterThanOrEqual(36);
     expect(r.y + r.height).toBeLessThanOrEqual(SIDEWAYS.height);

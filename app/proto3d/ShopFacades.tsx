@@ -95,8 +95,8 @@ export function BuilderFacade({W,D,H,lit,glow}:{W:number;D:number;H:number;lit:b
       {[-1,1].map(k=><mesh key={k} position={[k*0.5,0,0.02]}><boxGeometry args={[0.3,0.75,0.04]}/>{M('#5f8a7a')}</mesh>)}
       <group position={[0,-0.5,0.12]}><FlowerBox w={0.75} color="#8a5a3e"/></group></group>
     {/* 피드백 2026-11-26 "간판 왜 가려져 있어": the sign used to hang under the eave, where the roof hid its top and the
-        lantern and awning crossed it; it stands on the front of the roof now, on two posts, clear of everything */}
-    {(()=>{const sz=D/2-0.55,ry=G+H+1.25*(1-sz/(D/2)),lift=0.14;
+        lantern and awning crossed it; it stands at the front edge of the roof, right over the door, clear of everything */}
+    {(()=>{const sz=D/2-0.12,ry=G+H+1.25*(1-sz/(D/2)),lift=0.04;
       return <group position={[0,ry,sz]}>
         {[-0.42,0.42].map(x=><mesh key={x} position={[x,lift/2,0]}><boxGeometry args={[0.07,lift+0.2,0.07]}/>{M('#5a3d2b')}</mesh>)}
         <mesh position-y={lift+0.31} castShadow><boxGeometry args={[1.1,0.62,0.06]}/>{P(m.sign)}</mesh></group>})()}
