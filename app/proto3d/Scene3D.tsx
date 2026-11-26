@@ -45,6 +45,7 @@ import {SkyScene,type SkyWorld} from './Sky3D';
 import type {Look} from '../core/wardrobe';
 import {gardenTree} from '../core/recheck';
 import {PondLife,CampfireDecor,Dog} from './VillageNature';
+import {WISH_MS} from './ui/ShootingStars';
 import {Cat} from './HouseMore';
 import {Villager,GuideTrail,LeadMark,NewsBoard,MerchantStall,FarmCart,type Errand,type Routine} from './Village3D';
 import {ShopHouse,ShopRoom,SHOP_IDS,SHOP_AT,doorOf,type ShopId} from './Shop3D';
@@ -457,7 +458,7 @@ function Keys({pos,target,stops,onMove,enabled,gate}:{gate:(x:number,z:number)=>
 
 // the player: my observer as I dressed it (Explorer3D.tsx, core/wardrobe.ts), walking where I tap
 function Player({target,stops,pos,hidden,look,walls,onPick,faceTo=null,sit}:{sit?:React.MutableRefObject<{x:number;z:number;face:number}|null>;faceTo?:{x:number;z:number}|null;onPick?:()=>void;target:React.MutableRefObject<THREE.Vector3>;stops:React.MutableRefObject<{x:number;z:number}[]>;pos:React.MutableRefObject<THREE.Vector3>;hidden?:boolean;look:Look;walls:Solid[]}){
-  const g=useRef<THREE.Group>(null),body=useRef<THREE.Group>(null),moving=useRef(false),speed=useRef(0),sitting=useRef(false),walker=useRef<{x:number;z:number;since?:number}>({x:0,z:0});
+  const g=useRef<THREE.Group>(null),body=useRef<THREE.Group>(null),moving=useRef(false),speed=useRef(0),sitting=useRef(false),wishing=useRef(false),walker=useRef<{x:number;z:number;since?:number}>({x:0,z:0});
   useFrame((_,dt)=>{const p=pos.current,tg=target.current,gr=g.current,b=body.current;if(!gr||!b)return;const t=Math.min(dt,0.25)/* by time: a slow phone walks as fast */;
     const dx=tg.x-p.x,dz=tg.z-p.z,d=Math.hypot(dx,dz);moving.current=d>0.05;
     // speeds up from a stand, slows down over the last stretch, turns toward where it goes instead of snapping
@@ -489,8 +490,12 @@ function Player({target,stops,pos,hidden,look,walls,onPick,faceTo=null,sit}:{sit
     // on the bridge: up and over its planks
     const lift=bridgeLift(p.x,p.z),y=lift?Math.max(surfaceY(p.x,p.z),surfaceY(BRIDGE.x,streamZ(BRIDGE.x))+lift):surfaceY(p.x,p.z);
     gr.position.set(p.x,y,p.z);gr.quaternion.copy(tiltAt(p.x,p.z))});
+  // 피드백 2026-11-26 별똥별: a wish (ui/ShootingStars.tsx) stops me where I am, hands together for a few seconds
+  useEffect(()=>{let t=0;const on=()=>{const p=pos.current;target.current.set(p.x,0,p.z);stops.current=[];wishing.current=true;(testHooks() as {wishing?:boolean}).wishing=true;
+    clearTimeout(t);t=window.setTimeout(()=>{wishing.current=false;(testHooks() as {wishing?:boolean}).wishing=false},WISH_MS)};
+    addEventListener('rt-wish',on);return()=>{removeEventListener('rt-wish',on);clearTimeout(t)}},[pos,target,stops]);
   return <group ref={g} visible={!hidden} name="player" onClick={onPick&&!hidden?e=>{e.stopPropagation();/* 피드백 2026-11-26: a drag to look round (first person) is not a tap on me */if(e.delta>6)return;onPick()}:undefined}><group ref={body} scale={LOOK.explorer.scale}>
-    <Suspense fallback={null}><Explorer look={look} moving={moving} sit={sitting}/></Suspense>
+    <Suspense fallback={null}><Explorer look={look} moving={moving} sit={sitting} wish={wishing}/></Suspense>
   </group></group>;
 }
 

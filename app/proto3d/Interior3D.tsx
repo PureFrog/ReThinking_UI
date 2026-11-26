@@ -6,7 +6,7 @@
 //   door        back out
 // Analysts with nothing flagged rest in here. Three decor slots (garden-items DECOR_SLOTS room 'in') take drawer items.
 // Room coordinates: x across, z toward the camera, y up, floor at 0. Code-made primitives on the shared soft material.
-import {Suspense,useMemo,useRef} from 'react';
+import {Suspense,useEffect,useMemo,useRef,useState} from 'react';
 import {useFrame,useThree,type ThreeEvent} from '@react-three/fiber';
 import {OrbitControls} from '@react-three/drei';
 import * as THREE from 'three';
@@ -26,6 +26,7 @@ import type {Look} from '../core/wardrobe';
 import {Villager} from './Village3D';
 import {VILLAGERS} from '../content/villagers';
 import {surfaceY} from './ground';
+import {wishesMade} from './ui/ShootingStars';
 
 const S=(c:string)=><primitive object={soft(c)} attach="material"/>;
 const click=(fn:()=>void)=>(e:ThreeEvent<MouseEvent>)=>{e.stopPropagation();fn()};
@@ -58,6 +59,24 @@ function Notes({notes}:{notes:Note[]}){
 }
 
 // the camera inside: a fixed look into the open room, a little drag to look around, pinch to come closer
+// 별 유리병 (피드백 2026-11-26 별똥별 "모으는 재미"): a glass jar on top of the bookshelf, a little glowing star in it for
+// every wish made on a shooting star (ui/ShootingStars.tsx keepWish), up to 40 drawn; it glows once it has any
+const JAR_STAR=new THREE.MeshStandardMaterial({color:'#fff3b0',emissive:'#ffd25a',emissiveIntensity:1.6,toneMapped:false});
+const JAR_GLASS=new THREE.MeshStandardMaterial({color:'#e8f6ff',transparent:true,opacity:0.32,roughness:0.05,depthWrite:false});
+function StarJar(){
+  const [n,setN]=useState(0);
+  useEffect(()=>{const read=()=>{const k=wishesMade().length;setN(k);((window as {__proto3d?:{starJar?:number}}).__proto3d??={}).starJar=k};read();
+    addEventListener('rt-wish-kept',read);return()=>removeEventListener('rt-wish-kept',read)},[]);
+  const stars=Math.min(n,40);
+  return <group position={[0.62,2.605,0]} name="star-jar">
+    <mesh position-y={0.19} material={JAR_GLASS}><cylinderGeometry args={[0.17,0.16,0.38,20,1,true]}/></mesh>
+    <mesh position-y={0.006} material={JAR_GLASS}><cylinderGeometry args={[0.16,0.16,0.012,20]}/></mesh>
+    <mesh position-y={0.4}><cylinderGeometry args={[0.13,0.12,0.06,16]}/>{S('#b08a5a')}</mesh>
+    <mesh position-y={0.36}><torusGeometry args={[0.165,0.012,6,24]}/>{S('#d9b88a')}</mesh>
+    {Array.from({length:stars},(_,i)=>{const a=i*2.399,r=0.03+((i*37)%10)/110;return <mesh key={i} material={JAR_STAR} position={[Math.cos(a)*r,0.035+Math.floor(i/5)*0.04,Math.sin(a)*r]} rotation={[i*0.7,i*1.3,0]}><octahedronGeometry args={[0.032,0]}/></mesh>})}
+    {stars>0&&<pointLight position-y={0.2} color="#ffd68a" intensity={0.4+Math.min(stars,20)*0.06} distance={1.6} decay={2}/>}
+  </group>;
+}
 function RoomCam(){
   const {camera,size}=useThree(),fr=frameFor(LOOK.camera.frames,size.width/Math.max(1,size.height));
   // a phone held upright sees less across: back off a little more and aim a little left, so the teacher at the desk
@@ -105,6 +124,7 @@ export function Interior({me,books,notes,resting,decor,onDesk,onShelf,onBoard,on
       {[-1.02,1.02].map(x=><mesh key={x} position={[x,1.3,0]} castShadow><boxGeometry args={[0.06,2.6,0.52]}/>{S(I().wood)}</mesh>)}
       {[0.28,1.06,1.84,2.58].map(y=><mesh key={y} position={[0,y,0]} castShadow receiveShadow><boxGeometry args={[2.04,0.05,0.52]}/>{S(I().wood)}</mesh>)}
       <Books books={books}/>
+      <StarJar/>
       {/* the rest of each shelf: books of my own and a few things (the judgment books stay first) */}
       {[0,1,2].map(r=>{const n=Math.min(12,Math.max(0,books.length-r*12));return <FillerRow key={r} from={-0.95+n*0.15} to={0.98} y={0.305+r*0.78} seed={11+r*17} maxH={0.66}/>})}
       <mesh position-y={1.3} visible={false}><boxGeometry args={[2.2,2.7,0.8]}/></mesh>

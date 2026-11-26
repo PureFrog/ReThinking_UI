@@ -66,11 +66,12 @@ import {useGarden,workOf,weekWorkOf} from './state';
 import {Briefing,Grades,CaseView,LookBack,RewindView,type LookbackPick} from './ui/Loop';
 import {paidLeft} from '../core/rewind';
 import {todayQuests,dayDone,QUEST_LABEL,type QuestId} from '../core/today';
+import {ShootingStars,keepWish,wishesMade,WISH_LINES,WISH_MS} from './ui/ShootingStars';
 import {didList,markDid} from '../core/did';
 import {viewWeather,viewHour} from './viewPrefs';
 import {mondayOf,weekOver,weekResult,WEEKLY_COINS} from '../core/challenge';
 import {indexWeek} from '../content/market';
-const QUEST_COINS=3_000,ARCADE_DAY_CAP=15_000;
+const QUEST_COINS=3_000,ARCADE_DAY_CAP=15_000,WISH_COINS=1_000;
 // 피드백 2026-11-26 "오늘의 퀘스트 끝내면 애니메이션 + 효과음과 함께 코인 보상": a card pops (sound), coins fly to the purse
 const qwinQueue:{label:string;coins:number;all:boolean}[]=[];let qwinBusy=false;
 function questWinShow(label:string,coins:number,all:boolean){qwinQueue.push({label,coins,all});if(!qwinBusy)qwinNext()}
@@ -746,6 +747,13 @@ export default function Proto3D(){
   const petDo=(act:PetAct)=>{if(!pet)return;markDid(clock.today,'pet');const P=PETS[pet];petAct(pet,act);cue('heart');
     const key=`pet:${pet}:${act}:${clock.today}`,got=!(s.grants??[]).includes(key);if(got)g.ops.grant(key,PET_COINS[act]);
     g.say((act==='pet'?P.petLine:P.treatLine)+(got?` 코인 +${PET_COINS[act].toLocaleString()}`:''));setPet(null)};
+  // 피드백 2026-11-26 "간단하게": the wish is a tap on the star; 보리 says it for me (its bubble, a few seconds), I put my
+  // hands together (Scene3D Player, rt-wish), a star goes into the jar at home (Interior3D StarJar); the day's first pays
+  const [wishLine,setWishLine]=useState<string|null>(null);
+  const onWish=()=>{const line=WISH_LINES[wishesMade().length%WISH_LINES.length];keepWish(clock.today,line);cue('sun-pieces');dispatchEvent(new CustomEvent('rt-wish'));
+    setWishLine(line);window.setTimeout(()=>setWishLine(l=>l===line?null:l),WISH_MS);((window as {__proto3d?:{wishLine?:string}}).__proto3d??={}).wishLine=line/* e2e */;
+    const key=`wish:${clock.today}`,got=!(s.grants??[]).includes(key);if(got)g.ops.grant(key,WISH_COINS);
+    g.say('별 유리병에 별이 하나 늘었어요'+(got?` · 코인 +${WISH_COINS.toLocaleString()}`:''))};
   const nearDoor=(id:PlaceId)=>{const w=place(id).walk,me=meNow();return Math.hypot(me.x-w.x,me.z-w.z)<=LOOK.doorReach};
   const merchantOpen=merchantHere(minutes);
   const goalOf=(st:WalkStep|null)=>{const who=st?PERSON_OF[st]:null;return st==='fisher'?{x:NARU.x,z:NARU.z}:who&&isShop(who)?SHOP_DOOR[who]:who?villager(who as VillagerId):null};
@@ -1030,7 +1038,7 @@ export default function Proto3D(){
 
   // 보리 came over to talk: its line is the only bubble until it is answered
   const boriLine=friendHere&&friendDay!==clock.today&&boriCame?.text?{id:FRIEND.id,text:boriCame.text,alert:true}:null;
-  const bubbles:{id:string;text:string;alert:boolean}[]=boriLine?[boriLine]:[...(friendHere&&friendDay!==clock.today?[{id:FRIEND.id,text:opener.short,alert:false}]:[]),
+  const bubbles:{id:string;text:string;alert:boolean}[]=wishLine&&friendHere?[{id:FRIEND.id,text:wishLine,alert:false}]:boriLine?[boriLine]:[...(friendHere&&friendDay!==clock.today?[{id:FRIEND.id,text:opener.short,alert:false}]:[]),
     ...world.analysts.flatMap(a=>a.bubble?[{id:a.id,...a.bubble}]:[])].filter(b=>b.id===FRIEND.id);
   // the bubbles hold still while the tutorial points at one
   const heldTurn=useRef(0);if(!tutOn)heldTurn.current=turn;
@@ -1211,6 +1219,8 @@ export default function Proto3D(){
         <div><button type="button" className="rt-btn primary" onClick={()=>petDo('pet')}>쓰다듬기</button>
           <button type="button" className="rt-btn primary" onClick={()=>petDo('treat')}>{PETS[pet].treat}</button>
           <button type="button" className="rt-btn" aria-label="닫기" onClick={()=>setPet(null)}>✕</button></div></div>}
+      {/* 별똥별 (ui/ShootingStars.tsx): at night in the village with nothing open; a tap on one makes a wish */}
+      <ShootingStars active={ready&&!quiet&&!inside&&!shop&&where==='village'&&!sheet&&!pet&&light.night>0.5} day={clock.today} onWish={onWish}/>
       {showReq&&<div className="rt-request" role="status" data-testid="request-notice" style={reqBottom!=null?{bottom:reqBottom}:undefined}>
         <button type="button" className="rt-request-go" onClick={openRequest}><Scope size={18}/><span><b>오늘의 관측 의뢰가 도착했어</b><small>눌러서 열기</small></span></button>
         <button type="button" className="rt-request-x" aria-label="알림 닫기" onClick={()=>g.ops.questNoticed(qDay)}><Cross size={16}/></button></div>}
