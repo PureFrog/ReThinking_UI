@@ -1,7 +1,7 @@
 'use client';
 // 마을 자연 (피드백 2026-11-26 "연못에 연꽃·개구리, 모닥불 초라해, 길고양이·강아지, 강이 재미없어"): the pond's lily pads and
 // lotus flowers, two frogs that hop pad to pad, reeds and cattails, rings on the water; the campfire's stone ring, a
-// layered flickering flame with rising embers, stumps and a lantern, a kettle on a tripod; a stray dog; the stream's
+// layered flickering flame with rising embers, stumps and a lantern; a stray dog; the stream's
 // banks (pebbles, reeds, a few rocks) and its flowing water (World3D uses riverMaterial).
 import {useEffect,useMemo,useRef} from 'react';
 import {useFrame} from '@react-three/fiber';
@@ -63,12 +63,8 @@ export function CampfireDecor({at}:{at:[number,number]}){
     {[['#ff6a1a',0.32,0.9,1.4],['#ffb02e',0.22,0.7,1.8],['#fff1a8',0.12,0.45,2.4]].map(([c,r,h,e],i)=><mesh key={i} ref={el=>{fl.current[i]=el}} position-y={0.2+(h as number)/2}>
       <coneGeometry args={[r as number,h as number,10]}/><meshStandardMaterial color={c as string} emissive={c as string} emissiveIntensity={e as number} transparent opacity={0.88} toneMapped={false} depthWrite={false}/></mesh>)}
     {seed.map((_,i)=><mesh key={'e'+i} ref={el=>{emb.current[i]=el}}><sphereGeometry args={[0.02,6,4]}/><meshBasicMaterial color="#ffb347" transparent toneMapped={false}/></mesh>)}
-    {/* a kettle on a tripod over it */}
-    {[0,1,2].map(i=><mesh key={'t'+i} position={[Math.cos(i*2.1)*0.42,0.6,Math.sin(i*2.1)*0.42]} rotation={[Math.sin(i*2.1)*0.35,0,-Math.cos(i*2.1)*0.35]}><cylinderGeometry args={[0.02,0.02,1.3,6]}/>{M('#5a3d2b')}</mesh>)}
-    <mesh position-y={1.12}><cylinderGeometry args={[0.004,0.004,0.18,4]}/>{M('#2f2a28')}</mesh>
-    <group position-y={0.93}><mesh scale={[1,0.8,1]}><sphereGeometry args={[0.12,14,10]}/><meshStandardMaterial color="#3f4a46" metalness={0.6} roughness={0.4}/></mesh>
-      <mesh position={[0.12,0.02,0]} rotation-z={-0.8}><cylinderGeometry args={[0.015,0.025,0.12,6]}/><meshStandardMaterial color="#3f4a46" metalness={0.6}/></mesh></group>
-    {/* stumps to sit on, a lantern, a basket of logs, marshmallows on a stick */}
+    {/* 피드백 2026-11-26 "불이 주전자를 통과해 보여": no kettle or tripod over the fire any more */}
+    {/* stumps to sit on, a lantern, a basket of logs, marshmallows on a stick (solid where places.ts FIRE_DECOR says) */}
     {[[1.4,0.6],[-1.3,0.8],[-0.4,1.5]].map(([x,z],i)=><group key={'s'+i} position={[x,0,z]}><mesh position-y={0.2} castShadow><cylinderGeometry args={[0.25,0.28,0.4,14]}/>{M('#8a6448')}</mesh>
       <mesh position-y={0.405} rotation-x={-Math.PI/2}><circleGeometry args={[0.25,16]}/>{M('#d9b88a')}</mesh>{[0.12,0.2].map(r=><mesh key={r} position-y={0.41} rotation-x={-Math.PI/2}><ringGeometry args={[r,r+0.012,20]}/>{M('#b08a5a')}</mesh>)}</group>)}
     <group position={[1.4,0.42,0.6]}><mesh position-y={0.1}><boxGeometry args={[0.14,0.2,0.14]}/><meshStandardMaterial color="#fff1c4" emissive="#ffc867" emissiveIntensity={1.3} toneMapped={false}/></mesh>

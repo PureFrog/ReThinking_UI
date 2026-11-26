@@ -33,7 +33,8 @@ const SIT_POSE:[RegExp,number,number,number][]=[[/^leg_b/,-0.06,0.07,-Math.PI/2]
 // kit (RoleKit.tsx): a villager's own colours and the things put on the sockets (hat, head, body, both hands)
 // hair: another hair colour (거장의 집's Buffett is white haired); seated: the legs and boots are left off (a chair's
 // own thighs and shoes stand in for them)
-export function Explorer({look,act='idle',moving,kit,hair,seated,sit}:{sit?:React.MutableRefObject<boolean>;look:Look;act?:ExplorerAct;moving?:React.MutableRefObject<boolean>;kit?:Kit;hair?:string;seated?:boolean}){
+// wish (피드백 2026-11-26 별똥별): hands together in front of the chest, head bowed a little, eyes shut
+export function Explorer({look,act='idle',moving,kit,hair,seated,sit,wish}:{sit?:React.MutableRefObject<boolean>;wish?:React.MutableRefObject<boolean>;look:Look;act?:ExplorerAct;moving?:React.MutableRefObject<boolean>;kit?:Kit;hair?:string;seated?:boolean}){
   const pal0=PALETTES.find(p=>p.id===look.palette)??PALETTES[0],pal=kit?.tint?{...pal0,id:pal0.id+':'+kit.tint.primary,...kit.tint}:pal0;
   const files=[look.coat,look.hat,look.bag,look.tool].filter(Boolean) as string[];
   const {scene}=useGLTF(MODELS.explorer);
@@ -55,8 +56,8 @@ export function Explorer({look,act='idle',moving,kit,hair,seated,sit}:{sit?:Reac
     const legs:{o:THREE.Object3D;p:THREE.Vector3;r:number;to:[number,number,number]}[]=[];
     model.traverse(o=>{const m=SIT_POSE.find(([re])=>re.test(o.name));if(m&&o.parent?.name==='body')legs.push({o,p:o.position.clone(),r:o.rotation.x,to:[m[1],m[2],m[3]]})});
     return {legs,body:g('body'),head:g('head'),armL:g('arm_l'),armR:g('arm_r'),eyes:[g('eye_l'),g('eye_r')].filter(Boolean) as THREE.Object3D[],
-      rest:{armL:g('arm_l')?.rotation.clone(),armR:g('arm_r')?.rotation.clone(),body:g('body')?.position.y??0,eye:g('eye_l')?.scale.y??1}}},[model]);
-  const blink=useRef(2),spin=useRef<THREE.Group>(null),sat=useRef(0);
+      rest:{armL:g('arm_l')?.rotation.clone(),armR:g('arm_r')?.rotation.clone(),headX:g('head')?.rotation.x??0,side:{l:Math.sign(g('arm_l')?.position.x??1)||1,r:Math.sign(g('arm_r')?.position.x??-1)||-1},body:g('body')?.position.y??0,eye:g('eye_l')?.scale.y??1}}},[model]);
+  const blink=useRef(2),spin=useRef<THREE.Group>(null),sat=useRef(0),wished=useRef(0);
   useEffect(()=>()=>{model.traverse(o=>{const m=o as THREE.Mesh;if(m.isMesh&&m.geometry&&m.geometry.userData.owned)m.geometry.dispose()})},[model]);
   useFrame(({clock},dt)=>{const t=clock.elapsedTime,{body,head,armL,armR,eyes,rest,legs}=parts,walking=act==='walk'||!!moving?.current;
     // sitting down: a little hop up and onto the seat, legs folding; then a slow happy sway by the fire
@@ -64,15 +65,16 @@ export function Explorer({look,act='idle',moving,kit,hair,seated,sit}:{sit?:Reac
     const hop=k>0&&k<1&&sit?.current?Math.sin(k*Math.PI)*0.14:0;
     for(const l of legs){l.o.position.y=THREE.MathUtils.lerp(l.p.y,l.to[0],k);l.o.position.z=THREE.MathUtils.lerp(l.p.z,l.to[1],k);l.o.rotation.x=THREE.MathUtils.lerp(l.r,l.to[2],k)}
     if(body){body.position.y=rest.body+hop+(walking?Math.abs(Math.sin(t*10))*0.06:Math.sin(t*2)*0.012);body.rotation.z=walking?Math.sin(t*10)*0.05:Math.sin(t*1.3)*0.05*k}
+    const wk=wished.current=THREE.MathUtils.clamp(wished.current+(wish?.current?1:-1)*Math.min(dt,0.05)*5,0,1);
     const swing=walking?Math.sin(t*10)*0.7:Math.sin(t*1.6)*0.05*(1-k)-0.55*k;
-    if(armL&&rest.armL)armL.rotation.x=rest.armL.x+swing;
+    if(armL&&rest.armL){armL.rotation.x=THREE.MathUtils.lerp(rest.armL.x+swing,rest.armL.x-1.15,wk);armL.rotation.z=rest.armL.z-rest.side.l*0.42*wk}
     // the stage: holding the tool up to look through it, now and then
     const lookUp=act==='look'?Math.max(0,Math.sin(t*0.7))*-1.4:0;
-    if(armR&&rest.armR)armR.rotation.x=rest.armR.x+(k>0.01?swing:-swing)+lookUp;
-    if(head)head.rotation.y=walking?0:act==='look'?Math.sin(t*0.5)*0.35:Math.sin(t*0.4)*0.2;
+    if(armR&&rest.armR){armR.rotation.x=THREE.MathUtils.lerp(rest.armR.x+(k>0.01?swing:-swing)+lookUp,rest.armR.x-1.15,wk);armR.rotation.z=rest.armR.z-rest.side.r*0.42*wk}
+    if(head){head.rotation.y=walking?0:act==='look'?Math.sin(t*0.5)*0.35:Math.sin(t*0.4)*0.2*(1-wk);head.rotation.x=rest.headX+0.22*wk}
     if(spin.current)spin.current.rotation.y=act==='twirl'?spin.current.rotation.y+Math.min(dt,0.05)*9:THREE.MathUtils.lerp(spin.current.rotation.y,0,0.08);
     blink.current-=Math.min(dt,0.05);const shut=blink.current<0.12;if(blink.current<0)blink.current=2.5+Math.random()*3;
-    for(const e of eyes)e.scale.y=rest.eye*(shut?0.15:1)});
+    for(const e of eyes)e.scale.y=rest.eye*(shut||wk>0.6?0.15:1)});
   const sock=(n:string)=>model.getObjectByName(n)??null;
   const put=(node:React.ReactNode,n:string)=>{const at=node?sock(n):null;return at?createPortal(<>{node}</>,at):null};
   return <group ref={spin}><primitive object={model}/>{kit&&<>{put(kit.hat,'hat')}{put(kit.head,'head')}{put(kit.body,'body')}{put(kit.handR,'hand')}{put(kit.handL,'hand_lk')}</>}</group>;
