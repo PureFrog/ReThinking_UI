@@ -7,8 +7,7 @@
 // Analysts with nothing flagged rest in here. Three decor slots (garden-items DECOR_SLOTS room 'in') take drawer items.
 // Room coordinates: x across, z toward the camera, y up, floor at 0. Code-made primitives on the shared soft material.
 import {Suspense,useEffect,useMemo,useRef,useState} from 'react';
-import {useFrame,useThree,type ThreeEvent} from '@react-three/fiber';
-import {OrbitControls} from '@react-three/drei';
+import {useFrame,type ThreeEvent} from '@react-three/fiber';
 import * as THREE from 'three';
 import {soft} from './materials';
 import {LOOK} from './look';
@@ -18,10 +17,10 @@ import {HouseDecor,houseMaterials,FillerRow,DeskChair} from './HouseDecor';
 import {StudyDesk,TutorSeat,DoorDetail,CoatStand,FrontCozy,Cat} from './HouseMore';
 import {DECOR_SLOTS,type Shape} from '../content/garden-items';
 import type {AnalystId} from '../content/analysts';
-import {frameFor} from '../core/frame';
 import {Teacher} from './House3D';
 import {Explorer} from './Explorer3D';
-import {RoomMe} from './Seats';
+import {RoomMe,type Area} from './Seats';
+import {RoomFollow} from './RoomView';
 import type {Look} from '../core/wardrobe';
 import {Villager} from './Village3D';
 import {VILLAGERS} from '../content/villagers';
@@ -58,7 +57,16 @@ function Notes({notes}:{notes:Note[]}){
     </group>})}</group>;
 }
 
-// the camera inside: a fixed look into the open room, a little drag to look around, pinch to come closer
+// 피드백 2026-11-26 "방 UI 통일 + 양옆 보고 돌아다니기": the camera is RoomView's (behind me, following, a sideways drag
+// looks round), and I walk the floor round the furniture. The room is closed over (a ceiling, the walls run on past
+// the camera) so no dark shows above or in front.
+const CEIL=4.4,MORE=8;
+const circle=(cx:number,cz:number,r:number)=>(x:number,z:number)=>(x-cx)**2+(z-cz)**2<r*r;
+const rect=(x0:number,x1:number,z0:number,z1:number)=>(x:number,z:number)=>x>x0&&x<x1&&z>z0&&z<z1;
+const HOME_BLOCKS=[rect(-3.3,-0.75,-3.5,-0.7)/* desk, the tutor behind it */,rect(-2.45,-1.55,-0.75,-0.15)/* desk chair */,rect(1.75,4.5,-3.5,-2.2)/* shelf */,
+  circle(-1.7,2.25,0.65)/* armchair */,circle(-1.33,3.12,0.4)/* footstool */,rect(0.05,1.35,1.95,2.75)/* coffee table */,circle(-3.7,-2.9,0.45)/* plant */,
+  rect(-4.6,-3.6,-0.9,0.9)/* stove */];
+const HOME_AREA:Area={x:[-3.9,3.9],z:[-2.6,3.25],block:(x,z)=>HOME_BLOCKS.some(b=>b(x,z))};
 // 별 유리병 (피드백 2026-11-26 별똥별 "모으는 재미"): a glass jar on top of the wardrobe, a little glowing star in it for
 // every wish made on a shooting star (ui/ShootingStars.tsx keepWish), up to 40 drawn; it glows once it has any
 const JAR_STAR=new THREE.MeshStandardMaterial({color:'#fff3b0',emissive:'#ffd25a',emissiveIntensity:1.6,toneMapped:false});
@@ -77,16 +85,6 @@ function StarJar({at}:{at:[number,number,number]}){
     {stars>0&&<pointLight position-y={0.2} color="#ffd68a" intensity={0.4+Math.min(stars,20)*0.06} distance={1.6} decay={2}/>}
   </group>;
 }
-function RoomCam(){
-  const {camera,size}=useThree(),fr=frameFor(LOOK.camera.frames,size.width/Math.max(1,size.height));
-  // a phone held upright sees less across: back off a little more and aim a little left, so the teacher at the desk
-  // (the room's far left) stays in the picture with the shelf and the door
-  const tall=size.width<size.height,dist=I().camDist*(tall?I().tallDist:1),tx=tall?I().tallX:0;
-  useMemo(()=>{const c=camera as THREE.PerspectiveCamera;c.clearViewOffset();c.fov=fr.fov;c.updateProjectionMatrix();
-    c.position.set(tx,1+Math.cos(I().camPitch)*dist,-0.4+Math.sin(I().camPitch)*dist);c.lookAt(tx,1,-0.4)},[camera,dist,fr.fov,tx]);
-  return <OrbitControls makeDefault enablePan={false} enableDamping dampingFactor={0.12} target={[tx,1,-0.4]}
-    minAzimuthAngle={-0.55} maxAzimuthAngle={0.55} minPolarAngle={0.55} maxPolarAngle={1.25} minDistance={dist*0.6} maxDistance={dist*1.15}/>;
-}
 
 export function Interior({me,books,notes,resting,decor,onDesk,onShelf,onBoard,onDoor,onAnalyst,report,reportAnalyst,people=false}:{me?:Look;people?:boolean;books:Book[];notes:Note[];resting:AnalystId[];decor:{slot:string;shape:Shape}[];
   onDesk:()=>void;onShelf:()=>void;onBoard:()=>void;onDoor:()=>void;onAnalyst:(id:AnalystId)=>void;report:(k:string,v:THREE.Vector3)=>void;reportAnalyst:(id:string,v:THREE.Vector3)=>void}){
@@ -94,7 +92,7 @@ export function Interior({me,books,notes,resting,decor,onDesk,onShelf,onBoard,on
   const v=useMemo(()=>new THREE.Vector3(),[]);
   useFrame(()=>{for(const [k,p] of Object.entries(ROOM_SPOTS)){v.set(p.x,k==='board'||k==='window'?2.2:k==='door'?2.3:k==='desk'&&people?2.55:1.4,p.z);report('room-'+k,v)}});
   // 피드백 2026-11-26 "집인데 왜 이렇게 썰렁해": wallpaper, a grained floor, a patterned rug and the cozy things (HouseDecor)
-  const hm=useMemo(houseMaterials,[]);
+  const hm=useMemo(houseMaterials,[]),meAt=useRef({x:0.35,z:1.25});
   return <group name="interior">
     <hemisphereLight args={['#fff4e2','#8a6448',0.9]}/>
     <pointLight position={people?[-1.2,2.4,-0.6]:[-2.4,2.1,-1.8]} color="#ffcf87" intensity={people?4:7} distance={7} decay={2}/>
@@ -104,9 +102,16 @@ export function Interior({me,books,notes,resting,decor,onDesk,onShelf,onBoard,on
     {/* floor: planks */}
     {/* the floor runs on toward the camera (the cut-open side), so a tall screen sees boards, not the dark */}
     <mesh position={[0,-0.05,0]} receiveShadow><boxGeometry args={[w,0.1,d]}/><primitive object={hm.floor} attach="material"/></mesh>
-    {/* 피드백 2026-11-26 "집 앞쪽 공간이 휑해": the floor ends where the room ends; a dollhouse lip shows its cut edge */}
-    <mesh position={[0,-0.2,d/2+0.03]}><boxGeometry args={[w+0.24,0.42,0.06]}/>{S(I().woodDark)}</mesh>
-    {[-1,1].map(k=><mesh key={k} position={[k*(w/2+0.06),h/2-0.1,d/2+0.03]}><boxGeometry args={[0.24,h+0.2,0.06]}/>{S(I().woodDark)}</mesh>)}
+    {/* the rest of the house toward the camera: floor, side walls, and a ceiling over all (RoomFollow looks from in here) */}
+    <mesh position={[0,-0.05,d/2+MORE/2]} receiveShadow><boxGeometry args={[w,0.1,MORE]}/><primitive object={hm.floor} attach="material"/></mesh>
+    {[-1,1].map(k=><mesh key={k} position={[k*w/2,CEIL/2,d/2+MORE/2]}><boxGeometry args={[0.12,CEIL,MORE]}/><primitive object={hm.side} attach="material"/></mesh>)}
+    {/* above the old wall top: a cornice and a plain upper wall up to the ceiling */}
+    <mesh position={[0,(h+CEIL)/2,-d/2]}><boxGeometry args={[w,CEIL-h,0.12]}/>{S(I().wallUp)}</mesh>
+    {[-1,1].map(k=><mesh key={k} position={[k*w/2,(h+CEIL)/2,0]}><boxGeometry args={[0.12,CEIL-h,d]}/>{S(I().wallUp)}</mesh>)}
+    <mesh position={[0,h+0.04,-d/2+0.1]}><boxGeometry args={[w,0.1,0.12]}/>{S(I().woodDark)}</mesh>
+    {[-1,1].map(k=><mesh key={k} position={[k*(w/2-0.1),h+0.04,MORE/2]}><boxGeometry args={[0.12,0.1,d+MORE]}/>{S(I().woodDark)}</mesh>)}
+    <mesh position={[0,CEIL+0.05,MORE/2]}><boxGeometry args={[w+0.2,0.1,d+MORE]}/>{S(I().ceiling)}</mesh>
+    {[-2,0,2].map(z=><mesh key={z} position={[0,CEIL-0.06,z]}><boxGeometry args={[w,0.12,0.18]}/>{S(I().woodDark)}</mesh>)}
     {/* walls: back, left, right; a skirting board along them */}
     <mesh position={[0,h/2,-d/2]} receiveShadow><boxGeometry args={[w,h,0.12]}/><primitive object={hm.back} attach="material"/></mesh>
     <mesh position={[-w/2,h/2,0]} receiveShadow><boxGeometry args={[0.12,h,d]}/><primitive object={hm.side} attach="material"/></mesh>
@@ -162,16 +167,17 @@ export function Interior({me,books,notes,resting,decor,onDesk,onShelf,onBoard,on
     <Cat/>
     {/* 피드백 2026-11-26 "집에 들어가면 내 캐릭터가 사라져": I am in the room too (every inside place is seen from outside, me in it) */}
     {/* 피드백 2026-11-26 "의자가 있다면 클릭했을 때 거기에 앉을 수": the desk chair and the armchair; the tutor's is hers */}
-    {me&&<RoomMe look={me} home={{x:0.35,z:1.25}} homeFace={-0.5} scale={LOOK.explorer.scale*0.95} seats={[
+    {me&&<RoomMe look={me} home={{x:0.35,z:1.25}} homeFace={-0.5} scale={LOOK.explorer.scale*0.95} area={HOME_AREA} me={meAt} seats={[
       {id:'desk-chair',x:ROOM_SPOTS.desk.x,z:ROOM_SPOTS.desk.z+0.92,top:0.575,face:Math.PI,box:[0.62,1.1,0.62],at:[ROOM_SPOTS.desk.x,0.55,ROOM_SPOTS.desk.z+0.95],
         // 피드백 2026-11-26 "앉을 때 가구를 통과": round to the chair's open side, then in (not through its back)
         via:[{x:ROOM_SPOTS.desk.x+0.8,z:ROOM_SPOTS.desk.z+1.05}]},
-      {id:'armchair',x:-1.7,z:2.25,top:0.6,face:0.4,box:[1.0,1.1,0.9],at:[-1.7,0.55,2.25],via:[{x:-0.78,z:2.51},{x:-1.49,z:2.76}]/* past the footstool, to the seat's front */},
+      // 피드백 2026-11-26 "소파를 관통": sat a little forward on the cushion (its front edge 0.42 out) so the legs hang over it
+      {id:'armchair',x:-1.63,z:2.42,top:0.63,face:0.4,box:[1.0,1.1,0.9],at:[-1.7,0.55,2.25],via:[{x:-0.78,z:2.51},{x:-1.49,z:2.76}]/* past the footstool, to the seat's front */},
       ...(people?[{id:'tutor-chair',x:TEACHER_AT.x,z:TEACHER_AT.z,top:0.6,face:0,taken:true,box:[1.0,1.3,0.9] as [number,number,number],at:[TEACHER_AT.x,0.6,TEACHER_AT.z] as [number,number,number]}]:[])]}/>}
     {/* 피드백 2026-11-23: the 사서 works in the village library now (Shop3D.tsx); the shelf stays */}
     {/* analysts with nothing flagged rest in here */}
     <Suspense fallback={null}>{resting.map(id=><Analyst key={id} id={id} to={SEATS[id]} face={face} surface={flat} tilt={still} bubble={null}
       onPick={()=>onAnalyst(id)} report={reportAnalyst}/>)}</Suspense>
-    <RoomCam/>
+    <RoomFollow me={meAt} halfW={w/2}/>
   </group>;
 }

@@ -5,11 +5,11 @@ import {WON} from '../core/won';
 export type FlowerKind='tree'|'flower';
 export type ShopPlant={id:string;name:string;kind:FlowerKind;price:number;desc:string;scale:number};
 export const FLOWER_SHOP:ShopPlant[]=[
-  {id:'cherry',name:'벚나무',kind:'tree',price:WON*25,desc:'꽃잎이 날려요',scale:0.95},
-  {id:'magnolia',name:'목련',kind:'tree',price:WON*30,desc:'큰 흰 꽃',scale:0.95},
-  {id:'mandarin',name:'귤나무',kind:'tree',price:WON*18,desc:'작고 열매 많음',scale:0.85},
-  {id:'lemon',name:'레몬나무',kind:'tree',price:WON*20,desc:'노란 열매',scale:0.85},
-  {id:'apple',name:'사과나무',kind:'tree',price:WON*18,desc:'빨간 열매',scale:0.85},
+  {id:'cherry',name:'벚나무',kind:'tree',price:WON*35,desc:'꽃잎이 날려요',scale:0.95},
+  {id:'magnolia',name:'목련',kind:'tree',price:WON*45,desc:'큰 흰 꽃',scale:0.95},
+  {id:'mandarin',name:'귤나무',kind:'tree',price:WON*27,desc:'작고 열매 많음',scale:0.85},
+  {id:'lemon',name:'레몬나무',kind:'tree',price:WON*30,desc:'노란 열매',scale:0.85},
+  {id:'apple',name:'사과나무',kind:'tree',price:WON*27,desc:'빨간 열매',scale:0.85},
   {id:'tulips',name:'튤립',kind:'flower',price:WON*8,desc:'알록달록 한 무더기',scale:1},
   {id:'sunflowers',name:'해바라기',kind:'flower',price:WON*10,desc:'키 큰 노란 꽃',scale:1},
   {id:'hydrangea',name:'수국',kind:'flower',price:WON*12,desc:'동그란 파란 꽃',scale:1},

@@ -10,7 +10,7 @@ let settings:SoundSettings=DEFAULT_SOUND;
 let ctx:AudioContext|null=null,sfxBus:GainNode|null=null,voiceBus:GainNode|null=null,noiseBuf:AudioBuffer|null=null;
 const last:Partial<Record<string,number>>={};
 
-export function configure(s:SoundSettings){settings=s;if(sfxBus)sfxBus.gain.value=s.sfx;if(voiceBus)voiceBus.gain.value=s.voice}
+export function configure(s:SoundSettings){settings=s;if(sfxBus)sfxBus.gain.value=s.sfx;if(voiceBus)voiceBus.gain.value=s.voice;musicLevel()}
 // On a press: make (or wake) the audio context. Without a press first the browser keeps it suspended.
 export function unlock(){if(typeof window==='undefined'||!settings.on)return;try{if(!ctx){const A=window.AudioContext??(window as any).webkitAudioContext;if(!A)return;ctx=new A();sfxBus=ctx.createGain();voiceBus=ctx.createGain();sfxBus.connect(ctx.destination);voiceBus.connect(ctx.destination);configure(settings);
  noiseBuf=ctx.createBuffer(1,ctx.sampleRate,ctx.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}if(ctx.state==='suspended')void ctx.resume()}catch{ctx=null}}
@@ -146,44 +146,50 @@ const HOME_MELODY=[77,0,76,74,72,0,74,0, 76,0,74,72,71,0,67,0, 74,0,72,71,69,0,7
 const BUILD_CH=[[55,59,62],[60,64,67],[57,60,64],[62,65,69]],BUILD_MEL=[79,0,76,74,76,0,79,81, 79,0,76,72,74,0,0,0, 76,0,74,72,74,76,79,0, 81,79,76,74,72,0,0,0];
 const TAILOR_CH=[[65,69,72],[62,65,69],[67,70,74],[60,64,67]],TAILOR_MEL=[84,0,0,81,0,79, 77,0,0,79,0,81, 82,0,0,81,0,77, 76,0,0,0,0,0];
 const LIB_CH=[[57,60,64,67],[53,57,60,64],[50,53,57,60],[52,55,59,64]];
+// 피드백 2026-11-26 "브금 볼륨 맞춰줘": each track's level evens out how loud it plays (measured from its notes' gains
+// over a 128-step loop, a square wave aimed a little lower), so every room sits at the same loudness under the effects
 const TRACKS:Record<Track,{bpm:number;level:number;step:(b:GainNode,i:number,len:number)=>void}>={
-  arcade:{bpm:132,level:0.35,step:(b,i,len)=>{const ch=CHIP_CHORDS[Math.floor(i/8)%4],m=CHIP_MELODY[i%CHIP_MELODY.length];
+  arcade:{bpm:132,level:0.29,step:(b,i,len)=>{const ch=CHIP_CHORDS[Math.floor(i/8)%4],m=CHIP_MELODY[i%CHIP_MELODY.length];
     if(m)tone(b,{f:NOTE(m),dur:len*0.9,type:'square',gain:0.05});tone(b,{f:NOTE(ch[i%3]+12),dur:len*0.5,type:'square',gain:0.018});
     if(i%2===0)tone(b,{f:NOTE(ch[0]-24),dur:len*1.6,type:'triangle',gain:0.09});if(i%2===1)noise(b,{f:7000,dur:0.03,gain:0.03,kind:'highpass'})}},
-  space:{bpm:76,level:0.5,step:(b,i,len)=>{const ch=SPACE_CHORDS[Math.floor(i/16)%4];
+  space:{bpm:76,level:0.33,step:(b,i,len)=>{const ch=SPACE_CHORDS[Math.floor(i/16)%4];
     if(i%16===0)ch.forEach((n,k)=>tone(b,{f:NOTE(n),dur:len*17,type:'sine',gain:0.035,attack:len*4,vibrato:k===3?4:undefined}));
     if(i%16===0)tone(b,{f:NOTE(ch[0]-12),dur:len*16,type:'triangle',gain:0.06,attack:len*2});
     if(i%2===0){const n=ch[(i/2)%4]+24;tone(b,{f:NOTE(n),dur:len*3,type:'sine',gain:0.03});tone(b,{f:NOTE(n)*2.01,dur:len*1.5,type:'sine',gain:0.008,at:0.01});tone(b,{f:NOTE(n),dur:len*2,type:'sine',gain:0.012,at:len*1.5})}
     if(Math.random()<0.06)tone(b,{f:NOTE(96+[0,4,7,11][(Math.random()*4)|0]),dur:1.6,type:'sine',gain:0.012})}},
-  builder:{bpm:108,level:0.42,step:(b,i,len)=>{const ch=BUILD_CH[Math.floor(i/8)%4],m=BUILD_MEL[i%BUILD_MEL.length];
+  builder:{bpm:108,level:0.46,step:(b,i,len)=>{const ch=BUILD_CH[Math.floor(i/8)%4],m=BUILD_MEL[i%BUILD_MEL.length];
     if(m){tone(b,{f:NOTE(m),dur:len*0.7,type:'triangle',gain:0.07});tone(b,{f:NOTE(m)*2,dur:len*0.25,type:'sine',gain:0.015})}
     if(i%2===0)tone(b,{f:NOTE(ch[0]-24),dur:len*0.9,type:'triangle',gain:0.08});
     if(i%2===1)tone(b,{f:NOTE(ch[(i>>1)%3]),dur:len*0.4,type:'triangle',gain:0.03});
     if(i%4===2)noise(b,{f:2400,dur:0.04,gain:0.03,q:4})}},
-  tailor:{bpm:126,level:0.42,step:(b,i,len)=>{const bar=Math.floor(i/6)%4,ch=TAILOR_CH[bar],m=TAILOR_MEL[i%TAILOR_MEL.length],beat=i%6;
+  tailor:{bpm:126,level:0.47,step:(b,i,len)=>{const bar=Math.floor(i/6)%4,ch=TAILOR_CH[bar],m=TAILOR_MEL[i%TAILOR_MEL.length],beat=i%6;
     if(m){tone(b,{f:NOTE(m),dur:len*2.6,type:'sine',gain:0.05,vibrato:5});tone(b,{f:NOTE(m)*4,dur:len*0.6,type:'sine',gain:0.006})}
     if(beat===0)tone(b,{f:NOTE(ch[0]-12),dur:len*2,type:'triangle',gain:0.08});
     if(beat===2||beat===4)ch.forEach((n,k)=>tone(b,{f:NOTE(n),dur:len*1.2,type:'triangle',gain:0.016,at:k*0.01}))}},
-  library:{bpm:66,level:0.4,step:(b,i,len)=>{const ch=LIB_CH[Math.floor(i/8)%4];
+  library:{bpm:66,level:0.37,step:(b,i,len)=>{const ch=LIB_CH[Math.floor(i/8)%4];
     if(i%8===0)tone(b,{f:NOTE(ch[0]-12),dur:len*8,type:'sine',gain:0.06,attack:0.02});
     const n=ch[[0,2,1,3,2,1,3,2][i%8]]+12;tone(b,{f:NOTE(n),dur:len*3,type:'sine',gain:0.04,attack:0.01});tone(b,{f:NOTE(n)*2,dur:len*1,type:'sine',gain:0.006});
     if(i%16===12)tone(b,{f:NOTE(ch[3]+24),dur:len*4,type:'sine',gain:0.015})}},
   // 일출 (dawn): a slow flute over bright major-seventh pads; 일몰 (dusk): warm plucked chords and a low hum
-  dawn:{bpm:70,level:0.38,step:(b,i,len)=>{const ch=[[60,64,67,71],[65,69,72,76],[62,65,69,72],[67,71,74,77]][Math.floor(i/8)%4];
+  dawn:{bpm:70,level:0.6,step:(b,i,len)=>{const ch=[[60,64,67,71],[65,69,72,76],[62,65,69,72],[67,71,74,77]][Math.floor(i/8)%4];
     if(i%8===0)ch.forEach((n,k)=>tone(b,{f:NOTE(n),dur:len*8.5,type:'sine',gain:0.022,attack:len*2,at:k*0.04}));
     const mel=[76,0,79,0,81,79,76,0, 74,0,76,79,0,0,0,0][i%16];if(mel)tone(b,{f:NOTE(mel+12),dur:len*1.8,type:'sine',gain:0.035,vibrato:5,attack:0.06});
     if(Math.random()<0.12)tone(b,{f:NOTE(ch[(Math.random()*4)|0]+24),dur:len,type:'sine',gain:0.01})}},
-  dusk:{bpm:76,level:0.4,step:(b,i,len)=>{const ch=[[57,60,64],[53,57,60],[55,59,62],[52,55,59]][Math.floor(i/8)%4];
+  dusk:{bpm:76,level:0.52,step:(b,i,len)=>{const ch=[[57,60,64],[53,57,60],[55,59,62],[52,55,59]][Math.floor(i/8)%4];
     if(i%8===0)tone(b,{f:NOTE(ch[0]-12),dur:len*8,type:'triangle',gain:0.05,attack:0.3});
     const n=ch[[0,1,2,1,0,2,1,2][i%8]]+12;tone(b,{f:NOTE(n),dur:len*1.4,type:'triangle',gain:0.035});
     if(i%16===10)tone(b,{f:NOTE(ch[2]+24),dur:len*3,type:'sine',gain:0.02,vibrato:4})}},
-  home:{bpm:84,level:0.45,step:(b,i,len)=>{const ch=HOME_CHORDS[Math.floor(i/8)%4],m=HOME_MELODY[i%HOME_MELODY.length];
+  home:{bpm:84,level:0.36,step:(b,i,len)=>{const ch=HOME_CHORDS[Math.floor(i/8)%4],m=HOME_MELODY[i%HOME_MELODY.length];
     if(m){tone(b,{f:NOTE(m),dur:len*2.2,type:'sine',gain:0.05});tone(b,{f:NOTE(m)*3,dur:len*0.8,type:'sine',gain:0.008})}
     if(i%4===0)ch.forEach((n,k)=>tone(b,{f:NOTE(n),dur:len*4.2,type:'triangle',gain:0.02,at:k*0.03,attack:0.05}));
     if(i%8===0)tone(b,{f:NOTE(ch[0]-12),dur:len*7,type:'triangle',gain:0.07,attack:0.04});
     if(i%4===2)noise(b,{f:5200,dur:0.02,gain:0.008,kind:'highpass'})}},
 };
-export function roomMusic(track:Track|null){
+// the music slider moves the playing track at once; a track asked for while the music was at 0 starts when it comes up
+let wanted:Track|null=null;
+function musicLevel(){if(chipBus&&ctx&&chipTrack)chipBus.gain.setTargetAtTime(settings.music*TRACKS[chipTrack].level,ctx.currentTime,0.15);
+  if(!settings.music&&chipTrack){const w=wanted;roomMusic(null);wanted=w}else if(settings.music&&wanted&&!chipTrack)roomMusic(wanted)}
+export function roomMusic(track:Track|null){wanted=track;
   if(track!==chipTrack||!track||!ready()||!settings.music){if(chipTimer){clearInterval(chipTimer);chipTimer=null}
     if(chipBus&&ctx){chipBus.gain.setTargetAtTime(0,ctx.currentTime,0.3);const b=chipBus;setTimeout(()=>b.disconnect(),1200)}chipBus=null;chipTrack=null}
   if(!track||!ready()||!settings.music||chipTimer)return;
@@ -194,4 +200,6 @@ export function roomMusic(track:Track|null){
 export const playingMusic=()=>chipTrack;
 export function musicOff(track:Track){if(chipTrack===track)roomMusic(null)}
 export function arcadeMusic(on:boolean){if(on)roomMusic('arcade');else musicOff('arcade')}
+// 거장의 집 목소리 (피드백 2026-11-26): recorded lines play at the voices slider, and not at all with the sound off
+export const voiceVolume=()=>settings.on?settings.voice:0;
 

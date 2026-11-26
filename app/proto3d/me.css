@@ -128,6 +128,28 @@ html[data-text="xl"] .proto3d :is(.rt-sheet-head,.rt-sheet-body,.rt-sheet-foot,.
 @media(orientation:landscape) and (max-height:520px){.sky-sheet{left:auto;right:8px;top:8px;bottom:8px;width:min(400px,52vw);max-height:none;transform:translateX(calc(100% + 20px))}.sky-sheet.on{transform:none}.sky-title{font-size:16px}}
 @media(prefers-reduced-motion:reduce){.sky-sheet,.sky-tag{transition:none}}
 .rt-me-only{margin:0 0 10px;font:700 16px/1.3 'Gowun Batang',serif;color:var(--rt-ink);text-align:center}
+/* 피드백 2026-11-26 "옷 갈아입는 곳이 허접": picture tiles, three across, a price chip, a second tap to buy */
+.rt-me-count{margin:0 0 8px;font-size:12px;color:var(--rt-mute)}
+.rt-me-grid3{grid-template-columns:repeat(3,1fr)}
+
+.rt-me-grid3 .rt-me-tile{align-items:center;text-align:center;min-height:112px;padding:10px 6px 9px;gap:3px;position:relative}
+.rt-me-pic{position:relative;display:grid;place-items:center;width:52px;height:52px;border-radius:50%;font-size:27px;line-height:1;
+  background:radial-gradient(circle at 35% 30%,#fffdf6,#f1e6cc);box-shadow:inset 0 -3px 0 #e2d3b0,0 2px 6px -3px #3b2c2060}
+.rt-me-tile[aria-pressed=true] .rt-me-pic{background:radial-gradient(circle at 35% 30%,#f4fbe9,#d8ecc4);box-shadow:inset 0 -3px 0 #b9d79e,0 2px 6px -3px #3f9e3a80}
+.rt-me-tile[data-locked=true] .rt-me-pic{filter:saturate(.55);opacity:.85}
+.rt-me-lock{position:absolute;right:-2px;bottom:-2px;width:20px;height:20px;border-radius:50%;background:#5a4a3a;color:#fff;display:grid;place-items:center}
+.rt-me-grid3 .rt-me-tile strong{font-size:13px;line-height:1.25;word-break:keep-all}
+.rt-me-grid3 .rt-me-tile small{justify-content:center;text-align:center}
+.rt-me-price{white-space:nowrap;padding:2px 8px;border-radius:999px;background:#f6d77a;color:#5a3d10!important;font-weight:700;box-shadow:inset 0 -2px 0 #e0b84a}
+.rt-me-price.short{background:#eee4d0;color:#9a8a70!important;box-shadow:none}
+.rt-me-tile[data-asking=true]{border-color:#e0a030!important;box-shadow:0 0 0 3px #f6d77a99!important;animation:rt-me-ask .5s ease-in-out infinite alternate}
+@keyframes rt-me-ask{to{transform:translateY(-2px)}}
+.rt-me-tile[aria-pressed=true]::after{content:'입는 중';position:absolute;top:6px;right:6px;padding:1px 6px;border-radius:999px;background:#3f9e3a;color:#fff;font-size:10px;font-weight:700}
+.rt-me-grid3 .rt-me-tile[aria-pressed=true] .rt-me-state{display:none}
+@media (prefers-reduced-motion:reduce){.rt-me-tile[data-asking=true]{animation:none}}
+@media(min-width:721px) and (orientation:landscape){.rt-me-grid3 .rt-me-tile{min-height:92px;padding:8px 4px}.rt-me-grid3 .rt-me-pic{width:42px;height:42px;font-size:22px}}
+
+
 /* 피드백 11-26: 구매 / 입기 buttons on the wardrobe tiles */
 .rt-me-shop[data-on=true]{border-color:var(--rt-ink);box-shadow:inset 0 0 0 1px var(--rt-ink),0 0 0 3px #d8b25a66}
 .rt-me-shop:active{transform:none}

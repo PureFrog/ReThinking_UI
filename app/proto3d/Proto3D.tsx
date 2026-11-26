@@ -71,7 +71,8 @@ import {didList,markDid} from '../core/did';
 import {viewWeather,viewHour} from './viewPrefs';
 import {mondayOf,weekOver,weekResult,WEEKLY_COINS} from '../core/challenge';
 import {indexWeek} from '../content/market';
-const QUEST_COINS=3_000,ARCADE_DAY_CAP=15_000,WISH_COINS=1_000;
+// 피드백 2026-11-26 물가 맞추기: a quest 2,000원 (the three together still close the day, EARN.dayDone); the arcade up to 30,000원 a day
+const QUEST_COINS=2_000,ARCADE_DAY_CAP=30_000,WISH_COINS=1_000;
 // 피드백 2026-11-26 "오늘의 퀘스트 끝내면 애니메이션 + 효과음과 함께 코인 보상": a card pops (sound), coins fly to the purse
 const qwinQueue:{label:string;coins:number;all:boolean}[]=[];let qwinBusy=false;
 function questWinShow(label:string,coins:number,all:boolean){qwinQueue.push({label,coins,all});if(!qwinBusy)qwinNext()}
@@ -102,7 +103,6 @@ import {SkyView} from './ui/SkyView';
 import {Peek} from './Peek';
 import {myPlanet,type Planet,type Share} from '../core/planets';
 import {planetRepo} from './server';
-import {startPresence} from './social';
 import {habitOf} from '../core/profile';
 import {PALETTES} from '../core/wardrobe';
 import {fitLook} from '../core/wardrobe';
@@ -403,11 +403,7 @@ export default function Proto3D(){
   // 다른 정원들 (ui/SkyView.tsx, Sky3D.tsx): ?sky opens it; the garden is put away while it is open
   const [skyOpen,setSkyOpen]=useState<{focus:string|null}|null>(()=>{try{return new URLSearchParams(location.search).has('sky')?{focus:null}:null}catch{return null}});
   const [neighbours,setNeighbours]=useState<{planets:Planet[];sample:boolean}>({planets:[],sample:true});
-  // the sky reads the planets when it opens and again every minute, so who is 온라인 stays current (018_presence)
-  useEffect(()=>{if(!skyOpen)return;let on=true;const read=()=>planetRepo.neighbours(weekStart(clock.today)).then(n=>{if(on)setNeighbours(n)});void read();
-    const t=setInterval(()=>void read(),60e3);return()=>{on=false;clearInterval(t)}},[!!skyOpen,clock.today]);// eslint-disable-line react-hooks/exhaustive-deps
-  // "I'm here" every minute while the app is open and in front (signed in with an invite code only)
-  useEffect(()=>startPresence(),[]);
+  useEffect(()=>{if(!skyOpen)return;let on=true;planetRepo.neighbours(weekStart(clock.today)).then(n=>{if(on)setNeighbours(n)});return()=>{on=false}},[!!skyOpen,clock.today]);// eslint-disable-line react-hooks/exhaustive-deps
   const quiet=calm||!!lapse||me||!!expedition||!!quest||!!skyOpen;
   // W3 time capsules (core/capsule.ts): one marker per tree; burying after a judgment, digging up as a grade opens
   const capsules=useMemo(()=>capsulesOf(s.judgments,s.graded,clock.today,s.holdings.map(x=>x.id),(j,m)=>g.due.some(d=>d.judgment.id===j.id&&d.mark===m)),[s.judgments,s.graded,clock.today,s.holdings,g.due]);// eslint-disable-line react-hooks/exhaustive-deps
@@ -566,7 +562,7 @@ export default function Proto3D(){
   // nothing flagged in the new garden: no look-back to show
   useEffect(()=>{if(sheet?.kind==='lookback'&&!lookSig)setSheet(null)},[sheet,lookSig]);
   // sound (core/sound.ts, synthesised): on unless the player turned it off; the browser lets it start on the first press
-  useEffect(()=>{configure({...DEFAULT_SOUND,on:s.sound,sfx:s.settings.sfx});if(s.sound)unlock()},[s.sound,s.settings.sfx]);
+  useEffect(()=>{configure({...DEFAULT_SOUND,on:s.sound,sfx:s.settings.sfx,music:s.settings.music??DEFAULT_SOUND.music,voice:s.settings.voice??DEFAULT_SOUND.voice});if(s.sound)unlock()},[s.sound,s.settings.sfx,s.settings.music,s.settings.voice]);
   // the browser keeps a page silent until it is pressed: the first press (and any after the sound comes back on) wakes the
   // audio (core/sound.ts unlock). Without this the 3D garden never made a sound, and 소리 끄기 had nothing to turn off.
   useEffect(()=>{const wake=()=>unlock();addEventListener('pointerdown',wake,true);addEventListener('keydown',wake,true);
@@ -1126,7 +1122,7 @@ export default function Proto3D(){
       <div className="proto3d-top" style={where==='arcade'?{display:'none'}:undefined}>
         <div className="rt-top-left">
         {/* today's market as weather, top left (restored 2026-11-20: the PM never asked for it to go) */}
-        {w&&where==='village'&&(!expedition||wide)&&!quest&&!skyOpen&&!welcome&&!me&&<div className="rt-weather" aria-label="오늘 시장 날씨">
+        {w&&where==='village'&&(!expedition||wide)&&!quest&&!skyOpen&&!welcome&&!me&&!inside&&!shop&&<div className="rt-weather" aria-label="오늘 시장 날씨">
           {(()=>{const game=expedition&&gameMarket!==null,v=game?gameMarket!:lapseMarket?.index??w.index,asOf=game?undefined:lapseMarket?lapseMarket.asOf:w.asOf,today=isoDay();
             return <>
           {/* 피드백 2026-11-25 "필요한 것만": which close, and the index move. The sky already shows the mood. */}
@@ -1178,7 +1174,8 @@ export default function Proto3D(){
         {k:'room-shelf',text:'옷장 · 옷 갈아입기',onClick:()=>{setSheet(null);setMe(true)}},
         // 피드백 11-26 "도서관에서 어차피 열람할 수 있으니 방에 채점 판 없애": no cork board, no tag
         {k:'room-door',text:'밖으로',onClick:()=>swapRoom(false)}]}/>}
-      {inside&&!sheet&&!roomTour&&!me&&<button type="button" className="rt-btn rt-exit" onClick={()=>swapRoom(false)}>밖으로 나가기</button>}
+      {/* 피드백 2026-11-26 "방 UI 통일": every room's way out is the same button, top left */}
+      {inside&&!sheet&&!roomTour&&!me&&<button type="button" className="rt-btn vl-shop-back" onClick={()=>swapRoom(false)}>← 밖으로 나가기</button>}
       {/* 피드백 2026-11-22: the first time back in, the teacher and the librarian say what they do in here */}
       {inside&&!sheet&&roomTour&&<VillagerTalk key={'room'+roomTour} name={roomTour===1?'선생님':'사서'} who={roomTour===1?'teacher':'librarian'} role={ROLE[roomTour===1?'teacher':'librarian']}
         line={ROOM_TOUR[roomTour-1]} choices={[roomTour===1?{label:'다음',go:()=>setRoomTour(2)}:{label:'알겠어',go:()=>{setRoomTour(0);g.ops.tipDone('room')}}]}/>}
@@ -1217,8 +1214,8 @@ export default function Proto3D(){
       {sheet?.kind==='more'&&<MoreSheet currency={s.currency} streak={shownCount(s.streak,clock.today)} week={weekPoints(s.graded,s.cases,clock.today,weekWorkOf(s,clock.today))}
         dots={{case:!caseDone,rewind:paidLeft(s.rewinds,clock.today)>0}} onPick={pickMore} onClose={close}/>}
       {sheet?.kind==='letter'&&<LetterSheet letter={letterFor(sheet.month)} onClose={()=>{g.ops.letterRead(sheet.month);close()}}/>}
-      {ready&&!quiet&&!inside&&<button type="button" className="proto3d-locate proto3d-map" data-label="지도" aria-label="지도" onClick={()=>{setPicked(null);setSheet({kind:'map'})}}><MapIcon size={20}/></button>}
-      {ready&&!quiet&&!inside&&<button type="button" className="proto3d-locate proto3d-view" data-label="시점" aria-label={fp?'3인칭으로 보기':'1인칭으로 보기'} aria-pressed={fp} onClick={()=>{setPicked(null);toggleFp()}}><span className="rt-view-label">{fp?'3인칭':'1인칭'}</span></button>}
+      {ready&&!quiet&&!inside&&where==='village'&&!shop&&<button type="button" className="proto3d-locate proto3d-map" data-label="지도" aria-label="지도" onClick={()=>{setPicked(null);setSheet({kind:'map'})}}><MapIcon size={20}/></button>}
+      {ready&&!quiet&&!inside&&where==='village'&&!shop&&<button type="button" className="proto3d-locate proto3d-view" data-label="시점" aria-label={fp?'3인칭으로 보기':'1인칭으로 보기'} aria-pressed={fp} onClick={()=>{setPicked(null);toggleFp()}}><span className="rt-view-label">{fp?'3인칭':'1인칭'}</span></button>}
 
       {/* 설계 6·7장: the four tabs are gone; a small notebook button opens my journal where I stand (the stock index first) */}
       {ready&&!quiet&&!inside&&where==='village'&&!sheet&&<button type="button" className="proto3d-locate vl-book" data-label="수첩" aria-label="수첩 펼치기" onClick={()=>{setPicked(null);setSheet({kind:'journal'})}}><Ledger size={20}/></button>}

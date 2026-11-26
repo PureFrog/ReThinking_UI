@@ -69,7 +69,7 @@ export const place=(id:PlaceId)=>PLACES.find(p=>p.id===id)!;
 const SOLID_R:Partial<Record<PlaceId,number>>={master:2.7,home:2.4,library:2.6,observatory:1.5,cart:2.1,arcade:3.1};
 export const BUILDING_R:Record<string,number>={greenhouse:1.7,silo:1.3,windmill:1.4};
 // keep: always walked round, even when a goal lies inside it (the fire: a seat by it must not open a way through the flames)
-export type Solid={x:number;z:number;r:number;keep?:boolean};
+export type Solid={x:number;z:number;r:number;keep?:boolean;live?:string/* a person standing there (NPC_LIVE id) */};
 // the rocks (Scene3D ROCKS, x z scale, spread) and the signpost, shared with the scene
 export const ROCK_AT=([[-5,4.4,0.7],[-7.2,4.6,0.55],[8.4,6,0.9],[3.4,5.2,0.5]] as number[][]).map(([x,z,sc])=>[...spread(x,z),sc] as [number,number,number]);
 export const SIGNPOST_AT=(()=>{const [x,z]=spread(-1.9,3.5);return {x,z}})();
@@ -100,7 +100,13 @@ export const setNpcWalls=(l:Solid[])=>{NPC_WALLS=l};
 export const npcWalls=()=>NPC_WALLS;
 // where each of the village's people is now (Village3D, Analyst3D write it every frame): they walk round each other too
 export const NPC_LIVE:Record<string,{x:number;z:number}>={};
-export const npcAround=(id:string):Solid[]=>{const out=[...NPC_WALLS];for(const k in NPC_LIVE)if(k!==id)out.push({...NPC_LIVE[k],r:0.32});return out};
+if(typeof window!=='undefined')(window as unknown as {__npcLive?:unknown}).__npcLive=NPC_LIVE;// e2e: where everyone stands
+// 피드백 2026-11-26 "NPC들끼리, 나도 서로 몸을 통과": everyone standing or walking (me too, as 'me') is a small circle to go round
+export const PERSON_R=0.3;
+export const npcAround=(id:string,base:Solid[]=NPC_WALLS):Solid[]=>{const out=[...base];for(const k in NPC_LIVE)if(k!==id)out.push({...NPC_LIVE[k],r:PERSON_R,live:k});return out};
+// who a step from (x,z) to (nx,nz) would walk into (going deeper into their circle), if anyone
+export const walksInto=(id:string,x:number,z:number,nx:number,nz:number,pad=0.3):string|null=>{for(const k in NPC_LIVE){if(k===id)continue;const o=NPC_LIVE[k],d=Math.hypot(nx-o.x,nz-o.z);
+  if(d<PERSON_R+pad&&d<Math.hypot(x-o.x,z-o.z)-1e-4)return k}return null};
 const deeper=(x:number,z:number,fx:number,fz:number,list:Solid[],pad:number)=>list.some(w=>{const d=Math.hypot(x-w.x,z-w.z);return d<w.r+pad&&d<Math.hypot(fx-w.x,fz-w.z)-1e-4});
 // 피드백 2026-11-26 "막히면 돌아가지 못하고 랙 걸리듯 난리": the way round keeps to one side while it is needed (no flipping
 // side to side each frame), and a walk that has not got closer for a while gives up (returns false: the caller stops
@@ -112,7 +118,8 @@ export function npcStep(p:Walker,gx:number,gz:number,m:number,list:Solid[]=NPC_W
   if(d<(p.best??Infinity)-0.05){p.best=d;p.since=0}else p.since=(p.since??0)+1;
   if((p.since??0)>200)return false;
   // a goal inside something (a seat, the cart, a spot by a tree): that one is not in the way
-  if(list.some(w=>!w.keep&&Math.hypot(gx-w.x,gz-w.z)<w.r+pad))list=list.filter(w=>w.keep||Math.hypot(gx-w.x,gz-w.z)>=w.r+pad);
+  // (a person standing on the goal, or the fire, is still gone round: one waits beside them rather than walking through)
+  if(list.some(w=>!w.live&&!w.keep&&Math.hypot(gx-w.x,gz-w.z)<w.r+pad))list=list.filter(w=>w.live||w.keep||Math.hypot(gx-w.x,gz-w.z)>=w.r+pad);
   const free=(a:number)=>{const nx=p.x+Math.sin(a)*s,nz=p.z+Math.cos(a)*s;return deeper(nx,nz,p.x,p.z,list,pad)?null:[nx,nz]};
   const go=(xz:number[])=>{p.x=xz[0];p.z=xz[1];return true};
   // straight on when clear and not in the middle of going round
@@ -131,7 +138,8 @@ export function npcStep(p:Walker,gx:number,gz:number,m:number,list:Solid[]=NPC_W
 // fire); true if it moved
 export function straightOn(p:{x:number;z:number},gx:number,gz:number,m:number,list:Solid[]=NPC_WALLS,pad=0.3):boolean{
   const dx=gx-p.x,dz=gz-p.z,d=Math.hypot(dx,dz);if(d<1e-4)return false;const s=Math.min(d,m),nx=p.x+dx/d*s,nz=p.z+dz/d*s;
-  if(deeper(nx,nz,p.x,p.z,list.filter(w=>w.keep),pad))return false;p.x=nx;p.z=nz;return true;
+  // the fire (keep) and people standing about (live) are never walked through, even when blocked a long while
+  if(deeper(nx,nz,p.x,p.z,list.filter(w=>w.keep||w.live),pad))return false;p.x=nx;p.z=nz;return true;
 }
 // moves a point out to the edge of any solid it is inside (pad: the player's own width); true if it moved
 export function pushOut(p:{x:number;z:number},list:Solid[],pad=0.35){let moved=false;

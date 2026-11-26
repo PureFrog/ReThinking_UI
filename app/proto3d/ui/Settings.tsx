@@ -19,8 +19,10 @@ export function SettingsSheet({g,onClose,tilt,onTutorial,account,onLogOut,onDele
     <InstallRow/>
     <div className="rt-field">소리 <span className="rt-hint">{g.s.sound?'켜짐':'꺼짐'}</span>
       <button type="button" className="rt-btn" style={{width:'100%',marginTop:6}} aria-label={g.s.sound?'소리 끄기':'소리 켜기'} aria-pressed={!g.s.sound} onClick={()=>g.ops.setSound(!g.s.sound)}>{g.s.sound?'소리 끄기':'소리 켜기'}</button></div>
-    <label className="rt-field">효과음 크기 <span className="rt-hint">{g.s.sound?`${Math.round(st.sfx*100)}%`:'소리 꺼짐'}</span>
-      <input type="range" min={0} max={1} step={0.05} value={st.sfx} aria-label="효과음 크기" onChange={e=>set({sfx:Number(e.target.value)})}/></label>
+    {/* 피드백 2026-11-26 "효과음이랑 브금 따로": three sliders (effects, music, voices) */}
+    {([['sfx','효과음 크기',st.sfx],['music','배경음악 크기',st.music??0.5],['voice','목소리 크기',st.voice??0.8]] as const).map(([k,l,v])=>
+      <label key={k} className="rt-field">{l} <span className="rt-hint">{g.s.sound?`${Math.round(v*100)}%`:'소리 꺼짐'}</span>
+        <input type="range" min={0} max={1} step={0.05} value={v} aria-label={l} onChange={e=>set({[k]:Number(e.target.value)})}/></label>)}
     <div className="rt-field">글자 크기<div className="rt-seg" role="group" aria-label="글자 크기">
       {([['m','보통'],['l','크게'],['xl','더 크게']] as const).map(([k,l])=><button key={k} type="button" aria-pressed={st.text===k} onClick={()=>set({text:k})}>{l}</button>)}</div></div>
     <div className="rt-field">날씨<div className="rt-seg" role="group" aria-label="날씨 고르기">

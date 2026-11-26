@@ -14,7 +14,7 @@ test("넓히기: land, a building and a landmark with coins; short of coins says
   await page.goto("/proto3d?demo&weather=clear");
   const nav = V.controls(page);
   await expect(nav).toBeVisible({ timeout: 30_000 });
-  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("rethink-garden-v1")!); s.currency = 120_000; localStorage.setItem("rethink-garden-v1", JSON.stringify(s)) });
+  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("rethink-garden-v1")!); s.currency = 525_000; localStorage.setItem("rethink-garden-v1", JSON.stringify(s)) });
   await page.goto("/proto3d?weather=clear");
   await expect(nav).toBeVisible({ timeout: 30_000 });
   // 더보기 → 정원 넓히기: a tag on every closed lot (4 pieces of land, 3 building lots)
@@ -24,11 +24,11 @@ test("넓히기: land, a building and a landmark with coins; short of coins says
   await expect(bar).toContainText("수익률·적중과는 상관없어요");
   await expect(page.locator(".bd-tag")).toHaveCount(7);
   await page.screenshot({ path: info.outputPath("build-mode.png") });
-  // land: 20,000원, 3 more tree spots (9 → 12, PM 2026-11-21)
+  // land: 100,000원 (물가 2026-11-26), 3 more tree spots (9 → 12, PM 2026-11-21)
   await page.locator(".bd-tag").filter({ hasText: "밭 넓히기" }).dispatchEvent("click");
   await page.getByRole("dialog", { name: "밭 넓히기 넓히기" }).getByRole("button", { name: /^넓히기/ }).click();
   await expect(page.locator(".rt-toast")).toContainText("새 나무 자리 3칸");
-  // a building: 55 coins
+  // a building: 300,000원
   await page.locator(".bd-tag").filter({ hasText: "풍차" }).dispatchEvent("click");
   await page.getByRole("dialog", { name: "풍차 짓기" }).getByRole("button", { name: /^짓기/ }).click();
   // then where it stands (since 2026-11-23): a tap on free ground; through the hook, trying spots until one is free
@@ -40,7 +40,7 @@ test("넓히기: land, a building and a landmark with coins; short of coins says
   });
   expect(placed).not.toBeNull();
   await expect.poll(async () => (await save(page)).built).toMatchObject({ land: ["farm2"], buildings: ["windmill"], cities: [] });// (+ spots: where each stands)
-  // a landmark from the city book: 40 coins, its index named (placing a building ends 넓히기 mode: open it again)
+  // a landmark from the city book: 120,000원, its index named (placing a building ends 넓히기 mode: open it again)
   await V.moreSheet(page);
   await page.getByRole("dialog", { name: "더보기" }).getByRole("button", { name: /^정원 넓히기/ }).click();
   await bar.getByRole("button", { name: "도시 수첩" }).click();
@@ -58,7 +58,7 @@ test("넓히기: land, a building and a landmark with coins; short of coins says
   await page.getByRole("dialog", { name: "더보기" }).getByRole("button", { name: /^정원 넓히기/ }).click();
   await page.locator(".bd-tag").filter({ hasText: "과수원 넓히기" }).dispatchEvent("click");
   const short = page.getByRole("dialog", { name: "과수원 넓히기 넓히기" });
-  await expect(short).toContainText("코인이 30,000원 모자라요");
+  await expect(short).toContainText("코인이 145,000원 모자라요");
   await expect(short.getByRole("button", { name: /^넓히기/ })).toBeDisabled();
   expect(errors).toEqual([]);
 });

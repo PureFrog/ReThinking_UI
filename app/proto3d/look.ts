@@ -1,6 +1,14 @@
 // Every look value of the 3D prototype in one place (colours, light, blur, glow), so feedback like
 // "brighter", "less blur", "warmer shadows" is a one-line change here.
 export const LOOK={
+  // 피드백 2026-11-26 "건물 안 시점 통일 + 양옆 보고 돌아다니기" (RoomView.tsx): every room is seen from behind me, a little up,
+  // following me. back/up: how far behind and how high (tall = a phone held upright); look: the height looked at, ahead of
+  // me by `ahead`; pull: how much the camera stays toward the room's middle when I walk to a side; yawMax: how far a
+  // sideways drag turns the view (radians each way); drag: radians per pixel dragged; follow: how fast it catches up
+  // 피드백 2026-11-26 "부딪히면 '미안! 지나갈게!'": the bubble over me when I walk into someone (Scene3D SaySprite):
+  // how long it shows (ms), not again for the same person within `again` ms, its height over my feet and its size
+  bump:{show:1600,again:3500,y:2.35,size:0.62,lines:['미안! 지나갈게!','앗, 실례!','잠깐만 지나갈게~','어이쿠, 미안!']},
+  room:{back:5.2,backTall:6.8,up:2.8,upTall:3.1,look:1.2,lookTall:1.1,ahead:1.6,pull:0.3,fov:46,fovTall:60,yawMax:0.85,drag:0.006,follow:4,wallPad:0.35},
   // sky gradient behind the transparent canvas, and the fog the far ground fades into
   sky:{top:'#78cff2',mid:'#bde8f6',bottom:'#eef8e2'},
   // 2026-11-16 "뿌옇다": the fog starts past the garden (the phone camera sits ~27 away) and only fades the far edge
@@ -80,13 +88,13 @@ export const LOOK={
   // how many trees in the forest ring
   map:{water:'#2c86d6',bank:'#c9b98f',plank:'#a77d58',plank2:'#946c4b',rail:'#6c5b53',stone:'#d9c79c',paving:'#e3d8c4',forest:90},
   // inside the house (Interior3D.tsx): surfaces, books by how the judgment came out, the window's sky, the camera
-  interior:{floor:'#b48a62',floorLine:'#8a6448',wall:'#efe6d2',wall2:'#e6dac2',trim:'#8a6448',wood:'#a77d58',woodDark:'#6f5040',cork:'#c9a26e',rug:'#7b8f5e',
+  interior:{wallUp:'#e9dcc4'/* above the papered wall, to the ceiling */,ceiling:'#d8c7a8',floor:'#b48a62',floorLine:'#8a6448',wall:'#efe6d2',wall2:'#e6dac2',trim:'#8a6448',wood:'#a77d58',woodDark:'#6f5040',cork:'#c9a26e',rug:'#7b8f5e',
     sky:'#cfe9f2',outside:'#3b3128',under:'#4a3c30',bookHit:'#4b6638',bookMiss:'#5c5447',bookWait:'#d8ccae',camDist:10.5,camPitch:0.92,tallDist:1.45,tallX:-0.3},
   // the observer's stage (Showroom3D.tsx, ui/MyPage.tsx): the dome dark above and warm below, the spotlight and rim light,
   // the floor and pedestal, how big the observer stands there
   // 다른 정원들 (Sky3D.tsx): the night sky around the planets, the planets' ground and ponds
   space:{top:'#0d1426',bottom:'#3b4a74',land:'#7d9a52',pond:'#6d9cb8'},
-  stage:{top:'#141b16',bottom:'#3b3128',spot:'#ffe7b0',rim:'#9fc6ff',floor:'#2b2620',wood:'#6f5040',top2:'#d9ccb0',scale:1.55,spotPower:55,camTall:14,camWide:8.4},
+  stage:{top:'#141b16',bottom:'#3b3128',spot:'#ffe7b0',rim:'#9fc6ff',floor:'#2b2620',wood:'#6f5040',top2:'#d9ccb0',scale:1.55,spotPower:55,camTall:14,camWide:11.5},
   // the player's observer in the garden (Explorer3D.tsx)
   explorer:{scale:1.05},
   // 피드백 2026-11-26: how near a door must be to go in with a tap (farther, the tap walks there first)

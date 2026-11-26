@@ -55,8 +55,9 @@ import {addCoins,type CoinLog} from '../core/coinlog';
 export type Owned={uid:string;itemId:string;got:string;slot:string|null};
 // settings (ui/Settings.tsx): effect volume, keeping still, text size, tilt
 // share: what my garden shows in other players' skies (core/planets.ts); missing in old saves means the default
-export type Settings={sfx:number;still:boolean;text:'m'|'l'|'xl';tilt:boolean;share?:Share};
-export const DEFAULT_SETTINGS:Settings={sfx:0.7,still:false,text:'m',tilt:true,share:'hide'};
+// music / voice: 배경음악 and the talking voices (Buffett's reading too), each its own slider (피드백 2026-11-26); old saves fall back to the defaults
+export type Settings={sfx:number;music?:number;voice?:number;still:boolean;text:'m'|'l'|'xl';tilt:boolean;share?:Share};
+export const DEFAULT_SETTINGS:Settings={sfx:0.7,music:0.5,voice:0.8,still:false,text:'m',tilt:true,share:'hide'};
 // seen: how many times each long scene was played (docs/brief-wow.md: long the first time, short after)
 export type Seen={birth:number;cutaway:number;bury:number};
 // name, look: the player's observer (ui/MyPage.tsx) · stamps: achievements and the day each was earned · wardrobe: pieces bought

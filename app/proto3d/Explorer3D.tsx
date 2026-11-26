@@ -11,6 +11,7 @@ import * as THREE from 'three';
 import {soft} from './materials';
 import {MODELS} from './models';
 import {PALETTES,WEAR,type Look} from '../core/wardrobe';
+import {WEAR_KIT,KIT_SOCKET} from './WearKit';
 
 const eyeMat=new THREE.MeshStandardMaterial({color:'#1d1f24',roughness:0.3});
 const glow=new THREE.MeshStandardMaterial({color:'#fff1c4',emissive:'#ffc867',emissiveIntensity:1.8,toneMapped:false});
@@ -35,10 +36,14 @@ const SIT_POSE:[RegExp,number,number,number][]=[[/^leg_b/,-0.06,0.07,-Math.PI/2]
 // own thighs and shoes stand in for them)
 // wish (피드백 2026-11-26 별똥별): hands together in front of the chest, head bowed a little, eyes shut
 export function Explorer({look,act='idle',moving,kit,hair,seated,sit,wish}:{sit?:React.MutableRefObject<boolean>;wish?:React.MutableRefObject<boolean>;look:Look;act?:ExplorerAct;moving?:React.MutableRefObject<boolean>;kit?:Kit;hair?:string;seated?:boolean}){
-  const pal0=PALETTES.find(p=>p.id===look.palette)??PALETTES[0],pal=kit?.tint?{...pal0,id:pal0.id+':'+kit.tint.primary,...kit.tint}:pal0;
-  const files=[look.coat,look.hat,look.bag,look.tool].filter(Boolean) as string[];
+  // pieces made in code (WearKit.tsx) go on the sockets; the rest are Blender models; a coded coat brings its own colour
+  const worn=[look.coat,look.hat,look.bag,look.tool].filter(Boolean).map(id=>WEAR.find(w=>w.id===id)).filter(Boolean) as typeof WEAR;
+  const coded=worn.filter(w=>w.kit),coatTint=worn.find(w=>w.slot==='coat'&&w.kit)?.tint;
+  const pal1=PALETTES.find(p=>p.id===look.palette)??PALETTES[0],pal0=coatTint?{...pal1,id:pal1.id+':'+coatTint,primary:coatTint}:pal1;
+  const pal=kit?.tint?{...pal0,id:pal0.id+':'+kit.tint.primary,...kit.tint}:pal0;
+  const files=worn.filter(w=>!w.kit).map(w=>w.id);
   const {scene}=useGLTF(MODELS.explorer);
-  const items=useGLTF(files.map(f=>MODELS.wear(f)));
+  const items=useGLTF(files.length?files.map(f=>MODELS.wear(f)):[MODELS.explorer]);// (never an empty list: every piece may be coded)
   const model=useMemo(()=>{
     const root=scene.clone(true),get=(n:string)=>root.getObjectByName(n);
     // a worn coat colours the sleeves: the lab coat and the raincoat keep their own colour, the others follow the set
@@ -77,6 +82,7 @@ export function Explorer({look,act='idle',moving,kit,hair,seated,sit,wish}:{sit?
     for(const e of eyes)e.scale.y=rest.eye*(shut||wk>0.6?0.15:1)});
   const sock=(n:string)=>model.getObjectByName(n)??null;
   const put=(node:React.ReactNode,n:string)=>{const at=node?sock(n):null;return at?createPortal(<>{node}</>,at):null};
-  return <group ref={spin}><primitive object={model}/>{kit&&<>{put(kit.hat,'hat')}{put(kit.head,'head')}{put(kit.body,'body')}{put(kit.handR,'hand')}{put(kit.handL,'hand_lk')}</>}</group>;
+  return <group ref={spin}><primitive object={model}/>{kit&&<>{put(kit.hat,'hat')}{put(kit.head,'head')}{put(kit.body,'body')}{put(kit.handR,'hand')}{put(kit.handL,'hand_lk')}</>}
+    {coded.map(w=>(kit?.hat&&w.slot==='hat')||(kit?.handR&&w.slot==='tool')?null:<group key={w.id}>{put(WEAR_KIT[w.id],KIT_SOCKET[w.slot])}</group>)}</group>;
 }
 useGLTF.preload(MODELS.explorer);

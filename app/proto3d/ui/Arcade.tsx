@@ -12,6 +12,7 @@ import * as THREE from 'three';
 import {Explorer} from '../Explorer3D';
 import {SeatHits,LOG_TOP,type SeatSpot} from '../Seats';
 import {soft} from '../materials';
+import {RoomFollow} from '../RoomView';
 import {LOOK} from '../look';
 import {cue,arcadeMusic} from '../../core/sound';
 import type {Look} from '../../core/wardrobe';
@@ -350,7 +351,6 @@ function Room({onFloor}:{onFloor:(p:THREE.Vector3)=>void}){
 function Me({look,to,face,onArrive,seat=null}:{look:Look;to:{x:number;z:number;at:number};face:number|null;onArrive:()=>void;seat?:SeatSpot|null}){
   const sitting=useRef(false),lift=useRef(0);
   const g=useRef<THREE.Group>(null),moving=useRef(false),p=useRef(new THREE.Vector3(START.x,0,START.z)),done=useRef(to.at);
-  const {camera,size}=useThree(),tall=size.width<size.height;
   useFrame((_,dt)=>{const gr=g.current;if(!gr)return;const t=Math.min(dt,0.05),dx=to.x-p.current.x,dz=to.z-p.current.z,d=Math.hypot(dx,dz);
     moving.current=d>0.04;
     if(moving.current){const st=Math.min(d,3.2*t),nx=p.current.x+dx/d*st,nz=p.current.z+dz/d*st;
@@ -364,12 +364,9 @@ function Me({look,to,face,onArrive,seat=null}:{look:Look;to:{x:number;z:number;a
     sitting.current=!!seat&&!moving.current&&Math.hypot(seat.x-p.current.x,seat.z-p.current.z)<0.06;
     lift.current+=((sitting.current?seat!.top-LOG_TOP*1.2:0)-lift.current)*Math.min(1,8*t);
     gr.position.copy(p.current);gr.position.y=lift.current;(window as unknown as {__arcadeMe?:{x:number;z:number}}).__arcadeMe={x:p.current.x,z:p.current.z};
-    // the camera behind me, a little up, sliding after me
-    const c=camera as THREE.PerspectiveCamera,want=new THREE.Vector3(p.current.x*0.55,tall?3.6:3.0,p.current.z+(tall?6.8:5.2));
-    c.position.lerp(want,Math.min(1,4*t));c.lookAt(p.current.x*0.7,tall?1.1:1.2,p.current.z-1.6);
-    const fov=tall?62:46;if(c.fov!==fov){c.fov=fov;c.updateProjectionMatrix()}});
-  useEffect(()=>{const c=camera;c.position.set(0,3.4,START.z+6.5);c.lookAt(0,1.1,START.z-1.6)},[camera]);
-  return <group ref={g} name="arcade-me" scale={LOOK.explorer.scale*1.2}><Suspense fallback={null}><Explorer look={look} moving={moving} sit={sitting}/></Suspense></group>;
+    });
+  // the camera: the same as every room's (RoomView.tsx)
+  return <><RoomFollow me={p} halfW={ROOM.w/2}/><group ref={g} name="arcade-me" scale={LOOK.explorer.scale*1.2}><Suspense fallback={null}><Explorer look={look} moving={moving} sit={sitting}/></Suspense></group></>;
 }
 // 피드백 2026-11-26 "의자가 있다면 앉을 수": the bench by the wall and the near stool at the snack table
 const ARCADE_SEATS:SeatSpot[]=[
@@ -415,7 +412,7 @@ export function Arcade({look,onOut,hud,onScore}:{look:Look;onOut:()=>void;hud?:R
       <Me look={look} to={to} face={face} onArrive={arrive} seat={seat}/>
     </Canvas>
     <div className="ac-top">
-      <button type="button" className="rt-btn ac-out" onClick={onOut}>← 나가기</button>
+      <button type="button" className="rt-btn ac-out" onClick={onOut}>← 밖으로 나가기</button>
       <b className="ac-name">오락실</b>
       {!playing&&<span className="ac-hud">{hud}</span>}
     </div>

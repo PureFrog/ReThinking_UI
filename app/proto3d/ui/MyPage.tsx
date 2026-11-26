@@ -33,6 +33,7 @@ export function wearCtx(g:G):WearCtx{
   return {rank,stamps:g.s.stamps.map(s=>s.id),trust:{tori:g.s.trust.tori.stage,moa:g.s.trust.moa.stage,luon:g.s.trust.luon.stage},bought:g.s.wardrobe,all:masterOn()};
 }
 export function MyPage({g,onClose,onRecords,onSettings,onLetter,wearOnly,canBuy}:{wearOnly?:boolean;canBuy?:boolean;g:G;onClose:()=>void;onRecords:()=>void;onSettings?:()=>void;onLetter?:()=>void}){
+  const [ask,setAsk]=useState<string|null>(null);
   const [tab,setTab]=useState<'wear'|'record'|'stamps'>('wear'),[slot,setSlot]=useState<Slot|'color'>('coat'),[naming,setNaming]=useState(false),[name,setName]=useState(g.s.name);
   const ctx=wearCtx(g),look=fitLook(g.s.look,ctx),rk=rankOf(xpOf({graded:g.s.graded.length,cases:g.s.cases.length,rewinds:g.s.rewinds.length,work:workOf(g.s)}));
   const habit=habitOf(g.s.judgments,g.s.graded),t=trackOf(g.s.judgments,g.s.graded);
@@ -53,23 +54,28 @@ export function MyPage({g,onClose,onRecords,onSettings,onLetter,wearOnly,canBuy}
       {wearOnly?<h2 className="rt-me-only">{canBuy?'옷 가게':'옷장 · 옷 갈아입기'}</h2>:<div className="rt-tabs" role="tablist">{([['wear','꾸미기'],['record','기록'],['stamps','업적']] as const).map(([k,l])=>
         <button key={k} type="button" role="tab" aria-selected={tab===k} onClick={()=>setTab(k)}>{l}</button>)}</div>}
       {tab==='wear'&&<>
-        <div className="rt-me-slots">{[...SLOTS,{id:'color' as const,label:'색'}].map(s=><button key={s.id} type="button" aria-pressed={slot===s.id} onClick={()=>setSlot(s.id)}>{s.label}</button>)}</div>
-        <div className="rt-me-grid">
-          {slot!=='color'&&slot!=='coat'&&<button type="button" className="rt-me-tile" aria-pressed={!look[slot]} onClick={()=>wear({...look,[slot]:null})}><strong>없음</strong></button>}
-          {pieces.map(w=>{const open=isOpen(w.unlock,ctx,w.id),on=look[w.slot]===w.id,price=w.unlock.kind==='buy'?w.unlock.price:0;
-            // 피드백 11-26 "옷 살때 구매, 입기 버튼": a piece for sale shows its price and a 구매 button; once mine, an 입기
-            // button (입는 중 while I wear it). Buying no longer puts it on by itself
-            const verb=VERB[w.slot]??VERB.coat;
-            return <div key={w.id} className="rt-me-tile rt-me-shop" data-locked={!open&&!price} data-on={on}>
+        <div className="rt-me-slots">{[...SLOTS,{id:'color' as const,label:'색'}].map(s=><button key={s.id} type="button" aria-pressed={slot===s.id} onClick={()=>{setSlot(s.id);setAsk(null)}}>{s.label}</button>)}</div>
+        {/* 피드백 2026-11-26 "옷 갈아입는 곳이 허접": a picture on every tile, what it costs on a chip, a second tap to buy */}
+        {slot!=='color'&&<p className="rt-me-count">{pieces.filter(w=>isOpen(w.unlock,ctx,w.id)).length} / {pieces.length}개 가지고 있어요 · 지금 {won(g.s.currency)}</p>}
+        <div className="rt-me-grid rt-me-grid3">
+          {slot!=='color'&&slot!=='coat'&&<button type="button" className="rt-me-tile" aria-pressed={!look[slot]} onClick={()=>{setAsk(null);wear({...look,[slot]:null})}}><span className="rt-me-pic">∅</span><strong>없음</strong></button>}
+          {pieces.map(w=>{const open=isOpen(w.unlock,ctx,w.id),on=look[w.slot]===w.id,price=w.unlock.kind==='buy'?w.unlock.price:0,can=price>0&&g.s.currency>=price,asking=ask===w.id;
+            return <button key={w.id} type="button" className="rt-me-tile" data-locked={!open} data-asking={asking||undefined} aria-pressed={on}
+              aria-label={open?w.name:price&&!canBuy?`${w.name} 옷 가게에서 ${won(price)}`:price?`${w.name} ${won(price)}${asking?' 한 번 더 누르면 사요':''}`:`${w.name} 잠김`}
+              onClick={()=>{if(open){setAsk(null);wear({...look,[w.slot]:w.id});return}
+                // 피드백 2026-11-26: bought only at the clothes shop (canBuy), and buying does not put it on by itself
+                if(!can||!canBuy){setAsk(null);return}if(!asking){setAsk(w.id);return}setAsk(null);g.ops.buyWear(w.id,price)}}>
+              <span className="rt-me-pic" aria-hidden>{w.icon??'✦'}{!open&&!price&&<i className="rt-me-lock"><Lock size={11}/></i>}</span>
               <strong>{w.name}</strong>
-              {open?<button type="button" className="rt-me-act" data-on={on} disabled={on} onClick={()=>wear({...look,[w.slot]:w.id})}>{verb[on?1:0]}</button>
-                // 피드백 2026-11-26: buying only at the clothes shop; the wardrobe says where it is sold
-                :price&&!canBuy?<small>옷 가게에서 {won(price)}</small>
-                :price?<><small>{won(price)} · 지금 {won(g.s.currency)}</small>
-                  <button type="button" className="rt-me-act buy" disabled={g.s.currency<price} onClick={()=>g.ops.buyWear(w.id,price)}>{g.s.currency<price?`${won(price-g.s.currency)} 부족`:'구매'}</button></>
-                :<small><Lock size={12}/> {howTo(w.unlock,names)}</small>}</div>})}
-          {slot==='color'&&PALETTES.map(p=>{const open=isOpen(p.unlock,ctx,p.id);return <button key={p.id} type="button" className="rt-me-tile" data-locked={!open} aria-pressed={look.palette===p.id} onClick={()=>open&&wear({...look,palette:p.id})}>
-            <span className="rt-me-swatch">{[p.primary,p.secondary,p.accent].map(c=><i key={c} style={{background:c}}/>)}</span><strong>{p.name}</strong>{!open&&<small><Lock size={12}/> {howTo(p.unlock,names)}</small>}</button>})}
+              {open?<small className="rt-me-state">{(VERB[w.slot]??VERB.coat)[on?1:0]}</small>
+                :price&&!canBuy?<small className="rt-me-price short">옷 가게 {won(price)}</small>
+                :price?<small className={'rt-me-price'+(can?'':' short')}>{asking?'한 번 더 누르면 사요':can?won(price):`${won(price-g.s.currency)} 부족`}</small>
+                :<small>{howTo(w.unlock,names)}</small>}</button>})}
+          {slot==='color'&&PALETTES.map(p=>{const open=isOpen(p.unlock,ctx,p.id),price=p.unlock.kind==='buy'?p.unlock.price:0,can=price>0&&g.s.currency>=price,asking=ask===p.id;
+            return <button key={p.id} type="button" className="rt-me-tile" data-locked={!open} data-asking={asking||undefined} aria-pressed={look.palette===p.id}
+              onClick={()=>{if(open){setAsk(null);wear({...look,palette:p.id});return}if(!can||!canBuy){setAsk(null);return}if(!asking){setAsk(p.id);return}setAsk(null);g.ops.buyWear(p.id,price)}}>
+            <span className="rt-me-swatch">{[p.primary,p.secondary,p.accent].map(c=><i key={c} style={{background:c}}/>)}</span><strong>{p.name}</strong>
+            {!open&&(price&&!canBuy?<small className="rt-me-price short">옷 가게 {won(price)}</small>:price?<small className={'rt-me-price'+(can?'':' short')}>{asking?'한 번 더 누르면 사요':won(price)}</small>:<small><Lock size={12}/> {howTo(p.unlock,names)}</small>)}</button>})}
         </div></>}
       {tab==='record'&&<div className="rt-me-record">
         {/* 피드백 2026-11-26: 관측소는 UI에서 뺌 (관측소 숙련도 칸 없음) */}
