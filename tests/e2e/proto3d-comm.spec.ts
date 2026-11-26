@@ -1,12 +1,22 @@
 import { test, expect, type Page } from "./fixtures";
 
 // 통신기 (B2C 기본, 2026-11-23; app/proto3d/ui/Comm.tsx, app/content/comm.ts): once the merchant has handed it over
-// (grants 'tour'), a button on the screen opens the practice-account MTS over the garden. 잔고 holds the recorded
+// (grants 'tour'), the merchant opens the practice-account MTS over the garden (피드백 11-26: only the merchant, no button
+// on the screen). 잔고 holds the recorded
 // stocks and the coin stocks; a tap answers in place (the two views); 현재가 is the merchant's five; 주문 buys with
 // coins (the day-before article first) and sells a coin stock onto the farmer's cart. No real account, no real order.
 test.describe.configure({ timeout: 420_000 });
 const KEY = "rethink-garden-v1";
 const shot = (page: Page, name: string) => page.screenshot({ path: test.info().outputPath(`${name}.png`) });
+
+// walk to the merchant and take 모의투자 from him
+async function openComm(page: Page) {
+  await page.waitForFunction(() => (window as any).__proto3d?.ready, null, { timeout: 60_000 });
+  await page.evaluate(() => (window as any).__proto3d.meet("merchant"));
+  await page.getByRole("button", { name: /모의투자 열기/ }).click({ timeout: 60_000 });
+  // the merchant opens it on 주문; the tests start from 잔고
+  await page.getByRole("dialog", { name: "모의투자" }).getByRole("navigation", { name: "아래 메뉴" }).getByRole("button", { name: "잔고" }).click();
+}
 
 async function seeded(page: Page, url: string) {
   await page.goto("/proto3d?demo&hour=10&weather=clear");
@@ -22,10 +32,9 @@ test("the communicator: balance, an answer in place, today's five, a coin order"
   page.on("pageerror", e => errors.push(e.message));
   await seeded(page, "/proto3d?hour=10&weather=clear");
 
-  const btn = page.getByRole("button", { name: "통신기", exact: true });
-  await expect(btn).toBeVisible({ timeout: 60_000 });
-  await btn.click();
-  const comm = page.getByRole("dialog", { name: "통신기" });
+  await expect(page.getByRole("button", { name: "모의투자", exact: true })).toHaveCount(0);
+  await openComm(page);
+  const comm = page.getByRole("dialog", { name: "모의투자" });
   await expect(comm).toBeVisible();
   // the phone header drops the pill (max 430px); the foot always says it
   await expect(comm.locator(".mts-foot")).toContainText("실제 계좌와 연결되지 않습니다");
@@ -83,17 +92,15 @@ test("the communicator fits a portrait and a landscape phone", async ({ page }, 
   await seeded(page, "/proto3d?hour=10&weather=clear");
   for (const [w, h] of [[390, 844], [844, 390]]) {
     await page.setViewportSize({ width: w, height: h });
-    const btn = page.getByRole("button", { name: "통신기", exact: true });
-    await expect(btn).toBeVisible({ timeout: 60_000 });
-    await btn.click();
-    const comm = page.getByRole("dialog", { name: "통신기" });
+    await openComm(page);
+    const comm = page.getByRole("dialog", { name: "모의투자" });
     await expect(comm.getByRole("list", { name: "보유 종목" })).toBeVisible();
     const tabs = await comm.getByRole("navigation", { name: "아래 메뉴" }).boundingBox();
     expect(tabs!.y + tabs!.height).toBeLessThanOrEqual(h + 1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.waitForTimeout(300);
     await shot(page, `comm-${w}x${h}`);
-    await comm.getByRole("button", { name: "통신기 닫기" }).click();
+    await comm.getByRole("button", { name: "모의투자 닫기" }).click();
     await expect(comm).toHaveCount(0);
   }
 });

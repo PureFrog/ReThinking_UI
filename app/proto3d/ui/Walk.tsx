@@ -14,7 +14,7 @@ import {won} from '../../core/won';
 import {THEMES,boardArticles,dayBeforeArticle,overviewOf,type Theme} from '../../content/village-news';
 import {useLiveNews} from '../liveNews';
 import type {CartLoad} from '../../core/walk';
-import {ROLE_TAG} from '../../content/villagers';
+import {ROLE_TAG,TAG_NAME} from '../../content/villagers';
 
 export type Choice={label:string;go:()=>void};
 // 피드백 2026-11-22 (UI 피드백): one or two sentences a bubble (core/talk.ts); "계속" (or a tap on the bubble) shows the
@@ -52,7 +52,7 @@ export function Communicator({cands,day,coins,room,onBuy,onClose}:{cands:Cand[];
   onBuy:(code:string,qty:number)=>string|null;onClose:()=>void}){
   const [pick,setPick]=useState<string|null>(null),[read,setRead]=useState<string[]>([]),[qty,setQty]=useState(1),[msg,setMsg]=useState<string|null>(null);
   const c=cands.find(x=>x.code===pick)??null,news=c?dayBeforeArticle(c,day):null,cost=c?.price!=null?c.price*qty:0;
-  return <Sheet kicker="상인의 통신기" title={pick&&c?c.name:'오늘 들어온 종목 5'} label="상인의 통신기" onClose={onClose}
+  return <Sheet kicker="모의투자" title={pick&&c?c.name:'오늘 들어온 종목 5'} label="모의투자" onClose={onClose}
     foot={c&&<button type="button" className="rt-btn primary wide" disabled={!read.includes(c.code)||cost>coins||room<=0}
       onClick={()=>{const r=onBuy(c.code,qty);setMsg(r)}}>
       {room<=0?'가상 밭에 빈칸이 없어요':!read.includes(c.code)?'전날 뉴스를 먼저 읽어요':cost>coins?`코인 ${won(cost-coins)} 부족`:`주문 확인 · 코인 ${won(cost)}`}</button>}>
@@ -147,5 +147,5 @@ export function VillagerTags({items,onPick}:{items:{id:string;name:string;hl:boo
       if(!p||!p.visible||p.y<60){el.style.visibility='hidden';continue}el.style.visibility='visible';el.style.transform=`translate(${p.x}px,${p.y}px) translate(-50%,-100%)`}
     raf=requestAnimationFrame(tick)};tick();return()=>cancelAnimationFrame(raf)},[]);
   return <>{items.map(t=><button key={t.id} type="button" className="vl-npc-tag" data-npc={t.id} data-hl={t.hl} style={{visibility:'hidden'}} aria-label={`${t.name}에게 말 걸기`}
-    ref={el=>{if(el)refs.current.set(t.id,el);else refs.current.delete(t.id)}} onClick={()=>onPick(t.id)}>{t.name}{(t.note??ROLE_TAG[t.id])&&<small>{t.note??ROLE_TAG[t.id]}</small>}</button>)}</>;
+    ref={el=>{if(el)refs.current.set(t.id,el);else refs.current.delete(t.id)}} onClick={()=>onPick(t.id)}>{TAG_NAME[t.id]??t.name}{(t.note??ROLE_TAG[t.id])&&<small>{t.note??ROLE_TAG[t.id]}</small>}</button>)}</>;
 }

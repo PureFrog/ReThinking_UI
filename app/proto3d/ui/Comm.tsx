@@ -76,7 +76,7 @@ export function Comm({acct,cands,lots,day,room,open,openNote,start='balance',onB
   const hm=`${clock.getHours()}:${String(clock.getMinutes()).padStart(2,'0')}`;
   // 피드백 2026-11-26 "통신기 눌렀을 때 휴대폰이 등장하면서 주식앱이 켜지게": a phone rises from the bottom, its screen wakes
   // and the app's splash fades into the app
-  return <div className="rt-comm" role="dialog" aria-label="통신기" onClick={e=>{if(e.target===e.currentTarget)onClose()}}>
+  return <div className="rt-comm" role="dialog" aria-label="모의투자" onClick={e=>{if(e.target===e.currentTarget)onClose()}}>
     <div className="rt-phone"><span className="rt-phone-btn a" aria-hidden/><span className="rt-phone-btn b" aria-hidden/><span className="rt-phone-btn c" aria-hidden/>
     <div className="rt-phone-screen">
     <div className="rt-phone-status" aria-hidden><span>{hm}</span><i className="rt-phone-island"/><span className="rt-phone-ic">
@@ -87,12 +87,12 @@ export function Comm({acct,cands,lots,day,room,open,openNote,start='balance',onB
       <header className="mts-top">
         <div className="mts-brand"><span className="mts-mark rt" aria-hidden><i/><i/></span><span>ReThink</span><span className="mts-pill">연습 계좌</span></div>
         <div className="mts-top-r"><span className="mts-demo" role="note">게임 코인 · 실제 주문 아님</span>
-          <button type="button" className="rt-comm-help" aria-label="통신기 사용법" onClick={()=>setGuide(true)}>?</button>
-          <button type="button" className="rt-comm-x" aria-label="통신기 닫기" onClick={onClose}>✕</button></div>
+          <button type="button" className="rt-comm-help" aria-label="모의투자 사용법" onClick={()=>setGuide(true)}>?</button>
+          <button type="button" className="rt-comm-x" aria-label="모의투자 닫기" onClick={onClose}>✕</button></div>
       </header>
 
       {tab==='balance'&&<main className="mts-main" aria-label="잔고">
-        <div className="mts-acct"><span>통신기</span><span>연습 계좌 · 게임 코인</span></div>
+        <div className="mts-acct"><span>모의투자</span><span>연습 계좌 · 게임 코인</span></div>
         <section className="mts-sum" aria-label="계좌 요약">
           <div className="mts-sum-k"><Term k="총 평가금액"/></div>
           <div className="mts-sum-v">{won(acct.total)}<small>원</small></div>

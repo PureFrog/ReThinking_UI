@@ -69,7 +69,9 @@ export const ROLE:Record<string,string>={
   paperboy:'뉴스 표지판 · 내 종목 소식',naru:'낚시터 · 코인 벌기',builder:'건물 상점 · 마을 꾸미기',tailor:'옷 상점 · 옷장',
 };
 // 피드백 2026-11-22 "역할이 드러나게": what each one does, in a word with its sign, on the name tag over them
-export const ROLE_TAG:Record<string,string>={luon:'💬 종목 토론',farmer:'🌾 내 종목 심기·팔기',merchant:'📟 가상 종목 사기',paperboy:'📰 내 종목 소식',builder:'🏠 건물 상점 · 꾸미기',tailor:'👕 옷 가게',naru:'🎣 낚시로 코인',librarian:'📖 도서관 · 투자일지'};
+export const ROLE_TAG:Record<string,string>={luon:'💬 종목 토론',farmer:'🌾 내 종목 심기·팔기',merchant:'📟 가상 종목 사기',paperboy:'📰 내 종목 소식',builder:'🏠 건물 상점 · 꾸미기',tailor:'👕 옷 가게',naru:'🎣 낚시로 코인',librarian:'📖 사서 · 투자일지'};
+// 피드백 11-26 "윗줄은 도서관, 밑에 사서 · 투자일지": the library keeper's tag names the place first
+export const TAG_NAME:Record<string,string>={librarian:'도서관'};
 // 피드백 2026-11-24 "소개하면서 같이 한 번에": on the first walk each one's first talk opens with this, then goes straight
 // on with what we do together (the task's own greeting is dropped: Proto3D introLine)
 export const INTRO_WALK:Record<string,string>={
