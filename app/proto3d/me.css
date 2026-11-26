@@ -128,3 +128,16 @@ html[data-text="xl"] .proto3d :is(.rt-sheet-head,.rt-sheet-body,.rt-sheet-foot,.
 @media(orientation:landscape) and (max-height:520px){.sky-sheet{left:auto;right:8px;top:8px;bottom:8px;width:min(400px,52vw);max-height:none;transform:translateX(calc(100% + 20px))}.sky-sheet.on{transform:none}.sky-title{font-size:16px}}
 @media(prefers-reduced-motion:reduce){.sky-sheet,.sky-tag{transition:none}}
 .rt-me-only{margin:0 0 10px;font:700 16px/1.3 'Gowun Batang',serif;color:var(--rt-ink);text-align:center}
+
+/* 방명록 (ui/SkyView.tsx Guestbook, db/migrations/017_social.sql) */
+.sky-book{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+.sky-book-in{display:grid;grid-template-columns:1fr auto;gap:8px}
+.sky-book-in input{min-width:0;font:inherit;font-size:14px;padding:10px 12px;border-radius:10px;border:1px solid var(--rt-line,#d9d2c3);background:var(--rt-paper,#fffaf0);color:inherit}
+.sky-book-in input:focus-visible{outline:2px solid var(--rt-accent);outline-offset:1px}
+.sky-notes{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto}
+.sky-notes li{display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:baseline;font-size:13px;padding:8px 10px;border-radius:10px;background:var(--rt-paper,#fffaf0)}
+.sky-notes li b{font-weight:700;white-space:nowrap}
+.sky-notes li span{min-width:0;overflow-wrap:anywhere}
+.sky-notes li small{color:var(--rt-mute);font-size:11px}
+.sky-note-x{font:inherit;font-size:11px;color:var(--rt-mute);background:none;border:0;padding:0 2px;cursor:pointer}
+.sky-note-x:hover,.sky-note-x:focus-visible{color:var(--rt-seal);text-decoration:underline}
