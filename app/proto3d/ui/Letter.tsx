@@ -38,7 +38,7 @@ export function LetterSheet({letter,onClose}:{letter:Letter;onClose:()=>void}){
       <Said id="moa" name="모아">{moaLine(l)}</Said>
       <Said id="luon" name="루온">{luonLine(l)}</Said>
       </>}
-      <p className="rt-hint" style={{marginTop:12}}>수익이 아닌 판단 기록 리포트 · 모의 데이터</p>
+      <p className="rt-hint" style={{marginTop:12}}>수익이 아닌 판단 기록 리포트</p>
     </div>
   </Sheet>;
 }

@@ -26,6 +26,10 @@ export const test = base.extend({
     // 피드백 2026-11-22: a long talk line is shown one or two sentences a bubble; tests see it whole unless the address has ?pages
     await page.addInitScript(() => { (window as unknown as { __talkAll?: boolean }).__talkAll = !new URLSearchParams(location.search).has("pages") });
     await page.addInitScript(() => { (window as unknown as { __localAuth?: boolean }).__localAuth = true });
+    // 보리 and 루온 stroll round their spots (피드백 2026-11-26); tests keep them still unless the address has ?wander
+    // the 통신기's first-time guide cards (ui/CommPlus.tsx) stay away unless the address says ?commguide
+    await page.addInitScript(() => { try { if (!new URLSearchParams(location.search).has("commguide")) localStorage.setItem("rethink-comm-guide", "1"); if (!new URLSearchParams(location.search).has("firstbuy")) localStorage.setItem("rethink-firstbuy", "1"); } catch { /* no storage */ } });
+    await page.addInitScript(() => { (window as unknown as { __noWander?: boolean }).__noWander = !new URLSearchParams(location.search).has("wander") });
     // on a stop-loss day 보리 walks up and opens its talk over everything (the demo garden always has one, 예시 신호);
     // tests start with today's visit already had unless the address has ?bori (the day as the app counts it, ?ahead=N)
     await page.addInitScript(() => {

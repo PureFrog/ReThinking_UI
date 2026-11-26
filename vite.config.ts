@@ -45,6 +45,8 @@ export default defineConfig(async ({ command }) => {
 
   return {
     server: {
+      // VS Code 포트 포워딩(dev tunnels) 주소로 접속 허용
+      allowedHosts: [".devtunnels.ms"],
       ...(managedLinux
         ? { host: "0.0.0.0", allowedHosts: ["terminal.local"] }
         : {}),

@@ -3,7 +3,7 @@
 // (R6), and an analyst's profile. Rules in app/core, data in app/content, actions in state.ts.
 import {won} from '../../core/won';
 import {rewindTrack} from '../../core/rewind';
-import {nextGrade,type TodayTask,type TaskId} from '../../core/today';
+import {nextGrade,QUEST_LABEL,type QuestId} from '../../core/today';
 import {rankOf,xpOf} from '../../core/rank';
 import {recallOf} from '../../core/recall';
 import {useEffect,useState} from 'react';
@@ -75,7 +75,7 @@ export function League({g,onClose}:{g:G;onClose:()=>void}){
     <div style={{marginTop:12}}>{rows?rows.map(r=><div key={r.id} className="rt-row" style={r.me?{background:'var(--rt-accent-soft)',borderRadius:10,padding:'12px 8px'}:undefined}>
       <b className="rt-num" style={{width:24,color:r.promote?'var(--rt-accent)':'var(--rt-mute)'}}>{r.rank}</b>
       <div><strong>{r.name}{r.me?' (나)':''}</strong></div><b className="rt-num">{r.points}</b></div>):<p className="rt-empty">불러오는 중</p>}</div>
-    <p className="rt-hint" style={{marginTop:12}}>지금은 예시 리그예요. 서버를 연결하면 실제 유저와 겨뤄요</p>
+    <p className="rt-hint" style={{marginTop:12}}>지금은 예시 리그예요. 실제 유저 리그는 준비 중이에요</p>
   </Sheet>;
 }
 
@@ -98,7 +98,7 @@ export function CartView({g,onClose}:{g:G;onClose:()=>void}){
     <p className="rt-hint">코인은 일지를 쓰고 퀘스트를 마치면 쌓여요. 같은 물건은 하루에 하나씩 살 수 있어요</p>
     {CART_STOCK.map(i=>{const sold=g.s.bought.some(b=>b.itemId===i.id&&b.day===g.clock.today);return <div key={i.id} className="rt-row">
       <div><strong>{i.name}</strong><small>{i.desc}</small></div>
-      <button type="button" className="rt-btn" disabled={sold||g.s.currency<i.price!} aria-label={`${i.name} 사기`} onClick={()=>{if(g.ops.buy(i))g.say(`${i.name}. 꾸미기에 넣었어요`)}}>
+      <button type="button" className="rt-btn" disabled={sold||g.s.currency<i.price!} aria-label={`${i.name} 사기`} onClick={()=>{if(g.ops.buy(i))g.say(`${i.name}, 마을에 놓았어요. 자리는 꾸미기에서 바꿀 수 있어요`)}}>
         {sold?'오늘 구매함':<span className="rt-num">{won(i.price!)}</span>}</button></div>})}
   </Sheet>;
 }
@@ -129,14 +129,14 @@ export function AnalystCard({g,id,signal,onBrief,onClose}:{g:G;id:AnalystId;sign
 }
 
 // Today's three (core/today.ts) and where the player stands: the title (core/rank.ts) and the next grade to come back for.
-export function TodaySheet({g,tasks,onGo,onClose}:{g:G;tasks:TodayTask[];onGo:(t:TaskId)=>void;onClose:()=>void}){
+export function TodaySheet({g,tasks,onGo,onClose}:{g:G;tasks:{id:QuestId;done:boolean}[];onGo:(t:QuestId)=>void;onClose:()=>void}){
   const done=tasks.filter(t=>t.done).length,closed=g.s.daysDone.includes(g.clock.today);
   const r=rankOf(xpOf({graded:g.s.graded.length,cases:g.s.cases.length,rewinds:g.s.rewinds.length,work:workOf(g.s)}));
   const nx=nextGrade(g.s.judgments,g.s.graded,g.clock.today);
   return <Sheet kicker="오늘 퀘스트" title={closed?'오늘 퀘스트 완료':`오늘 퀘스트 ${done}/${tasks.length}`} label="퀘스트 게시판" onClose={onClose}>
     {tasks.map((t,i)=><div key={t.id+i} className="rt-row rt-task" data-done={t.done}>
       <span className="rt-check" aria-hidden>{t.done?'✓':i+1}</span>
-      <div><strong>{UI.today[t.id]}</strong></div>
+      <div><strong>{QUEST_LABEL[t.id]}</strong></div>
       {t.done?<span className="rt-tag ok">완료</span>:<button type="button" className="rt-btn" onClick={()=>onGo(t.id)}>하기</button>}</div>)}
     <p className="rt-hint" style={{marginTop:12}}>{closed?line(UI.dayDone,{n:won(EARN.dayDone)}):`3개 모두 하면 +${won(EARN.dayDone)}`}</p>
     {(()=>{const w=weekGoals(g.clock.today,weekCtx(g));return <><div className="rt-section">이번 주 목표</div>

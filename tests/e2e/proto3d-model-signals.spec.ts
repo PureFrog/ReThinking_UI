@@ -47,7 +47,7 @@ async function plant(page: Page, models: (buy: string) => unknown) {
   await page.getByRole("dialog", { name: "내 종목 넣기" }).getByRole("button", { name: /직접 입력/ }).click({ timeout: 30_000 });
   const list = page.getByRole("dialog", { name: "종목 확인" });
   await list.getByLabel("1번 종목 이름").fill("KCC글라스");
-  await list.getByLabel("KCC글라스 보유 기간").selectOption("month");
+  await list.getByLabel("KCC글라스 산 날짜").fill("2026-10-20");
   await expect(list.locator('.rt-real-tag[data-real="yes"]')).toContainText("344820");
   await list.getByRole("button", { name: "정원에 넣기 · 1종목" }).click();
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("rethink-garden-v1") ?? "{}").holdings?.[0]?.date ?? null), { timeout: 10_000 }).not.toBeNull();

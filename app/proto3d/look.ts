@@ -51,7 +51,7 @@ export const LOOK={
     tour:{pitch:1.3,dist:5.2,lift:0.55,turn:{tori:0,moa:0,luon:0} as Record<string,number>,pitchOf:{} as Record<string,number>},
     // fishing with 나루: higher, looking down on the float past the player
     fish:{pitch:0.82,dist:8.5},
-    fp:{eye:1.35,back:0.12,pitch:1.42,follow:14,fov:68,maxPitch:1.95},
+    fp:{eye:1.85,back:0.12,pitch:1.5,follow:14,fov:62,maxPitch:1.95},
   },
   // walking (Scene3D Player): speeds up and slows down instead of starting and stopping at once, and turns smoothly;
   // keyStep: how far ahead a held arrow / WASD key keeps the walk target
@@ -72,7 +72,7 @@ export const LOOK={
   burst:{hit:'#fff3a8',miss:'#d39a3a'},
   // time of day (core/daylight.ts): the sky at dusk and at night (mixed over the weather's sky), the low sun, the night fog,
   // how bright the light gets at its darkest, how much the windows glow at night
-  daylight:{dusk:{top:'#5a6aa0',mid:'#e7a07a',bottom:'#f6cf98'},night:{top:'#0b1226',mid:'#18264a',bottom:'#2c3b66'},lowSun:'#ffad6b',nightFog:'#22304e',
+  daylight:{dusk:{top:'#3f3d86',mid:'#ef7a62',bottom:'#ffbf5c'},dawnSky:{top:'#7b86cf',mid:'#f7a9bd',bottom:'#ffe0aa'},night:{top:'#0b1226',mid:'#18264a',bottom:'#2c3b66'},lowSun:'#ffad6b',nightFog:'#22304e',
     floor:0.28,windows:2.2},
   // the wider map (World3D.tsx, places.ts): water and its banks, bridge wood, path stones, the league square's paving,
   // how many trees in the forest ring
@@ -87,6 +87,8 @@ export const LOOK={
   stage:{top:'#141b16',bottom:'#3b3128',spot:'#ffe7b0',rim:'#9fc6ff',floor:'#2b2620',wood:'#6f5040',top2:'#d9ccb0',scale:1.55,spotPower:55,camTall:14,camWide:8.4},
   // the player's observer in the garden (Explorer3D.tsx)
   explorer:{scale:1.05},
+  // 피드백 2026-11-26: how near a door must be to go in with a tap (farther, the tap walks there first)
+  doorReach:3.2,
   // W6 tilting the phone moves the camera this many world units sideways and up at most (core/tilt.ts)
   tilt:{amount:0.9},
   // W1 a holding being born (Scene3D BirthDust): the crack in the ground and the soil it throws up
@@ -111,13 +113,15 @@ export const LOOK={
 
   // R2 market weather (app/core/weather.ts). Each kind overrides the sky, fog, light and post values above and adds
   // its own clouds, rain and wind. wind: tree sway in radians · rain: falling streaks · clouds: puffs overhead
+  // 피드백 2026-11-25 "비만 보인다": fewer, fainter, shorter drops
+  rainDrop:{opacity:0.22,length:0.32,width:0.012,color:'#dbe7f2'},
   weather:{
     clear:{sky:{top:'#7cc9e6',mid:'#c3e4ec',bottom:'#f2eedc'},fog:'#d7e8e2',sun:{color:'#fff1d4',intensity:2.5},hemi:1.0,glow:0.18,saturation:0.06,
       clouds:{count:4,color:'#ffffff'},rain:0,wind:0.02,flash:false,motes:'#fff6c4'},
     cloudy:{sky:{top:'#9fb6c6',mid:'#c9d6dc',bottom:'#e4e8df'},fog:'#d2dad9',sun:{color:'#eef2f6',intensity:1.1},hemi:1.15,glow:0.04,saturation:-0.08,
       clouds:{count:11,color:'#e9edf0'},rain:0,wind:0.035,flash:false,motes:''},
     storm:{sky:{top:'#4d5d72',mid:'#7b8a99',bottom:'#a9b2b0'},fog:'#8f9ca3',sun:{color:'#c9d6ea',intensity:0.55},hemi:0.85,glow:0,saturation:-0.3,
-      clouds:{count:14,color:'#7d8794'},rain:900,wind:0.09,flash:true,motes:''},
+      clouds:{count:14,color:'#7d8794'},rain:320,wind:0.09,flash:true,motes:''},
     heat:{sky:{top:'#f2c48a',mid:'#fbe2b4',bottom:'#fff3d9'},fog:'#f7e3c0',sun:{color:'#fff0c8',intensity:3.4},hemi:1.15,glow:0.4,saturation:0.04,
       clouds:{count:0,color:'#ffffff'},rain:0,wind:0.008,flash:false,motes:'#ffd9a0'},
   },

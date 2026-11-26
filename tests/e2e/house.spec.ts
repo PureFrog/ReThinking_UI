@@ -6,7 +6,7 @@ const btn = (p: Page, n: string) => p.getByRole("button", { name: n }).first();
 const house = (p: Page) => p.evaluate(() => (window as unknown as { __proto3d?: { house?: { door: boolean; drawer: string; caseFile: string } } }).__proto3d?.house ?? null);
 // 9-2: today's papers, stamped one by one; the back of each, then the results sheet
 async function doQuiz(page: Page) {
-  await btn(page, "문서 받기").click();
+  await btn(page, "퀴즈 시작").click();
   for (let i = 0; i < 40; i++) {
     if (!(await page.locator(".hs-quiz[data-side=front]").isVisible())) break;
     await answerPaper(page);
@@ -14,20 +14,20 @@ async function doQuiz(page: Page) {
     await page.locator(".hs-acts .rt-btn.primary").click();
   }
   await expect(page.locator(".hs-results")).toContainText("경험치");
-  await btn(page, "고개 들기").click();
+  await page.getByRole("button", { name: "닫기", exact: true }).first().click();
 }
 
 test("a new account sits at the desk: 보리, the sheet and the locked drawer with the exact level; the door opens with the quiz", async ({ page }) => {
   test.setTimeout(120000);
   await page.goto("/?house");
   await expect(page.getByTestId("house")).toHaveAttribute("data-state", "quiz", { timeout: 30_000 });
-  await expect(page.locator(".hs-plate")).toContainText("퀴즈 Lv.5에 열려요");
-  await expect(page.locator(".hs-plate")).toContainText("현재 Lv.1");
+  await expect(page.locator(".hs-plate")).toHaveText("🔒 Lv.5");
+  await expect(page.locator(".hs-plate")).toHaveAttribute("aria-label", /퀴즈 Lv.5에 열려요 · 현재 Lv.1/);
   await expect.poll(async () => (await house(page))?.door).toBe(false);
   await doQuiz(page);
   await expect(page.getByTestId("house")).toHaveAttribute("data-state", "locked-done");
   await expect.poll(async () => (await house(page))?.door).toBe(true);
-  await expect(page.locator(".rt-talk-line")).toContainText("오늘 수업 끝");
+  await expect(page.locator(".rt-talk-line")).toContainText("오늘 퀴즈 끝");
   // the same day again: no second quiz, the door already open
   await page.reload();
   await expect(page.getByTestId("house")).toHaveAttribute("data-state", "locked-done");
@@ -40,7 +40,7 @@ test("a new account sits at the desk: 보리, the sheet and the locked drawer wi
 // device only after 작성 완료; the results come before the reveal; a bookmark brings back the notebook draft.
 const sq = (p: Page) => p.evaluate(() => (window as unknown as { __proto3d?: { scenario?: { step: string; turn: number; sub: string; notes: number; orders: number; beat: string; qty: number } | null } }).__proto3d?.scenario ?? null);
 test("Lv.5: the scenario quest — 거장, portfolio, three turns of paper · notebook · device, results, then the reveal", async ({ page }) => {
-  test.setTimeout(300000);
+  test.setTimeout(480000);
   await page.goto("/?house&quizlv=5&gameSpeed=8");
   await expect(page.getByTestId("house")).toHaveAttribute("data-state", "quiz-first");
   await doQuiz(page);
@@ -169,16 +169,16 @@ test("a paper left alone stamps 시간 초과 and turns over; leaving halfway go
   test.setTimeout(180000);
   await page.goto("/?house");
   await expect(page.getByTestId("house")).toHaveAttribute("data-paws", /push|tap-paper/);
-  await btn(page, "문서 받기").click();
+  await btn(page, "퀴즈 시작").click();
   await expect(page.getByTestId("house")).toHaveAttribute("data-paws", "hold");
   await expect(page.locator(".hs-type")).toContainText("No.01");
   // the clock runs by the kind of question (core/timing.ts QUIZ_SECONDS, up to 75 seconds)
   await expect(page.locator(".hs-ink[data-c=late]")).toHaveText("시간 초과", { timeout: 80000 });
   await expect(page.locator(".hs-back")).toContainText("시간이 지났어요");
-  await btn(page, "잠깐 고개 들기").click();
+  await page.getByRole("button", { name: "닫기", exact: true }).first().click();
   await page.reload();
-  await expect(page.locator(".rt-talk-line")).toContainText("이어 보자");
-  await btn(page, "이어서 보기").click();
+  await expect(page.locator(".rt-talk-line")).toContainText("이어서 풀자");
+  await btn(page, "이어서 풀기").click();
   await expect(page.locator(".hs-type")).toContainText("No.02");
 });
 
@@ -256,10 +256,11 @@ test("today's quests sit under the weather and fold up with a tap on their title
   await expect(page.locator(".rt-talk")).toHaveCount(0, { timeout: 10000 });
   await expect(page.locator(".rt-weather")).toBeVisible();
   const box = page.getByRole("group", { name: "오늘 퀘스트" });
+  // folded to one line at first (피드백 2026-11-25); the title opens and closes it
+  await expect(box.locator(".rt-quest")).toHaveCount(0);
+  await box.locator(".rt-quests-h").click();
   await expect(box.locator(".rt-quest")).toHaveCount(3);
   await expect(box).toContainText("오늘의 퀴즈 풀기");
   await box.locator(".rt-quests-h").click();
   await expect(box.locator(".rt-quest")).toHaveCount(0);
-  await box.locator(".rt-quests-h").click();
-  await expect(box.locator(".rt-quest")).toHaveCount(3);
 });

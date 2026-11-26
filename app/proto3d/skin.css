@@ -1,0 +1,110 @@
+/* 마을 UI 옷 입히기 (피드백 2026-11-26 "하얀 버튼들이 모동숲 느낌이랑 동떨어져 보여, 완성도"): one skin for every button,
+   chip, card, sheet and tag over the world, loaded last. Warm cream paper with a soft tan rim and a chunky "pressed toy"
+   bottom edge, brown ink, the round Jua face for labels; the main action a sunny yellow; icon buttons round badges; the
+   world's name plates wooden. Nothing here moves layout (sizes stay as clean.css set them). */
+.proto3d,.ms,.ac,.hs{
+  --sk-paper:#fdf6e3;--sk-paper2:#fffaf0;--sk-rim:#eadcbd;--sk-edge:#dccaa2;--sk-ink:#5b4636;--sk-mute:#8a7560;
+  --sk-sun:#f7cf5a;--sk-sun-edge:#d9a930;--sk-leaf:#7cc06a;--sk-leaf-edge:#559a45;
+  --sk-shadow:0 4px 0 var(--sk-edge),0 12px 22px -12px #5a3c1a66;
+  --rt-ink:var(--sk-ink);--rt-sub:#6e5948;--rt-mute:var(--sk-mute);--rt-paper:var(--sk-paper);--rt-paper2:var(--sk-paper2);
+}
+/* every floating surface: cream paper, tan rim, no frosted glass */
+.proto3d :is(.rt-sheet,.proto3d-card,.rt-next,.rt-weather,.rt-coins,.rt-tip,.rt-tut-card,.rt-birth-card,.rt-quests,.rt-request,.rt-me-plate,.rt-me-panel,.rt-wel-card,.rt-lapse,.sky-plate,.sky-sheet,.sky-pill,.rt-toast,.rt-banner){
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:var(--sk-paper)!important;color:var(--sk-ink);
+  border:2px solid var(--sk-rim)!important;box-shadow:var(--sk-shadow)!important}
+.proto3d .rt-sheet{border-radius:26px!important;background:
+  radial-gradient(#e9dcc0 0.9px,transparent 1.2px) 0 0/14px 14px,var(--sk-paper)!important}
+.proto3d :is(.rt-sheet-head h2,.rt-sheet-title,.rt-quests-h,.rt-me-only){font-family:'Jua',sans-serif;font-weight:400;color:var(--sk-ink)}
+.proto3d .rt-weather{border-radius:18px!important}
+.proto3d .rt-weather-k{color:var(--sk-mute)}
+.proto3d .rt-quests{border-radius:18px!important}
+/* buttons: a pill of paper that sits on a thicker edge and presses down */
+.proto3d .rt-btn,.ms-btn,.ms-door,.ms-close,.ms-take,.ms-finish,.ac .rt-btn,.hs .rt-btn{
+  font-family:'Jua',sans-serif!important;font-weight:400!important;letter-spacing:0;color:var(--sk-ink)!important;
+  background:var(--sk-paper2)!important;border:2px solid var(--sk-rim)!important;border-radius:999px!important;
+  box-shadow:0 4px 0 var(--sk-edge),0 10px 18px -12px #5a3c1a66!important;transition:transform .08s,box-shadow .08s}
+.proto3d .rt-btn:active,.ms-btn:active,.ms-door:active,.ms-close:active,.ac .rt-btn:active,.hs .rt-btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--sk-edge)!important}
+.proto3d .rt-btn.primary,.ms-btn.primary,.ms-finish,.hs .rt-btn.primary,.ac .rt-btn.primary{background:var(--sk-sun)!important;border-color:#eebd3a!important;box-shadow:0 4px 0 var(--sk-sun-edge),0 10px 18px -12px #5a3c1a66!important;color:#4a3420!important}
+.proto3d .rt-btn:disabled,.hs .rt-btn:disabled{opacity:.55;transform:none}
+/* the round badges: map, notebook, view, calendar, settings, coins */
+.proto3d :is(.proto3d-locate,.rt-me-chip){-webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:var(--sk-paper2)!important;color:var(--sk-ink)!important;
+  border:2px solid var(--sk-rim)!important;border-radius:999px!important;box-shadow:0 4px 0 var(--sk-edge),0 10px 18px -10px #5a3c1a66!important}
+.proto3d .proto3d-locate{font-family:'Jua',sans-serif}
+.proto3d .proto3d-locate:active,.proto3d .rt-me-chip:active{transform:translateY(3px);box-shadow:0 1px 0 var(--sk-edge)!important}
+.proto3d .rt-coins{border-radius:999px!important;font-family:'Jua',sans-serif}
+.proto3d .rt-coins .rt-num{color:#6b4a1e}
+/* the talk box: a big cream bubble with the speaker's name as an orange tab */
+.proto3d .rt-talk-box,.ms .rt-talk-box,.hs .rt-talk-box{background:var(--sk-paper)!important;border:2px solid var(--sk-rim)!important;border-radius:28px!important;box-shadow:var(--sk-shadow)!important;color:var(--sk-ink)}
+.proto3d .rt-talk-name,.ms .rt-talk-name,.hs .rt-talk-name{font-family:'Jua',sans-serif!important;color:#c8692b!important}
+.proto3d .rt-talk-choices .rt-btn{background:var(--sk-paper2)!important}
+/* tags floating over the world: little wooden plates (as the villagers' own) */
+.proto3d :is(.rt-room-tag,.rt-cap-tag){background:#4a3626e6!important;color:#f6ecd8!important;border:2px solid #6b4f36!important;border-radius:10px!important;
+  box-shadow:0 3px 0 #2f2117,0 8px 14px -8px #00000080!important;font-family:'Jua',sans-serif;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.proto3d .rt-room-tag[data-alert=true]{background:#b8472fe6!important;border-color:#d26a4a!important}
+/* inputs */
+.proto3d .rt-input{background:var(--sk-paper2);border:2px solid var(--sk-rim);border-radius:14px;color:var(--sk-ink)}
+/* segmented tabs */
+.proto3d .rt-seg button,.proto3d .rt-tabs button,.proto3d .rt-me-slots button{font-family:'Jua',sans-serif;border-radius:999px!important}
+.proto3d .rt-seg button[aria-pressed=true],.proto3d .rt-tabs button[aria-selected=true],.proto3d .rt-me-slots button[aria-pressed=true]{background:var(--sk-leaf)!important;color:#fff!important;border-color:var(--sk-leaf-edge)!important}
+/* the answers in a talk: paper pills; the first one sunny */
+.proto3d .rt-talk-choice,.ms .rt-talk-choice,.hs .rt-talk-choice{font-family:'Jua',sans-serif!important;background:var(--sk-paper2)!important;color:var(--sk-ink)!important;
+  border:2px solid var(--sk-rim)!important;border-radius:999px!important;box-shadow:0 4px 0 var(--sk-edge),0 10px 18px -12px #5a3c1a66!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.proto3d .rt-talk-choice.first,.ms .rt-talk-choice.first,.hs .rt-talk-choice.first{background:var(--sk-sun)!important;border-color:#eebd3a!important;box-shadow:0 4px 0 var(--sk-sun-edge),0 10px 18px -12px #5a3c1a66!important;color:#4a3420!important}
+.proto3d .rt-talk-choice.first::before,.ms .rt-talk-choice.first::before,.hs .rt-talk-choice.first::before{color:#c8692b!important}
+.proto3d .rt-talk-choice:active,.ms .rt-talk-choice:active,.hs .rt-talk-choice:active{transform:translateY(3px);box-shadow:0 1px 0 var(--sk-edge)!important}
+.proto3d .rt-talk-x{background:var(--sk-paper2)!important;border:2px solid var(--sk-rim)!important;color:var(--sk-ink)!important}
+
+/* 글꼴 하나로 (피드백 2026-11-26 "폰트 통일"): two faces with one job each, everywhere over the world.
+   Jua: what you read at a glance (titles, buttons, tabs, tags, numbers). Gowun Dodum: what you read through (sentences).
+   The serif, the mono and the pen script are gone from the UI; only the quiz paper keeps its typed document header. */
+.proto3d,.ms,.ac,.hs{font-family:'Gowun Dodum','Noto Sans KR',sans-serif}
+:is(.proto3d,.ms,.ac,.hs) *:not(svg):not(svg *){font-family:inherit!important}
+:is(.proto3d,.ms,.ac,.hs) :is(h1,h2,h3,h4,button,[role=tab],label,b,strong,.rt-num,.rt-btn,.rt-sheet-head,.rt-weather,.rt-coins,.rt-quests-h,.rt-room-tag,.rt-talk-name,
+  .vl-npc-tag,.rt-me-name,.ms-title,.ms-label b,.ms-q-head,.hs-plate,.ac-name,.sky-tag,.rt-section,.vs-price,.vs-name strong,.mts-price,.rt-toast strong){font-family:'Jua',sans-serif!important;font-weight:400!important}
+.hs .hs-type,.hs .hs-type *{font-family:'IBM Plex Mono',monospace!important}
+
+/* 마을 안내 (지도): shortcut cards in a grid, places with what you do there */
+.proto3d .rt-guide{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:2px 0 12px}
+.proto3d .rt-guide-card{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 6px 9px;border-radius:18px;background:var(--sk-paper2);border:2px solid var(--sk-rim);
+  box-shadow:0 3px 0 var(--sk-edge);color:var(--sk-ink);text-align:center;cursor:pointer}
+.proto3d .rt-guide-card:active{transform:translateY(2px);box-shadow:0 1px 0 var(--sk-edge)}
+.proto3d .rt-guide-card[data-locked=true]{opacity:.6}
+.proto3d .rt-guide-ic{font-size:24px;line-height:1}
+.proto3d .rt-guide-card b{font-size:14px}
+.proto3d .rt-guide-card small{font-size:11px;color:var(--sk-mute);line-height:1.3}
+.proto3d .rt-guide-places .rt-btn{flex-direction:column;height:auto;min-height:48px;padding:6px 14px;border-radius:16px!important}
+.proto3d .rt-guide-places .rt-btn small{font-family:'Gowun Dodum',sans-serif!important;font-size:11px;color:var(--sk-mute)}
+/* the round buttons on the right carry a little label under them */
+.proto3d .proto3d-locate[data-label]::after{content:attr(data-label);position:absolute;top:100%;left:50%;transform:translate(-50%,2px);font-family:'Jua',sans-serif;font-size:10.5px;
+  color:#fff;text-shadow:0 1px 2px #3b2a20,0 0 6px #3b2a2099;white-space:nowrap;pointer-events:none}
+/* the 통신기 is meant to look like a real broker app (피드백 2026-11-26 "실제 증권앱과 똑같이"): it keeps the system face */
+.proto3d .rt-comm,.proto3d .rt-comm *:not(svg):not(svg *){font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif!important}
+.proto3d .rt-comm :is(b,strong,h3,h4){font-weight:700!important}
+
+/* 마을 지도 (ui/MapSheet.tsx, 2026-11-26): the map with a pin per place */
+.proto3d .rt-vmap{position:relative;width:100%;max-width:440px;margin:0 auto;aspect-ratio:1}
+.proto3d .rt-vmap .rt-map{width:100%;height:100%;max-height:none;border-radius:18px;background:#cfe3f0;border:3px solid var(--sk-edge,#c9a77a)}
+.proto3d .rt-vpin{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:3px;border:0;background:none;padding:0;cursor:pointer;min-width:0;min-height:0;box-shadow:none!important}
+.proto3d .rt-vpin-ic{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;background:#fffaf0;border:2px solid #b98c5a;transition:transform .12s}
+.proto3d .rt-vpin b{font-family:'Jua',sans-serif;font-size:11px;line-height:1;color:#4a3420;white-space:nowrap;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 3px #fff}
+.proto3d .rt-vpin[data-on=true] .rt-vpin-ic{transform:scale(1.35);border-color:#c4432f;box-shadow:0 0 0 4px #c4432f33}
+.proto3d .rt-vpin[data-on=true] b{color:#c4432f}
+.proto3d .rt-vcard{display:flex;align-items:center;gap:10px;margin-top:10px;padding:10px 12px;border-radius:16px;background:#fffaf0;border:2px solid #d9c39b}
+.proto3d .rt-vcard-ic{font-size:26px}.proto3d .rt-vcard div{flex:1;display:grid}.proto3d .rt-vcard b{font-family:'Jua',sans-serif;font-size:16px;color:#3b2a20}.proto3d .rt-vcard small{font-size:12.5px;color:#7a6044}
+.proto3d .rt-vcard .rt-btn{width:auto;padding:0 16px}
+.proto3d .rt-vme{position:absolute;transform:translate(-50%,-50%);display:grid;justify-items:center;font:11px 'Jua',sans-serif;color:#b3362a;pointer-events:none}
+.proto3d .rt-vme i{width:14px;height:14px;border-radius:50%;background:#e2493c;border:3px solid #fff;box-shadow:0 0 0 0 #e2493c88;animation:rt-vme 1.6s infinite}
+@keyframes rt-vme{to{box-shadow:0 0 0 12px #e2493c00}}
+.proto3d .rt-map-foot.one{grid-template-columns:1fr}
+
+/* 동물과 놀기 (Pets.tsx) */
+.rt-pet-hearts{position:relative;width:60px;height:60px;pointer-events:none}
+.rt-pet-hearts i{position:absolute;left:24px;bottom:0;font-style:normal;font-size:18px;opacity:0;animation:rt-heart 1.8s ease-out forwards}
+.rt-pet-hearts i:nth-child(2){left:6px;animation-delay:.25s;font-size:14px}.rt-pet-hearts i:nth-child(3){left:40px;animation-delay:.5s;font-size:15px}
+@keyframes rt-heart{0%{transform:translateY(0) scale(.4);opacity:0}20%{opacity:1}100%{transform:translateY(-58px) scale(1.1);opacity:0}}
+.proto3d .rt-petmenu{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:30;display:grid;gap:8px;justify-items:center;
+  padding:12px 14px;border-radius:20px;background:var(--sk-paper,#fff8ea);border:3px solid var(--sk-edge,#c9a77a);box-shadow:0 5px 0 #8a6440,0 12px 26px rgba(0,0,0,.25);animation:rt-pop .2s ease-out}
+.proto3d .rt-petmenu b{font-family:'Jua',sans-serif;font-size:16px;color:#4a3420}
+.proto3d .rt-petmenu small{font-size:11.5px;color:#7a6044}
+.proto3d .rt-petmenu div{display:flex;gap:8px}
+@keyframes rt-pop{from{transform:translate(-50%,12px) scale(.9);opacity:0}to{transform:translateX(-50%);opacity:1}}

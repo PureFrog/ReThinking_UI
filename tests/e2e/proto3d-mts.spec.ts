@@ -92,8 +92,8 @@ test("broker demo: one tap in the MTS opens the garden with that balance, no cap
   // two lines came without a buying day: asked once, on one sheet
   const ask = web.getByRole("dialog", { name: "산 날짜" });
   await expect(ask).toBeVisible({ timeout: 60_000 });
-  await expect(ask.getByRole("combobox", { name: /보유 기간/ })).toHaveCount(2);
-  await ask.getByRole("combobox", { name: "알테오젠 보유 기간" }).selectOption("half");
+  await expect(ask.getByLabel(/산 날짜/)).toHaveCount(2);
+  await ask.getByLabel("알테오젠 산 날짜").fill("2026-05-20");
   await ask.getByRole("button", { name: "정원에 넣기" }).click();
 
   await expect.poll(() => garden(page).evaluate(() => (window as unknown as { __proto3d?: { embed?: { holdings: number } } }).__proto3d?.embed?.holdings ?? 0), { timeout: 30_000 }).toBe(8);

@@ -39,22 +39,26 @@ test("the news board: every article has its excerpt under the headline", async (
   await page.screenshot({ path: info.outputPath("news-board.png") });
 });
 
-test("the merchant's day-before news: 기사 읽기 opens the excerpt, marked as the publisher's", async ({ page }, info) => {
+test("the 통신기 is a phone; its 뉴스 tab lists articles and opens one with what to look at", async ({ page }, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  // (the 통신기 is the practice account's order screen since 2026-11-23; the merchant is in 8시~20시)
   await page.goto("/?demo&weather=clear&hour=14");
   await V.villageReady(page);
   await V.openSheet(page, { kind: "comm", tab: "order" });
   const comm = page.getByRole("dialog", { name: "통신기" });
-  await comm.locator(".mts-row-btn").first().click();
-  const art = comm.locator("article.rt-comm-news");
-  await expect(art.locator(".vl-news-sum")).toHaveCount(0);
-  await art.getByRole("button", { name: "기사 읽기" }).click();
-  await expect(art.locator(".vl-news-sum")).toBeVisible();
-  expect((await art.locator(".vl-news-sum").textContent())!.length).toBeGreaterThan(15);
-  await expect(art).toContainText("언론사 요약 발췌");
-  await expect(art).not.toContainText("제목만 예시");
-  await page.screenshot({ path: info.outputPath("merchant-news.png") });
+  await expect(comm.locator(".rt-phone")).toBeVisible();
+  await comm.getByRole("navigation", { name: "아래 메뉴" }).getByRole("button", { name: "뉴스" }).click();
+  const rows = comm.locator(".rt-news-row");
+  expect(await rows.count()).toBeGreaterThan(4);
+  await expect(comm.locator(".rt-news-note")).toContainText("모의 기사");
+  await rows.first().click();
+  const art = comm.locator(".rt-art");
+  await expect(art.locator("h3")).toBeVisible();
+  await expect(art.locator(".rt-art-look")).toContainText("이 기사에서 볼 것");
+  expect((await art.locator(".rt-art-body p").first().textContent())!.length).toBeGreaterThan(15);
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: info.outputPath("comm-article.png") });
+  await art.getByRole("button", { name: "뉴스 닫기" }).click();
+  await expect(art).toHaveCount(0);
 });
 
 test("the observatory flow: the excerpt under the headline as the days arrive", async ({ page }, info) => {

@@ -49,15 +49,16 @@ test("the communicator: balance, an answer in place, today's five, a coin order"
   await comm.getByRole("navigation", { name: "아래 메뉴" }).getByRole("button", { name: "현재가" }).click();
   const five = comm.getByRole("list", { name: "오늘 들어온 종목" }).getByRole("listitem");
   await expect(five).toHaveCount(5);
+  // a row opens the stock's page (chart, 호가); 매수 there goes to the order
   await five.first().getByRole("button").click();
+  await comm.locator(".rt-sp .rt-comm-go.buy").click();
   await expect(comm.getByRole("tab", { name: "매수" })).toHaveAttribute("aria-selected", "true");
-  const buy = comm.getByRole("button", { name: "전날 뉴스를 먼저 읽어요" });
-  await expect(buy).toBeDisabled();
-  await comm.getByRole("button", { name: "기사 읽기" }).click();
+  // 2026-11-26: no news gate in front of 매수; an order asks for a confirmation like a broker app
   await comm.getByRole("button", { name: "한 주 더" }).click();
   await page.waitForTimeout(200);
   await shot(page, `comm-order-${info.project.name}`);
   await comm.getByRole("button", { name: /매수 주문 · 코인/ }).click();
+  await comm.getByRole("alertdialog", { name: "매수 주문 확인" }).getByRole("button", { name: "매수 확인" }).click();
   await expect(comm.getByRole("status")).toContainText("2주를 샀어요");
 
   // the coin stock is in the balance, and it can be sold (the farmer loads the cart)
@@ -70,6 +71,7 @@ test("the communicator: balance, an answer in place, today's five, a coin order"
   await expect(comm.getByRole("button", { name: "수량을 골라요" })).toBeDisabled();
   await comm.getByRole("slider", { name: "매도 수량" }).fill("1");
   await comm.getByRole("button", { name: "매도 주문 · 1주" }).click();
+  await comm.getByRole("alertdialog", { name: "매도 주문 확인" }).getByRole("button", { name: "매도 확인" }).click();
   await expect(comm).toHaveCount(0);
   // the farmer walks to the tree and loads the cart
   await expect(page.getByRole("status").filter({ hasText: "수레에 실었어요" })).toBeVisible({ timeout: 120_000 });

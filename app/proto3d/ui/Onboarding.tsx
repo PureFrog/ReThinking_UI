@@ -5,7 +5,7 @@
 // Nothing here buys or sells: removing a tree only takes it out of the garden.
 import {useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {Lens,Plus,Strike} from './Icons';
-import {drafts,applyDrafts,freePlots,blankDraft,HELD,matchName,draftToReal,plantReal,type Draft,type HeldId,type RealDraft} from '../../core/portfolio';
+import {drafts,applyDrafts,freePlots,blankDraft,matchName,draftToReal,plantReal,isDay,type Draft,type RealDraft} from '../../core/portfolio';
 import {buyClose,refreshed} from '../../core/real';
 import {bars,isReal} from '../../core/jigi/stocks';
 import {realToday} from '../../core/model';
@@ -46,9 +46,13 @@ export function Onboarding({g,onClose,onPlanted,onDemo,reader,onReal,real,pick=f
   useEffect(()=>{if(!real)return;const todo=names.filter(n=>!(n in found));if(!todo.length)return;let on=true;
     const t=setTimeout(()=>{void Promise.all(todo.map(async n=>[n,matchName(n,await real.search(n))] as const)).then(r=>{if(on)setFound(f=>({...f,...Object.fromEntries(r)}))})},300);
     return()=>{on=false;clearTimeout(t)}},[real,names.join('|')]);// eslint-disable-line react-hooks/exhaustive-deps
+  // signed in: a new line not found among the real stocks is not planted, so it does not count (2026-11-25)
+  // signed in (real prices), a new line needs its buying day and a real name; a guest's example lines may go without
+  const plantable=real?kept.filter(r=>r.existing!==null||(isDay(r.date)&&found[r.name.trim()]!==null)).length:kept.length;
+  const noDate=real?kept.filter(r=>r.existing===null&&!isDay(r.date)).length:0;
   const [planting,setPlanting]=useState(false);
   const plant=async()=>{
-    const clean=kept.map(r=>({...r,name:r.name.trim()}));
+    const clean=kept.filter(r=>!real||r.existing!==null||isDay(r.date)).map(r=>({...r,name:r.name.trim()}));// a new line without its buying day waits
     const base=holdings.filter(h=>!removed.includes(h.id));
     // lines found among the KRX names go in on real prices; the rest stay as typed (mock)
     const today=realToday(),onReal=real?clean.filter(r=>r.existing===null&&found[r.name]):[];
@@ -56,7 +60,8 @@ export function Onboarding({g,onClose,onPlanted,onDemo,reader,onReal,real,pick=f
     if(onReal.length){setPlanting(true);await real!.load(onReal.map(r=>found[r.name]!));setPlanting(false);
       reals=onReal.flatMap(r=>{const s=found[r.name]!,d=draftToReal(r,s,today,day=>isReal(s.code)?buyClose(bars(s.code),day)?.c??null:null);return d?[d]:[]})}
     const realNames=new Set(onReal.filter(r=>reals.some(x=>x.code===found[r.name]!.code)).map(r=>r.name));
-    const mock=applyDrafts(holdings,clean.filter(r=>!realNames.has(r.name)),removed,freePlots(base,open),kindOf);
+    // signed in (real): a new line whose name is not a real stock is left out, never planted on made-up prices (2026-11-25)
+    const mock=applyDrafts(holdings,clean.filter(r=>!realNames.has(r.name)&&(!real||r.existing!==null)),removed,freePlots(base,open),kindOf);
     const both=plantReal(mock.holdings,reals,freePlots(mock.holdings,open),kindOf);
     const next=both.holdings.map(h=>h.real&&h.code&&isReal(h.code)?refreshed(h,bars(h.code)):h);
     const out={holdings:next,planted:[...mock.planted,...both.planted]};
@@ -91,9 +96,9 @@ export function Onboarding({g,onClose,onPlanted,onDemo,reader,onReal,real,pick=f
   </Sheet>;
 
   return <Sheet kicker={first?'시작 · 확인':'내 종목'} title={`${kept.length}종목`} label="종목 확인" onClose={onClose}
-    foot={<button type="button" className="rt-btn primary wide" disabled={(kept.length===0&&staying===0)||over||planting} onClick={()=>void plant()}>{planting?'시세 불러오는 중':first?`정원에 넣기 · ${kept.length}종목`:'반영'}</button>}>
+    foot={<button type="button" className="rt-btn primary wide" disabled={(plantable===0&&staying===0)||over||planting} onClick={()=>void plant()}>{planting?'시세 불러오는 중':first?`정원에 넣기 · ${plantable}종목`:'반영'}</button>}>
     {picker}
-    <p className="rt-hint">종목명과 수익률을 확인해 주세요. 보유 기간이 길수록 나무가 커요.</p>
+    <p className="rt-hint">종목명, 수익률, 산 날짜를 확인해 주세요.{noDate>0&&<b className="rt-need-date"> 산 날짜가 없는 {noDate}종목은 아직 안 심어요.</b>}</p>
     <ul className="rt-drafts">{rows.map((r,i)=>!r.keep&&r.existing===null?null:<li key={i} className={r.keep?'':'off'}>
       <div className="rt-draft-top">
         <input className="rt-input" value={r.name} placeholder="종목 이름" maxLength={20} aria-label={`${i+1}번 종목 이름`} disabled={!r.keep||r.existing!==null} onChange={e=>edit(i,{name:e.target.value})}/>
@@ -102,11 +107,12 @@ export function Onboarding({g,onClose,onPlanted,onDemo,reader,onReal,real,pick=f
       {r.keep&&<div className="rt-draft-bottom">
         <label>수익률<input className="rt-input rt-num" type="number" step="0.1" inputMode="decimal" value={Number.isFinite(r.rate)?r.rate:''} aria-label={`${r.name||i+1+'번'} 수익률`}
           onChange={e=>edit(i,{rate:e.target.value===''?0:Number(e.target.value)})}/>%</label>
-        {r.existing===null&&<select className="rt-input" value={r.held} aria-label={`${r.name||i+1+'번'} 보유 기간`} onChange={e=>edit(i,{held:e.target.value as HeldId})}>
-          {HELD.map(h=><option key={h.id} value={h.id}>{h.label}</option>)}</select>}
+        {/* 피드백 2026-11-25: the exact day it was bought (the models read from it), not a rough period */}
+        {r.existing===null&&<label className="rt-draft-date">산 날짜<input className="rt-input rt-num" type="date" max={realToday()} value={r.date??''} aria-label={`${r.name||i+1+'번'} 산 날짜`}
+          onChange={e=>edit(i,{date:e.target.value})}/></label>}
       </div>}
       {real&&r.keep&&r.existing===null&&r.name.trim()&&(()=>{const f=found[r.name.trim()];
-        return <small className="rt-real-tag" data-real={f?'yes':f===null?'no':'wait'}>{f===undefined?'실제 시세 찾는 중':f?`실제 시세 · ${f.name} ${f.code}${r.price>0?' · 평균단가로':' · 그때 종가로'}`:'실제 시세에 없는 이름이에요 · 모의 시세로 들어가요'}</small>})()}
+        return <small className="rt-real-tag" data-real={f?'yes':f===null?'no':'wait'}>{f===undefined?'실제 시세 찾는 중':f?`실제 시세 · ${f.name} ${f.code}${r.price>0?' · 평균단가로':' · 그때 종가로'}`:'찾을 수 없는 종목이에요 · 이름을 확인해 주세요 (이대로면 안 심어요)'}</small>})()}
     </li>)}</ul>
     <div style={{display:'flex',gap:8,marginTop:10}}>
       <button type="button" className="rt-btn" onClick={()=>setRows(rs=>[...rs!,blankDraft()])}><Plus size={16}/>종목 추가</button>

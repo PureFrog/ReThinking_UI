@@ -77,7 +77,7 @@ test("a whole 판: brief, the flow, every moment decided, the reveal, and the ru
   await expect(rv.getByTestId("gx-trust")).toContainText("토리");
   await rv.getByRole("button", { name: /이번 주 순위/ }).click();
   const rk = page.getByTestId("gx-ranking");
-  await expect(rk).toContainText("예시 순위 · 서버 연결 전");
+  await expect(rk).toContainText("예시 순위 · 실제 순위는 준비 중");
   await expect(rk.locator("li.me")).toHaveCount(1);
   await rk.getByRole("button", { name: "공개로 돌아가기" }).click();
   await page.getByTestId("gx-reveal").getByRole("button", { name: "나가기" }).click();

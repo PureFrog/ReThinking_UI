@@ -416,7 +416,7 @@ test("the timelapse shows the garden a year ago and comes back to today", async 
   await expect.poll(async () => (await lapse())?.back).toBe(365);
   // a year ago only the demo's oldest holding (NAVER, bought 2025-06) stood there
   await expect.poll(async () => (await lapse())?.trees).toBe(1);
-  await expect(page.locator(".rt-weather")).toContainText("그날 시장");
+  await expect(page.locator(".rt-weather")).toContainText("그날");
   await expect(V.controls(page)).toBeHidden();
   await bar.getByLabel("타임랩스 날짜").fill("52");
   await expect.poll(async () => (await lapse())?.trees).toBe(7);
@@ -582,7 +582,7 @@ test("settings change the text size and keep things still; the letter and the we
   // the sheet stays on the screen
   const box = await st.boundingBox(), vh = page.viewportSize()!.height;
   expect(box!.y).toBeGreaterThanOrEqual(0);expect(box!.y + box!.height).toBeLessThanOrEqual(vh + 1);
-  expect(await st.locator(".rt-sheet-body").evaluate(e => getComputedStyle(e).zoom)).toBe("1.15");
+  expect(await st.locator(".rt-sheet-body").evaluate(e => getComputedStyle(e).zoom)).toBe("1.06");
   await expect(page.locator("html")).toHaveAttribute("data-still", "1");
   expect((await page.evaluate(() => JSON.parse(localStorage.getItem("rethink-garden-v1")!))).settings).toMatchObject({text: "l", still: true});
   // starting over asks twice

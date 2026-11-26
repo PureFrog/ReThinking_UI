@@ -4,17 +4,22 @@
 // shop's colour with its sign over the door (tapping it walks me to the door). Inside: ShopRoom, a cut-open room
 // with the counter, the shop's own goods on the shelves and the keeper behind the counter, facing me.
 // Room coordinates as in Interior3D: x across, z toward the camera, y up, floor at 0.
-import {Suspense,useMemo} from 'react';
+import {Suspense,useEffect,useMemo} from 'react';
 import {useThree,type ThreeEvent} from '@react-three/fiber';
 import * as THREE from 'three';
 import {soft} from './materials';
 import {OnGround} from './ground';
 import {Explorer} from './Explorer3D';
+import {RoomMe} from './Seats';
 import {ROLE_KIT,ROLE_LOOK} from './RoleKit';
 import {LOOK} from './look';
 import type {Look} from '../core/wardrobe';
 import {place} from './places';
 import {TAILOR_STALL} from '../content/villagers';
+import {LibraryDecor} from './LibraryDecor';
+import {wallpaper,parquet} from './ui/StudyDecor';
+import {BuilderFacade,TailorFacade,LibraryFacade} from './ShopFacades';
+import {ShopShell,shopMats,BuilderDecor,BuilderCounter,TailorDecor,counterFront} from './ShopDecor';
 
 // 피드백 2026-11-23: the merchant (가상 종목) keeps the open stall outside, no building
 export type ShopId='builder'|'tailor'|'librarian';
@@ -39,25 +44,8 @@ export function ShopHouse({id,x,z,rot,open=true,onPick}:{id:ShopId;x:number;z:nu
   const s=SHOP_INFO[id],big=id==='librarian',W=big?4.6:3.6,D=big?3.6:3.0,H=big?2.6:2.2;
   return <OnGround x={x} z={z} rot={rot}><group name={'shop-'+id} onClick={click(onPick)}>
     <mesh position-y={0.08} receiveShadow><boxGeometry args={[W+0.5,0.16,D+0.5]}/>{S('#d9cfba')}</mesh>
-    <mesh position-y={0.16+H/2} castShadow receiveShadow><boxGeometry args={[W,H,D]}/>{S(s.wall)}</mesh>
-    {/* the roof: two slopes and the gable ends */}
-    {[-1,1].map(k=><mesh key={k} position={[0,0.16+H+0.55,k*D/4]} rotation-x={k*-0.62} castShadow><boxGeometry args={[W+0.5,0.12,D*0.66]}/>{S(s.roof)}</mesh>)}
-    <mesh position={[0,0.16+H+0.04,0]} castShadow><boxGeometry args={[W+0.3,0.1,D+0.3]}/>{S(s.trim)}</mesh>
-    {/* the door, its frame and a step */}
-    <mesh position={[0,0.16+0.75,D/2+0.02]}><boxGeometry args={[0.95,1.5,0.06]}/>{S('#7a5238')}</mesh>
-    <mesh position={[0,0.16+1.55,D/2+0.03]}><boxGeometry args={[1.15,0.12,0.08]}/>{S(s.trim)}</mesh>
-    <mesh position={[0.3,0.16+0.75,D/2+0.07]}><sphereGeometry args={[0.05,8,6]}/>{S('#e0b13a')}</mesh>
-    {/* windows either side, lit when open */}
-    {[-1,1].map(k=><group key={k} position={[k*(W/2-0.75),0.16+1.15,D/2+0.02]}>
-      <mesh><boxGeometry args={[0.8,0.7,0.05]}/>{S(s.trim)}</mesh>
-      <mesh position-z={0.03}><planeGeometry args={[0.66,0.56]}/>{open?<primitive object={glowWin} attach="material"/>:S('#5c6470')}</mesh></group>)}
-    {/* the sign board over the door: the shop's colour and its goods in little blocks */}
-    <group position={[0,0.16+H+0.05,D/2+0.12]}>
-      <mesh><boxGeometry args={[1.9,0.5,0.08]}/>{S(s.roof)}</mesh>
-      {s.goods.slice(0,4).map((c,i)=><mesh key={i} position={[-0.6+i*0.4,0,0.06]}><boxGeometry args={[0.22,0.22,0.05]}/>{S(c)}</mesh>)}
-    </group>
-    {big&&[-1,1].map(k=><mesh key={'c'+k} position={[k*0.95,0.16+0.85,D/2+0.35]} castShadow><cylinderGeometry args={[0.11,0.13,1.7,12]}/>{S('#f4f1ea')}</mesh>)}
-    {big&&<mesh position={[0,0.16+1.75,D/2+0.35]} castShadow><boxGeometry args={[2.4,0.14,0.5]}/>{S('#f4f1ea')}</mesh>}
+    {/* 피드백 2026-11-26: each shop its own building (ShopFacades) */}
+    {id==='builder'?<BuilderFacade W={W} D={D} H={H} lit={open} glow={glowWin}/>:id==='tailor'?<TailorFacade W={W} D={D} H={H} lit={open} glow={glowWin}/>:<LibraryFacade W={W} D={D} H={H} lit={open} glow={glowWin}/>}
     {/* an easy thing to tap */}
     <mesh position-y={1.4} visible={false}><boxGeometry args={[W+0.6,2.8,D+1.2]}/></mesh>
   </group></OnGround>;
@@ -91,29 +79,39 @@ function Goods({id}:{id:ShopId}){const s=SHOP_INFO[id];
   </group>;
 }
 export function ShopRoom({id,look}:{id:ShopId;look:Look}){
+  // 피드백 2026-11-26: the library gets its own wallpaper, parquet and furniture (LibraryDecor)
+  const lib=useMemo(()=>id==='librarian'?{floor:new THREE.MeshStandardMaterial({map:parquet(ROOM.w,ROOM.d+7),roughness:0.85}),wall:new THREE.MeshStandardMaterial({map:wallpaper('#e8dcc0',ROOM.w,ROOM.h),roughness:0.95}),side:new THREE.MeshStandardMaterial({map:wallpaper('#e2d4b6',ROOM.d+7,ROOM.h),roughness:0.95})}:null,[id]);
+  // 피드백 2026-11-26 "상인의 방 휑해": the builder's and the tailor's rooms get their own floor, walls, light and things (ShopDecor)
+  const sm=useMemo(()=>id==='librarian'?null:shopMats(id),[id]);
+  const front=useMemo(()=>counterFront(id==='tailor'?'#b98a6e':'#8a5a3e'),[id]);useEffect(()=>()=>front.dispose(),[front]);
+  const lm=lib??sm;
   const s=SHOP_INFO[id],{w,d,h}=ROOM,kitLook=useMemo(()=>{const r=ROLE_LOOK[id];return r?{...look,coat:r.coat,hat:r.hat,bag:null,tool:null}:look},[id,look]);
   return <group name={'shop-room-'+id}>
     <ShopCam/>
-    <hemisphereLight args={['#fff4e2','#8a6448',0.9]}/>
-    <directionalLight position={[2,5,5]} intensity={1.6} color="#fff1dc"/>
+    <hemisphereLight args={['#fff4e2','#8a6448',sm?0.7:0.9]}/>
+    <directionalLight position={[2,5,5]} intensity={sm?0.95:1.6} color="#fff1dc"/>
     <mesh><sphereGeometry args={[30,24,16]}/><meshBasicMaterial color="#2a2420" side={THREE.BackSide}/></mesh>
-    <mesh position={[0,-0.05,3.5]} receiveShadow><boxGeometry args={[w,0.1,d+7]}/>{S(s.floor)}</mesh>
-    <mesh position={[0,h/2,-d/2]} receiveShadow><boxGeometry args={[w,h,0.12]}/>{S(s.wall)}</mesh>
-    {[-1,1].map(k=><mesh key={k} position={[k*w/2,h/2,3.5]} receiveShadow><boxGeometry args={[0.12,h,d+7]}/>{S(s.wall)}</mesh>)}
+    <mesh position={[0,-0.05,3.5]} receiveShadow><boxGeometry args={[w,0.1,d+7]}/>{lm?<primitive object={lm.floor} attach="material"/>:S(s.floor)}</mesh>
+    <mesh position={[0,h/2,-d/2]} receiveShadow><boxGeometry args={[w,h,0.12]}/>{lm?<primitive object={lm.wall} attach="material"/>:S(s.wall)}</mesh>
+    {[-1,1].map(k=><mesh key={k} position={[k*w/2,h/2,3.5]} receiveShadow><boxGeometry args={[0.12,h,d+7]}/>{lm?<primitive object={lm.side} attach="material"/>:S(s.wall)}</mesh>)}
     <mesh position={[0,h+0.05,3.5]}><boxGeometry args={[w+0.2,0.1,d+7]}/>{S(s.wall)}</mesh>
     <mesh position={[0,h-0.1,-d/2+0.08]}><boxGeometry args={[w,0.2,0.1]}/>{S(s.roof)}</mesh>
-    <Goods id={id}/>
+    {sm&&id!=='librarian'&&<ShopShell kind={id} mats={sm}/>}
+    {id==='librarian'?<LibraryDecor/>:id==='builder'?<BuilderDecor/>:<TailorDecor/>}
     {/* the keeper behind the counter */}
     <group position={[0,0,-0.9]} scale={LOOK.explorer.scale*1.25}><Suspense fallback={null}><Explorer look={kitLook} kit={ROLE_KIT[id]}/></Suspense></group>
     {/* me, from behind (3인칭) */}
-    <group name="shop-me" position={[ME_AT.x,0,ME_AT.z]} rotation-y={ME_TURN} scale={LOOK.explorer.scale*1.25}><Suspense fallback={null}><Explorer look={look}/></Suspense></group>
+    {/* 피드백 2026-11-26 "의자가 있다면 앉을 수": the 옷 가게's fitting-room stool (ShopDecor FittingRoom) */}
+    <RoomMe name="shop-me" look={look} home={ME_AT} homeFace={ME_TURN} scale={LOOK.explorer.scale*1.25}
+      seats={id==='tailor'?[{id:'fitting-stool',x:7/2-0.75+0.1,z:-5/2+0.85-0.3,top:0.46,face:-Math.PI/2,box:[0.5,0.9,0.5],at:[7/2-0.65,0.4,-5/2+0.55],via:[{x:2.2,z:1.3},{x:2.05,z:-1.75}]}]:[]}/>
     <group position={[0,0,0.2]}>
-      <mesh position-y={0.5} castShadow receiveShadow><boxGeometry args={[3.2,1,0.7]}/>{S('#8a5a3e')}</mesh>
+      <mesh position-y={0.5} castShadow receiveShadow><boxGeometry args={[3.2,1,0.7]}/>{id==='librarian'?S('#8a5a3e'):<meshStandardMaterial map={front} roughness={0.7}/>}</mesh>
+      {id!=='librarian'&&<mesh position={[0,0.08,0.36]}><boxGeometry args={[3.24,0.16,0.04]}/>{S('#5a3d2b')}</mesh>}
       <mesh position-y={1.03}><boxGeometry args={[3.4,0.07,0.85]}/>{S('#c79362')}</mesh>
       {/* on the counter: the shop's thing */}
-      {id==='librarian'&&<group position={[0.9,1.1,0.1]}><mesh rotation-y={0.3}><boxGeometry args={[0.5,0.06,0.36]}/>{S('#f3ead3')}</mesh></group>}
+      
       {id==='tailor'&&<mesh position={[0.9,1.12,0.1]} rotation-x={Math.PI/2}><torusGeometry args={[0.14,0.03,8,20]}/>{S('#f2d36a')}</mesh>}
-      {id==='builder'&&<group position={[0.9,1.1,0.1]}><mesh position-y={0.1}><boxGeometry args={[0.24,0.2,0.22]}/>{S('#f3e6cc')}</mesh><mesh position-y={0.27} rotation-y={Math.PI/4}><coneGeometry args={[0.2,0.16,4]}/>{S('#c44b3b')}</mesh></group>}
+      {id==='builder'&&<><group position={[0.9,1.1,0.1]}><mesh position-y={0.1}><boxGeometry args={[0.24,0.2,0.22]}/>{S('#f3e6cc')}</mesh><mesh position-y={0.27} rotation-y={Math.PI/4}><coneGeometry args={[0.2,0.16,4]}/>{S('#c44b3b')}</mesh></group><BuilderCounter/></>}
     </group>
   </group>;
 }

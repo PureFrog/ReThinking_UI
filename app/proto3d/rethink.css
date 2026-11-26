@@ -24,12 +24,13 @@
 
 /* top: weather on the left, my numbers on the right */
 .proto3d-top{align-items:flex-start;gap:12px}
-.rt-weather{pointer-events:auto;display:grid;grid-template-columns:auto auto auto;align-items:baseline;column-gap:8px;row-gap:2px;
+.rt-weather{pointer-events:auto;display:grid;grid-template-columns:auto 1fr;align-items:baseline;column-gap:8px;row-gap:2px;
   background:var(--rt-glass);border:1px solid #ffffffb0;border-radius:14px;padding:10px 14px;box-shadow:var(--rt-shadow);backdrop-filter:blur(14px)}
 .rt-weather-k,.rt-weather strong{white-space:nowrap}
-.rt-weather-k{font-size:11px;color:var(--rt-mute);font-weight:500}
+.rt-weather-k{grid-column:1/-1;font-size:11px;color:var(--rt-mute);font-weight:500}
 .rt-weather strong{font-size:15px;font-weight:700}
-.rt-weather .rt-num{font-size:12px;color:var(--rt-sub)}
+.rt-weather .rt-num{font-size:15px;font-weight:700;color:var(--rt-ink,inherit)}
+.rt-weather strong{font-size:13px;font-weight:600}
 .rt-weather small{grid-column:1/-1;font-size:11.5px;color:var(--rt-sub);max-width:260px}
 .rt-hud{pointer-events:auto;display:flex;gap:6px}
 .rt-stat{display:flex;flex-direction:column;align-items:flex-end;background:var(--rt-glass);border:1px solid #ffffffb0;border-radius:12px;padding:7px 11px;box-shadow:var(--rt-shadow);backdrop-filter:blur(14px);min-width:56px}
@@ -60,8 +61,7 @@
 @media(max-width:700px){
   .rt-sheet{top:auto;left:8px;right:8px;bottom:80px;width:auto;max-width:none;max-height:min(calc(100dvh - 160px),620px);border-radius:22px}
   .proto3d.no-dock .rt-sheet{bottom:12px;max-height:min(calc(100dvh - 110px),660px)}
-  .rt-weather{padding:8px 11px;grid-template-columns:auto auto}
-  .rt-weather .rt-num{grid-column:auto}
+  .rt-weather{padding:8px 11px}
   .rt-weather small{display:none}
   .rt-stat{padding:6px 8px;min-width:0}
   .rt-stat:nth-of-type(n+3){display:none}
@@ -877,3 +877,15 @@ button.rt-row:hover{filter:none;background:#16211b05}
 @media (max-width:430px){.proto3d .rt-top-right{gap:5px}.proto3d .rt-coins{padding:0 10px 0 7px}.proto3d .rt-coin-cal{width:34px;height:34px}}
 /* the 통신기's day-before news: the publisher's excerpt once 기사 읽기 is tapped (RSS, 사용자 2026-11-22) */
 .rt-comm-news p.vl-news-sum{color:inherit;font-size:13px;line-height:1.5}.rt-comm-news .vl-news-src{font-size:11px;color:var(--mts-sub)}
+
+/* device check 2026-11-25: on phones up to ~420px the top-right buttons ran off the screen (설정 cut on iPhone 15,
+   Galaxy S24, Fold cover). The right group keeps its size, the weather card takes what is left, coins go short. */
+.proto3d .proto3d-top .rt-top-left{flex:1 1 auto;min-width:0}
+.proto3d .proto3d-top .rt-top-right{flex:none}
+.proto3d .rt-weather{max-width:100%}
+.proto3d .rt-coins-short{display:none}
+@media (max-width:420px){.proto3d .rt-coins-full{display:none}.proto3d .rt-coins-short{display:inline}}
+/* a phone on its side: the number stays on one line (it broke into "-0 / .1 / 7%") */
+.proto3d .rt-weather .rt-num{white-space:nowrap}
+/* the chips inside the talk box (a long stock list) never push the box off a short screen */
+.proto3d .rt-talk-box .rt-talk-choices.on-box{max-height:min(34dvh,220px);overflow-y:auto;overscroll-behavior:contain}

@@ -16,8 +16,8 @@ export async function answerPaper(page: Page) {
     if (n > 1) await send.click();
   }
   else if (kind === "matching") {
-    const n = await page.locator(".hs-left .hs-opt").count();
-    for (let i = 0; i < n; i++) { await page.locator(".hs-left .hs-opt").nth(i).click(); await page.locator(".hs-right .hs-opt").nth(i).click() }
+    const n = await page.locator(".hs-left .hs-mrow").count();
+    for (let i = 0; i < n; i++) await page.locator(".hs-left .hs-mrow").nth(i).locator(".hs-chipbtn").nth(i).click();
     await send.click();
   }
   else if (kind === "fill_blank") { await page.locator(".hs-fill input").first().fill("0"); await send.click() }

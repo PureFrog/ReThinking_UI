@@ -24,17 +24,17 @@ test("the sample garden still has the first quiz, the walk-up introductions and 
   await expect(page.getByTestId("house")).toBeVisible({ timeout: 30_000 });
   // one or two sentences a bubble, the answers on the bubble itself (in the middle, not the corner)
   await expect(page.locator(".hs-talk .rt-talk-line")).toContainText("선생님이야", { timeout: 20_000 });
-  await expect(page.locator(".hs-talk .rt-talk-line")).not.toContainText("문제 하나 풀어 보자");
+  await expect(page.locator(".hs-talk .rt-talk-line")).not.toContainText("첫 문제부터 풀어 보자");
   const box = await page.locator(".hs-talk .rt-talk-box").boundingBox(), vw = page.viewportSize()!.width;
   expect(Math.abs(box!.x + box!.width / 2 - vw / 2)).toBeLessThan(40);
   await expect(page.locator(".hs-talk .rt-talk-box").getByRole("button", { name: "계속" })).toBeVisible();
   await page.screenshot({ path: info.outputPath("demo-quiz-bubble.png") });
   await expect.poll(async () => (await h(page)).house?.paper).toBe("glow");
-  await choose(page, ".hs-talk", "종이 누르기");
+  await choose(page, ".hs-talk", "퀴즈 시작");
   await choose(page, ".hs-talk", "응");
-  await choose(page, ".hs-talk", "종이 펼치기");
+  await choose(page, ".hs-talk", "퀴즈 시작");
   await answerPaper(page);
-  await page.getByRole("button", { name: "해설 봤어 · 고개 들기" }).click();
+  await page.getByRole("button", { name: "닫기", exact: true }).click();
   await expect.poll(async () => (await h(page)).house?.door).toBe(true);
   await choose(page, ".hs-talk", "밖으로 나가기");
   await expect(page.locator(".vl-villager")).toContainText("보리야", { timeout: 20_000 });
@@ -51,7 +51,7 @@ test("the sample garden still has the first quiz, the walk-up introductions and 
   // the example garden's stocks are not mine: the farmer asks before planting them (KOSDAQ examples)
   await page.evaluate(() => (window as any).__proto3d.meet("farmer"));
   await expect(page.locator(".vl-villager .rt-talk-name")).toContainText("농부", { timeout: 40_000 });
-  await choose(page, ".vl-villager", "예시로 심어 보기");
+  await choose(page, ".vl-villager", "예시로 두기");
   expect((await h(page)).walk?.planted).toBe(false);
   // the first lesson is kept, so the house is the room from now on (after the walk)
   expect(await page.evaluate(() => localStorage.getItem("rethink-lesson-v1"))).toBeTruthy();

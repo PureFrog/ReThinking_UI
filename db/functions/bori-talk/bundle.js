@@ -555,6 +555,7 @@ var OUTPUT_SCHEMA = '[\uCD9C\uB825 \uACC4\uC57D \u2014 \uC544\uB798 \uD615\uD0DC
 
 // app/core/llm1/prompt.ts
 var j = (o) => JSON.stringify(o, null, 1);
+var CLOSING = "[\uB9D0\uD22C\uC640 \uB300\uD654 \uB9C8\uBB34\uB9AC]\n\uC26C\uC6B4 \uB9D0\uB85C \uD55C\uB450 \uBB38\uC7A5. \uC2DC\uC801\uC778 \uD45C\uD604, \uBE44\uC720, \uC5B5\uC9C0 \uAC10\uB3D9\uC774\uB098 \uAC10\uC131 \uBB38\uAD6C\uB294 \uC4F0\uC9C0 \uC54A\uB294\uB2E4.\n\uC0AC\uC6A9\uC790\uAC00 \uB9DE\uC7A5\uAD6C\uB098 \uC778\uC0AC\uB9CC \uD558\uAC70\uB098(\uC751, \uADF8\uCE58, \uC54C\uACA0\uC5B4, \uACE0\uB9C8\uC6CC \uB4F1) \uB354 \uB098\uB20C \uC598\uAE30\uAC00 \uC5C6\uC73C\uBA74 \uC0C8 \uD654\uC81C\uB97C \uAEBC\uB0B4\uC9C0 \uB9D0\uACE0 \uC9E7\uAC8C \uC778\uC0AC\uD55C \uB4A4 reply.text \uB9E8 \uB05D\uC5D0 \u27E8\uB05D\u27E9 \uC744 \uBD99\uC778\uB2E4. \uADF8\uB7EC\uBA74 \uB300\uD654\uAC00 \uB05D\uB09C\uB2E4.";
 function pathRegistryForPrompt(reg, userJson) {
   const strategies = Object.keys((userJson.investment_philosophy ?? {}).strategies ?? {});
   const py = (a) => "[" + a.map((x) => `'${x}'`).join(", ") + "]";
@@ -572,6 +573,7 @@ function buildMessages(ci, reg, allowedEmotions) {
     "[\uCE90\uB9AD\uD130 \uD398\uB974\uC18C\uB098 \u2014 \uC6B4\uC601 \uC11C\uBC84 \uC124\uC815]\n" + j(ci.character_persona),
     "ALLOWED_EMOTIONS: " + JSON.stringify(allowedEmotions),
     ci.mode === "elicitation" ? ELICITATION : DAILY,
+    CLOSING,
     OUTPUT_SCHEMA,
     "PATH_REGISTRY:\n" + j(pathRegistryForPrompt(reg, ci.user_json)),
     "QUANTITY_UNITS: " + JSON.stringify(reg.quantity_units)

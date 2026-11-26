@@ -33,6 +33,9 @@ test("coins at the top open the shop, signs on buildings, and the profile page h
   // a tap on the coins opens the payment window
   await coins.click();
   await expect(page.getByRole("dialog", { name: "코인 결제창" })).toBeVisible();
+  // payment is not connected yet (2026-11-25): the window says so and cannot go on to a pay step
+  await expect(page.getByRole("dialog", { name: "코인 결제창" })).toContainText("코인 충전은 준비 중이에요");
+  await expect(page.getByRole("button", { name: "결제는 준비 중이에요" })).toBeDisabled();
   expect(errors).toEqual([]);
 });
 

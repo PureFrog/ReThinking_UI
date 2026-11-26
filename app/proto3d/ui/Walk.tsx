@@ -23,12 +23,14 @@ export function TalkBox({name,who,role,line,choices,className,nameWho,onLeave}:{
   const [n,setN]=useState(0);useEffect(()=>setN(0),[line]);
   const i=Math.min(n,pages.length-1),more=i<pages.length-1;
   return <div className={'rt-talk '+(className??'')} role="dialog" aria-label={name} data-villager={who}>
-    {onLeave&&<button type="button" className="rt-talk-leave" onClick={onLeave}>그만 이야기하기</button>}
     <div className="rt-talk-box" data-more={more} onClick={e=>{if(more&&e.target===e.currentTarget)setN(i+1)}}>
-      <span className="rt-talk-name" data-who={nameWho}>{name}{role&&<small className="rt-talk-role">{role}</small>}</span>
+      {/* 피드백 2026-11-25 "심플, 깔끔": the role tag is gone (the name says enough), and closing is a small × on the box */}
+      {onLeave&&<button type="button" className="rt-talk-x" aria-label="대화 닫기" onClick={onLeave}>×</button>}
+      <span className="rt-talk-name" data-who={nameWho} data-role={role}>{name}</span>
       <p className="rt-talk-line" aria-live="polite" onClick={()=>{if(more)setN(i+1)}}>{pages[i]}</p>
       <div className="rt-talk-choices on-box" role="group" aria-label="대답">
-        {pages.length>1&&<span className="rt-talk-page rt-num" aria-hidden>{i+1}/{pages.length}</span>}
+        {/* 피드백 2026-11-25: a way back to the bubble before */}
+        {i>0?<button type="button" className="rt-talk-choice rt-talk-prev" onClick={()=>setN(i-1)}>‹ 이전</button>:pages.length>1&&<span className="rt-talk-page rt-num" aria-hidden>{i+1}/{pages.length}</span>}
         {more?<button type="button" className="rt-talk-choice first rt-talk-next" onClick={()=>setN(i+1)}>계속</button>
           :choices.map((c,k)=><button key={c.label} type="button" className={'rt-talk-choice'+(k===0?' first':'')} onClick={c.go}>{c.label}</button>)}</div></div>
   </div>;

@@ -39,6 +39,7 @@ export function personaPrompt(id:NpcId):string{
     `절대 하지 않는 말:\n${[...v.strictly_avoid,...p.investment_guardrails].map(h=>'- '+h).join('\n')}`,
     `지켜야 할 선: ${p.relationship_with_user.boundaries}`,
     `대사 예시:\n${Object.values(p.dialogue_examples).slice(0,6).map(l=>'- '+l).join('\n')}`,
+    '쉬운 말로 한두 문장. 시적인 표현, 비유, 억지 감동은 쓰지 않는다. 유저가 맞장구나 인사만 해서 더 할 말이 없으면 text 끝에 ⟨끝⟩ 을 붙여 대화를 마친다.',
     `답은 JSON {"text": 한국어 대사, "emotion": ${p.system_state.allowed_emotions.map(e=>`"${e}"`).join(' | ')}} 하나로만 한다.`,
   ].filter(Boolean).join('\n\n');
 }

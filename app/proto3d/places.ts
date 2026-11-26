@@ -8,7 +8,7 @@ export const WORLD={R:80/* sphere radius: big enough that walking to the edge is
 // index is fixed, core/portfolio.ts freePlots fills the open ones in order)
 import {ALL_PLOTS,BUILDINGS,CITIES,buildingAt,type Built} from '../core/land';
 import {SPREAD,spread} from '../core/world';
-import {TAILOR_STALL} from '../content/villagers';
+import {TAILOR_STALL,NEWS_BOARD,MERCHANT_STALL,FARM_CART} from '../content/villagers';
 export const PLOTS:[number,number][]=ALL_PLOTS;
 // the stream: its middle line, how wide the water is, and the one bridge across it
 export const streamZ=(x:number)=>SPREAD*(13.6+1.1*Math.sin(x/SPREAD*0.22));
@@ -58,7 +58,7 @@ const PLACE_AT:Partial<Record<PlaceId,{x:number;z:number;rot:number;walk:{x:numb
   orchard:{x:18,z:5.0,rot:0,walk:{x:10.8,z:5.0}},
   // 피드백 2026-11-24 "왼쪽 리그광장 오른쪽 오락실": over the bridge the path splits; the plaza on the left, the arcade
   // (a teammate's model, World3D.tsx ArcadeHouse) on the right, its door turned to the split
-  plaza:{x:-9.4,z:27.2,rot:0,walk:{x:-6.4,z:25.4}},
+  plaza:{x:-9.4,z:27.2,rot:0,walk:{x:-9.4,z:22.6}},
   arcade:{x:4.0,z:27.6,rot:-2.0,walk:{x:1.3,z:26.37}},
 };
 export const PLACES=PLACES1.map(p=>PLACE_AT[p.id]?{...p,...PLACE_AT[p.id]!,label:p.id==='library'?'도서관':p.label}:p);
@@ -68,13 +68,42 @@ export const place=(id:PlaceId)=>PLACES.find(p=>p.id===id)!;
 const SOLID_R:Partial<Record<PlaceId,number>>={master:2.7,home:2.4,library:2.6,observatory:1.5,cart:2.1,arcade:2.3};
 export const BUILDING_R:Record<string,number>={greenhouse:1.7,silo:1.3,windmill:1.4};
 export type Solid={x:number;z:number;r:number};
-export function solids(built:Built|null|undefined):Solid[]{
+// the rocks (Scene3D ROCKS, x z scale, spread) and the signpost, shared with the scene
+export const ROCK_AT=([[-5,4.4,0.7],[-7.2,4.6,0.55],[8.4,6,0.9],[3.4,5.2,0.5]] as number[][]).map(([x,z,sc])=>[...spread(x,z),sc] as [number,number,number]);
+export const SIGNPOST_AT=(()=>{const [x,z]=spread(-1.9,3.5);return {x,z}})();
+function solids0():Solid[]{return solids(null,false)}
+export function solids(built:Built|null|undefined,lamps=true):Solid[]{
   const out:Solid[]=PLACES.flatMap(p=>SOLID_R[p.id]?[{x:p.x,z:p.z,r:SOLID_R[p.id]!}]:[]);
   // 피드백 2026-11-23: the merchant's shop and the clothes shop are houses now (Shop3D.tsx)
   for(const t of [TAILOR_STALL])out.push({x:t.x,z:t.z,r:2.1});
   for(const b of BUILDINGS)if(built?.buildings.includes(b.id)){const [x,z]=buildingAt(b,built);out.push({x,z,r:BUILDING_R[b.id]??1.4})}
   for(const c of CITIES)if(built?.cities.includes(c.id))out.push({x:c.at[0],z:c.at[1],r:1.9});
+  // 피드백 2026-11-26 "바위, 푯말 다 통과": the rocks, the boards and stalls, the cart and the stadium's stands are solid too
+  for(const [x,z,sc] of ROCK_AT)out.push({x,z,r:sc*0.9});
+  out.push({x:NEWS_BOARD.x,z:NEWS_BOARD.z,r:0.95},{...SIGNPOST_AT,r:0.35},{x:MERCHANT_STALL.x,z:MERCHANT_STALL.z,r:1.3},{x:FARM_CART.x,z:FARM_CART.z,r:1.1});
+  {const pz=PLACES.find(p=>p.id==='plaza')!;for(let k=0;k<22;k++){const a=-Math.PI/2+0.75+k*(Math.PI*2-1.5)/21;out.push({x:pz.x+Math.cos(a)*3.45,z:pz.z+Math.sin(a)*3.45,r:0.45})}}
+  // the lamps, and the campfire: nobody walks through the flames (피드백 2026-11-26). Not while the lamps are being placed
+  // (the fire is declared further down)
+  if(lamps){for(const l of LAMP_AT)out.push({...l,r:0.22});out.push({x:FIRE[0],z:FIRE[1],r:0.7})}
   return out;
+}
+// 피드백 2026-11-26 "NPC들이 나무도 바위도 통과": what the village's people walk round (Scene3D sets it: the walls above
+// plus the scenery trees). npcStep moves one step toward a goal: straight if clear, else the nearest turn either side
+// (keeping the side it chose last, so it does not wobble), and never deeper into anything.
+let NPC_WALLS:Solid[]=[];
+export const setNpcWalls=(l:Solid[])=>{NPC_WALLS=l};
+export const npcWalls=()=>NPC_WALLS;
+// where each of the village's people is now (Village3D, Analyst3D write it every frame): they walk round each other too
+export const NPC_LIVE:Record<string,{x:number;z:number}>={};
+export const npcAround=(id:string):Solid[]=>{const out=[...NPC_WALLS];for(const k in NPC_LIVE)if(k!==id)out.push({...NPC_LIVE[k],r:0.32});return out};
+const deeper=(x:number,z:number,fx:number,fz:number,list:Solid[],pad:number)=>list.some(w=>{const d=Math.hypot(x-w.x,z-w.z);return d<w.r+pad&&d<Math.hypot(fx-w.x,fz-w.z)-1e-4});
+export function npcStep(p:{x:number;z:number;side?:number},gx:number,gz:number,m:number,list:Solid[]=NPC_WALLS,pad=0.3):boolean{
+  const dx=gx-p.x,dz=gz-p.z,d=Math.hypot(dx,dz);if(d<1e-4)return false;const s=Math.min(d,m),base=Math.atan2(dx,dz),sd=p.side??1;
+  // a goal inside something (a seat, the cart, a spot by a tree): that one is not in the way
+  if(list.some(w=>Math.hypot(gx-w.x,gz-w.z)<w.r+pad))list=list.filter(w=>Math.hypot(gx-w.x,gz-w.z)>=w.r+pad);
+  for(const off of [0,0.45,0.9,1.35,1.8,2.3]){for(const k of off?[sd,-sd]:[1]){const a=base+off*k,nx=p.x+Math.sin(a)*s,nz=p.z+Math.cos(a)*s;
+    if(!deeper(nx,nz,p.x,p.z,list,pad)){p.x=nx;p.z=nz;if(off)p.side=k;return true}}}
+  return false;
 }
 // moves a point out to the edge of any solid it is inside (pad: the player's own width); true if it moved
 export function pushOut(p:{x:number;z:number},list:Solid[],pad=0.35){let moved=false;
@@ -116,6 +145,16 @@ PATHS1[0]=[[HOME_WALK.x,PATHS1[0][0][1]],[HOME_WALK.x,HOME_WALK.z]];
 {const i=PATHS1.findIndex(l=>l.some(([x,z])=>z>22));const pz=place('plaza').walk,ar=place('arcade').walk,J:[number,number]=[BRIDGE.x,24.4];
   if(i>=0){PATHS1[i]=[...PATHS1[i].filter(([,z])=>z<=22.5),J];PATHS1.push([J,[pz.x,pz.z]],[J,[(J[0]+ar.x)/2,(J[1]+ar.z)/2+0.2],[ar.x,ar.z]])}}
 export const PATHS:[number,number][][]=PATHS1;
+// 피드백 2026-11-26 "밤에 너무 어두운 공간, 모동숲 느낌 램프": a little lamp post by a few doors (then "너무 많아": the ones
+// along the paths are gone). Never in the water or on a wall; solid like the posts.
+export const LAMP_AT:{x:number;z:number}[]=(()=>{const out:{x:number;z:number}[]=[];const walls=solids0();
+  const ok=(x:number,z:number)=>!inStream(x,z,1.2)&&Math.hypot(x-BRIDGE.x,z-streamZ(BRIDGE.x))>3.2&&Math.hypot(x,z)<WORLD.walk-1&&
+    !walls.some(w=>Math.hypot(x-w.x,z-w.z)<w.r+0.9)&&!out.some(o=>Math.hypot(x-o.x,z-o.z)<5.5)&&!PATHS1.some(l=>l.some(([a,b])=>Math.hypot(a-x,b-z)<0.75));
+  const put=(x:number,z:number)=>{if(ok(x,z))out.push({x,z})};
+  // 피드백 2026-11-26 "가로수가 너무 많아, 꼭 필요한 곳만": one lamp beside each door that is dark at night
+  for(const id of ['master','arcade','plaza','library','home'] as PlaceId[]){const p=PLACES.find(q=>q.id===id);if(!p)continue;
+    const dx=p.walk.x-p.x,dz=p.walk.z-p.z,d=Math.hypot(dx,dz)||1,nx=-dz/d,nz=dx/d;for(const sd of [1,-1]){const n=out.length;put(p.walk.x+nx*1.5*sd,p.walk.z+nz*1.5*sd);if(out.length>n)break}}
+  return out})();
 // Where the player walks when tapping (x,z): clamped to the edge, never into the water; across the stream only by
 // the bridge (the walk goes to its near end, over, then on). Returns the stops in order, or null if it cannot go.
 export function route(from:{x:number;z:number},to:{x:number;z:number},inPond:(x:number,z:number)=>boolean):{x:number;z:number}[]|null{
@@ -145,3 +184,7 @@ export const FIRE:[number,number]=(([x,z])=>[x-1.5,z])(spread(-1.6,-1.2));
 // the fallen log beside it (a seat): its middle, and the way one sitting on it faces (toward the fire)
 export const FIRE_LOG={x:FIRE[0]+0.6,z:FIRE[1]-1.3};
 export const FIRE_SEAT={...FIRE_LOG,face:Math.atan2(FIRE[0]-FIRE_LOG.x,FIRE[1]-FIRE_LOG.z)};
+// 피드백 2026-11-26 "NPC들도 모닥불에 앉아 있고": the far end of the log and two stumps round the fire, where the village's
+// people sit a while on their rounds (facing the fire)
+export const NPC_FIRE_SEATS=([[FIRE_LOG.x+0.92*0.8,FIRE_LOG.z-0.39*0.8],[FIRE[0]-1.35,FIRE[1]+0.55],[FIRE[0]+0.75,FIRE[1]+1.25]] as [number,number][])
+  .map(([x,z])=>({x,z,face:Math.atan2(FIRE[0]-x,FIRE[1]-z)}));

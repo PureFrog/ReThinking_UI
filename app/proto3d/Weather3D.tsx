@@ -34,7 +34,7 @@ function Rain({count,wind,center}:{count:number;wind:number;center:React.Mutable
       o.position.set(c.x+p.x,p.y,c.z+p.z);o.rotation.set(0,0,-slant*0.15);o.updateMatrix();m.setMatrixAt(i,o.matrix)});
     m.instanceMatrix.needsUpdate=true});
   return <instancedMesh ref={ref} args={[undefined,undefined,count]} frustumCulled={false}>
-    <boxGeometry args={[0.018,0.5,0.018]}/><meshBasicMaterial color="#dbe7f2" transparent opacity={0.55} depthWrite={false}/>
+    <boxGeometry args={[LOOK.rainDrop.width,LOOK.rainDrop.length,LOOK.rainDrop.width]}/><meshBasicMaterial color={LOOK.rainDrop.color} transparent opacity={LOOK.rainDrop.opacity} depthWrite={false}/>
   </instancedMesh>;
 }
 

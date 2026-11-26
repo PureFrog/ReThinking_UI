@@ -12,6 +12,8 @@ import './build.css';
 import './house.css';
 import './study.css';
 import './arcade.css';
+import './clean.css';
+import './skin.css';
 export default function Proto3DPage(){
   const [mounted,setMounted]=useState(false);
   useEffect(()=>setMounted(true),[]);

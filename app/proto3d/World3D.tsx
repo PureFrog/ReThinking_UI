@@ -2,7 +2,8 @@
 // The wider map round the first garden (places.ts): the stream with its bridge, the dirt paths as stepping stones,
 // the forest ring at the edge, the case library up the north path and the league square across the stream.
 // Everything is code-made primitives on the shared soft material, instanced where there are many.
-import {useLayoutEffect,useMemo,useRef} from 'react';
+import {Halo,GlowPool} from './VillageLamps';
+import {useEffect,useLayoutEffect,useMemo,useRef} from 'react';
 import {useFrame,type ThreeEvent} from '@react-three/fiber';
 import {useGLTF} from '@react-three/drei';
 import {MODELS} from './models';
@@ -12,6 +13,8 @@ import {PATHS,PLACES,STREAM,BRIDGE,streamZ,WORLD} from './places';
 import {soft} from './materials';
 import {LOOK} from './look';
 import {mixHex} from '../core/daylight';
+import {riverMaterial,RiverBanks} from './VillageNature';
+import {planks as plankTex,tmat} from './surfaces';
 
 const S=(c:string)=><primitive object={soft(c)} attach="material"/>;
 const click=(fn:()=>void)=>(e:ThreeEvent<MouseEvent>)=>{e.stopPropagation();fn()};
@@ -19,30 +22,43 @@ const M=()=>LOOK.map;
 
 // a ribbon laid on the sphere along the stream, `half` wide either side of its middle line
 function ribbon(half:number,lift:number){
-  const pos:number[]=[],idx:number[]=[];let n=0;
+  const pos:number[]=[],idx:number[]=[],uv:number[]=[];let n=0;
   for(let x=STREAM.from;x<=STREAM.to;x+=0.5){const zc=streamZ(x);
-    for(const s of [-1,1]){const z=zc+s*half;pos.push(x,surfaceY(x,z)+lift,z)}
+    for(const s of [-1,1]){const z=zc+s*half;pos.push(x,surfaceY(x,z)+lift,z);uv.push((x-STREAM.from)/1.6,s<0?0:1)}
     if(n>0){const a=(n-1)*2;idx.push(a,a+1,a+2,a+1,a+3,a+2)}n++}
-  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();return g;
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);g.computeVertexNormals();return g;
 }
 export function Stream({dim=0}:{dim?:number}){
   const water=useMemo(()=>ribbon(STREAM.half,0.07),[]),bank=useMemo(()=>ribbon(STREAM.half+STREAM.bank,0.035),[]);
   useLayoutEffect(()=>()=>{water.dispose();bank.dispose()},[water,bank]);
+  // 피드백 2026-11-26 "강이 재미없어": flowing water (ripples drifting downstream, glints, a foam line at the banks), a
+  // sandy bank, pebbles, reeds and rocks along it (VillageNature)
+  const mat=useMemo(()=>riverMaterial(M().water,'#8fd0f0'),[]);useEffect(()=>()=>mat.dispose(),[mat]);
+  useEffect(()=>{mat.uniforms.deep.value.set(mixHex(M().water,'#13284a',dim));mat.uniforms.light.value.set(mixHex('#8fd0f0','#2a4468',dim))},[dim,mat]);
+  useFrame(({clock})=>{mat.uniforms.t.value=clock.elapsedTime});
   return <group name="stream">
-    <mesh geometry={bank} receiveShadow><meshBasicMaterial color={mixHex(M().bank,'#4a4636',dim)} side={THREE.DoubleSide}/></mesh>
-    <mesh geometry={water}><meshBasicMaterial color={mixHex(M().water,'#13284a',dim)} side={THREE.DoubleSide}/></mesh>
+    <mesh geometry={bank} receiveShadow><meshStandardMaterial color={mixHex('#d9c69a','#4a4636',dim)} roughness={1} side={THREE.DoubleSide}/></mesh>
+    <mesh geometry={water}><primitive object={mat} attach="material"/></mesh>
+    <RiverBanks zAt={streamZ} from={STREAM.from} to={STREAM.to} half={STREAM.half}/>
   </group>;
 }
 // the wooden bridge: planks over an arch, a rail each side
 export function Bridge(){
   const zc=streamZ(BRIDGE.x),planks=14,len=BRIDGE.half*2;
+  const wood=useMemo(()=>({a:tmat(plankTex([160,110,72]),0.6,0.2),b:tmat(plankTex([140,96,62]),0.6,0.2)}),[]);
   return <OnGround x={BRIDGE.x} z={zc}><group name="bridge">
     {Array.from({length:planks},(_,i)=>{const t=i/(planks-1),z=-len/2+t*len,y=0.18+0.42*Math.sin(Math.PI*t);
-      return <mesh key={i} position={[0,y,z]} rotation-x={Math.cos(Math.PI*t)*0.42*-0.9} castShadow receiveShadow><boxGeometry args={[1.5,0.09,len/planks*0.92]}/>{S(i%2?M().plank:M().plank2)}</mesh>})}
+      return <mesh key={i} position={[0,y,z]} rotation-x={Math.cos(Math.PI*t)*0.42*-0.9} rotation-y={(i%3-1)*0.02} castShadow receiveShadow material={i%2?wood.a:wood.b}><boxGeometry args={[1.5+(i%2)*0.06,0.09,len/planks*0.92]}/></mesh>})}
+    {/* 피드백 2026-11-26 "다리 퀄리티": stringers under the planks, rope rails swung between posts, lanterns on the end posts */}
+    {[-0.6,0.6].map(x=>Array.from({length:10},(_,i)=>{const t0=i/10,t1=(i+1)/10,z0=-len/2+t0*len,z1=-len/2+t1*len,y0=0.08+0.42*Math.sin(Math.PI*t0),y1=0.08+0.42*Math.sin(Math.PI*t1);
+      return <mesh key={x+'s'+i} position={[x,(y0+y1)/2,(z0+z1)/2]} rotation-x={-Math.atan2(y1-y0,z1-z0)}><boxGeometry args={[0.12,0.14,Math.hypot(z1-z0,y1-y0)+0.02]}/>{S('#6b4a32')}</mesh>}))}
+    {[-0.72,0.72].map(x=>[-1,1].map(e=><group key={x+'l'+e} position={[x,0.18+0.7,e*len/2]}>
+      <mesh position-y={0.05}><boxGeometry args={[0.04,0.04,0.18]}/>{S('#2f2a28')}</mesh>
+      <mesh position={[0,-0.08,e*0.08]}><boxGeometry args={[0.13,0.17,0.13]}/><meshStandardMaterial color="#fff1c4" emissive="#ffc867" emissiveIntensity={1.2} toneMapped={false}/></mesh></group>))}
     {[-0.72,0.72].map(x=><group key={x}>
       {[0,0.25,0.5,0.75,1].map(t=>{const z=-len/2+t*len,y=0.18+0.42*Math.sin(Math.PI*t);return <mesh key={t} position={[x,y+0.32,z]} castShadow><cylinderGeometry args={[0.05,0.06,0.62,8]}/>{S(M().rail)}</mesh>})}
       {Array.from({length:8},(_,i)=>{const t0=i/8,t1=(i+1)/8,z0=-len/2+t0*len,z1=-len/2+t1*len,y0=0.6+0.42*Math.sin(Math.PI*t0),y1=0.6+0.42*Math.sin(Math.PI*t1);
-        return <mesh key={i} position={[x,(y0+y1)/2,(z0+z1)/2]} rotation-x={-Math.atan2(y1-y0,z1-z0)} castShadow><boxGeometry args={[0.07,0.07,Math.hypot(z1-z0,y1-y0)+0.02]}/>{S(M().rail)}</mesh>})}
+        return <mesh key={i} position={[x,(y0+y1)/2,(z0+z1)/2]} rotation-x={-Math.atan2(y1-y0,z1-z0)-Math.sin(((i%2)+0.5)*Math.PI)*0.0} castShadow><cylinderGeometry args={[0.03,0.03,Math.hypot(z1-z0,y1-y0)+0.02,8]}/>{S('#c9a878')}</mesh>})}
     </group>)}
   </group></OnGround>;
 }
@@ -54,10 +70,17 @@ export function Paths(){
       for(let k=0;k<n;k++){const t=k/n,x=ax+(bx-ax)*t+(r()-0.5)*0.24,z=az+(bz-az)*t+(r()-0.5)*0.24;
         if(Math.abs(x-BRIDGE.x)<1&&Math.abs(z-streamZ(x))<BRIDGE.half+0.2)continue;out.push({x,z,s:0.24+r()*0.12,a:r()*6.28})}}return out},[]);
   useLayoutEffect(()=>{const m=ref.current;if(!m)return;const o=new THREE.Object3D();
-    stones.forEach((st,i)=>{o.position.set(st.x,surfaceY(st.x,st.z)+0.02,st.z);o.quaternion.copy(tiltAt(st.x,st.z)).multiply(new THREE.Quaternion().setFromAxisAngle(UP,st.a));o.scale.set(st.s*1.25,0.05,st.s);o.updateMatrix();m.setMatrixAt(i,o.matrix)});
+    stones.forEach((st,i)=>{o.position.set(st.x,surfaceY(st.x,st.z)+0.02,st.z);o.quaternion.copy(tiltAt(st.x,st.z)).multiply(new THREE.Quaternion().setFromAxisAngle(UP,st.a));o.scale.set(st.s*1.25,0.07,st.s);o.updateMatrix();m.setMatrixAt(i,o.matrix)});
     m.instanceMatrix.needsUpdate=true},[stones]);
-  return <instancedMesh ref={ref} args={[undefined,undefined,stones.length]} receiveShadow>
-    <cylinderGeometry args={[1,1,1,12]}/><primitive object={soft(M().stone)} attach="material"/></instancedMesh>;
+  // 피드백 2026-11-26 "돌 주변으로 흙이 조금 보이게": a worn patch of dirt under each stone
+  const dirt=useRef<THREE.InstancedMesh>(null);
+  useLayoutEffect(()=>{const m=dirt.current;if(!m)return;const o=new THREE.Object3D();
+    stones.forEach((st,i)=>{o.position.set(st.x,surfaceY(st.x,st.z)+0.008,st.z);o.quaternion.copy(tiltAt(st.x,st.z)).multiply(new THREE.Quaternion().setFromAxisAngle(UP,st.a+0.7));o.scale.set(st.s*2.0,0.01,st.s*1.6);o.updateMatrix();m.setMatrixAt(i,o.matrix)});
+    m.instanceMatrix.needsUpdate=true},[stones]);
+  return <group>
+    <instancedMesh ref={dirt} args={[undefined,undefined,stones.length]} receiveShadow><cylinderGeometry args={[1,1,1,10]}/><primitive object={soft('#c4a57c')} attach="material"/></instancedMesh>
+    <instancedMesh ref={ref} args={[undefined,undefined,stones.length]} receiveShadow castShadow>
+    <cylinderGeometry args={[1,1,1,12]}/><primitive object={soft(M().stone)} attach="material"/></instancedMesh></group>;
 }
 // the forest ring that closes the edge: round trees and cypresses, instanced (three draws for the lot)
 export function Forest(){
@@ -124,7 +147,7 @@ export function Library({onPick,open}:{onPick:()=>void;open:boolean}){
 // 거장의 집 (2026-11-23, a teammate's model: the master's head as a house): north-west of the cottage, facing the middle.
 // The file is about 0.9 wide, 0.58 high and 1 deep; MASTER_SIZE scales it to the village. A tap says where the master is met.
 export const MASTER_SIZE=6.2;
-export function MasterHouse({onPick}:{onPick:()=>void}){
+export function MasterHouse({onPick,night=0}:{onPick:()=>void;night?:number}){
   const p=PLACES.find(x=>x.id==='master')!;
   const {scene}=useGLTF(MODELS.masterHouse);
   const obj=useMemo(()=>{const o=scene.clone(true);o.traverse(c=>{const m=c as THREE.Mesh;if(m.isMesh){m.castShadow=true;m.receiveShadow=true;
@@ -132,47 +155,125 @@ export function MasterHouse({onPick}:{onPick:()=>void}){
     const mat=m.material as THREE.MeshPhysicalMaterial;if(mat&&'transmission' in mat){mat.transmission=0;mat.thickness=0}}});return o},[scene]);
   return <OnGround x={p.x} z={p.z} rot={p.rot}><group onClick={click(onPick)} name="master-house">
     <primitive object={obj} scale={MASTER_SIZE} position-y={-0.05}/>
+    {/* 피드백 2026-11-26 "눈 부분이 창문인데 빛이 안 비친다": the two lenses glow like lit windows (where the yellow lenses are
+        in the model, master_house.glb), a halo round each, warm light spilling onto the face and the ground in front */}
+    <group scale={MASTER_SIZE} position-y={-0.05}>
+      {[-1,1].map(sd=><group key={sd} position={[sd*0.074,0.312,0.142]}>
+        <mesh scale={[1,0.72,1]}><circleGeometry args={[0.066,28]}/><meshStandardMaterial color="#ffe7a8" emissive="#ffb347" emissiveIntensity={0.5+night*2.6} toneMapped={false} transparent opacity={0.92} side={THREE.DoubleSide}/></mesh>
+        {[-1,1].map(k=><mesh key={k} position={[0,k*0.012,0.002]} scale={[1,0.72,1]}><planeGeometry args={[0.12,0.004]}/><meshBasicMaterial color="#5a3a1c"/></mesh>)}
+      </group>)}
+    </group>
+    {[-1,1].map(sd=><Halo key={sd} at={[sd*0.074*MASTER_SIZE,0.312*MASTER_SIZE-0.05,0.142*MASTER_SIZE+0.1]} size={1.6} color="#ffc070" k={night}/>)}
+    <pointLight position={[0,1.2,2.6]} color="#ffb35c" intensity={night*5} distance={6} decay={1.8}/>
+    <group position={[0,0,2.4]}><GlowPool r={2.6} color="#ffb35c" k={night*0.9}/></group>
     {/* an easier thing to tap */}
     <mesh position={[0,1.8,0]} visible={false}><boxGeometry args={[5.6,3.6,6.2]}/></mesh>
   </group></OnGround>;
 }
 useGLTF.preload(MODELS.masterHouse);
 
-// 리그 광장: a paved circle across the stream, a ring of flags (this week's group), the notice board in the middle
+// 리그 광장 → a mini stadium (피드백 2026-11-26 "리그 분위기가 안 산다"): a little pitch with its lines and a running track,
+// three tiers of benches round it in this week's group colours (open toward the path), a flag per group member on the
+// rim (mine taller with a gold star), four floodlight towers, a lit scoreboard and an entrance arch with bunting.
+// Local -z faces the path (the walk-in point).
+function boardTex(){
+  const cv=document.createElement('canvas');cv.width=512;cv.height=256;const g=cv.getContext('2d')!;
+  g.fillStyle='#14202a';g.fillRect(0,0,512,256);g.strokeStyle='#ffd447';g.lineWidth=8;g.strokeRect(6,6,500,244);
+  g.fillStyle='#ffd447';g.font='bold 46px "Jua",sans-serif';g.textAlign='center';g.fillText('리그 광장',256,64);
+  g.fillStyle='#8cf07a';g.font='26px "Jua",sans-serif';g.fillText('이번 주 판단 점수',256,104);
+  g.font='bold 30px monospace';['1  ■■■■■■■■','2  ■■■■■■■','3  ■■■■■■','4  ■■■■■'].forEach((t,k)=>{g.fillStyle=k===0?'#ffd447':'#e8f6ff';g.textAlign='left';g.fillText(t,140,148+k*28)});
+  const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;return t;
+}
 export function Plaza({onPick,flags,me}:{onPick:()=>void;flags:string[];me:number}){
   const p=PLACES.find(x=>x.id==='plaza')!,wave=useRef<(THREE.Mesh|null)[]>([]);
-  useFrame(({clock})=>{const t=clock.elapsedTime;wave.current.forEach((m,i)=>{if(m)m.rotation.y=Math.sin(t*2+i)*0.25})});
+  useFrame(({clock})=>{const t=clock.elapsedTime;wave.current.forEach((m,i)=>{if(m){m.rotation.y=Math.sin(t*2.2+i)*0.35;m.scale.x=0.9+Math.sin(t*3+i*1.3)*0.1}})});
+  const board=useMemo(boardTex,[]);useEffect(()=>()=>board.dispose(),[board]);
+  const team=flags.length?flags:['#c44b3b','#3f6fa8','#d9a441','#4f8a5b'];
+  // the stands: an arc from +40° round to the far side and back to -40° (the gap faces the path at -z)
+  const OPEN=0.75,arc=(n:number)=>Array.from({length:n},(_,k)=>-Math.PI/2+OPEN+k*(Math.PI*2-2*OPEN)/(n-1));
   return <OnGround x={p.x} z={p.z}><group onClick={click(onPick)} name="plaza">
-    <mesh rotation-x={-Math.PI/2} position-y={0.04} receiveShadow><circleGeometry args={[3.6,40]}/><meshBasicMaterial color={M().paving}/></mesh>
-    <mesh rotation-x={-Math.PI/2} position-y={0.05}><ringGeometry args={[3.45,3.6,48]}/><meshBasicMaterial color={M().stone}/></mesh>
-    {flags.map((c,i)=>{const a=i/flags.length*Math.PI*2,r=2.9,x=Math.cos(a)*r,z=Math.sin(a)*r,h=i===me?3:2.4;
-      return <group key={i} position={[x,0,z]}>
-        <mesh position-y={h/2} castShadow><cylinderGeometry args={[0.035,0.045,h,6]}/>{S('#6c5b53')}</mesh>
-        <mesh ref={el=>{wave.current[i]=el}} position={[0,h-0.3,0.38]}><boxGeometry args={[0.04,0.5,0.8]}/>{S(c)}</mesh>
-        {i===me&&<mesh position-y={h+0.08}><sphereGeometry args={[0.08,10,8]}/><meshStandardMaterial color="#ffe08a" emissive="#ffb400" emissiveIntensity={1.4} toneMapped={false}/></mesh>}
+    {/* the pitch, its lines, the track round it */}
+    <mesh rotation-x={-Math.PI/2} position-y={0.03} receiveShadow><circleGeometry args={[2.6,48]}/><meshStandardMaterial color="#b5543e" roughness={1}/></mesh>
+    <mesh rotation-x={-Math.PI/2} position-y={0.04} receiveShadow><circleGeometry args={[2.15,48]}/><meshStandardMaterial color="#5fa548" roughness={1}/></mesh>
+    {Array.from({length:6},(_,k)=><mesh key={k} rotation-x={-Math.PI/2} position-y={0.045}><ringGeometry args={[0.3+k*0.31,0.45+k*0.31,48]}/><meshStandardMaterial color="#6db24f" roughness={1}/></mesh>)}
+    <mesh rotation-x={-Math.PI/2} position-y={0.05}><ringGeometry args={[0.5,0.56,40]}/><meshBasicMaterial color="#f4f4ee"/></mesh>
+    <mesh rotation-x={-Math.PI/2} position-y={0.05}><planeGeometry args={[4.1,0.05]}/><meshBasicMaterial color="#f4f4ee"/></mesh>
+    <mesh rotation-x={-Math.PI/2} position-y={0.05}><ringGeometry args={[2.08,2.13,64]}/><meshBasicMaterial color="#f4f4ee"/></mesh>
+    {[2.3,2.45].map(r=><mesh key={r} rotation-x={-Math.PI/2} position-y={0.035}><ringGeometry args={[r,r+0.02,64]}/><meshBasicMaterial color="#f2d7c8"/></mesh>)}
+    {/* three tiers of benches, sections in the group's colours */}
+    {[0,1,2].map(tier=>arc(26).map((a,k)=>{const r=2.95+tier*0.42,y=0.18+tier*0.3;const c=team[Math.floor(k/5)%team.length];
+      return <group key={tier+'-'+k} position={[Math.cos(a)*r,0,Math.sin(a)*r]} rotation-y={-a+Math.PI/2}>
+        <mesh position-y={y/2} castShadow receiveShadow><boxGeometry args={[0.6,y,0.4]}/>{S('#d9d2c4')}</mesh>
+        <mesh position-y={y+0.04}><boxGeometry args={[0.56,0.08,0.3]}/>{S(c)}</mesh></group>}))}
+    {/* the rim wall behind the top tier */}
+    {arc(26).map((a,k)=><mesh key={'w'+k} position={[Math.cos(a)*4.25,0.55,Math.sin(a)*4.25]} rotation-y={-a+Math.PI/2} castShadow><boxGeometry args={[0.62,1.1,0.12]}/>{S('#a77d58')}</mesh>)}
+    {/* a flag per group member on the rim (mine taller, with a gold star) */}
+    {team.map((c,i)=>{const a=arc(team.length+2)[i+1],r=4.25,h=i===me?2.8:2.3;
+      return <group key={'f'+i} position={[Math.cos(a)*r,0,Math.sin(a)*r]}>
+        <mesh position-y={h/2} castShadow><cylinderGeometry args={[0.035,0.045,h,6]}/>{S('#d9d2c4')}</mesh>
+        <mesh ref={el=>{wave.current[i]=el}} position={[0,h-0.28,0.36]}><boxGeometry args={[0.03,0.46,0.72]}/>{S(c)}</mesh>
+        {i===me&&<mesh position-y={h+0.1}><sphereGeometry args={[0.09,10,8]}/><meshStandardMaterial color="#ffe08a" emissive="#ffb400" emissiveIntensity={1.4} toneMapped={false}/></mesh>}
       </group>})}
-    {/* the notice board: this week's ranking */}
-    <group position={[0,0,0]}>
-      {[-0.7,0.7].map(x=><mesh key={x} position={[x,0.8,0]} castShadow><cylinderGeometry args={[0.06,0.07,1.6,8]}/>{S('#6c5b53')}</mesh>)}
-      <mesh position={[0,1.35,0]} castShadow><boxGeometry args={[1.8,1.1,0.08]}/>{S('#a77d58')}</mesh>
-      <mesh position={[0,1.35,0.05]}><planeGeometry args={[1.6,0.9]}/>{S('#f4eedf')}</mesh>
-      {[0,1,2,3].map(i=><mesh key={i} position={[-0.1,1.66-i*0.2,0.06]}><planeGeometry args={[1.1-i*0.12,0.05]}/>{S(i===0?'#b8372b':'#5c5447')}</mesh>)}
+    {/* four floodlight towers */}
+    {[0.25,0.75,1.25,1.75].map(f=>{const a=f*Math.PI,x=Math.cos(a)*4.7,z=Math.sin(a)*4.7;
+      return <group key={f} position={[x,0,z]} rotation-y={-a-Math.PI/2}>
+        <mesh position-y={1.9} castShadow><cylinderGeometry args={[0.06,0.1,3.8,8]}/>{S('#7a8088')}</mesh>
+        <mesh position={[0,3.85,0.1]} rotation-x={-0.4}><boxGeometry args={[0.7,0.45,0.1]}/>{S('#5c626a')}</mesh>
+        {[-0.2,0,0.2].map(dx=>[0.1,-0.1].map(dy=><mesh key={dx+'-'+dy} position={[dx,3.85+dy,0.16]} rotation-x={-0.4}><circleGeometry args={[0.07,12]}/><meshBasicMaterial color="#fffbe0" toneMapped={false}/></mesh>))}
+      </group>})}
+    {/* the scoreboard on the far side */}
+    <group position={[0,0,4.55]} rotation-y={Math.PI}>
+      {[-0.95,0.95].map(x=><mesh key={x} position={[x,1.3,0]} castShadow><boxGeometry args={[0.14,2.6,0.14]}/>{S('#5c626a')}</mesh>)}
+      <mesh position={[0,2.35,0]} castShadow><boxGeometry args={[2.3,1.2,0.14]}/>{S('#2a2f36')}</mesh>
+      <mesh position={[0,2.35,0.08]}><planeGeometry args={[2.1,1.05]}/><meshBasicMaterial map={board} toneMapped={false}/></mesh>
     </group>
-    <mesh position-y={1.2} visible={false}><cylinderGeometry args={[3.6,3.6,2.6,16]}/></mesh>
+    {/* the entrance arch with bunting, toward the path */}
+    <group position={[0,0,-3.3]}>
+      {[-0.9,0.9].map(x=><mesh key={x} position={[x,1.1,0]} castShadow><boxGeometry args={[0.22,2.2,0.22]}/>{S('#a77d58')}</mesh>)}
+      <mesh position={[0,2.3,0]} castShadow><boxGeometry args={[2.3,0.36,0.26]}/>{S('#4f6b5a')}</mesh>
+      {Array.from({length:9},(_,k)=><mesh key={k} position={[-0.8+k*0.2,1.98-Math.sin(k/8*Math.PI)*0.12,0.02]} rotation-z={Math.PI}><coneGeometry args={[0.07,0.16,3]}/>{S(team[k%team.length])}</mesh>)}
+    </group>
+    <mesh position-y={1.2} visible={false}><cylinderGeometry args={[4.4,4.4,2.6,16]}/></mesh>
   </group></OnGround>;
 }
 
 // 오락실 (피드백 2026-11-24 "왼쪽 리그광장 오른쪽 오락실", a teammate's model): over the bridge, right of the split, its
 // door turned to the path. The file is 1 wide, 0.49 high, 0.91 deep (steps and stones in front); ARCADE_SIZE scales it.
 export const ARCADE_SIZE=5.2;
-export function ArcadeHouse({onPick}:{onPick:()=>void}){
+export function ArcadeHouse({onPick,night=0}:{onPick:()=>void;night?:number}){
   const p=PLACES.find(x=>x.id==='arcade')!;
   const {scene}=useGLTF(MODELS.arcade);
   const obj=useMemo(()=>{const o=scene.clone(true);o.traverse(c=>{const m=c as THREE.Mesh;if(m.isMesh){m.castShadow=true;m.receiveShadow=true;
     const mat=m.material as THREE.MeshPhysicalMaterial;if(mat&&'transmission' in mat){mat.transmission=0;mat.thickness=0}}});return o},[scene]);
-  return <OnGround x={p.x} z={p.z} rot={p.rot}><group onClick={click(onPick)} name="arcade">
+  return <><OnGround x={p.x} z={p.z} rot={p.rot}><group onClick={click(onPick)} name="arcade">
     <primitive object={obj} scale={ARCADE_SIZE} position-y={-0.03}/>
     <mesh position={[0,1.4,-0.2]} visible={false}><boxGeometry args={[5.2,2.8,4.2]}/></mesh>
-  </group></OnGround>;
+    {/* 피드백 2026-11-26 "오락실도 밤되면 너무 어두워": light spills out the front (pink and blue like the screens inside) */}
+    <pointLight position={[0,1.6,3]} color="#ff7ad9" intensity={night*7} distance={7} decay={1.6}/>
+    <group position={[0,0,3]}><GlowPool r={3} color="#c46bff" k={night*0.8}/></group>
+  </group></OnGround>
+  <ArcadeNeon night={night}/></>;
 }
 useGLTF.preload(MODELS.arcade);
+// a neon sign by the arcade's path: "오락실" in pink tubes with a blue border, a row of chasing bulbs, on two posts
+function neonTex(){const c=document.createElement('canvas');c.width=512;c.height=220;const g=c.getContext('2d')!;
+  g.fillStyle='#1b1030';g.beginPath();g.roundRect(6,6,500,208,34);g.fill();
+  g.lineWidth=10;g.strokeStyle='#49c9ff';g.shadowColor='#49c9ff';g.shadowBlur=24;g.beginPath();g.roundRect(20,20,472,180,26);g.stroke();
+  g.font='bold 118px "Jua",sans-serif';g.textAlign='center';g.textBaseline='middle';g.shadowColor='#ff4fc8';g.shadowBlur=30;g.fillStyle='#ff9be3';g.fillText('오락실',256,104);
+  g.shadowBlur=0;g.font='bold 30px "Jua",sans-serif';g.fillStyle='#ffe066';g.fillText('★ GAME ★',256,178);
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
+function ArcadeNeon({night}:{night:number}){
+  const p=PLACES.find(x=>x.id==='arcade')!,tex=useMemo(neonTex,[]),bulbs=useRef<(THREE.MeshStandardMaterial|null)[]>([]);
+  useEffect(()=>()=>tex.dispose(),[tex]);
+  useFrame(({clock})=>{const t=Math.floor(clock.elapsedTime*6);bulbs.current.forEach((m,i)=>{if(m)m.emissiveIntensity=((i+t)%3===0?2.6:0.5)*(0.35+night)})});
+  // beside the walk point, on the side away from the path, turned to face the way in
+  const dx=p.walk.x-p.x,dz=p.walk.z-p.z,d=Math.hypot(dx,dz)||1,x=p.walk.x+dx/d*0.6-dz/d*1.9,z=p.walk.z+dz/d*0.6+dx/d*1.9,rot=Math.atan2(dx,dz);
+  return <OnGround x={x} z={z} rot={rot}><group name="arcade-neon">
+    {[-0.85,0.85].map(sx=><mesh key={sx} position={[sx,0.9,0]} castShadow><cylinderGeometry args={[0.05,0.06,1.8,8]}/><meshStandardMaterial color="#2c2540"/></mesh>)}
+    <mesh position={[0,1.95,0.02]}><planeGeometry args={[2.0,0.86]}/><meshStandardMaterial map={tex} emissiveMap={tex} emissive="#ffffff" emissiveIntensity={0.35+night*1.3} toneMapped={false} side={THREE.DoubleSide}/></mesh>
+    {Array.from({length:12},(_,i)=><mesh key={i} position={[-0.92+i*(1.84/11),2.48,0.03]}><sphereGeometry args={[0.045,8,6]}/>
+      <meshStandardMaterial ref={m=>{bulbs.current[i]=m}} color="#fff1b0" emissive="#ffd447" toneMapped={false}/></mesh>)}
+    <Halo at={[0,1.95,0.4]} size={3.2} color="#ff6bd6" k={night*0.7}/>
+    <GlowPool r={2.4} color="#ff6bd6" k={night*0.8}/>
+  </group></OnGround>;
+}

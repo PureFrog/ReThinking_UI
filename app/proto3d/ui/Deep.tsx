@@ -24,7 +24,7 @@ function RealDeep({holding,row,onClose}:{holding:Holding;row:HoldingVerdict|null
 }
 
 export function DeepSheet({holding,health,row,onClose}:{holding:Holding;health:Health;row?:HoldingVerdict|null;onClose:()=>void}){
-  if(holding.real&&!holding.virtual)return <RealDeep holding={holding} row={row??null} onClose={onClose}/>;
+  if(holding.real||holding.virtual)return <RealDeep holding={holding} row={row??null} onClose={onClose}/>;
   const rows=rootRows(health),{main,extra}=rootsSay(health),vars={name:holding.name,f:health.fscore,o:health.ohlson,d:health.debt};
   const text=say(LINES.roots[main],holding.id,vars)+(extra?' '+say(LINES.roots[extra],holding.id,vars):'');
   return <Sheet kicker="재무 체력" title={holding.name} label="재무 체력" onClose={onClose} compact>

@@ -86,12 +86,13 @@ export const doorOpen=(d:DeskState)=>d!=='quiz'&&d!=='quiz-first';
 // what 보리 says as you look up (no advice, no calls on prices)
 export function boriLine(d:DeskState,o:{first:boolean;level:number;caseStatus:CaseStatus|null;started?:boolean}):string{
   switch(d){
-    case 'quiz':return o.first?`흐음~ 왔구나. 오늘 문서 ${N()} 장이야. 좀 맛있는 문제야. 한 장씩 같이 보자.`:o.started?'아까 하던 데서부터 이어 보자. 다음 장 올려 둘게.':`흐음~ 왔구나. 오늘 문제는 좀 맛있어. 문서 ${N()} 장 가져왔어.`;
-    case 'locked-done':return '오늘 수업 끝! 졸지 않고 잘 봤어. 마을 일은 보리한테 물어봐.';
-    case 'unlocked':return '이제 네가 직접 살펴볼 사건이 있어. 펼쳐 볼래?';
-    case 'quiz-first':return o.started?'남은 문서부터 마저 보자. 사건철은 그다음이야.':'문서부터 보자. 사건철은 그다음에 펼칠게.';
-    case 'case':return o.caseStatus==='open'?'어제 접어 둔 데서부터 이어 보자. 책갈피 끼워 뒀어.':'오늘 사건철이야. 펼쳐 볼래, 아니면 밖에 먼저 나갈래?';
-    case 'day-done':return '오늘 할 건 다 했어. 밖에 나가 볼까?';
+    // 피드백 2026-11-25: plain, short lines (no "맛있는 문제", no errands for 보리)
+    case 'quiz':return o.started?'하던 데서 이어서 풀자.':`왔구나. 오늘 퀴즈는 ${N()} 문제야.`;
+    case 'locked-done':return '오늘 퀴즈 끝! 문 열어 뒀어.';
+    case 'unlocked':return '풀어 볼 사건이 하나 있어. 펼쳐 볼래?';
+    case 'quiz-first':return o.started?'남은 문제부터 풀자. 사건철은 그다음이야.':'퀴즈부터 풀자. 사건철은 그다음이야.';
+    case 'case':return o.caseStatus==='open'?'어제 보던 사건철, 이어서 볼래?':'오늘 사건철이야. 펼쳐 볼래?';
+    case 'day-done':return '오늘 할 건 다 했어.';
   }
 }
 // the lock plate on the drawer handle: the exact level, from the same setting the check reads

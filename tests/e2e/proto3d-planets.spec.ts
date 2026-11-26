@@ -19,7 +19,7 @@ test("from the map up to the sky: tags, a visit that hides names unless opened, 
   await V.more(page, "sky");
   const view = page.getByTestId("sky");
   await expect(view).toBeVisible();
-  await expect(view).toContainText("예시 데이터 · 서버 연결 전");
+  await expect(view).toContainText("예시 화면 · 실제 유저 연결은 준비 중");
   await expect.poll(async () => (await sky(page))?.planets ?? 0).toBe(8);
   // a neighbour who keeps names hidden: sectors only (the tags ride on drifting planets, so they are pressed as events)
   await view.getByRole("button", { name: "북쪽창의 정원" }).dispatchEvent("click");

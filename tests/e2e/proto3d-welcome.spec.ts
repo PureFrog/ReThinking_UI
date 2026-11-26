@@ -46,7 +46,7 @@ test("sign up: the landing, the checks, then my holdings and the teacher's room"
   // where 선생님 hands over the first quiz paper
   await start.getByRole("button", { name: "예시 정원으로 시작" }).click();
   await page.locator(".rt-skip-layer").click({ timeout: 8_000 }).catch(() => {});
-  await expect(page.getByRole("dialog", { name: "선생님" })).toContainText("나는 이 방의 선생님이야", { timeout: 60_000 });
+  await expect(page.getByRole("dialog", { name: "선생님" })).toContainText("나는 선생님이야", { timeout: 60_000 });
   expect(errors).toEqual([]);
 });
 
