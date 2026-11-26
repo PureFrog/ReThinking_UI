@@ -18,6 +18,6 @@ test("each place's walk point is outside every wall", () => {
 
 test('bought buildings and landmarks become walls', () => {
   // house, library, the two shops, 거장의 집, 오락실 + 4 rocks, 4 boards/stalls, 22 stand blocks (2026-11-26)
-  const base=P.solids({land:[],buildings:[],cities:[]}).length;assert.equal(base,36+P.LAMP_AT.length+1);// + the campfire
+  const base=P.solids({land:[],buildings:[],cities:[]}).length;assert.equal(base,36+P.LAMP_AT.length+1+P.FIRE_DECOR.length);// + the campfire and what stands round it
   assert.equal(P.solids({land:[],buildings:['silo'],cities:['paris']}).length,base+2);
 });

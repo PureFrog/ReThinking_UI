@@ -66,7 +66,7 @@ export const expeditionRepo:ExpeditionRepo=localExpeditions;
 
 // 다른 정원들 (docs/planets.md): the neighbours' planets for my league group, and where my own planet summary goes.
 // Only core/planets.ts wireOf(...) ever leaves the device. Local: example neighbours, always labelled.
-import {examplePlanets,wireOf,type Planet} from '../core/planets';
+import {examplePlanets,demoNeighbours,wireOf,type Planet} from '../core/planets';
 export type PlanetRepo={neighbours(week:string):Promise<{planets:Planet[];sample:boolean}>;publish(me:Planet|null):Promise<void>};
 export const localPlanets:PlanetRepo={async neighbours(week){return {planets:examplePlanets(week),sample:true}},async publish(){}};
 export function supabasePlanets(url:string,anonKey:string,token:()=>string|null):PlanetRepo{
@@ -80,7 +80,10 @@ export function supabasePlanets(url:string,anonKey:string,token:()=>string|null)
 }
 // the real neighbours (every invited player who shares a planet) when signed in with an invite code, else the examples
 export const planetRepo:PlanetRepo={
-  async neighbours(week){const p=await livePlanets();return p?{planets:p,sample:false}:localPlanets.neighbours(week)},
+  async neighbours(week){
+    // ?skydemo: example players in the real-player look (online/offline, a closed planet), no server needed
+    if(typeof location!=='undefined'&&new URLSearchParams(location.search).has('skydemo'))return {planets:demoNeighbours(Date.now()),sample:false};
+    const p=await livePlanets();return p?{planets:p,sample:false}:localPlanets.neighbours(week)},
   async publish(me){await publishPlanet(me)},
 };
 

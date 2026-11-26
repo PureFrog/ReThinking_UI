@@ -551,14 +551,17 @@ test("my observer's stage: dress up, see my record and stamps, back to the garde
   await expect(me).toContainText("새벽");
   // a locked piece says how; an open one is put on and saved
   await me.getByRole("button", { name: "모자" }).click();
-  await expect(me.getByRole("button", { name: /헤드램프/ })).toContainText("확신 5 적중");
+  await expect(me.locator(".rt-me-tile").filter({ hasText: "헤드램프" })).toContainText("확신 5 적중");
   await me.getByRole("button", { name: /^없음/ }).click();
   await me.getByRole("button", { name: "색" }).click();
   await me.getByRole("button", { name: /먹/ }).click();
   const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem("rethink-garden-v1")!));
   await expect.poll(async () => (await saved()).look).toMatchObject({ hat: null, palette: "ink" });
   // (since 2026-11-22 내 프로필 is the wardrobe only: its title, no tabs; the record lives in the notebook's 이전 판단)
-  await expect(me.getByRole("heading", { name: "옷 갈아입기" })).toBeVisible();
+  await expect(me.getByRole("heading", { name: /옷 갈아입기/ })).toBeVisible();
+  // 피드백 2026-11-26: clothes are bought only at the clothes shop; the wardrobe has no 구매 button
+  await me.getByRole("button", { name: "겉옷", exact: true }).click();
+  await expect(me.getByRole("button", { name: /^구매$/ })).toHaveCount(0);
   await expect(me.getByRole("tab")).toHaveCount(0);
   expect((await saved()).stamps.map((s: { id: string }) => s.id)).toContain("first-judgment");
   await me.getByRole("button", { name: "닫기" }).click();

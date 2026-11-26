@@ -32,7 +32,7 @@ import {boriChat} from '../core/bori-chat';
 import {debateChat} from '../core/debate-chat';
 import {missingConsents,boriTalk,boriOpen,stockSignal,jigiAI,readCapture,hasInvite,isMaster,observatoryServer,type BoriLine} from './supabase';
 import {searchNames,loadRealBars,loadMarket,loadVirtualBars,fixturePrices,type PriceFixture} from './prices';
-import {rowFor} from '../core/model-signals';
+import {rowFor,luonOpener} from '../core/model-signals';
 import {loadModelSignals,fixtureModelSignals,type ModelSignalFixture} from './model-signals';
 import {RealEntry,type RealPrices} from './ui/RealEntry';
 import {refreshed} from '../core/real';
@@ -66,12 +66,13 @@ import {useGarden,workOf,weekWorkOf} from './state';
 import {Briefing,Grades,CaseView,LookBack,RewindView,type LookbackPick} from './ui/Loop';
 import {paidLeft} from '../core/rewind';
 import {todayQuests,dayDone,QUEST_LABEL,type QuestId} from '../core/today';
+import {ShootingStars,keepWish,wishesMade,WISH_LINES,WISH_MS} from './ui/ShootingStars';
 import {didList,markDid} from '../core/did';
 import {viewWeather,viewHour} from './viewPrefs';
 import {mondayOf,weekOver,weekResult,WEEKLY_COINS} from '../core/challenge';
 import {indexWeek} from '../content/market';
 // 피드백 2026-11-26 물가 맞추기: a quest 2,000원 (the three together still close the day, EARN.dayDone); the arcade up to 30,000원 a day
-const QUEST_COINS=2_000,ARCADE_DAY_CAP=30_000;
+const QUEST_COINS=2_000,ARCADE_DAY_CAP=30_000,WISH_COINS=1_000;
 // 피드백 2026-11-26 "오늘의 퀘스트 끝내면 애니메이션 + 효과음과 함께 코인 보상": a card pops (sound), coins fly to the purse
 const qwinQueue:{label:string;coins:number;all:boolean}[]=[];let qwinBusy=false;
 function questWinShow(label:string,coins:number,all:boolean){qwinQueue.push({label,coins,all});if(!qwinBusy)qwinNext()}
@@ -140,7 +141,8 @@ const OUTSIDE=VILLAGERS.filter(v=>!(SHOP_IDS as string[]).includes(v.id));
 const isShop=(id:string):id is ShopId=>(SHOP_IDS as string[]).includes(id);
 
 const ROOM_TOUR=['흐음~ 다시 왔구나! 첫 퀴즈 다음부터 집은 이렇게 방으로 보여. 나는 책상 뒤에 있을게. 나를 누르면 지금까지 푼 퀴즈랑 해설을 다시 볼 수 있고, 오늘 퀴즈도 거기서 풀러 가.',
-  '옆 책장엔 네 투자일지가 종목마다 책으로 꽂혀. 일지는 마을 도서관 사서한테 쓰고, 여기서도 책장을 누르면 펼쳐 볼 수 있어.'];
+  // 피드백 11-26: the shelf is the wardrobe now
+  '옆 옷장에선 산 옷을 골라 입을 수 있어. 투자일지는 마을 도서관 사서한테 가면 쓰고 펼쳐 볼 수 있어.'];
 // the first lesson done (ui/House.tsx keeps its day): from then on the house is the room seen from outside (3인칭)
 const lessonDone=()=>{try{return !!localStorage.getItem('rethink-lesson-v1')}catch{return false}};
 import {SHOP_IDS,SHOP_DOOR,type ShopId} from './Shop3D';
@@ -328,6 +330,10 @@ export default function Proto3D(){
     setMinutes(at());const t=setInterval(()=>setMinutes(at()),20000);return()=>clearInterval(t)},[viewTick]);
   // my observer's page (ui/MyPage.tsx): the garden is put away for the stage while it is open
   const [me,setMe]=useState(false);
+  // 피드백 2026-11-26 "옷은 옷 가게에서만 사야 돼": the tailor opens the wardrobe as his shop (구매 there); the room's
+  // 옷장 and a tap on me only change what I wear
+  const [meShop,setMeShop]=useState(false);
+  useEffect(()=>{if(!me)setMeShop(false)},[me]);
   // inside the house (Interior3D.tsx): a paper-coloured fade covers the swap between the garden and the room
   const [inside,setInside]=useState(false),[fading,setFading]=useState(false);
   // the room's first visit (after the first walk): the teacher, then the librarian, say what each is for (tips 'room')
@@ -506,7 +512,7 @@ export default function Proto3D(){
   const markHeard=(id:string)=>{const h=hear(loadHouse(),id);saveHouse(h);setHeard(h.heard)};
   const boriOpening=useCallback(async():Promise<BoriLine|null>=>{const today=clock.today,c=openedRef.current;
     if(!syncOn&&!testOpen){if(!lossNow||!lossHolding)return null;markHeard(lossNow.id);setAskedAbout(codeOf(lossHolding));
-      return {text:`${lossHolding.name}에서 위험 신호가 잡혔어${lossHolding.real?'':' (예시 신호)'}. 지금도 이 종목을 보유하는 이유가 뭐야?`,emotion:'concerned'}}
+      return {text:`${lossHolding.name}에서 위험 신호가 잡혔어. 지금도 이 종목을 보유하는 이유가 뭐야?`,emotion:'concerned'}}
     if(c&&c.day===today)return {text:c.text,emotion:c.emotion??'curious'};
     // (the e2e stand-in answers with a plain line)
     const t=testOpen?await testOpen(lossCodes).then(x=>x?{text:x,emotion:'curious'}:null):await boriOpen(boriHoldings,lossCodes);
@@ -547,7 +553,8 @@ export default function Proto3D(){
   const rank=rankOf(xpOf({graded:s.graded.length,cases:s.cases.length,rewinds:s.rewinds.length,work:workOf(s)}));
   useEffect(()=>{if(rank.index>s.rankSeen)g.ops.rankUp(rank.index,rank.name)},[rank.index,s.rankSeen]);// eslint-disable-line react-hooks/exhaustive-deps
   const goTask=(t:QuestId)=>{if(t==='quiz'){setSheet(null);enterHouse();return}if(t==='fish'){setSheet(null);setGoTo({...FISH_STAND,at:Date.now()});setFish('talk');return}
-    if(t==='news'){setSheet({kind:'comm',tab:'news'});return}if(t==='vbuy'){setSheet({kind:'comm',tab:'order'});return}if(t==='chart'){setSheet({kind:'comm',tab:'quote'});return}
+    // 피드백 11-26 "상인한테만 가야 모의투자를 볼 수 있게": these quests walk me to the merchant
+    if(t==='news'||t==='vbuy'||t==='chart'){setSheet(null);onVillager('merchant');return}
     if(t==='master'){setSheet(null);world.onLandmark('master');return}if(t==='arcade'){setSheet(null);world.onLandmark('arcade');return}
     if(t==='fire'){setSheet(null);(window as unknown as {__proto3d?:{sitFire?:()=>void}}).__proto3d?.sitFire?.();return}
     if(t==='pet'){setSheet(null);g.say('마을의 고양이나 강아지를 눌러 봐. 집에도 고양이가 있어.');return}
@@ -724,7 +731,7 @@ export default function Proto3D(){
     if(walkStep==='farmer'&&!walk.planted){setVt({id:'farmer',phase:'talk',stand:meNow(),at:villager('farmer')});return}startBirth(ids,first&&s.seen.birth===0,first?afterFirst:undefined)};
   const tourNext=()=>{if(tourN>=tour.length-1){g.ops.tipDone('tour');setTourN(0);return}setTourN(n=>n+1)};
   const tourAct=(go:'journal'|'shop'|'quests')=>{tourNext();if(go==='journal'){const t=holdings[0];if(t)openTree(t.id);else setSheet({kind:'journal'})}
-    else if(go==='shop')setSheet({kind:'comm',tab:'order'});else setSheet({kind:'today'})};
+    else if(go==='shop'){setSheet(null);onVillager('merchant')}else setSheet({kind:'today'})};
   // ── 유저 워크플로우 (PM 2026-11-21, core/walk.ts, content/villagers.ts) ──────────────────────────────────────────
   // The village's people: tapped from afar, I walk up to them first (nothing is said on the way); standing in front of
   // them, we turn to each other and the camera goes to my eyes on their face, then the talk opens. Walking off or a
@@ -742,6 +749,13 @@ export default function Proto3D(){
   const petDo=(act:PetAct)=>{if(!pet)return;markDid(clock.today,'pet');const P=PETS[pet];petAct(pet,act);cue('heart');
     const key=`pet:${pet}:${act}:${clock.today}`,got=!(s.grants??[]).includes(key);if(got)g.ops.grant(key,PET_COINS[act]);
     g.say((act==='pet'?P.petLine:P.treatLine)+(got?` 코인 +${PET_COINS[act].toLocaleString()}`:''));setPet(null)};
+  // 피드백 2026-11-26 "간단하게": the wish is a tap on the star; 보리 says it for me (its bubble, a few seconds), I put my
+  // hands together (Scene3D Player, rt-wish), a star goes into the jar at home (Interior3D StarJar); the day's first pays
+  const [wishLine,setWishLine]=useState<string|null>(null);
+  const onWish=()=>{const line=WISH_LINES[wishesMade().length%WISH_LINES.length];keepWish(clock.today,line);cue('sun-pieces');dispatchEvent(new CustomEvent('rt-wish'));
+    setWishLine(line);window.setTimeout(()=>setWishLine(l=>l===line?null:l),WISH_MS);((window as {__proto3d?:{wishLine?:string}}).__proto3d??={}).wishLine=line/* e2e */;
+    const key=`wish:${clock.today}`,got=!(s.grants??[]).includes(key);if(got)g.ops.grant(key,WISH_COINS);
+    g.say('별 유리병에 별이 하나 늘었어요'+(got?` · 코인 +${WISH_COINS.toLocaleString()}`:''))};
   const nearDoor=(id:PlaceId)=>{const w=place(id).walk,me=meNow();return Math.hypot(me.x-w.x,me.z-w.z)<=LOOK.doorReach};
   const merchantOpen=merchantHere(minutes);
   const goalOf=(st:WalkStep|null)=>{const who=st?PERSON_OF[st]:null;return st==='fisher'?{x:NARU.x,z:NARU.z}:who&&isShop(who)?SHOP_DOOR[who]:who?villager(who as VillagerId):null};
@@ -794,7 +808,11 @@ export default function Proto3D(){
           // the first walk's buy: planted before the eyes, then the merchant says what comes next
           if(r.ok&&walkStep==='merchant'){const lot=r.lot;putWalk(w=>({...w,freeTree:lot.id}));setSheet(null);setVt(null);cue('plant');
             startBirth([VIRTUAL_ID+lot.id],false,()=>setVt({id:'merchant',phase:'talk',stand:meNow(),at:villager('merchant'),stage:'planted'}));return null}
-          if(r.ok){cue('capsule-mark');return `${name} ${n}주를 샀어요. 가상 밭에 심었어요.`}
+          // 피드백 2026-11-26 "튜토리얼 이후엔 나무 생성되는 과정이 안 보여": a new stock is planted before the eyes as on the
+          // first walk (the app closes, the sapling comes up, the merchant says so); more of one I have just grows its tree
+          if(r.ok&&!(s.virtual??[]).some(l=>l.code===code)){const lot=r.lot;setSheet(null);setVt(null);cue('plant');
+            startBirth([VIRTUAL_ID+lot.id],false,()=>setVt({id:'merchant',phase:'talk',stand:meNow(),at:villager('merchant'),stage:'planted'}));return null}
+          if(r.ok){cue('capsule-mark');return `${name} ${n}주를 더 샀어요. 나무가 자라요.`}
           return r.why==='coins'?`코인이 ${won(r.need??0)} 모자라요`:r.why==='room'?'가상 밭에 빈칸이 없어요':'지금은 살 수 없어요'};
   // 피드백 2026-11-26 (B. 연습 과수원): first steps with a reward each, shown in the 통신기's 잔고
   const flag=(k:string)=>{try{return !!localStorage.getItem('rethink-mis-'+k)}catch{return false}},setFlag=(k:string)=>{try{localStorage.setItem('rethink-mis-'+k,'1')}catch{/* this visit */}};
@@ -903,19 +921,23 @@ export default function Proto3D(){
           choices:[{label:'팔 수량 정하기',go:()=>setSheet({kind:'harvest'})}]};
       }
       if(st==='loaded')return {name:'농부',line:'수레에 실었어. 다음 거래일 장 끝나면 코인이 들어와.',choices:[{label:'알겠어',go:talkOver}]};
-      return {name:'농부',line:'뭘 도와줄까?',
+      return {name:'농부',line:'뭘 도와줄까? 내 종목 밭을 고치거나, 가상 나무를 따서 팔아 줄게.',
         choices:[{label:'내 종목 고치기',go:()=>{talkOver();setSheet({kind:'onboard'})}},{label:'가상 종목 팔기',go:()=>setSheet({kind:'harvest'})}]};
     }
     if(t.id==='merchant'){
       // 피드백 2026-11-26 "가상 종목 추가가 불가능": out of hours the stall still takes an order through the 통신기
-      if(!merchantOpen)return {name:'보리',line:walkStep==='merchant'?`상인은 ${nextOpenLabel(minutes)}에 와. 그동안 신문 배달부터 만나 볼까?`:`상인은 ${nextOpenLabel(minutes)}에 와. 주문은 지금 통신기로 넣어 둘 수 있어.`,
+      if(!merchantOpen)return {name:'보리',line:walkStep==='merchant'?`상인은 ${nextOpenLabel(minutes)}에 와. 그동안 신문 배달부터 만나 볼까?`:`상인은 ${nextOpenLabel(minutes)}에 와. 모의투자는 그때 상인한테 와서 하면 돼.`,
         choices:walkStep==='merchant'?[{label:'신문 배달 먼저',go:()=>{talkOver();putWalk(w=>({...passStep(passStep(w,'merchant'),'sell'),merchantWait:true}))}}]
-          :[{label:'통신기로 주문',go:()=>{setVt(null);setSheet({kind:'comm',tab:'order'})}},{label:'알겠어',go:talkOver}]};
-      if(st==='planted')return {name:'상인',line:'심었어! 가상 나무 값은 실제 주가를 따라가. 팔 땐 농부한테 가면 돼.',
-        choices:[{label:walkStep==='merchant'?'농부한테 가기':'고마워',go:()=>{talkOver();if(walkStep==='merchant')pass('merchant');else putWalk(w=>({...w,merchantWait:false}))}}]};
+          :[{label:'알겠어',go:talkOver}]};
+      // 피드백 2026-11-26 "가상 종목 파는 건 상인을 통해서만 가능한 게 이상": 가상 종목은 상인의 모의투자에서 사고팔고,
+      // 농부한테서도 팔 수 있어 (상인이 없는 밤에도). 어디서 팔든 농부가 따서 수레에 실어
+      if(st==='planted')return {name:'상인',line:walkStep==='merchant'?'심었어! 가상 나무 값은 실제 주가를 따라가. 팔 땐 모의투자 매도 탭에서 하거나 농부한테 가면 돼. 이번엔 농부한테 가 보자.'
+          :'심었어! 가상 나무 값은 실제 주가를 따라가. 팔 땐 모의투자 매도 탭이나 농부한테.',
+        choices:walkStep==='merchant'?[{label:'농부한테 가기',go:()=>{talkOver();pass('merchant')}}]
+          :[{label:'더 사기',go:()=>{setVt(null);setSheet({kind:'comm',tab:'order'})}},{label:'고마워',go:()=>{talkOver();putWalk(w=>({...w,merchantWait:false}))}}]};
       const first=!(s.grants??[]).includes('tour');
-      return {name:'상인',line:first?`코인으로 사고파는 건 여기서 해. 시작 코인 ${(START_GRANT/10000).toLocaleString()}만 원 줄게. 오늘 후보 다섯 개 중에 골라 봐.`:'오늘 후보 다섯 개야. 통신기에서 골라 봐.',
-        choices:[{label:first?'코인 받고 통신기 보기':'통신기 받기',go:()=>{if(first)g.ops.grant('tour',START_GRANT);setVt(null);setSheet({kind:'comm',tab:'order'})}},]};
+      return {name:'상인',line:first?`코인으로 사고파는 건 여기서 해. 시작 코인 ${(START_GRANT/10000).toLocaleString()}만 원 줄게. 오늘 후보 다섯 개 중에 골라 봐.`:'오늘 후보 다섯 개야. 모의투자에서 골라 봐.',
+        choices:[{label:first?'코인 받고 모의투자 열기':'모의투자 열기',go:()=>{if(first)g.ops.grant('tour',START_GRANT);setVt(null);setSheet({kind:'comm',tab:'order'})}},]};
     }
     if(t.id==='librarian'){const fs=freeLot?{code:freeLot.code,name:freeLot.name}:holdings[0]?{code:codeOf(holdings[0]),name:holdings[0].name}:null;
       return {name:'사서',line:walkStep==='librarian'?`${fs?`${fs.name} 나무`:'아까 심은 나무'}, 왜 심었는지 한 줄 써 보자.`:'일지 쓰러 왔구나. 펼쳐 볼까?',
@@ -932,7 +954,7 @@ export default function Proto3D(){
         // 피드백 2026-11-22 "튜토리얼 중에 이 화면에서 벗어날 수가 없다": a way out on the first walk too (the stop counts as seen)
         ...(walkStep==='shop-build'?[{label:'다음에 볼게',go:()=>{talkOver();pass('shop-build')}}]:[])]}}
     if(t.id==='tailor')return {name:'옷 상인',line:'옷 구경해 볼래? 산 옷은 너를 누르면 언제든 갈아입을 수 있어.',
-      choices:[{label:'옷 보기',go:()=>{if(walkStep==='shop-wear')afterSheet.current='shop-wear';talkOver();setMe(true)}},...(walkStep==='shop-wear'?[{label:'다음에 볼게',go:()=>{talkOver();pass('shop-wear')}}]:[])]};
+      choices:[{label:'옷 보기',go:()=>{if(walkStep==='shop-wear')afterSheet.current='shop-wear';talkOver();setMeShop(true);setMe(true)}},...(walkStep==='shop-wear'?[{label:'다음에 볼게',go:()=>{talkOver();pass('shop-wear')}}]:[])]};
     return {name:'',line:'',choices:[]};
   };
   // every station done but 보리's last line not answered yet (a reload in between): it is said again
@@ -982,7 +1004,7 @@ export default function Proto3D(){
     onNews:()=>{if(walkOn&&walkStep!=='news'&&walk.step<=WALK_STEPS.indexOf('news')){walkHint();return}onVillager('paperboy')},
     cartPile:pile,merchantOpen,shop,onShop:id=>onVillager(id),
     flags:LEAGUE_FLAGS,myFlag:0,caseOpen:!caseDone,goTo,inside,look,stage:me,light,sky:skyWorld,fp:fp&&!inside,
-    plants:(s.plants??[]).map(p=>({...p,scale:shopPlant(p.item)?.scale??1})),planting:planting&&!sheet?planting:null,placing:placing&&!sheet?placing:null,
+    plants:(s.plants??[]).map(p=>({...p,scale:shopPlant(p.item)?.scale??1})),planting:planting&&!sheet?{...planting,scale:shopPlant(planting.item)?.scale??1}:null,placing:placing&&!sheet?placing:null,
     onPlace:(x,z,why)=>{if(!placing)return;if(why){g.say(why);return}if(g.ops.build({kind:'building',id:placing.id},[x,z])){setPlacing(null);cue('capsule-mark')}},
     onPlant:(x,z,why)=>{if(!planting)return;const it=shopPlant(planting.item);if(!it)return;if(why){g.say(why);return}
       const r=g.ops.plant(it,x,z);if(r==='ok'){g.say(`${it.name} 심었어요 · -${won(it.price)}`);setPlanting(null);cue('capsule-mark')}
@@ -1000,7 +1022,7 @@ export default function Proto3D(){
       notes:capsules.map(c=>({holdingId:c.holdingId,due:c.due})),
       resting:[],
       // 피드백 2026-11-22: the teacher's desk keeps the quizzes I did; the librarian's shelf is the journal
-      people:true,onDesk:()=>setSheet({kind:'quizlog'}),onShelf:()=>setSheet({kind:'journal'}),
+      people:true,onDesk:()=>setSheet({kind:'quizlog'}),onShelf:()=>{setSheet(null);setMe(true)},
       onBoard:()=>{if(g.due.length)setSheet({kind:'grades'});else g.say(capsules.length?line(UI.boardWait,{n:capsules.length}):UI.boardEmpty)},onDoor:()=>swapRoom(false)},
     naru:ready&&!lapse&&!calm&&!inside&&!me&&!skyOpen?{at:NARU,onPick:naruPick}:null,
     fishing:fish==='play'&&bob?{...FISH_AT,phase:bob}:null,
@@ -1026,7 +1048,7 @@ export default function Proto3D(){
 
   // 보리 came over to talk: its line is the only bubble until it is answered
   const boriLine=friendHere&&friendDay!==clock.today&&boriCame?.text?{id:FRIEND.id,text:boriCame.text,alert:true}:null;
-  const bubbles:{id:string;text:string;alert:boolean}[]=boriLine?[boriLine]:[...(friendHere&&friendDay!==clock.today?[{id:FRIEND.id,text:opener.short,alert:false}]:[]),
+  const bubbles:{id:string;text:string;alert:boolean}[]=wishLine&&friendHere?[{id:FRIEND.id,text:wishLine,alert:false}]:boriLine?[boriLine]:[...(friendHere&&friendDay!==clock.today?[{id:FRIEND.id,text:opener.short,alert:false}]:[]),
     ...world.analysts.flatMap(a=>a.bubble?[{id:a.id,...a.bubble}]:[])].filter(b=>b.id===FRIEND.id);
   // the bubbles hold still while the tutorial points at one
   const heldTurn=useRef(0);if(!tutOn)heldTurn.current=turn;
@@ -1066,7 +1088,8 @@ export default function Proto3D(){
   const qNotice=qWaiting&&s.onboarded&&s.observatory?.noticed!==qDay;
   // the notice sits just above the next-task card (its height changes with its text), never on top of it
   // the same moments as the next-task card: not inside the house, not while building, not over a capsule or a jump
-  const showReq=ready&&!quiet&&!walkOn&&qNotice&&!sheet&&!picked&&!inside&&!capFx&&!jump&&!buildMode&&h===undefined,[reqBottom,setReqBottom]=useState<number|null>(null);
+  // 피드백 2026-11-26 "관측소는 UI에 없어야 돼": 오늘의 관측 의뢰 알림 (관측소로 들어가는 마지막 입구) 끔
+  const showReq=false&&ready&&!quiet&&!walkOn&&qNotice&&!sheet&&!picked&&!inside&&!capFx&&!jump&&!buildMode&&h===undefined,[reqBottom,setReqBottom]=useState<number|null>(null);
   useEffect(()=>{if(!showReq)return;
     const f=()=>{const host=document.querySelector('.proto3d'),n=host?.querySelector('.rt-next');
       if(!host||!n){setReqBottom(null);return}const hr=host.getBoundingClientRect(),r=n.getBoundingClientRect();
@@ -1147,23 +1170,21 @@ export default function Proto3D(){
         stocks={[...realShown.map(h=>({code:codeOf(h),name:h.name})),...(s.virtual??[]).map(l=>({code:l.code,name:l.name}))].filter((x,i,a)=>a.findIndex(y=>y.code===x.code)===i)}/>}
       {tourShow&&<Tour step={tourStep} n={tourN} total={tour.length} onNext={tourNext} onAct={tourAct} onSkip={()=>{g.ops.tipDone('tour');setTourN(0)}}/>}
       {tutOn&&<Tutorial trees={holdings.map(x=>x.id)}onDone={then=>{g.ops.tipDone('tutorial');setTutAgain(false);if(then)setSheet({kind:'journal'})}}/>}
-      {inside&&!sheet&&!roomTour&&<RoomTags items={[{k:'room-desk',text:'선생님 · 지난 퀴즈',onClick:()=>setSheet({kind:'quizlog'})},
-        {k:'room-shelf',text:'사서 · 투자일지',onClick:()=>setSheet({kind:'journal'})},
-        // 피드백 2026-11-26 "채점 대기 0이 뭐야": the board holds judgments waiting for their 30·90-day grade; with none it is
-        // just the wall's cork board (no tag)
-        ...(g.due.length||capsules.length?[{k:'room-board',text:g.due.length?`채점 완료 ${g.due.length}`:`채점 기다리는 판단 ${capsules.length}`,alert:g.due.length>0,onClick:()=>g.due.length?setSheet({kind:'grades'}):g.say(line(UI.boardWait,{n:capsules.length}))}]:[]),
+      {inside&&!sheet&&!roomTour&&!me&&<RoomTags items={[{k:'room-desk',text:'선생님 · 지난 퀴즈',onClick:()=>setSheet({kind:'quizlog'})},
+        {k:'room-shelf',text:'옷장 · 옷 갈아입기',onClick:()=>{setSheet(null);setMe(true)}},
+        // 피드백 11-26 "도서관에서 어차피 열람할 수 있으니 방에 채점 판 없애": no cork board, no tag
         {k:'room-door',text:'밖으로',onClick:()=>swapRoom(false)}]}/>}
       {/* 피드백 2026-11-26 "방 UI 통일": every room's way out is the same button, top left */}
-      {inside&&!sheet&&!roomTour&&<button type="button" className="rt-btn vl-shop-back" onClick={()=>swapRoom(false)}>← 밖으로 나가기</button>}
+      {inside&&!sheet&&!roomTour&&!me&&<button type="button" className="rt-btn vl-shop-back" onClick={()=>swapRoom(false)}>← 밖으로 나가기</button>}
       {/* 피드백 2026-11-22: the first time back in, the teacher and the librarian say what they do in here */}
       {inside&&!sheet&&roomTour&&<VillagerTalk key={'room'+roomTour} name={roomTour===1?'선생님':'사서'} who={roomTour===1?'teacher':'librarian'} role={ROLE[roomTour===1?'teacher':'librarian']}
         line={ROOM_TOUR[roomTour-1]} choices={[roomTour===1?{label:'다음',go:()=>setRoomTour(2)}:{label:'알겠어',go:()=>{setRoomTour(0);g.ops.tipDone('room')}}]}/>}
       {sheet?.kind==='quizlog'&&<QuizReview onClose={close} onQuiz={()=>{setSheet(null);setInside(false);enterHouse()}}/>}
       {fading&&<div className="rt-room-fade" aria-hidden/>}
       {tip&&<Tip text={tipText(tip)} target={TIP_AT[tip].target} point={TIP_AT[tip].point} onDone={()=>g.ops.tipDone(tip)}/>}
-      {skyOpen&&!sheet&&<SkyView planets={skyPlanets} sample={neighbours.sample} share={share} focus={skyOpen.focus} onPick={id=>setSkyOpen({focus:id})}
-        onShare={v=>g.ops.setSettings({...s.settings,share:v})} onClose={()=>setSkyOpen(null)}/>}
-      {me&&!sheet&&<MyPage wearOnly g={g} onClose={()=>setMe(false)} onRecords={()=>setSheet({kind:'records'})} onSettings={()=>setSheet({kind:'settings'})} onLetter={()=>setSheet({kind:'letter',month:monthOf(clock.today)})}/>}
+      {skyOpen&&!sheet&&<SkyView planets={skyPlanets} sample={neighbours.sample} share={share} focus={skyOpen.focus} week={weekStart(clock.today)} onPick={id=>setSkyOpen({focus:id})}
+        onShare={v=>g.ops.setSettings({...s.settings,share:v})} onClose={()=>setSkyOpen(null)} onLeague={()=>setSheet({kind:'league'})}/>}
+      {me&&!sheet&&<MyPage wearOnly canBuy={meShop} g={g} onClose={()=>setMe(false)} onRecords={()=>setSheet({kind:'records'})} onSettings={()=>setSheet({kind:'settings'})} onLetter={()=>setSheet({kind:'letter',month:monthOf(clock.today)})}/>}
       {sheet?.kind==='settings'&&<SettingsSheet g={g} onClose={close} tilt={tiltCtl} account={account?.email??null}
         onLogOut={account?()=>{void authRepo.logOut();setAccount(null);setSheet(null)}:undefined}
         onDelete={syncOn&&saveRepo?async()=>{const e=await saveRepo!.deleteMe();if(e)return e;try{localStorage.removeItem('rethink-account-v1');localStorage.removeItem('rethink-guest')}catch{/* nothing kept */}g.ops.wipe();return null}:undefined}
@@ -1198,9 +1219,7 @@ export default function Proto3D(){
 
       {/* 설계 6·7장: the four tabs are gone; a small notebook button opens my journal where I stand (the stock index first) */}
       {ready&&!quiet&&!inside&&where==='village'&&!sheet&&<button type="button" className="proto3d-locate vl-book" data-label="수첩" aria-label="수첩 펼치기" onClick={()=>{setPicked(null);setSheet({kind:'journal'})}}><Ledger size={20}/></button>}
-      {/* 통신기 (ui/Comm.tsx): once the merchant has handed it over, a button on the screen opens the practice-account MTS */}
-      {ready&&!quiet&&!inside&&where==='village'&&!sheet&&<button type="button" className="proto3d-locate vl-comm" data-label="통신기" aria-label="통신기" onClick={()=>{setPicked(null);setSheet({kind:'comm',tab:'balance'})}}>
-        <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M10 7l2 2 2-3M11 17h2"/></svg></button>}
+      {/* 피드백 11-26: no 모의투자 button on the screen; the merchant opens it */}
       {/* 피드백 2026-11-26 "어떤 장소로 이동하고 나가기 버튼도 안 보여": in a shop the way out is always there */}
       {shop&&!fading&&!vtTalk&&<button type="button" className="rt-btn vl-shop-back" onClick={()=>{setSheet(null);setMe(false);setVt(null);swapShop(null)}}>← 밖으로 나가기</button>}
       {pet&&<div className="rt-petmenu" role="dialog" aria-label={`${PETS[pet].name}와 놀기`}>
@@ -1208,6 +1227,8 @@ export default function Proto3D(){
         <div><button type="button" className="rt-btn primary" onClick={()=>petDo('pet')}>쓰다듬기</button>
           <button type="button" className="rt-btn primary" onClick={()=>petDo('treat')}>{PETS[pet].treat}</button>
           <button type="button" className="rt-btn" aria-label="닫기" onClick={()=>setPet(null)}>✕</button></div></div>}
+      {/* 별똥별 (ui/ShootingStars.tsx): at night in the village with nothing open; a tap on one makes a wish */}
+      <ShootingStars active={ready&&!quiet&&!inside&&!shop&&where==='village'&&!sheet&&!pet&&light.night>0.5} day={clock.today} onWish={onWish}/>
       {showReq&&<div className="rt-request" role="status" data-testid="request-notice" style={reqBottom!=null?{bottom:reqBottom}:undefined}>
         <button type="button" className="rt-request-go" onClick={openRequest}><Scope size={18}/><span><b>오늘의 관측 의뢰가 도착했어</b><small>눌러서 열기</small></span></button>
         <button type="button" className="rt-request-x" aria-label="알림 닫기" onClick={()=>g.ops.questNoticed(qDay)}><Cross size={16}/></button></div>}
@@ -1288,7 +1309,7 @@ export default function Proto3D(){
       {fish==='log'&&!sheet&&<FishLog fishing={s.fishing} onClose={()=>setFish(null)}/>}
       {placing&&!sheet&&<div className="rt-plant-bar" role="status"><span>{BUILDINGS.find(b=>b.id===placing.id)?.name} 놓을 자리를 눌러요 · 초록 동그라미면 놓을 수 있어요</span>
         <button type="button" onClick={()=>setPlacing(null)}>취소</button></div>}
-      {planting&&!sheet&&<div className="rt-plant-bar" role="status"><span>{shopPlant(planting.item)?.name} 심을 풀밭을 눌러요</span>
+      {planting&&!sheet&&<div className="rt-plant-bar" role="status"><span>{shopPlant(planting.item)?.name} 심을 풀밭을 눌러요 · 초록 동그라미면 심을 수 있어요</span>
         <button type="button" onClick={()=>setPlanting(null)}>취소</button></div>}
       {sheet?.kind==='friend'&&<FriendSheet opener={opener.text} topic={opener.topic} seed={clock.today} onClose={close}
         talk={(history,m)=>boriChat(history,m,syncOn?(_h,msg)=>boriTalk(boriHoldings,msg):null)} opening={boriTalks?boriOpening:null} onFace={setBoriFace}
@@ -1297,8 +1318,9 @@ export default function Proto3D(){
         // 루온's 반박 runs on the team's model, which covers the KOSDAQ120 only (investment-evidence-system ops/live/stock_coverage.csv
         // = content/kosdaq120.ts): with the server on, only those holdings can be picked (2026-11-25: 한화에어로스페이스 was
         // sent, the worker failed with no company, and no note ever came back)
+        // a finished analysis of one of these (analysis_results.dialogue, S10): 루온 opens with its own line about it
         const luonStocks=sheet.id==='luon'&&syncOn?realFirst.filter(x=>KOSDAQ_STOCKS.some(k=>k.code===codeOf(x))):realFirst;
-        return <FriendSheet key={sheet.id} who={w} opener={sheet.id==='luon'?(luonStocks.length?'…어느 종목 얘기할래? 고르면 네 이유부터 들어 볼게.':(()=>{const out=realFirst.map(x=>x.name).filter(Boolean).slice(0,2);return out.length?`…${out.join(', ')}${realFirst.length>2?' 등':''}은 아직 반박 분석 목록(코스닥 120종목)에 없어. 그냥 얘기는 할 수 있어.`:'…반박 분석은 지금 코스닥 120종목만 할 수 있어. 그냥 얘기는 할 수 있어.'})()):w.greet[clock.today.length%w.greet.length]} topic="chat" seed={clock.today}
+        return <FriendSheet key={sheet.id} who={w} opener={sheet.id==='luon'?(luonOpener(luonStocks,Date.now())?.text??(luonStocks.length?'…어느 종목 얘기할래? 고르면 네 이유부터 들어 볼게.':(()=>{const out=realFirst.map(x=>x.name).filter(Boolean).slice(0,2);return out.length?`…${out.join(', ')}${realFirst.length>2?' 등':''}은 아직 반박 분석 목록(코스닥 120종목)에 없어. 그냥 얘기는 할 수 있어.`:'…반박 분석은 지금 코스닥 120종목만 할 수 있어. 그냥 얘기는 할 수 있어.'})())):w.greet[clock.today.length%w.greet.length]} topic="chat" seed={clock.today}
         talk={sheet.id==='luon'?(history,m)=>debateChat(history,m,testLuon?.__luonTalk?(_h,msg)=>testLuon.__luonTalk!(msg):syncOn?(_h,msg)=>boriTalk(boriHoldings,msg,'luon'):null):null}
         pickFirst={sheet.id==='luon'} onPickTalk={sheet.id==='luon'&&luonOn?luonPick:null}
         onClose={close} onGo={to=>{if(to==='case')setSheet({kind:'case'});else close()}} stocks={luonStocks.map(x=>({id:x.id,name:x.name}))} onStock={openTree}/>})()}

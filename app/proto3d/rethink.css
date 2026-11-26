@@ -612,7 +612,7 @@ button.rt-row:hover{filter:none;background:#16211b05}
    rest of the screen steps back while it is up */
 .rt-talk{position:absolute;inset:0;z-index:30;pointer-events:none;font-family:'Gowun Dodum',var(--rt-font,sans-serif)}
 .rt-talk>*{pointer-events:auto}
-.proto3d:has(.rt-talk) :is(.rt-dock,.rt-next,.rt-weather,.rt-coins,.rt-me-chip,.proto3d-locate,.rt-bubble,.rt-sign,.rt-cap-tag){opacity:0;pointer-events:none;transition:opacity .25s}
+.proto3d:has(.rt-talk) :is(.rt-dock,.rt-next,.rt-weather,.rt-coins,.rt-me-chip,.proto3d-locate,.rt-bubble,.rt-signs,.rt-cap-tag){opacity:0;pointer-events:none;transition:opacity .25s}
 .rt-talk-box{position:absolute;left:14px;right:14px;bottom:calc(22px + env(safe-area-inset-bottom,0px));background:#ffffffdb;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
   border:1px solid #ffffffe0;border-radius:22px;padding:28px 20px 22px;box-shadow:0 18px 40px -16px #10200d90;min-height:138px;cursor:pointer;color:#22281f;animation:rt-talk-in .28s ease-out both}
 @keyframes rt-talk-in{from{opacity:0;transform:translateY(16px)}}
@@ -888,4 +888,8 @@ button.rt-row:hover{filter:none;background:#16211b05}
 /* a phone on its side: the number stays on one line (it broke into "-0 / .1 / 7%") */
 .proto3d .rt-weather .rt-num{white-space:nowrap}
 /* the chips inside the talk box (a long stock list) never push the box off a short screen */
-.proto3d .rt-talk-box .rt-talk-choices.on-box{max-height:min(34dvh,220px);overflow-y:auto;overscroll-behavior:contain}
+.proto3d .rt-talk-box .rt-talk-choices.on-box{max-height:min(34dvh,220px);overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;padding:4px 6px 10px;margin:8px -6px -10px}
+.proto3d .rt-talk-box .rt-talk-choices.on-box::-webkit-scrollbar{display:none}
+/* 피드백 11-26: 보리 채점 소식의 대답 세 개는 한 줄로 */
+.proto3d .rt-talk-choices.on-box.one-line{flex-wrap:nowrap;justify-content:flex-end}
+.proto3d .rt-talk-choices.on-box.one-line .rt-talk-choice{flex:0 1 auto;white-space:nowrap;padding-left:14px;padding-right:14px}

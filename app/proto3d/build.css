@@ -51,6 +51,8 @@
 
 /* name signs over the buildings (ui/Signs.tsx): a small wooden board, never in the way of a tap */
 .proto3d .rt-signs{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:hidden}
-.proto3d .rt-sign{position:absolute;left:0;top:0;white-space:nowrap;padding:3px 9px 4px;border-radius:6px;background:#6b4a2bdd;color:#fff8ea;
-  font:400 12.5px/1.2 'Jua',sans-serif;letter-spacing:.02em;box-shadow:0 2px 0 #3f2a16,0 6px 14px -6px #0006;border:1px solid #8a6440}
-.proto3d .rt-sign::after{content:'';position:absolute;left:50%;bottom:-7px;width:3px;height:6px;margin-left:-1.5px;background:#4a321b;border-radius:0 0 2px 2px}
+/* 피드백 11-26 "얘네 크기와 느낌으로": the place signs wear the villagers' name tag (.vl-npc-tag, clean.css): a small dark
+   brown plate, the name, and under it a smaller line of what you do there */
+.proto3d .rt-signs .rt-sign{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;white-space:nowrap;padding:2px 8px;border-radius:8px;
+  background:#4a3626d9;border:1px solid #2e2118;color:#f6ecd8;box-shadow:0 2px 6px #0004;font:400 11.5px/1.3 'Jua',sans-serif;font-family:'Jua',sans-serif!important}
+.proto3d .rt-signs .rt-sign small{font-size:10px;font-weight:500;color:#e7c98a;line-height:1.3}

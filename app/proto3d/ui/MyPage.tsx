@@ -18,9 +18,6 @@ import {formatDay} from '../../core/items';
 import {Cross,Lock} from './Icons';
 import type {useGarden} from '../state';
 import {workOf} from '../state';
-import {titleOf} from '../../core/game/daily/model';
-import {ProgressBar} from '../game/daily/DailyQuest';
-import {Titles} from '../game/daily/Door';
 type G=ReturnType<typeof useGarden>;
 
 function Count({to,suffix=''}:{to:number|null;suffix?:string}){
@@ -35,7 +32,7 @@ export function wearCtx(g:G):WearCtx{
   const rank=rankOf(xpOf({graded:g.s.graded.length,cases:g.s.cases.length,rewinds:g.s.rewinds.length,work:workOf(g.s)})).index;
   return {rank,stamps:g.s.stamps.map(s=>s.id),trust:{tori:g.s.trust.tori.stage,moa:g.s.trust.moa.stage,luon:g.s.trust.luon.stage},bought:g.s.wardrobe,all:masterOn()};
 }
-export function MyPage({g,onClose,onRecords,onSettings,onLetter,wearOnly}:{wearOnly?:boolean;g:G;onClose:()=>void;onRecords:()=>void;onSettings?:()=>void;onLetter?:()=>void}){
+export function MyPage({g,onClose,onRecords,onSettings,onLetter,wearOnly,canBuy}:{wearOnly?:boolean;canBuy?:boolean;g:G;onClose:()=>void;onRecords:()=>void;onSettings?:()=>void;onLetter?:()=>void}){
   const [ask,setAsk]=useState<string|null>(null);
   const [tab,setTab]=useState<'wear'|'record'|'stamps'>('wear'),[slot,setSlot]=useState<Slot|'color'>('coat'),[naming,setNaming]=useState(false),[name,setName]=useState(g.s.name);
   const ctx=wearCtx(g),look=fitLook(g.s.look,ctx),rk=rankOf(xpOf({graded:g.s.graded.length,cases:g.s.cases.length,rewinds:g.s.rewinds.length,work:workOf(g.s)}));
@@ -54,7 +51,7 @@ export function MyPage({g,onClose,onRecords,onSettings,onLetter,wearOnly}:{wearO
     <div className="rt-me-top">{onSettings&&<button type="button" className="rt-btn" onClick={onSettings}>설정</button>}<button type="button" className="rt-btn" onClick={onClose}><Cross size={18}/>닫기</button></div>
     <section className="rt-me-panel">
       {/* the clothes shop opens the wardrobe alone: a title, not a row of one tab */}
-      {wearOnly?<h2 className="rt-me-only">옷 갈아입기</h2>:<div className="rt-tabs" role="tablist">{([['wear','꾸미기'],['record','기록'],['stamps','업적']] as const).map(([k,l])=>
+      {wearOnly?<h2 className="rt-me-only">{canBuy?'옷 가게':'옷장 · 옷 갈아입기'}</h2>:<div className="rt-tabs" role="tablist">{([['wear','꾸미기'],['record','기록'],['stamps','업적']] as const).map(([k,l])=>
         <button key={k} type="button" role="tab" aria-selected={tab===k} onClick={()=>setTab(k)}>{l}</button>)}</div>}
       {tab==='wear'&&<>
         <div className="rt-me-slots">{[...SLOTS,{id:'color' as const,label:'색'}].map(s=><button key={s.id} type="button" aria-pressed={slot===s.id} onClick={()=>{setSlot(s.id);setAsk(null)}}>{s.label}</button>)}</div>
@@ -64,26 +61,24 @@ export function MyPage({g,onClose,onRecords,onSettings,onLetter,wearOnly}:{wearO
           {slot!=='color'&&slot!=='coat'&&<button type="button" className="rt-me-tile" aria-pressed={!look[slot]} onClick={()=>{setAsk(null);wear({...look,[slot]:null})}}><span className="rt-me-pic">∅</span><strong>없음</strong></button>}
           {pieces.map(w=>{const open=isOpen(w.unlock,ctx,w.id),on=look[w.slot]===w.id,price=w.unlock.kind==='buy'?w.unlock.price:0,can=price>0&&g.s.currency>=price,asking=ask===w.id;
             return <button key={w.id} type="button" className="rt-me-tile" data-locked={!open} data-asking={asking||undefined} aria-pressed={on}
-              aria-label={open?w.name:price?`${w.name} ${won(price)}${asking?' 한 번 더 누르면 사요':''}`:`${w.name} 잠김`}
+              aria-label={open?w.name:price&&!canBuy?`${w.name} 옷 가게에서 ${won(price)}`:price?`${w.name} ${won(price)}${asking?' 한 번 더 누르면 사요':''}`:`${w.name} 잠김`}
               onClick={()=>{if(open){setAsk(null);wear({...look,[w.slot]:w.id});return}
-                if(!can){setAsk(null);return}if(!asking){setAsk(w.id);return}setAsk(null);if(g.ops.buyWear(w.id,price))wear({...look,[w.slot]:w.id})}}>
+                // 피드백 2026-11-26: bought only at the clothes shop (canBuy), and buying does not put it on by itself
+                if(!can||!canBuy){setAsk(null);return}if(!asking){setAsk(w.id);return}setAsk(null);g.ops.buyWear(w.id,price)}}>
               <span className="rt-me-pic" aria-hidden>{w.icon??'✦'}{!open&&!price&&<i className="rt-me-lock"><Lock size={11}/></i>}</span>
               <strong>{w.name}</strong>
               {open?<small className="rt-me-state">{(VERB[w.slot]??VERB.coat)[on?1:0]}</small>
-                :price?<small className={'rt-me-price'+(can?'':' short')}>{asking?'한 번 더 누르면 사요':won(price)}</small>
+                :price&&!canBuy?<small className="rt-me-price short">옷 가게 {won(price)}</small>
+                :price?<small className={'rt-me-price'+(can?'':' short')}>{asking?'한 번 더 누르면 사요':can?won(price):`${won(price-g.s.currency)} 부족`}</small>
                 :<small>{howTo(w.unlock,names)}</small>}</button>})}
           {slot==='color'&&PALETTES.map(p=>{const open=isOpen(p.unlock,ctx,p.id),price=p.unlock.kind==='buy'?p.unlock.price:0,can=price>0&&g.s.currency>=price,asking=ask===p.id;
             return <button key={p.id} type="button" className="rt-me-tile" data-locked={!open} data-asking={asking||undefined} aria-pressed={look.palette===p.id}
-              onClick={()=>{if(open){setAsk(null);wear({...look,palette:p.id});return}if(!can){setAsk(null);return}if(!asking){setAsk(p.id);return}setAsk(null);if(g.ops.buyWear(p.id,price))wear({...look,palette:p.id})}}>
+              onClick={()=>{if(open){setAsk(null);wear({...look,palette:p.id});return}if(!can||!canBuy){setAsk(null);return}if(!asking){setAsk(p.id);return}setAsk(null);g.ops.buyWear(p.id,price)}}>
             <span className="rt-me-swatch">{[p.primary,p.secondary,p.accent].map(c=><i key={c} style={{background:c}}/>)}</span><strong>{p.name}</strong>
-            {!open&&(price?<small className={'rt-me-price'+(can?'':' short')}>{asking?'한 번 더 누르면 사요':won(price)}</small>:<small><Lock size={12}/> {howTo(p.unlock,names)}</small>)}</button>})}
+            {!open&&(price&&!canBuy?<small className="rt-me-price short">옷 가게 {won(price)}</small>:price?<small className={'rt-me-price'+(can?'':' short')}>{asking?'한 번 더 누르면 사요':won(price)}</small>:<small><Lock size={12}/> {howTo(p.unlock,names)}</small>)}</button>})}
         </div></>}
       {tab==='record'&&<div className="rt-me-record">
-        {/* 관측소 숙련도 (game/daily): investor_progress — title, level, the bar to the next, the quests opened */}
-        <div className="rt-section">관측소 숙련도</div>
-        {/* no course list here (feedback 2026-11-19): what comes next stays on the server */}
-        {(()=>{const total=g.s.observatory?.progress.total_xp??0;
-          return <div data-testid="me-observatory" style={{marginBottom:14}}><ProgressBar total={total} t={titleOf(total)}/><Titles g={g}/></div>})()}
+        {/* 피드백 2026-11-26: 관측소는 UI에서 뺌 (관측소 숙련도 칸 없음) */}
         <div className="rt-me-big"><div><span>판단 적중</span><b className="rt-num"><Count to={t.hitRate} suffix="%"/></b></div><div><span>확신 보정</span><b className="rt-num"><Count to={t.calibration}/></b></div>
           <div><span>기록한 판단</span><b className="rt-num"><Count to={t.judged}/></b></div><div><span>최고 연속</span><b className="rt-num"><Count to={g.s.streak.best} suffix="일"/></b></div></div>
         <div className="rt-section">고른 판단</div>
@@ -94,9 +89,9 @@ export function MyPage({g,onClose,onRecords,onSettings,onLetter,wearOnly}:{wearO
         <button type="button" className="rt-btn" style={{width:'100%',marginTop:12}} onClick={onRecords}>판단 목록과 케이스 도감</button>
         {onLetter&&<button type="button" className="rt-btn" style={{width:'100%',marginTop:8}} onClick={onLetter}>이번 달 리포트 미리 보기</button>}
       </div>}
-      {tab==='stamps'&&<div className="rt-me-stamps">{STAMPS.map(s=>{const got=g.s.stamps.find(x=>x.id===s.id);
+      {tab==='stamps'&&<div className="rt-me-stamps">{STAMPS.filter(s=>s.id!=='observatory-first').map(s=>{const got=g.s.stamps.find(x=>x.id===s.id);
         return <div key={s.id} className="rt-me-stamp" data-got={!!got}><i aria-hidden>{got?s.name[0]:''}</i><strong>{s.name}</strong><small>{got?formatDay(got.day,g.clock.today):s.how}</small></div>})}
-        <p className="rt-hint" style={{gridColumn:'1/-1'}}>{g.s.stamps.length} / {STAMPS.length}개 · {CURRENCY} {won(g.s.currency)}</p></div>}
+        <p className="rt-hint" style={{gridColumn:'1/-1'}}>{g.s.stamps.filter(s=>s.id!=='observatory-first').length} / {STAMPS.length-1}개 · {CURRENCY} {won(g.s.currency)}</p></div>}
     </section>
   </div>;
 }

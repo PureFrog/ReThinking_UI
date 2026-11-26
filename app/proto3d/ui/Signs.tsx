@@ -12,10 +12,12 @@ import {BUILDINGS,CITIES,type Built} from '../../core/land';
 export const SIGN_PLACES:Record<string,number>={master:4.4,home:5.1,observatory:4.1,plaza:2.4,arcade:3.6};// 2026-11-23: the shops and the library carry their keeper's tag with the shop's name (Shop3D.tsx)
 export const SIGN_BUILDINGS:Record<string,number>={greenhouse:3,silo:4.1,windmill:5.6};
 export const SIGN_CITY=6.4;
+// 피드백 11-26 "집 밑에 선생님 옷장": a second, smaller line under the name, like the library's tag
+export const SIGN_NOTE:Record<string,string>={home:'🏠 선생님 · 옷장',master:'📚 버핏의 서재 · 퀴즈',plaza:'🌌 다른 정원 구경 · 리그',arcade:'🕹️ 미니게임 · 코인 받기'};
 export function signsOf(built:Built|null|undefined){
-  return [...PLACES.filter(p=>p.id in SIGN_PLACES).map(p=>({id:p.id,label:p.label})),
-    ...BUILDINGS.filter(b=>built?.buildings.includes(b.id)).map(b=>({id:b.id,label:b.name})),
-    ...CITIES.filter(c=>built?.cities.includes(c.id)).map(c=>({id:'city-'+c.id,label:`${c.landmark} · ${c.city}`}))];
+  return [...PLACES.filter(p=>p.id in SIGN_PLACES).map(p=>({id:p.id,label:p.label,note:SIGN_NOTE[p.id]??''})),
+    ...BUILDINGS.filter(b=>built?.buildings.includes(b.id)).map(b=>({id:b.id,label:b.name,note:''})),
+    ...CITIES.filter(c=>built?.cities.includes(c.id)).map(c=>({id:'city-'+c.id,label:`${c.landmark} · ${c.city}`,note:''}))];
 }
 
 export function Signs({built}:{built:Built|null}){
@@ -27,5 +29,5 @@ export function Signs({built}:{built:Built|null}){
       el.style.visibility='visible';el.style.transform=`translate(${p.x}px,${p.y}px) translate(-50%,-100%)`}
     raf=requestAnimationFrame(tick)};tick();return()=>cancelAnimationFrame(raf)},[]);
   return <div className="rt-signs" aria-hidden>{signsOf(built).map(s=>
-    <span key={s.id} className="rt-sign" data-sign={s.id} style={{visibility:'hidden'}} ref={el=>{if(el)refs.current.set(s.id,el);else refs.current.delete(s.id)}}>{s.label}</span>)}</div>;
+    <span key={s.id} className="rt-sign" data-sign={s.id} style={{visibility:'hidden'}} ref={el=>{if(el)refs.current.set(s.id,el);else refs.current.delete(s.id)}}>{s.label}{s.note?<small>{s.note}</small>:null}</span>)}</div>;
 }

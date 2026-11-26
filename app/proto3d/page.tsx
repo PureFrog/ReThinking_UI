@@ -12,6 +12,7 @@ import './build.css';
 import './house.css';
 import './study.css';
 import './arcade.css';
+import './shooting-stars.css';
 import './clean.css';
 import './skin.css';
 export default function Proto3DPage(){

@@ -61,7 +61,7 @@ const GUIDE=[
 ];
 export function CommGuide({onDone}:{onDone:()=>void}){
   const [i,setI]=useState(0),g=GUIDE[i],last=i===GUIDE.length-1;
-  return <div className="rt-cg" role="dialog" aria-label="통신기 사용법">
+  return <div className="rt-cg" role="dialog" aria-label="모의투자 사용법">
     <div className="rt-cg-card"><div className="rt-cg-ic" aria-hidden>{g.icon}</div><b>{g.h}</b><p>{g.t}</p>
       <div className="rt-cg-dots">{GUIDE.map((_,k)=><i key={k} data-on={k===i}/>)}</div>
       <div className="rt-cg-acts"><button type="button" className="mts-link" onClick={onDone}>건너뛰기</button>

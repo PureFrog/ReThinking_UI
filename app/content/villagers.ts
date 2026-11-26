@@ -46,7 +46,7 @@ export const FARM_CART={x:14.6,z:0.1,rot:Math.PI};
 export const WALK_LINES={
   // 피드백 2026-11-24 "자기소개 한 다음 따로 하지 말고 소개하면서 같이 한 번에": no separate round of introductions; each one
   // says who they are when I come to do their part with them
-  square:'나는 보리야. 언덕 위 관측소에 살아. 마을 사람들 한 명씩 만나 보자. 만날 사람한테 빛을 비춰 줄게.',
+  square:'나는 보리야. 마을 사람들 한 명씩 만나 보자. 만날 사람한테 빛을 비춰 줄게.',
   hint:(who:string,what:string)=>`그건 이따 보자. 지금은 ${who}한테 가 보자. ${what}`,
   done:'이제 자유롭게 다녀. 네 종목에 신호가 잡히면 내가 찾아갈게. 집에 선생님이 기다리고 있어.',
 };
@@ -65,11 +65,13 @@ export const STEP_GOAL:Record<string,{who:string;what:string}>={
 // 피드백 2026-11-21 "각 캐릭터 역할도 소개": who each one is, under the name in every talk, and what each says the first
 // time I come out to the village (보리 introduces them one by one on the square, the camera in front of each)
 export const ROLE:Record<string,string>={
-  teacher:'방의 선생님 · 퀴즈와 사건철',tori:'분석가 · 돈 버는 힘',moa:'분석가 · 쓰러질 위험',luon:'토론 · 내 종목 반대 근거',bori:'관측소지기 · 마을 동행과 신호 알림',farmer:'실제 종목 밭 · 매도 담당',merchant:'가상 종목 밭 · 매수 담당',librarian:'도서관 · 투자일지',
+  teacher:'방의 선생님 · 퀴즈와 사건철',tori:'분석가 · 돈 버는 힘',moa:'분석가 · 쓰러질 위험',luon:'토론 · 내 종목 반대 근거',bori:'마을 안내 · 신호 알림',farmer:'내 종목 밭 · 가상 나무 팔기',merchant:'모의투자 · 가상 종목 사고팔기',librarian:'도서관 · 투자일지',
   paperboy:'뉴스 표지판 · 내 종목 소식',naru:'낚시터 · 코인 벌기',builder:'건물 상점 · 마을 꾸미기',tailor:'옷 상점 · 옷장',
 };
 // 피드백 2026-11-22 "역할이 드러나게": what each one does, in a word with its sign, on the name tag over them
-export const ROLE_TAG:Record<string,string>={luon:'💬 종목 토론',farmer:'🌾 내 종목 심기·팔기',merchant:'📟 가상 종목 사기',paperboy:'📰 내 종목 소식',builder:'🏠 건물 상점 · 꾸미기',tailor:'👕 옷 가게',naru:'🎣 낚시로 코인',librarian:'📖 도서관 · 투자일지'};
+export const ROLE_TAG:Record<string,string>={luon:'💬 종목 토론',farmer:'🌾 내 종목 · 가상 나무 팔기',merchant:'📟 모의투자 · 사고팔기',paperboy:'📰 내 종목 소식',builder:'🏠 건물 상점 · 꾸미기',tailor:'👕 옷 가게',naru:'🎣 낚시로 코인',librarian:'📖 사서 · 투자일지'};
+// 피드백 11-26 "윗줄은 도서관, 밑에 사서 · 투자일지": the library keeper's tag names the place first
+export const TAG_NAME:Record<string,string>={librarian:'도서관'};
 // 피드백 2026-11-24 "소개하면서 같이 한 번에": on the first walk each one's first talk opens with this, then goes straight
 // on with what we do together (the task's own greeting is dropped: Proto3D introLine)
 export const INTRO_WALK:Record<string,string>={

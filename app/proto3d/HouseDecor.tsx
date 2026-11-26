@@ -83,6 +83,16 @@ export function HouseDecor({mats}:{mats:ReturnType<typeof houseMaterials>}){
     {/* the window: the garden outside, curtains and a sill with a pot */}
     <group position={[-1.2,2.05,BACK+0.08]}>
       <mesh><planeGeometry args={[1.5,1.1]}/><meshBasicMaterial map={mats.view} toneMapped={false}/></mesh>
+      {/* 피드백 11-26 "창문느낌으로": a deep painted frame, a soft shadow inside it, a cross of glazing bars and two
+          streaks of light on the glass, so the view reads as seen through a window, not a poster */}
+      {[[0,0.59,1.66,0.1],[0,-0.59,1.66,0.1],[-0.79,0,0.1,1.28],[0.79,0,0.1,1.28]].map(([x,y,w,h],i)=>
+        <mesh key={'f'+i} position={[x,y,0.04]} castShadow><boxGeometry args={[w,h,0.1]}/>{M('#fbf4e2')}</mesh>)}
+      {[[0,0.52,1.5,0.04],[0,-0.52,1.5,0.04],[-0.73,0,0.04,1.1],[0.73,0,0.04,1.1]].map(([x,y,w,h],i)=>
+        <mesh key={'s'+i} position={[x,y,0.005]}><planeGeometry args={[w,h]}/><meshBasicMaterial color="#3b2a20" transparent opacity={0.28} depthWrite={false}/></mesh>)}
+      <mesh position-z={0.03}><boxGeometry args={[0.05,1.1,0.05]}/>{M('#fbf4e2')}</mesh>
+      <mesh position-z={0.03}><boxGeometry args={[1.5,0.05,0.05]}/>{M('#fbf4e2')}</mesh>
+      {[[-0.42,0.18,0.09],[-0.25,0.12,0.05],[0.36,-0.22,0.07]].map(([x,y,w],i)=>
+        <mesh key={'g'+i} position={[x,y,0.012]} rotation-z={-0.75}><planeGeometry args={[w,0.5]}/><meshBasicMaterial color="#ffffff" transparent opacity={0.22} depthWrite={false} toneMapped={false}/></mesh>)}
       {[-1,1].map(k=><group key={k}><mesh position={[k*0.98,-0.05,0.06]}><boxGeometry args={[0.36,1.5,0.05]}/>{M('#e8a5a0')}</mesh>
         <mesh position={[k*0.98,-0.35,0.09]}><boxGeometry args={[0.38,0.06,0.03]}/>{M('#c97a6e')}</mesh></group>)}
       <mesh position={[0,0.72,0.1]} rotation-z={Math.PI/2}><cylinderGeometry args={[0.02,0.02,2.4,8]}/>{M('#8a6448')}</mesh>

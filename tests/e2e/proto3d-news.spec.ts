@@ -44,7 +44,7 @@ test("the 통신기 is a phone; its 뉴스 tab lists articles and opens one with
   await page.goto("/?demo&weather=clear&hour=14");
   await V.villageReady(page);
   await V.openSheet(page, { kind: "comm", tab: "order" });
-  const comm = page.getByRole("dialog", { name: "통신기" });
+  const comm = page.getByRole("dialog", { name: "모의투자" });
   await expect(comm.locator(".rt-phone")).toBeVisible();
   await comm.getByRole("navigation", { name: "아래 메뉴" }).getByRole("button", { name: "뉴스" }).click();
   const rows = comm.locator(".rt-news-row");
