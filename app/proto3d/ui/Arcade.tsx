@@ -35,6 +35,17 @@ function screenTex(c:Cab){
   const cv=document.createElement('canvas');cv.width=256;cv.height=200;const g=cv.getContext('2d')!;
   if(!c.open){const gr=g.createLinearGradient(0,0,0,200);gr.addColorStop(0,'#20243a');gr.addColorStop(1,'#12141f');g.fillStyle=gr;g.fillRect(0,0,256,200);
     g.fillStyle='#ffffff10';for(let y=0;y<200;y+=4)g.fillRect(0,y,256,1);const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;return t}
+  // 피드백 2026-11-26 "파란색은 닌자 포트폴리오가 아니잖아": the left cabinet shows 분산 바구니's own title screen: the orchard's
+  // canopy, fruit falling, the basket, the combo
+  if(c.id==='basket'){const sk=g.createLinearGradient(0,0,0,200);sk.addColorStop(0,'#7fc4ea');sk.addColorStop(0.7,'#cfeaf6');sk.addColorStop(1,'#9fd07a');g.fillStyle=sk;g.fillRect(0,0,256,200);
+    for(let i=0;i<7;i++){g.fillStyle=i%2?'#4f9a45':'#6db24f';g.beginPath();g.arc(i*42+10,4,30,0,7);g.fill()}
+    g.fillStyle='#7ab35a';g.fillRect(0,182,256,18);
+    g.font='22px serif';g.textAlign='center';g.textBaseline='middle';[['🍎',40,118],['🍊',214,96],['🍇',70,150],['🍐',190,140],['⭐',150,112],['🐛',224,160]].forEach(([e,x,y])=>g.fillText(e as string,x as number,y as number));
+    g.fillStyle='#b9824a';g.beginPath();g.moveTo(98,160);g.lineTo(158,160);g.lineTo(150,182);g.lineTo(106,182);g.closePath();g.fill();g.fillStyle='#d9a35a';g.fillRect(94,155,68,7);
+    g.font='bold 30px "Jua",sans-serif';g.lineWidth=6;g.strokeStyle='#2b5a2a';g.strokeText('분산 바구니',128,58);g.fillStyle='#ffd447';g.fillText('분산 바구니',128,58);
+    g.font='bold 16px "Jua",sans-serif';g.lineWidth=4;g.strokeStyle='#7a3b00';g.strokeText('COMBO ×5',128,88);g.fillStyle='#fff';g.fillText('COMBO ×5',128,88);
+    g.font='bold 12px monospace';g.fillStyle='#2b5a2a';g.fillText('HI-SCORE 012500',128,194);
+    const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;return t}
   // 피드백 2026-11-26: the ninja cabinet shows a real title screen: night sky, a moon, rooftops, the title in pixel-gold, a
   // little ninja, the high score (the blinking GAME START! sits on top, StartBlink)
   const sky=g.createLinearGradient(0,0,0,200);sky.addColorStop(0,'#1a1440');sky.addColorStop(1,'#4a2a6a');g.fillStyle=sky;g.fillRect(0,0,256,200);
@@ -100,13 +111,14 @@ function Note({x}:{x:number}){
   return <mesh position={[0,0,0.03]} rotation={[0,0,x<0?0.06:-0.05]}><planeGeometry args={[0.8,0.62]}/><meshBasicMaterial map={tex} transparent toneMapped={false}/></mesh>;
 }
 // wall posters (canvas): a coin slot call and a high score board
-type PosterKind='coin'|'score'|'ninja'|'soon'|'invader'|'champ';
+type PosterKind='coin'|'score'|'ninja'|'soon'|'invader'|'champ'|'basket';
 function posterTex(kind:PosterKind){
-  if(kind==='ninja'||kind==='soon'||kind==='invader'||kind==='champ'){const cv=document.createElement('canvas');cv.width=256;cv.height=340;const g=cv.getContext('2d')!;
-    const bg={ninja:'#2a1f3d',soon:'#1f2d3d',invader:'#101828',champ:'#3d1f2a'}[kind],line={ninja:'#ff5fa2',soon:'#ffd447',invader:'#8cf07a',champ:'#ffd447'}[kind];
+  if(kind==='ninja'||kind==='soon'||kind==='invader'||kind==='champ'||kind==='basket'){const cv=document.createElement('canvas');cv.width=256;cv.height=340;const g=cv.getContext('2d')!;
+    const bg={ninja:'#2a1f3d',soon:'#1f2d3d',invader:'#101828',champ:'#3d1f2a',basket:'#1f3d2a'}[kind],line={ninja:'#ff5fa2',soon:'#ffd447',invader:'#8cf07a',champ:'#ffd447',basket:'#8fd0ff'}[kind];
     g.fillStyle=bg;g.fillRect(0,0,256,340);g.strokeStyle=line;g.lineWidth=8;g.strokeRect(10,10,236,320);g.textAlign='center';g.textBaseline='middle';
     if(kind==='ninja'){g.fillStyle='#ffe9f0';g.font='bold 34px "Jua",sans-serif';g.fillText('닌자',128,60);g.fillText('포트폴리오',128,100);g.font='110px sans-serif';g.fillText('🥷',128,210);g.fillStyle='#ffd447';g.font='bold 24px "Jua",sans-serif';g.fillText('지금 플레이',128,300)}
     if(kind==='soon'){g.fillStyle='#ffd447';g.font='bold 40px "Jua",sans-serif';g.fillText('COMING',128,110);g.fillText('SOON',128,160);g.fillStyle='#e8f6ff';g.font='24px "Jua","Gowun Dodum",sans-serif';g.fillText('새 게임 준비 중',128,240);g.font='60px sans-serif';g.fillText('🕹️',128,295)}
+    if(kind==='basket'){g.fillStyle='#e8ffe8';g.font='bold 36px "Jua",sans-serif';g.fillText('분산',128,60);g.fillText('바구니',128,102);g.font='54px sans-serif';g.fillText('🍎🍊🍇',128,175);g.fillText('🧺',128,240);g.fillStyle='#ffd447';g.font='bold 24px "Jua",sans-serif';g.fillText('NEW! 지금 플레이',128,300)}
     if(kind==='invader'){const px=(x:number,y:number,c:string)=>{g.fillStyle=c;g.fillRect(x,y,14,14)};const sh=['..X.....X..','...X...X...','..XXXXXXX..','.XX.XXX.XX.','XXXXXXXXXXX','X.XXXXXXX.X','X.X.....X.X','...XX.XX...'];
       sh.forEach((row,y)=>[...row].forEach((ch,x)=>{if(ch==='X')px(51+x*14,90+y*14,'#8cf07a')}));g.fillStyle='#e8f6ff';g.font='bold 30px "Jua",sans-serif';g.fillText('GAME OVER?',128,260);g.font='22px "Jua",sans-serif';g.fillText('PRESS START',128,300)}
     if(kind==='champ'){g.font='100px sans-serif';g.fillText('🏆',128,130);g.fillStyle='#ffd447';g.font='bold 34px "Jua",sans-serif';g.fillText('이달의 챔피언',128,230);g.fillStyle='#ffe9f0';g.font='28px "Jua",sans-serif';g.fillText('보리',128,280)}
@@ -308,7 +320,7 @@ function Room({onFloor}:{onFloor:(p:THREE.Vector3)=>void}){
     <ClawMachine position={[3.5,0,0.3]}/>
     {/* more posters: the ninja game, coming soon, a pixel invader, this month's champion */}
     {/* 피드백 2026-11-26 "푯말을 가리는 포스터": hung in the gaps between the cabinets instead, in thin frames */}
-    {([['ninja',-1.3,0.03],['soon',1.3,-0.04]] as const).map(([k,x,r])=><group key={k} position={[x,1.95,-d/2+0.09]} rotation-z={r}>
+    {([['basket',-1.3,0.03],['ninja',1.3,-0.04]] as const).map(([k,x,r])=><group key={k} position={[x,1.95,-d/2+0.09]} rotation-z={r}>
       <mesh position-z={-0.01}><boxGeometry args={[0.72,0.94,0.03]}/>{S('#1a1626')}</mesh>
       <Poster kind={k} position={[0,0,0.01]} rotY={0} size={[0.64,0.86]}/>
       {[-1,1].map(j=><mesh key={j} position={[j*0.26,0.43,0.02]} rotation-z={j*0.6}><planeGeometry args={[0.12,0.04]}/><meshBasicMaterial color="#f3d76b" transparent opacity={0.85}/></mesh>)}

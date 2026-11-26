@@ -11,7 +11,7 @@
 //     EARN.bookQuiz once per book (grant tag book-quiz:<book_id>)
 // The save: core/master-study.ts StudySave under 'rethink-study-v1'. Kept off: walking about the room (the doors and
 // the floor do nothing yet).
-import {Suspense,useEffect,useMemo,useRef,useState,type KeyboardEvent as RKey} from 'react';
+import {Suspense,createContext,useContext,useEffect,useMemo,useRef,useState,type KeyboardEvent as RKey} from 'react';
 import {Canvas,useFrame,useThree,type ThreeEvent} from '@react-three/fiber';
 import {Html,Edges} from '@react-three/drei';
 import {BuffettFigure} from './Buffett3D';
@@ -162,7 +162,7 @@ function Buffett({look,nod,onTalk,hover,setHover,bubble}:{look:boolean;nod:numbe
     <BuffettFigure headRef={fig} colors={{suit:c.suit,tie:c.tie,skin:c.skin}}/>
     {/* one Html that stays mounted (its content changes): mounting and dropping drei Html roots while a book closes
         threw "removeChild … not a child" on the user's Mac (2026-11-26) */}
-    <Html position={[0,B.tagY,0]} center zIndexRange={[20,10]}>{bubble?<div className="ms-bubble">{bubble}</div>:hover&&!look?<div className="ms-tag">말 걸기</div>:null}</Html>
+    {!useContext(Leaving)&&<Html position={[0,B.tagY,0]} center zIndexRange={[20,10]}>{bubble?<div className="ms-bubble">{bubble}</div>:hover&&!look?<div className="ms-tag">말 걸기</div>:null}</Html>}
   </group>;
 }
 
@@ -312,7 +312,12 @@ function QuizPanel({book,study,onSubmit,onNext,onRead,onEnd,paidNow}:{book:Book;
     </div></div>;
 }
 
-export function MasterStudy({g,onOut,hud}:{g:G;onOut:()=>void;hud?:React.ReactNode}){
+// 피드백 2026-11-26 "거장의 집에서 마을로 나오면 removeChild 에러": the labels drawn over the 3D (drei Html) are taken down a
+// frame before the room itself goes, so React never removes a label from a page part already gone
+const Leaving=createContext(false);
+export function MasterStudy({g,onOut:out,hud}:{g:G;onOut:()=>void;hud?:React.ReactNode}){
+  const [leaving,setLeaving]=useState(false);
+  const onOut=()=>{if(leaving)return;setLeaving(true);requestAnimationFrame(()=>requestAnimationFrame(out))};
   const [study,setStudy]=useState<StudySave>(loadStudy);
   const put=(f:(s:StudySave)=>StudySave)=>setStudy(x=>{const n=f(x);if(n!==x)saveStudy(n);return n});
   const [view,setView]=useState<View>('room'),[hover,setHover]=useState<string|null>(null),[tap,setTap]=useState<string|null>(null);
@@ -367,7 +372,7 @@ export function MasterStudy({g,onOut,hud}:{g:G;onOut:()=>void;hud?:React.ReactNo
   const label=(id:string)=>{const b=bookById(id),st=readState(study,id);return {b,more:st==='reading'?`이어 읽기 · ${pageNo(b)}쪽`:st==='done'?'다 읽음':null}};
   const hb=hover&&!pull?label(hover):null;
   return <div className="ms" data-testid="master-study" data-view={view}>
-    <Canvas className="ms-canvas" shadows dpr={[1,1.75]} gl={{antialias:true}} camera={{fov:46,near:0.05,far:40,position:L().cam.room.pos}}>
+    <Leaving.Provider value={leaving}><Canvas className="ms-canvas" shadows dpr={[1,1.75]} gl={{antialias:true}} camera={{fov:46,near:0.05,far:40,position:L().cam.room.pos}}>
       <color attach="background" args={[L().color.wall2]}/>
       <hemisphereLight args={['#fff4e2','#7a5a40',1.0]}/><ambientLight intensity={0.3}/>
       <directionalLight position={[2,4,3]} intensity={1.3} color="#ffe2b8" castShadow shadow-mapSize={[1024,1024]}/>
@@ -375,16 +380,16 @@ export function MasterStudy({g,onOut,hud}:{g:G;onOut:()=>void;hud?:React.ReactNo
       <Room>
         <ShelfGlow on={!study.hint&&!reading&&!talk&&!quiz}/>
         <Shelf study={study} hover={hover} picked={pull?.id??null} onHover={id=>{setHover(id);if(id&&!study.hint)put(s=>({...s,hint:true}))}} onPick={pick} onShelf={()=>{if(!busy.current&&!talk&&!quiz)setView('shelf')}}/>
-        <Html position={(()=>{const p=slotOf(hb?hb.b.no:1);return [p[0],p[1]+0.34,p[2]+0.15] as V3})()} center zIndexRange={[25,10]}>
+        {!leaving&&<Html position={(()=>{const p=slotOf(hb?hb.b.no:1);return [p[0],p[1]+0.34,p[2]+0.15] as V3})()} center zIndexRange={[25,10]}>
           {hb&&<KeepIn key={hb.b.book_id} className="ms-label" role="tooltip"><small>제 {hb.b.no}권</small><b>{hb.b.title}</b>{hb.more&&<em>{hb.more}</em>}
-            {tap===hb.b.book_id&&<button type="button" className="ms-take" onClick={()=>pick(hb.b.book_id)}>꺼내 읽기</button>}</KeepIn>}</Html>
+            {tap===hb.b.book_id&&<button type="button" className="ms-take" onClick={()=>pick(hb.b.book_id)}>꺼내 읽기</button>}</KeepIn>}</Html>}
         {/* 피드백 2026-11-26: me in the room, on the rug, facing him (the same outside view as every other room) */}
         <group position={[0.55,0,0.05]} rotation-y={2.45} scale={LOOK.explorer.scale*0.92} name="study-me"><Suspense fallback={null}><Explorer look={g.s.look}/></Suspense></group>
         <Buffett look={!!talk||!!quiz} nod={nod} onTalk={onTalk} hover={bHover} setHover={setBHover}
           bubble={nodBook&&!talk&&!quiz&&!reading&&!pull?`제 ${nodBook.no}권 퀴즈`:null}/>
       </Room>
       {pull&&<FlyingBook key={pull.id+pull.dir+pull.t0} {...pull}/>}
-    </Canvas>
+    </Canvas></Leaving.Provider>
     <div className="ms-top">
       <button type="button" className="ms-door" onClick={onOut}>← 마을로</button>
       <span className="ms-title"><span className="ms-title-pre">거장의 집 · </span>버핏의 서재</span>

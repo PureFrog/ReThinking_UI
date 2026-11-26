@@ -150,20 +150,22 @@ export const MASTER_SIZE=6.2;
 export function MasterHouse({onPick,night=0}:{onPick:()=>void;night?:number}){
   const p=PLACES.find(x=>x.id==='master')!;
   const {scene}=useGLTF(MODELS.masterHouse);
+  const lit=useMemo<THREE.MeshStandardMaterial[]>(()=>[],[scene]);
   const obj=useMemo(()=>{const o=scene.clone(true);o.traverse(c=>{const m=c as THREE.Mesh;if(m.isMesh){m.castShadow=true;m.receiveShadow=true;
     // the model came with a glass-like volume material: drawn as plain lit paint so it sits with the rest of the village
-    const mat=m.material as THREE.MeshPhysicalMaterial;if(mat&&'transmission' in mat){mat.transmission=0;mat.thickness=0}}});return o},[scene]);
+    const mat=m.material as THREE.MeshPhysicalMaterial;if(mat&&'transmission' in mat){mat.transmission=0;mat.thickness=0}
+    // 피드백 2026-11-26 "눈에서 나오는 빛 위치가 안 맞아": the glow is the model's own yellow lens paint lit up (an emissive
+    // map made from its texture), so it sits exactly in the frames
+    if(mat?.map?.image&&!mat.emissiveMap){const im=mat.map.image as CanvasImageSource&{width:number;height:number},W=Math.min(1024,im.width),H=Math.round(W*im.height/im.width);
+      const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d',{willReadFrequently:true});
+      if(g){g.drawImage(im,0,0,W,H);const d=g.getImageData(0,0,W,H),px=d.data;
+        for(let i=0;i<px.length;i+=4){const r=px[i],gg=px[i+1],b=px[i+2],on=r>150&&gg>120&&b<130&&r-b>60;px[i]=px[i+1]=px[i+2]=on?255:0;px[i+3]=255}
+        g.putImageData(d,0,0);const t=new THREE.CanvasTexture(c);t.flipY=mat.map.flipY;t.colorSpace=THREE.SRGBColorSpace;
+        mat.emissiveMap=t;mat.emissive=new THREE.Color('#ffb347');mat.emissiveIntensity=0;mat.needsUpdate=true;lit.push(mat)}}}});return o},[scene]);
+  useEffect(()=>{for(const m of lit)m.emissiveIntensity=0.15+night*1.6},[night,obj]);// eslint-disable-line react-hooks/exhaustive-deps
   return <OnGround x={p.x} z={p.z} rot={p.rot}><group onClick={click(onPick)} name="master-house">
     <primitive object={obj} scale={MASTER_SIZE} position-y={-0.05}/>
-    {/* 피드백 2026-11-26 "눈 부분이 창문인데 빛이 안 비친다": the two lenses glow like lit windows (where the yellow lenses are
-        in the model, master_house.glb), a halo round each, warm light spilling onto the face and the ground in front */}
-    <group scale={MASTER_SIZE} position-y={-0.05}>
-      {[-1,1].map(sd=><group key={sd} position={[sd*0.074,0.312,0.142]}>
-        <mesh scale={[1,0.72,1]}><circleGeometry args={[0.066,28]}/><meshStandardMaterial color="#ffe7a8" emissive="#ffb347" emissiveIntensity={0.5+night*2.6} toneMapped={false} transparent opacity={0.92} side={THREE.DoubleSide}/></mesh>
-        {[-1,1].map(k=><mesh key={k} position={[0,k*0.012,0.002]} scale={[1,0.72,1]}><planeGeometry args={[0.12,0.004]}/><meshBasicMaterial color="#5a3a1c"/></mesh>)}
-      </group>)}
-    </group>
-    {[-1,1].map(sd=><Halo key={sd} at={[sd*0.074*MASTER_SIZE,0.312*MASTER_SIZE-0.05,0.142*MASTER_SIZE+0.1]} size={1.6} color="#ffc070" k={night}/>)}
+    {/* 피드백 2026-11-26 "눈 부분이 창문인데 빛이 안 비친다": the lenses glow (above), warm light spills on the ground in front */}
     <pointLight position={[0,1.2,2.6]} color="#ffb35c" intensity={night*5} distance={6} decay={1.8}/>
     <group position={[0,0,2.4]}><GlowPool r={2.6} color="#ffb35c" k={night*0.9}/></group>
     {/* an easier thing to tap */}

@@ -108,3 +108,37 @@
 .proto3d .rt-petmenu small{font-size:11.5px;color:#7a6044}
 .proto3d .rt-petmenu div{display:flex;gap:8px}
 @keyframes rt-pop{from{transform:translate(-50%,12px) scale(.9);opacity:0}to{transform:translateX(-50%);opacity:1}}
+
+/* 피드백 2026-11-26 "버튼 밑단이 잘려 보여": the chunky buttons' bottom edge is a shadow drawn below them; a row that
+   scrolls (overflow) cut it off. Rows of buttons keep room for it. */
+.proto3d .rt-talk-box .rt-talk-choices.on-box{padding:4px 6px 10px;margin:8px -6px -8px}
+.proto3d :is(.rt-talk-choices,.hs-bar,.rt-sheet-foot,.rt-map-foot,.rt-cg-acts,.jf-res-acts,.rt-petmenu div,.rt-vcard){padding-bottom:8px}
+
+/* 오늘 퀘스트 완료 (Proto3D questWin) */
+.proto3d .rt-qwin{position:fixed;inset:0;z-index:70;pointer-events:none;display:grid;place-items:center}
+.proto3d .rt-qwin-card{position:relative;display:grid;justify-items:center;gap:6px;padding:18px 26px;border-radius:24px;background:var(--sk-paper,#fff8ea);border:3px solid #e2b84a;
+  box-shadow:0 6px 0 #c99a1a,0 18px 40px rgba(0,0,0,.25);animation:rt-qwin-in .5s cubic-bezier(.2,1.5,.4,1) both,rt-qwin-out .35s 2.2s ease-in forwards}
+.proto3d .rt-qwin-card small{font:14px 'Jua',sans-serif;color:#c4432f}.proto3d .rt-qwin-card b{font:20px 'Jua',sans-serif;color:#3b2a20}
+.proto3d .rt-qwin-card em{font-style:normal;font:14px 'Jua',sans-serif;color:#2b7a44}
+.proto3d .rt-qwin-coin{display:flex;align-items:center;gap:6px;font:26px 'Jua',sans-serif;color:#b37a12;animation:rt-qwin-pop .4s .45s both}
+.proto3d .rt-qwin-coin i,.proto3d .rt-qwin-fly{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;font:700 14px 'Jua',sans-serif;font-style:normal;color:#8a5a00;
+  background:radial-gradient(circle at 35% 30%,#fff3b0,#f3c232 55%,#c98f12);box-shadow:0 2px 0 #9a6a08}
+.proto3d .rt-qwin-burst{position:absolute;inset:-30px;z-index:-1;border-radius:50%;background:repeating-conic-gradient(#ffe38a55 0 10deg,transparent 10deg 20deg);animation:rt-qwin-spin 2.6s linear}
+.proto3d .rt-qwin-fly{position:absolute;left:50%;top:50%;animation:rt-qwin-fly 1s calc(.7s + var(--k) * .07s) cubic-bezier(.5,-.3,.6,1) both}
+@keyframes rt-qwin-in{from{transform:scale(.3) rotate(-8deg);opacity:0}to{transform:none;opacity:1}}
+@keyframes rt-qwin-out{to{transform:scale(.85) translateY(-20px);opacity:0}}
+@keyframes rt-qwin-pop{from{transform:scale(0)}60%{transform:scale(1.35)}to{transform:scale(1)}}
+@keyframes rt-qwin-spin{from{transform:rotate(0)}to{transform:rotate(120deg)}}
+@keyframes rt-qwin-fly{0%{transform:translate(-50%,-50%) scale(.6);opacity:0}15%{opacity:1;transform:translate(calc(-50% + (var(--k) - 4) * 14px),-90%) scale(1.1)}
+  100%{transform:translate(calc(50vw - 170px),calc(-50vh + 40px)) scale(.5);opacity:.2}}
+.proto3d .vl-shop-back{position:fixed;left:14px;top:calc(14px + env(safe-area-inset-top,0px));z-index:25}
+/* 피드백 2026-11-26 "동물 버튼이 세로로": the pet menu's buttons stay in one row, words never broken up */
+.proto3d .rt-petmenu{width:min(92vw,360px)}
+.proto3d .rt-petmenu div{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;width:100%}
+.proto3d .rt-petmenu .rt-btn{width:auto;min-width:0;white-space:nowrap;word-break:keep-all;padding:0 12px;font-size:15px}
+.proto3d .rt-petmenu small{text-align:center}
+/* 피드백 2026-11-26: a person's name tag drifting under the right-hand buttons no longer covers them (they win the tap) */
+.proto3d .proto3d-locate{z-index:16}
+.proto3d .vl-npc-tag{z-index:6}
+/* in a shop everything else is hidden (house.css); the way out, a quest's reward and the pet menu still show */
+.proto3d[data-shop]>:is(.vl-shop-back,.rt-qwin,.rt-petmenu){visibility:visible!important}

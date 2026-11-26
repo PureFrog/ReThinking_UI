@@ -41,7 +41,7 @@ export function Villager({id,x,z,face,look,hl,talking,away=false,errand=null,onE
   // 피드백 2026-11-23: each one in the look of what they do (RoleKit.tsx)
   const kitLook=useMemo(()=>{const r=ROLE_LOOK[id];return r?{...look,coat:r.coat,hat:r.hat,bag:null,tool:null}:look},[id,look]);
   const run=useRef<{key:number;leg:number;t:number;px:number;pz:number}|null>(null);
-  const sitRef=useRef(false),nav=useRef<number|undefined>(undefined),day=useRef({i:0,t:0,px:x,pz:z,at:false}),tools=useRef<THREE.Group>(null),drops=useRef<(THREE.Mesh|null)[]>([]),paper=useRef<THREE.Mesh>(null);
+  const sitRef=useRef(false),nav=useRef<{x:number;z:number}>({x,z}),day=useRef({i:0,t:0,px:x,pz:z,at:false}),tools=useRef<THREE.Group>(null),drops=useRef<(THREE.Mesh|null)[]>([]),paper=useRef<THREE.Mesh>(null);
   useFrame(({clock},dt)=>{const b=body.current,w=walker.current;if(!b||!w)return;const t=clock.elapsedTime;
     if(errand&&run.current?.key!==errand.key)run.current={key:errand.key,leg:0,t:0,px:x,pz:z};
     const r=run.current;let busy=false;
@@ -49,7 +49,7 @@ export function Villager({id,x,z,face,look,hl,talking,away=false,errand=null,onE
       // legs: 0 to the tree, 1 picking, 2 to the cart, 3 tipping it in, 4 home
       const toward=(tx:number,tz:number,stop:number)=>{const dx=tx-r.px,dz=tz-r.pz,d=Math.hypot(dx,dz);
         const ang=Math.atan2(dx,dz),diff=Math.atan2(Math.sin(ang-b.rotation.y),Math.cos(ang-b.rotation.y));b.rotation.y+=diff*Math.min(1,dt*10);
-        if(d<=stop+0.02)return true;const m=Math.min(d-stop,STEP*dt);const q={x:r.px,z:r.pz,side:nav.current};if(!npcStep(q,tx,tz,m,npcAround(id))){r.px+=dx/d*m;r.pz+=dz/d*m}else{r.px=q.x;r.pz=q.z}nav.current=q.side;b.position.y=Math.abs(Math.sin(t*9))*0.05;return false};
+        if(d<=stop+0.02)return true;const m=Math.min(d-stop,STEP*dt);const q=nav.current;q.x=r.px;q.z=r.pz;if(!npcStep(q,tx,tz,m,npcAround(id))){r.px+=dx/d*m;r.pz+=dz/d*m}else{r.px=q.x;r.pz=q.z}b.position.y=Math.abs(Math.sin(t*9))*0.05;return false};
       r.t+=dt;b.rotation.x=0;
       if(r.leg===0){if(toward(errand.to.x,errand.to.z,0.95)){r.leg=1;r.t=0}}
       else if(r.leg===1){b.position.y=Math.abs(Math.sin(r.t*5.5))*0.14;b.rotation.x=-0.22-Math.abs(Math.sin(r.t*5.5))*0.12;if(r.t>PICK){r.leg=2;r.t=0;b.rotation.x=0}}
@@ -68,7 +68,7 @@ export function Villager({id,x,z,face,look,hl,talking,away=false,errand=null,onE
       const near=Math.hypot(p.x-x,p.z-z)<4.5||talking;
       const goal=near?{x,z,act:'look' as Act,hold:0}:routine.pts[D.i%routine.pts.length];
       const dx=goal.x-D.px,dz=goal.z-D.pz,d=Math.hypot(dx,dz);let act:Act|null=null;
-      if(d>0.05){const m=Math.min(d,sp*dt),ox=D.px,oz=D.pz,q={x:D.px,z:D.pz,side:nav.current};if(npcStep(q,goal.x,goal.z,m,npcAround(id))){D.px=q.x;D.pz=q.z}nav.current=q.side;const ang=Math.atan2(D.px-ox||dx,D.pz-oz||dz);b.rotation.y+=Math.atan2(Math.sin(ang-b.rotation.y),Math.cos(ang-b.rotation.y))*Math.min(1,dt*8);
+      if(d>0.05){const m=Math.min(d,sp*dt),ox=D.px,oz=D.pz,q=nav.current;q.x=D.px;q.z=D.pz;if(npcStep(q,goal.x,goal.z,m,npcAround(id))){D.px=q.x;D.pz=q.z}else{/* blocked a long while: straight on (all but the fire, which is walked round) */D.px+=dx/d*m;D.pz+=dz/d*m}const ang=Math.atan2(D.px-ox||dx,D.pz-oz||dz);b.rotation.y+=Math.atan2(Math.sin(ang-b.rotation.y),Math.cos(ang-b.rotation.y))*Math.min(1,dt*8);
         b.position.y=routine.ride?0.3:Math.abs(Math.sin(t*9))*0.05;b.rotation.x=0;D.t=0}
       else if(near){busy=false;b.position.y=0;b.rotation.x=0}
       else{D.t+=dt;act=goal.act;b.position.y=routine.ride?0.3:0;
