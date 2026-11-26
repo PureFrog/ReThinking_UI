@@ -11,16 +11,18 @@
 //     EARN.bookQuiz once per book (grant tag book-quiz:<book_id>)
 // The save: core/master-study.ts StudySave under 'rethink-study-v1'. Kept off: walking about the room (the doors and
 // the floor do nothing yet).
-import {Suspense,createContext,useContext,useEffect,useMemo,useRef,useState,type KeyboardEvent as RKey} from 'react';
+import {Suspense,useEffect,useMemo,useRef,useState,type KeyboardEvent as RKey} from 'react';
 import {Canvas,useFrame,useThree,type ThreeEvent} from '@react-three/fiber';
-import {Html,Edges} from '@react-three/drei';
+import {Edges} from '@react-three/drei';
 import {BuffettFigure} from './Buffett3D';
-import {Explorer} from '../Explorer3D';
+import {RoomMe,type Area} from '../Seats';
+import {RoomFollow} from '../RoomView';
 import * as THREE from 'three';
 import {soft} from '../materials';
 import {TalkBox,type Choice} from './Walk';
 import {Rug,StudyDecor,ShelfGlow,wallpaper,parquet} from './StudyDecor';
-import {BOOKS,type Book} from '../../content/master-books';
+import {BOOKS,lessonOf,type Book} from '../../content/master-books';
+import {LessonPlayer} from './Lesson';
 import {STUDY0,readStudy,quizOf,paginate,pageOfPara,pageOfSec,pageBudget,putRead,finishRead,readState,isRight,startQuiz,submit,seeNext,markPaid,
   quizAt,rightCount,quizStatus,booksRead,firstOffer,offerLabel,type StudySave,type Para} from '../../core/master-study';
 import {EARN} from '../../core/ledger';
@@ -129,6 +131,20 @@ function Shelf({study,hover,picked,onHover,onPick,onShelf}:{study:StudySave;hove
   </group>;
 }
 
+// 피드백 2026-11-26 "거장의 집에서 나가면 removeChild 에러" (twice): drei Html gives every label its own React root, and
+// taking those roots down with the room threw. The labels are now plain page elements over the canvas; this empty group
+// only moves its element to where the point lands on screen, every frame.
+function Anchor({at,el}:{at:V3;el:React.RefObject<HTMLDivElement|null>}){
+  const g=useRef<THREE.Group>(null),{camera,size}=useThree(),v=useMemo(()=>new THREE.Vector3(),[]);
+  useFrame(()=>{const d=el.current,o=g.current;if(!d||!o)return;o.getWorldPosition(v);v.project(camera);
+    d.style.transform=`translate(${((v.x+1)/2*size.width).toFixed(1)}px,${((1-v.y)/2*size.height).toFixed(1)}px)`;d.style.visibility=v.z<1?'':'hidden'});
+  return <group ref={g} position={at}/>;
+}
+
+// 피드백 2026-11-26 "방 안을 돌아다닐 수 있게": the floor I can walk, round Buffett's chair, his table and lamp, and the shelf
+const MORE=8;
+const STUDY_AREA:Area={x:[-2.7,2.7],z:[-1.55,2.3],block:(x,z)=>Math.hypot(x-1.55,z+1.05)<0.8||Math.hypot(x-2.45,z+0.45)<0.5||Math.hypot(x-2.45,z+1.9)<0.35||(x<-0.1&&z<-1.75)};
+
 // the book on its way out of (and back into) its slot
 function FlyingBook({id,t0,dir}:{id:string;t0:number;dir:'out'|'back'}){
   const ref=useRef<THREE.Mesh>(null),b=BOOKS.find(x=>x.book_id===id)!,mats=useMemo(()=>bookMats(b),[b]);
@@ -146,7 +162,7 @@ function FlyingBook({id,t0,dir}:{id:string;t0:number;dir:'out'|'back'}){
 
 // Buffett in his armchair (plain shapes; his head turns to me while we talk, nods once after a book is finished)
 // Buffett in his armchair (his own figure, ui/Buffett3D.tsx); his head turns to me while we talk and nods once after a book
-function Buffett({look,nod,onTalk,hover,setHover,bubble}:{look:boolean;nod:number;onTalk:()=>void;hover:boolean;setHover:(b:boolean)=>void;bubble:string|null}){
+function Buffett({look,nod,onTalk,setHover,tagEl}:{look:boolean;nod:number;onTalk:()=>void;setHover:(b:boolean)=>void;tagEl:React.RefObject<HTMLDivElement|null>}){
   const B=L().buffett,c=L().color,fig=useRef<THREE.Group>(null);
   const m=useMemo(()=>({chair:soft(c.chair),chairDark:soft(c.chairDark),leg:soft('#3a2a22'),suit:soft(c.suit)}),[c]);
   const {camera}=useThree();
@@ -160,15 +176,13 @@ function Buffett({look,nod,onTalk,hover,setHover,bubble}:{look:boolean;nod:numbe
     {X([0,0.3,0],[1.0,0.28,0.9],m.chair)}{X([0,0.95,-0.38],[1.0,1.05,0.2],m.chair)}{X([-0.47,0.58,0.02],[0.16,0.34,0.84],m.chairDark)}{X([0.47,0.58,0.02],[0.16,0.34,0.84],m.chairDark)}
     {[[-0.4,0.32],[0.4,0.32],[-0.4,-0.34],[0.4,-0.34]].map(([x,z],i)=><mesh key={i} position={[x,0.08,z]}><cylinderGeometry args={[0.035,0.03,0.16,8]}/><primitive object={m.leg} attach="material"/></mesh>)}
     <BuffettFigure headRef={fig} colors={{suit:c.suit,tie:c.tie,skin:c.skin}}/>
-    {/* one Html that stays mounted (its content changes): mounting and dropping drei Html roots while a book closes
-        threw "removeChild … not a child" on the user's Mac (2026-11-26) */}
-    {!useContext(Leaving)&&<Html position={[0,B.tagY,0]} center zIndexRange={[20,10]}>{bubble?<div className="ms-bubble">{bubble}</div>:hover&&!look?<div className="ms-tag">말 걸기</div>:null}</Html>}
+    <Anchor at={[0,B.tagY,0]} el={tagEl}/>
   </group>;
 }
 
 function Room({children}:{children:React.ReactNode}){
   const c=L().color,rr=L().room,m=useMemo(()=>({floor:new THREE.MeshStandardMaterial({map:parquet(rr.w+4,rr.d+4),roughness:0.85}),wall:new THREE.MeshStandardMaterial({map:wallpaper(c.wall,rr.w,rr.h),roughness:0.95}),wall2:new THREE.MeshStandardMaterial({map:wallpaper(c.wall2,rr.d,rr.h),roughness:0.95}),trim:soft(c.trim),rug:soft(c.rug),lamp:soft('#e9d8a6'),metal:soft('#5a4a3a'),
-    door:soft(c.door),table:soft(c.woodDark),glow:new THREE.MeshStandardMaterial({color:'#fff2c8',emissive:'#ffdf9a',emissiveIntensity:1.1})}),[c]);
+    door:soft(c.door),table:soft(c.woodDark),ceil:soft('#d9c8a6'),glow:new THREE.MeshStandardMaterial({color:'#fff2c8',emissive:'#ffdf9a',emissiveIntensity:1.1})}),[c]);
   const r=L().room,lamp=L().lamp,table=L().table;
   return <group>
     <mesh rotation-x={-Math.PI/2} position-z={2} receiveShadow><planeGeometry args={[r.w+4,r.d+4]}/><primitive object={m.floor} attach="material"/></mesh>
@@ -176,6 +190,14 @@ function Room({children}:{children:React.ReactNode}){
     <mesh position={[-r.w/2,r.h/2,0]} rotation-y={Math.PI/2} receiveShadow><planeGeometry args={[r.d,r.h]}/><primitive object={m.wall2} attach="material"/></mesh>
     <mesh position={[0,0.06,-r.d/2+0.02]}><boxGeometry args={[r.w,0.12,0.04]}/><primitive object={m.trim} attach="material"/></mesh>
     <mesh position={[-r.w/2+0.02,0.06,0]}><boxGeometry args={[0.04,0.12,r.d]}/><primitive object={m.trim} attach="material"/></mesh>
+    {/* 피드백 2026-11-26 "방 UI 통일": closed round (the right wall, the walls on past the camera, a ceiling) so the
+        follow camera behind me sees room everywhere */}
+    <mesh position={[r.w/2,r.h/2,MORE/2]} rotation-y={-Math.PI/2} receiveShadow><planeGeometry args={[r.d+MORE,r.h]}/><primitive object={m.wall2} attach="material"/></mesh>
+    <mesh position={[-r.w/2,r.h/2,r.d/2+MORE/2]} rotation-y={Math.PI/2}><planeGeometry args={[MORE,r.h]}/><primitive object={m.wall2} attach="material"/></mesh>
+    <mesh rotation-x={-Math.PI/2} position-z={r.d/2+MORE-1.5}><planeGeometry args={[r.w+4,4]}/><primitive object={m.floor} attach="material"/></mesh>
+    <mesh position={[0,r.h,MORE/2]} rotation-x={Math.PI/2}><planeGeometry args={[r.w,r.d+MORE]}/><primitive object={m.ceil} attach="material"/></mesh>
+    {[-1.6,0.6,2.8].map(z=><mesh key={z} position={[0,r.h-0.08,z]}><boxGeometry args={[r.w,0.16,0.2]}/><primitive object={m.trim} attach="material"/></mesh>)}
+    <mesh position={[r.w/2-0.02,0.06,MORE/2]}><boxGeometry args={[0.04,0.12,r.d+MORE]}/><primitive object={m.trim} attach="material"/></mesh>
     <Rug at={[0.3,0.012,0.1]} size={[3.3,2.3]}/>
     {/* the door on the left wall, near the front */}
     <mesh position={[-r.w/2+0.03,1.05,1.6]} rotation-y={Math.PI/2}><boxGeometry args={[0.95,2.1,0.05]}/><primitive object={m.door} attach="material"/></mesh>
@@ -198,11 +220,13 @@ function Cam({view}:{view:View}){
   const {camera,size}=useThree(),look=useRef(new THREE.Vector3(...L().cam.room.look)),want=useMemo(()=>({p:new THREE.Vector3(),l:new THREE.Vector3()}),[]);
   useEffect(()=>{const c=camera as THREE.PerspectiveCamera,a=size.width/size.height,d=Math.PI/180;
     const fromH=2*Math.atan(Math.tan(L().cam.hfov*d/2)/a)/d;c.fov=Math.min(L().cam.fovMax,Math.max(L().cam.fov,fromH));c.updateProjectionMatrix()},[camera,size.width,size.height]);
+  const dir=useMemo(()=>new THREE.Vector3(),[]);
   useFrame((_,dt)=>{const c=camera as THREE.PerspectiveCamera,a=size.width/size.height,v=L().cam[view],tall=a<0.9;
+    // 피드백 2026-11-26 "방 UI 통일": the room view is RoomView's follow camera; here only the shelf and the talk
+    if(view==='room'){c.getWorldDirection(dir);look.current.copy(c.position).addScaledVector(dir,4);return}
     want.p.set(...v.pos);want.l.set(...v.look);
     if(view==='shelf'){// back off until the whole shelf fits across
       const h=2*Math.atan(Math.tan(c.fov*Math.PI/360)*a),need=(L().shelf.pitch*8+0.3)/2/Math.tan(h/2);want.p.z=Math.max(v.pos[2],L().shelf.z+need)}
-    if(view==='room'&&tall){want.p.set(...L().cam.roomTall.pos);want.l.set(...L().cam.roomTall.look)}
     if(view==='talk'&&tall){want.p.set(...L().cam.talkTall.pos);want.l.set(...L().cam.talkTall.look)}
     const k=still()?1:1-Math.exp(-dt*4);camera.position.lerp(want.p,k);look.current.lerp(want.l,k);camera.lookAt(look.current)});
   return null;
@@ -312,12 +336,9 @@ function QuizPanel({book,study,onSubmit,onNext,onRead,onEnd,paidNow}:{book:Book;
     </div></div>;
 }
 
-// 피드백 2026-11-26 "거장의 집에서 마을로 나오면 removeChild 에러": the labels drawn over the 3D (drei Html) are taken down a
-// frame before the room itself goes, so React never removes a label from a page part already gone
-const Leaving=createContext(false);
 export function MasterStudy({g,onOut:out,hud}:{g:G;onOut:()=>void;hud?:React.ReactNode}){
-  const [leaving,setLeaving]=useState(false);
-  const onOut=()=>{if(leaving)return;setLeaving(true);requestAnimationFrame(()=>requestAnimationFrame(out))};
+  const gone=useRef(false),onOut=()=>{if(gone.current)return;gone.current=true;out()};
+  const buffTag=useRef<HTMLDivElement>(null),bookTag=useRef<HTMLDivElement>(null),meAt=useRef({x:0.55,z:0.05});
   const [study,setStudy]=useState<StudySave>(loadStudy);
   const put=(f:(s:StudySave)=>StudySave)=>setStudy(x=>{const n=f(x);if(n!==x)saveStudy(n);return n});
   const [view,setView]=useState<View>('room'),[hover,setHover]=useState<string|null>(null),[tap,setTap]=useState<string|null>(null);
@@ -369,10 +390,11 @@ export function MasterStudy({g,onOut:out,hud}:{g:G;onOut:()=>void;hud?:React.Rea
     else if(e.key==='Enter'||e.key===' '){e.preventDefault();pick(BOOKS[kb].book_id)}};
   useEffect(()=>{const t=(window as unknown as {__proto3d?:Record<string,unknown>});(t.__proto3d??={}).study={pick:(id:string)=>pick(id),talk:onTalk,state:()=>study}});
 
-  const label=(id:string)=>{const b=bookById(id),st=readState(study,id);return {b,more:st==='reading'?`이어 읽기 · ${pageNo(b)}쪽`:st==='done'?'다 읽음':null}};
+  const label=(id:string)=>{const b=bookById(id),st=readState(study,id);return {b,more:st==='reading'?`이어 읽기 · ${pageNo(b)}쪽`:st==='done'?'수업 완료':null}};
   const hb=hover&&!pull?label(hover):null;
+  const bubble=nodBook&&!talk&&!quiz&&!reading&&!pull?`제 ${nodBook.no}권 퀴즈`:null;
   return <div className="ms" data-testid="master-study" data-view={view}>
-    <Leaving.Provider value={leaving}><Canvas className="ms-canvas" shadows dpr={[1,1.75]} gl={{antialias:true}} camera={{fov:46,near:0.05,far:40,position:L().cam.room.pos}}>
+    <Canvas className="ms-canvas" shadows dpr={[1,1.75]} gl={{antialias:true}} camera={{fov:46,near:0.05,far:40,position:L().cam.room.pos}}>
       <color attach="background" args={[L().color.wall2]}/>
       <hemisphereLight args={['#fff4e2','#7a5a40',1.0]}/><ambientLight intensity={0.3}/>
       <directionalLight position={[2,4,3]} intensity={1.3} color="#ffe2b8" castShadow shadow-mapSize={[1024,1024]}/>
@@ -380,18 +402,21 @@ export function MasterStudy({g,onOut:out,hud}:{g:G;onOut:()=>void;hud?:React.Rea
       <Room>
         <ShelfGlow on={!study.hint&&!reading&&!talk&&!quiz}/>
         <Shelf study={study} hover={hover} picked={pull?.id??null} onHover={id=>{setHover(id);if(id&&!study.hint)put(s=>({...s,hint:true}))}} onPick={pick} onShelf={()=>{if(!busy.current&&!talk&&!quiz)setView('shelf')}}/>
-        {!leaving&&<Html position={(()=>{const p=slotOf(hb?hb.b.no:1);return [p[0],p[1]+0.34,p[2]+0.15] as V3})()} center zIndexRange={[25,10]}>
-          {hb&&<KeepIn key={hb.b.book_id} className="ms-label" role="tooltip"><small>제 {hb.b.no}권</small><b>{hb.b.title}</b>{hb.more&&<em>{hb.more}</em>}
-            {tap===hb.b.book_id&&<button type="button" className="ms-take" onClick={()=>pick(hb.b.book_id)}>꺼내 읽기</button>}</KeepIn>}</Html>}
+        <Anchor at={(()=>{const p=slotOf(hb?hb.b.no:1);return [p[0],p[1]+0.34,p[2]+0.15] as V3})()} el={bookTag}/>
         {/* 피드백 2026-11-26: me in the room, on the rug, facing him (the same outside view as every other room) */}
-        <group position={[0.55,0,0.05]} rotation-y={2.45} scale={LOOK.explorer.scale*0.92} name="study-me"><Suspense fallback={null}><Explorer look={g.s.look}/></Suspense></group>
-        <Buffett look={!!talk||!!quiz} nod={nod} onTalk={onTalk} hover={bHover} setHover={setBHover}
-          bubble={nodBook&&!talk&&!quiz&&!reading&&!pull?`제 ${nodBook.no}권 퀴즈`:null}/>
+        <RoomMe name="study-me" look={g.s.look} home={{x:0.55,z:0.05}} homeFace={2.45} scale={LOOK.explorer.scale*0.92} seats={[]} area={STUDY_AREA} me={meAt}/>
+        <RoomFollow me={meAt} halfW={L().room.w/2} off={view!=='room'}/>
+        <Buffett look={!!talk||!!quiz} nod={nod} onTalk={onTalk} setHover={setBHover} tagEl={buffTag}/>
       </Room>
       {pull&&<FlyingBook key={pull.id+pull.dir+pull.t0} {...pull}/>}
-    </Canvas></Leaving.Provider>
+    </Canvas>
+    <div className="ms-anchors" aria-hidden={!hb&&!bubble}>
+      <div ref={buffTag} className="ms-anchor" style={{zIndex:1}}>{bubble?<div className="ms-bubble">{bubble}</div>:bHover&&!(talk||quiz)?<div className="ms-tag">말 걸기</div>:null}</div>
+      <div ref={bookTag} className="ms-anchor" style={{zIndex:2}}>{hb&&<KeepIn key={hb.b.book_id} className="ms-label" role="tooltip"><small>제 {hb.b.no}권</small><b>{hb.b.title}</b>{hb.more&&<em>{hb.more}</em>}
+        {tap===hb.b.book_id&&<button type="button" className="ms-take" onClick={()=>pick(hb.b.book_id)}>꺼내 읽기</button>}</KeepIn>}</div>
+    </div>
     <div className="ms-top">
-      <button type="button" className="ms-door" onClick={onOut}>← 마을로</button>
+      <button type="button" className="ms-door" onClick={onOut}>← 밖으로 나가기</button>
       <span className="ms-title"><span className="ms-title-pre">거장의 집 · </span>버핏의 서재</span>
       <span className={'ms-hud'+(fly?' got':'')} key={fly}>{hud??<span className="ms-coins rt-num">{won(g.s.currency)}</span>}</span>
     </div>
@@ -403,8 +428,11 @@ export function MasterStudy({g,onOut:out,hud}:{g:G;onOut:()=>void;hud?:React.Rea
         aria-label={`책장: 제 ${BOOKS[kb].no}권 ${BOOKS[kb].title}. 방향키로 고르고 Enter로 꺼내요`}>책장</button>
       <button ref={buffBtn} type="button" onClick={onTalk}>버핏에게 말 걸기</button>
     </div>
-    {reading&&<BookReader book={bookById(reading)} para={study.read[reading]?.para??0}
-      onClose={p=>{put(s=>putRead(s,reading,p));back(reading,false)}} onFinish={p=>{put(s=>finishRead(s,reading,p));cue('capsule-mark');back(reading,true)}}/>}
+    {/* 피드백 2026-11-26: a book is a lesson now (Lesson.tsx); the page reader stays for a book without one */}
+    {reading&&(lessonOf(bookById(reading).no)?<LessonPlayer lesson={lessonOf(bookById(reading).no)!} onClose={()=>back(reading,false)}
+        onFinish={()=>{put(s=>finishRead(s,reading,0));cue('capsule-mark');back(reading,true)}}/>
+      :<BookReader book={bookById(reading)} para={study.read[reading]?.para??0}
+      onClose={p=>{put(s=>putRead(s,reading,p));back(reading,false)}} onFinish={p=>{put(s=>finishRead(s,reading,p));cue('capsule-mark');back(reading,true)}}/>)}
     {quiz&&peek!==null&&<BookReader book={bookById(quiz)} para={0} peekSec={peek} onBack={()=>setPeek(null)} onClose={()=>setPeek(null)} onFinish={()=>setPeek(null)}/>}
     {talk==='menu'&&(()=>{const t=talkLine();return <TalkBox className="ms-talk" name="버핏" role="거장의 집 · 서재 주인" line={t.line} choices={t.choices}/>})()}
     {talk==='list'&&<div className="ms-list" role="dialog" aria-label="다 읽은 책">

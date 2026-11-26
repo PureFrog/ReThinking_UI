@@ -32,7 +32,7 @@ import {soft} from './materials';
 import {MODELS,ALL_TREE_FILES,CANOPY,BARK,STUMP_CUT,FRUIT,FRUIT_FALLEN} from './models';
 import {shingles,siding,stone,brick,planks,tmat} from './surfaces';
 import {OnGround,surfaceY,tiltAt,normalAt,rng,UP} from './ground';
-import {PLOTS,PATHS,PLACES,place,inStream,route,WORLD,solids,pushOut,BUILDING_R,BRIDGE,streamZ,bridgeBlocks,bridgeLift,FIRE,FIRE_SEAT,FIRE_LOG,setNpcWalls,npcStep,NPC_FIRE_SEATS,type Solid} from './places';
+import {PLOTS,PATHS,PLACES,place,inStream,route,WORLD,solids,pushOut,BUILDING_R,BRIDGE,streamZ,bridgeBlocks,bridgeLift,FIRE,FIRE_SEAT,FIRE_LOG,setNpcWalls,npcStep,NPC_FIRE_SEATS,NPC_LIVE,npcAround,walksInto,type Solid} from './places';
 import {spread,spreadXZ} from '../core/world';
 import {SIGN_PLACES,SIGN_BUILDINGS,SIGN_CITY} from './ui/Signs';
 import {VillageLamps} from './VillageLamps';
@@ -458,7 +458,17 @@ function Keys({pos,target,stops,onMove,enabled,gate}:{gate:(x:number,z:number)=>
 // the player: my observer as I dressed it (Explorer3D.tsx, core/wardrobe.ts), walking where I tap
 function Player({target,stops,pos,hidden,look,walls,onPick,faceTo=null,sit}:{sit?:React.MutableRefObject<{x:number;z:number;face:number}|null>;faceTo?:{x:number;z:number}|null;onPick?:()=>void;target:React.MutableRefObject<THREE.Vector3>;stops:React.MutableRefObject<{x:number;z:number}[]>;pos:React.MutableRefObject<THREE.Vector3>;hidden?:boolean;look:Look;walls:Solid[]}){
   const g=useRef<THREE.Group>(null),body=useRef<THREE.Group>(null),moving=useRef(false),speed=useRef(0),sitting=useRef(false),walker=useRef<{x:number;z:number;since?:number}>({x:0,z:0});
+  // 피드백 2026-11-26 "부딪히면 '미안! 지나갈게!'": a speech bubble on the page over my head, moved with me each frame
+  const {camera:cam3,size:sz3,gl:gl3}=useThree(),lastBump=useRef<Record<string,number>>({}),say=useRef<{el:HTMLDivElement;at:number}|null>(null),hv=useMemo(()=>new THREE.Vector3(),[]);
+  const bump=(who:string)=>{const now=performance.now();if(now-(lastBump.current[who]??-1e9)<LOOK.bump.again)return;lastBump.current[who]=now;
+    const L=LOOK.bump.lines,text=L[Math.floor(Math.random()*L.length)];say.current?.el.remove();
+    const el=document.createElement('div');el.className='rt-sorry';el.textContent=text;el.setAttribute('role','status');(gl3.domElement.parentElement??document.body).appendChild(el);
+    say.current={el,at:now};const h=testHooks() as {bumped?:string;said?:string};h.bumped=who;h.said=text};
+  useEffect(()=>()=>{say.current?.el.remove()},[]);
   useFrame((_,dt)=>{const p=pos.current,tg=target.current,gr=g.current,b=body.current;if(!gr||!b)return;const t=Math.min(dt,0.25)/* by time: a slow phone walks as fast */;
+    NPC_LIVE.me={x:p.x,z:p.z};// the village's people go round me too
+    if(say.current){const sy=say.current;if(performance.now()-sy.at>LOOK.bump.show){sy.el.remove();say.current=null}
+      else{hv.set(p.x,surfaceY(p.x,p.z)+LOOK.bump.y,p.z).project(cam3);sy.el.style.transform=`translate(${((hv.x+1)/2*sz3.width).toFixed(1)}px,${((1-hv.y)/2*sz3.height).toFixed(1)}px)`}}
     const dx=tg.x-p.x,dz=tg.z-p.z,d=Math.hypot(dx,dz);moving.current=d>0.05;
     // speeds up from a stand, slows down over the last stretch, turns toward where it goes instead of snapping
     const want=moving.current?SPEED*Math.min(1,d/LOOK.walk.brake+0.25):0;speed.current+=(want-speed.current)*Math.min(1,LOOK.walk.accel*t);
@@ -466,8 +476,12 @@ function Player({target,stops,pos,hidden,look,walls,onPick,faceTo=null,sit}:{sit
     // (from the bank) stops at the bank, whatever brought it there (a tap, the keys, a talk's walk)
     // 피드백 2026-11-26 "지도에서 낚시터 누르면 이동이 안 돼": a walk headed straight at a stall or rock used to push into it and
     // stop; now it goes round (places.ts npcStep, as the village's people do) and only gives up when there is no way
+    // 피드백 2026-11-26 "내 캐릭터도 NPC 몸을 통과하면 안 돼": the village's people are gone round too; walking into one
+    // (not the one I am walking up to) says a quick sorry over my head
     if(moving.current){const step=Math.min(d,speed.current*t),wk=walker.current;wk.x=p.x;wk.z=p.z;
-      if(!npcStep(wk,tg.x,tg.z,step,walls,0.35)&&(wk.since??0)>200){tg.set(p.x,0,p.z);stops.current=[];moving.current=false;return}
+      const ahead=Math.max(step,0.5),who=walksInto('me',p.x,p.z,p.x+dx/d*ahead,p.z+dz/d*ahead,0.35);
+      if(who&&who!=='bori'/* she walks with me */&&!(NPC_LIVE[who]&&Math.hypot(tg.x-NPC_LIVE[who].x,tg.z-NPC_LIVE[who].z)<1.3))bump(who);
+      if(!npcStep(wk,tg.x,tg.z,step,npcAround('me',walls),0.35)&&(wk.since??0)>200){tg.set(p.x,0,p.z);stops.current=[];moving.current=false;return}
       const nx=wk.x,nz=wk.z;
       if((inStream(nx,nz,STREAM_PAD)&&!inStream(p.x,p.z,STREAM_PAD))||bridgeBlocks(p,{x:nx,z:nz})){tg.set(p.x,0,p.z);stops.current=[];moving.current=false;return}
       const mx=nx-p.x,mz=nz-p.z;p.x=nx;p.z=nz;
@@ -509,7 +523,7 @@ const easeInOut=(k:number)=>k<0.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
 // aim: a landmark just opened — the camera comes down to a side view from the garden's side, facing it (core/land.ts)
 function FollowCam({pos,recenter,focus,orbit,low,near,aim,fp=false,talk=null,eye=null}:{pos:React.MutableRefObject<THREE.Vector3>;recenter:number;focus:THREE.Vector3|null;orbit:Orbit|null;low:number|null;near:boolean;aim?:number|null;fp?:boolean;talk?:{az:number;pitch?:number;dist?:number}|null;eye?:{x:number;z:number;ax:number;az:number;h?:number}|null}){
   const shift=useRef({x:0,y:0}),back=useRef(false),lean=useMemo(()=>new THREE.Vector3(),[]),side=useMemo(()=>new THREE.Vector3(),[]),tv=useRef({x:0,y:0});
-  const ctl=useRef<OrbitControlsImpl>(null),{camera,size}=useThree(),fpWas=useRef(false);
+  const ctl=useRef<OrbitControlsImpl>(null),{camera,size}=useThree(),fpWas=useRef(false),levelUp=useRef(new THREE.Vector3(0,1,0));
   const prev=useMemo(()=>new THREE.Vector3(),[]),want=useMemo(()=>new THREE.Vector3(),[]),fwd=useMemo(()=>new THREE.Vector3(),[]);
   const fr=frameFor(LOOK.camera.frames,size.width/Math.max(1,size.height));
   useEffect(()=>{const c=ctl.current,cam=camera as THREE.PerspectiveCamera;if(!c)return;cam.fov=fr.fov;cam.updateProjectionMatrix();
@@ -577,7 +591,9 @@ function FollowCam({pos,recenter,focus,orbit,low,near,aim,fp=false,talk=null,eye
     // 피드백 2026-11-26 "1인칭이 땅에 붙고 화면이 기울어": in first person no phone lean, and the view is levelled to the ground
     // under me (on the round world the global up leans away from it); the eye sits higher (look.ts camera.fp.eye)
     if(fpOn){lean.set(0,0,0);camera.up.copy(normalAt(pos.current.x,pos.current.z));camera.lookAt(c.target);camera.up.set(0,1,0)}
-    else{camera.position.add(lean);camera.lookAt(c.target)}
+    // 피드백 2026-11-26 "기울어진 카메라": the follow camera is levelled the same way, to the ground under me (eased, so
+    // walking over the curve rolls the view gently instead of snapping)
+    else{camera.position.add(lean);levelUp.current.lerp(normalAt(pos.current.x,pos.current.z),ease(4)).normalize();camera.up.copy(levelUp.current);camera.lookAt(c.target);camera.up.set(0,1,0)}
     // e2e: first person or not, how far the camera is from where it looks, how far that is from the player (xz)
     (testHooks() as {view?:unknown}).view={fp:fpOn,eyeGap:+camera.position.distanceTo(c.target).toFixed(2),follow:+Math.hypot(c.target.x-pos.current.x,c.target.z-pos.current.z).toFixed(2)}});
   return <OrbitControls ref={ctl} makeDefault enablePan={false} enableDamping dampingFactor={LOOK.camera.damping} rotateSpeed={LOOK.camera.rotateSpeed} zoomSpeed={LOOK.camera.zoomSpeed}

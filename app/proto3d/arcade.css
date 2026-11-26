@@ -17,3 +17,6 @@
 @media (min-width:600px){.proto3d .ac-frame{height:min(92dvh,860px);border-radius:22px;border:6px solid #f2a7b8;box-shadow:0 24px 80px #0008}}
 /* on a phone the game fills the screen: 그만하기 sits small in the gap between the game's two top panels */
 @media (max-width:599px){.proto3d .ac-stop{top:calc(10px + env(safe-area-inset-top));right:auto;left:50%;transform:translateX(-50%);min-height:30px;padding:0 10px;font-size:12px}}
+/* 피드백 2026-11-26 "방 UI 통일": the way out on one line; on a phone the room's name gives way to it */
+.proto3d .ac-out{white-space:nowrap;flex-shrink:0}
+@media(max-width:520px){.proto3d .ac-name{display:none}.proto3d .ac-hud{margin-left:auto}}

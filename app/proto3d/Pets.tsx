@@ -16,7 +16,8 @@ export const PETS:Record<PetId,{name:string;kind:'cat'|'dog';treat:string;petLin
   'stray-cat':{name:'회색이',kind:'cat',treat:'🐟 생선 간식',petLine:'회색이가 머리를 손에 비벼.',treatLine:'회색이가 조심조심 다 먹었어.'},
   'dog':{name:'콩이',kind:'dog',treat:'🦴 뼈다귀 간식',petLine:'콩이가 꼬리를 마구 흔들어.',treatLine:'콩이가 간식 물고 빙글빙글 돌아.'},
 };
-export const PET_COINS:Record<PetAct,number>={pet:2_000,treat:3_000};// 원 (core/won.ts): a day's care of all three is about one journal's worth
+// 피드백 2026-11-26 "쓰다듬고 돈 받는 게 물가랑 안 맞아": a small thank-you, not a wage (once a pet and an act a day)
+export const PET_COINS:Record<PetAct,number>={pet:500,treat:1_000};// 원 (core/won.ts)
 export function petPick(id:PetId,at:{x:number;z:number}){window.dispatchEvent(new CustomEvent('rt-pet-pick',{detail:{id,at}}))}
 export function petAct(id:PetId,act:PetAct){window.dispatchEvent(new CustomEvent('rt-pet-act',{detail:{id,act}}))}
 // in the animal: waiting (picked a moment ago) and its last reaction

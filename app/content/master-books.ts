@@ -10,6 +10,8 @@ export type Book={book_id:string;revision:number;no:number;title:string;source:s
 export type BookQuiz={book_id:string;revision:number;questions:BookQuestion[];keywords?:{keyword:string;definition:string}[]};
 import book01 from './master/book01';
 import quiz01 from './master/quiz01.json';
+import lessons from './master/lessons.json';
+const id=(no:number)=>String(no).padStart(2,'0');
 
 const SOURCE='임시 원고 · 팀의 책 본문이 오면 바뀌어요';
 type Raw=[title:string,sections:[string,string[]][],quiz:BookQuestion[]];
@@ -165,11 +167,18 @@ export function teamQuiz(q:TeamQuiz,bookId:string):BookQuiz{
     ?{kind:'mc',q:x.prompt,options:(x.options??[]).map(o=>o.text) as [string,string,string,string],answer:Math.max(0,(x.options??[]).findIndex(o=>o.id===x.correct_id)),why:x.explanation,sec:sec(x)}
     :{kind:'word',q:x.prompt,answer:x.answer??'',why:x.explanation,sec:sec(x)})}}
 
-const id=(no:number)=>String(no).padStart(2,'0');
-// the team's text replaces a stand-in by its number
-const TEAM:Record<number,{book:ReturnType<typeof parseBook>;quiz:TeamQuiz}>={1:{book:parseBook(book01),quiz:quiz01 as TeamQuiz}};
-export const BOOKS:Book[]=RAW.map(([title,secs],i)=>{const t=TEAM[i+1];
-  return t?{book_id:id(i+1),revision:t.quiz.revision,no:i+1,title:t.book.title,source:t.book.source,sections:t.book.sections}
-    :{book_id:id(i+1),revision:1,no:i+1,title,source:SOURCE,draft:true,sections:secs.map(([tt,paras])=>({title:tt,paras}))}});
-export const BOOK_QUIZZES:BookQuiz[]=RAW.map(([,,quiz],i)=>{const t=TEAM[i+1];
-  return t?teamQuiz(t.quiz,id(i+1)):{book_id:id(i+1),revision:1,questions:quiz}});
+// 피드백 2026-11-26 "책 내용 싹 다 손봐주고, interactive 한 교육": every book is now a short lesson (content/master/
+// lessons.json, played by proto3d/ui/Lesson.tsx) and its questions ask what Buffett would think in a situation. The
+// old stand-in texts above (RAW) and the team's first manuscript (book01, quiz01) stay for reference; revision 3 starts
+// every quiz afresh.
+export type LessonStep={say:string;w?:string;p?:Record<string,unknown>;t?:string;ok?:string};
+export type Lesson={no:number;title:string;icon:string;steps:LessonStep[];questions:BookQuestion[]};
+export const LESSONS:Lesson[]=lessons as Lesson[];
+export const LESSON_REV=3;
+export const lessonOf=(no:number)=>LESSONS.find(l=>l.no===no);
+void parseBook;void book01;void quiz01;void teamQuiz;
+export const BOOKS:Book[]=RAW.map(([title],i)=>{const l=lessonOf(i+1);
+  return l?{book_id:id(i+1),revision:LESSON_REV,no:i+1,title:l.title,source:'거장의 집 수업 · 워런 버핏의 생각을 쉽게 풀었어요',sections:[{title:l.title,paras:l.steps.map(s=>s.say)}]}
+    :{book_id:id(i+1),revision:1,no:i+1,title,source:SOURCE,draft:true,sections:[]}});
+export const BOOK_QUIZZES:BookQuiz[]=RAW.map(([,,quiz],i)=>{const l=lessonOf(i+1);
+  return l?{book_id:id(i+1),revision:LESSON_REV,questions:l.questions}:{book_id:id(i+1),revision:1,questions:quiz}});

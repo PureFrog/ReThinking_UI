@@ -142,3 +142,9 @@
 .proto3d .vl-npc-tag{z-index:6}
 /* in a shop everything else is hidden (house.css); the way out, a quest's reward and the pet menu still show */
 .proto3d[data-shop]>:is(.vl-shop-back,.rt-qwin,.rt-petmenu){visibility:visible!important}
+/* 피드백 2026-11-26 "부딪히면 '미안! 지나갈게!'": the bubble over my head (Scene3D Player) */
+.rt-sorry{position:absolute;left:0;top:0;z-index:7;pointer-events:none;white-space:nowrap;padding:6px 12px;margin:-46px 0 0;translate:-50% 0;border-radius:14px;
+  background:#fffbf2;border:2px solid #3b2c20;color:#3b2c20;font:400 14px 'Jua',sans-serif;box-shadow:0 3px 0 #3b2c2040;animation:rt-sorry 1.6s ease-out forwards}
+.rt-sorry::after{content:'';position:absolute;left:50%;bottom:-8px;width:12px;height:12px;background:#fffbf2;border:2px solid #3b2c20;border-top:0;border-left:0;transform:translateX(-50%) rotate(45deg)}
+@keyframes rt-sorry{0%{opacity:0;scale:.6}12%{opacity:1;scale:1.08}20%{scale:1}85%{opacity:1}100%{opacity:0;scale:.95}}
+@media (prefers-reduced-motion:reduce){.rt-sorry{animation:none}}

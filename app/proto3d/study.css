@@ -127,3 +127,98 @@
 /* 피드백 2026-11-24: the village's top right (coins, coin calendar, settings) over the study as well */
 .ms-hud{display:flex;margin-left:auto}
 .ms-hud.got .rt-coins{animation:ms-pop .5s ease-out .55s both}
+/* labels over the 3D (MasterStudy Anchor moves each .ms-anchor to its point every frame) */
+.ms-anchors{position:absolute;inset:0;z-index:12;pointer-events:none;overflow:hidden}
+.ms-anchor{position:absolute;left:0;top:0;width:0;height:0}
+.ms-anchor>*{position:absolute;left:0;top:0;transform:translate(-50%,-50%);pointer-events:auto;white-space:nowrap}
+@media (max-width:520px){.ms-title{visibility:hidden}}
+/* ---------------------------------------------------------------- 거장의 집 수업 (ui/Lesson.tsx, 2026-11-26) */
+.ls{position:absolute;inset:0;z-index:36;display:flex;flex-direction:column;gap:10px;padding:calc(14px + env(safe-area-inset-top,0px)) 14px calc(14px + env(safe-area-inset-bottom,0px));
+  background:radial-gradient(120% 80% at 50% 0%,#3a2c20f2,#1f1812f7);color:#2a2219;outline:none;animation:ls-in .35s ease-out}
+@keyframes ls-in{from{opacity:0;transform:translateY(12px)}}
+.ls>*{width:100%;max-width:620px;margin:0 auto}
+.ls-head{display:flex;align-items:center;gap:8px;color:#fff6e6}
+.ls-book{font:700 12px 'Gowun Batang',serif;padding:3px 9px;border-radius:999px;background:#d8b25a;color:#3b2c20;flex-shrink:0}
+.ls-name{flex:1;font:700 16px 'Gowun Batang',serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ls-voice,.ls-x{width:40px;height:40px;border-radius:50%;border:0;background:#fffbf2e8;font-size:17px;cursor:pointer;flex-shrink:0;box-shadow:0 3px 0 #c9b48a}
+.ls-voice[aria-pressed=false]{opacity:.7}
+.ls-steps{display:flex;gap:5px}.ls-steps i{flex:1;height:5px;border-radius:3px;background:#ffffff30;transition:background .4s}.ls-steps i[data-on]{background:#f2c230}
+.ls-stage{flex:1;min-height:0;display:grid;place-items:center;padding:16px;border-radius:22px;background:#fbf4e4;box-shadow:inset 0 -4px 0 #e6d7b6,0 18px 40px -20px #000;overflow:auto;animation:ls-pop .45s cubic-bezier(.2,1.4,.4,1)}
+@keyframes ls-pop{from{opacity:0;transform:scale(.94)}}
+.ls-stage>*{width:100%;max-width:440px}
+.ls-talk{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:18px;background:#fffbf2;box-shadow:0 4px 0 #d9c59a}
+.ls-who{font-size:30px;line-height:1;animation:ls-nod 2.4s ease-in-out infinite}
+@keyframes ls-nod{50%{transform:rotate(-6deg) translateY(1px)}}
+.ls-line{margin:0;min-height:3.1em;font:600 15.5px/1.55 'Gowun Batang',serif;word-break:keep-all}
+.ls-foot{display:flex;align-items:center;gap:8px}
+.ls-try{flex:1;color:#fff1c4;font-size:13.5px;font-weight:700;animation:ls-bob 1.4s ease-in-out infinite}
+@keyframes ls-bob{50%{transform:translateY(-2px)}}
+.ls-back,.ls-next{min-height:46px;padding:0 20px;border-radius:999px;border:0;font:700 15px 'Jua',sans-serif;cursor:pointer}
+.ls-back{background:#fffbf2c8;color:#3b2c20}
+.ls-next{background:#f2c230;color:#3b2c20;box-shadow:0 4px 0 #c99a1a}.ls-next:disabled{background:#8a7a60;color:#e6dcc8;box-shadow:none;cursor:default}
+.ls-svg{width:100%;height:auto;display:block}
+.ls-title{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.ls-title-i{font-size:64px;animation:ls-float 3s ease-in-out infinite}@keyframes ls-float{50%{transform:translateY(-8px) rotate(3deg)}}
+.ls-title b{font:700 24px 'Gowun Batang',serif}.ls-title small{color:#7a6a50;font-size:14px}
+.ls-axis{stroke:#cbb88f;stroke-width:2}.ls-line{fill:none;stroke:#3f9e3a;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+.ls-line2{fill:none;stroke:#d0806a;stroke-width:3;stroke-dasharray:6 5;stroke-linecap:round}
+.ls-ball{fill:#fff;stroke:#c9d6e6;stroke-width:2;transition:r .3s}.ls-dot2{fill:#d0806a}
+.ls-nums{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13.5px;margin-top:6px}.ls-nums b{font-size:15px}
+.ls-key{display:inline-block;width:14px;height:4px;border-radius:2px;background:#3f9e3a;vertical-align:middle}.ls-key.two{background:#d0806a}
+.ls-slider{display:flex;align-items:center;gap:10px;margin-top:12px;font:700 14px 'Jua',sans-serif}
+.ls-slider span{min-width:46px}.ls-slider input{flex:1;accent-color:#3f9e3a;height:28px}
+.ls-bars,.ls-gbars{display:flex;justify-content:center;align-items:flex-end;gap:22px;height:170px}
+.ls-bar,.ls-gbar{display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;width:70px}
+.ls-bar i,.ls-gbar i{display:block;width:56px;border-radius:10px 10px 4px 4px;background:#8fb8d8;transition:height .8s cubic-bezier(.3,1.2,.4,1);position:relative}
+.ls-bar i.down{background:#e07a6a}.ls-bar i.up{background:#7ac07a}.ls-gbar i.val{background:#7ac07a}.ls-gbar i.pri{background:#e0b04a}
+.ls-gbar i em{position:absolute;left:-6px;right:-6px;border:2px dashed #3f7f3a;border-radius:6px}
+.ls-bar small,.ls-gbar small{font-size:12px;text-align:center;color:#5a4a3a}
+.ls-say-b{text-align:center;font-size:14.5px;margin:12px 0 6px;word-break:keep-all}.ls-say-b b{color:#c0392b;font-size:17px}
+.ls-go{display:block;margin:12px auto 0;min-height:44px;padding:0 18px;border-radius:999px;border:0;background:#3b2c20;color:#fff6e6;font:700 14px 'Jua',sans-serif;cursor:pointer;animation:ls-bob 1.4s ease-in-out infinite}
+.ls-margin{text-align:center;margin:10px 0 0;font:700 15px 'Jua',sans-serif;color:#7a6a50;transition:color .3s}.ls-margin.good{color:#2f8a2a}.ls-margin.bad{color:#c0392b}
+.ls-quote{display:flex;flex-direction:column;gap:12px}
+.ls-mm{display:flex;align-items:center;gap:12px}
+.ls-mm-face{font-size:52px;animation:ls-pop .5s cubic-bezier(.2,1.6,.4,1)}
+.ls-mm-say{flex:1;padding:10px 12px;border-radius:14px;background:#fff;box-shadow:0 2px 0 #e6d7b6;font-size:14.5px}
+.ls-track{position:relative;height:30px;border-radius:15px;background:linear-gradient(90deg,#cfe8c9,#fbf4e4 50%,#f4d2c8)}
+.ls-value{position:absolute;top:-6px;bottom:-6px;width:3px;background:#2f8a2a;transform:translateX(-50%)}.ls-value small{width:max-content;word-break:keep-all;position:absolute;top:-18px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:11px;color:#2f8a2a;font-style:normal;font-weight:700}
+.ls-price{position:absolute;top:5px;width:20px;height:20px;border-radius:50%;background:#e0b04a;border:2px solid #fff;transform:translateX(-50%);transition:left .6s cubic-bezier(.3,1.4,.4,1);box-shadow:0 2px 4px #0003}
+.ls-days{display:flex;gap:6px;justify-content:center}.ls-days i{width:9px;height:9px;border-radius:50%;background:#e6d7b6}.ls-days i[data-on]{background:#3b2c20}
+.ls-acts{display:flex;gap:8px}.ls-acts button{flex:1;min-height:44px;border-radius:14px;border:0;background:#fff;box-shadow:0 3px 0 #d9c59a;font:700 14px 'Jua',sans-serif;cursor:pointer}
+.ls-acts button:active,.ls-opt:active,.ls-chip:active{transform:translateY(2px);box-shadow:none}
+.ls-sort{display:flex;flex-direction:column;gap:12px;align-items:center}
+.ls-ring{width:min(270px,70vw);aspect-ratio:1;border-radius:50%;border:3px dashed #c9a23a;display:flex;flex-wrap:wrap;align-content:center;justify-content:center;gap:5px;padding:24px;position:relative;transition:background .4s,border-color .4s}
+.ls-ring[data-full]{background:#e6f3dd;border-style:solid;border-color:#3f9e3a}
+.ls-ring>small{position:absolute;top:8px;left:0;right:0;text-align:center;font-size:12px;color:#8a6a2a;font-weight:700}
+.ls-pool{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.ls-chip{min-height:36px;padding:4px 11px;border-radius:999px;border:0;background:#fff;box-shadow:0 3px 0 #d9c59a;font-size:13px;cursor:pointer;animation:ls-pop .35s ease-out}
+.ls-chip.in{background:#3f9e3a;color:#fff;box-shadow:0 3px 0 #2f7a2a;font-size:12px}
+.ls-chip.no{animation:ls-shake .45s}@keyframes ls-shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+.ls-bank{fill:#c9b98f}.ls-water{fill:#5aa8d8;transition:r .4s}.ls-isle{fill:#8fc06a}.ls-castle rect{fill:#e8dcc4;stroke:#8a7a60;stroke-width:1.5}.ls-door{fill:#7a4a2a}
+.ls-raider{animation:ls-raid 2.2s ease-in infinite}.ls-raider text{animation:none}
+@keyframes ls-raid{from{transform:translateY(-6px)}to{transform:translateY(52px)}}
+.ls-raider.back{animation:ls-bounce 2.2s ease-in-out infinite}@keyframes ls-bounce{0%,100%{transform:translateY(-6px)}50%{transform:translateY(8px)}}
+.ls-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.ls-cards[data-n="3"]{grid-template-columns:repeat(3,1fr)}
+.ls-card{border:0;background:none;padding:0;perspective:700px;cursor:pointer;min-height:136px}
+.ls-card-in{display:block;position:relative;width:100%;height:100%;min-height:136px;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.3,1.3,.4,1)}
+.ls-card[data-open] .ls-card-in{transform:rotateY(180deg)}
+.ls-face{position:absolute;inset:0;border-radius:16px;backface-visibility:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px;text-align:center}
+.ls-face.front{background:repeating-linear-gradient(45deg,#3b2c20 0 10px,#4a3828 10px 20px);color:#f2c230;font:700 28px 'Gowun Batang',serif;box-shadow:0 4px 0 #2a1f16}
+.ls-face.back{background:#fff;transform:rotateY(180deg);box-shadow:0 4px 0 #d9c59a}
+.ls-card-i{font-size:32px}.ls-face.back b{font-size:14px}.ls-face.back small{font-size:12px;color:#6a5a40;word-break:keep-all}
+.ls-flow-row{display:flex;align-items:center;gap:6px}
+.ls-flow-lab{font-size:12.5px;font-weight:700;text-align:center;width:58px}.ls-flow-lab small{font-weight:400;color:#7a6a50}
+.ls-pipe{flex:1;position:relative;height:30px;border-radius:15px;background:#efe4c8;overflow:hidden}
+.ls-coin{position:absolute;top:3px;font-size:20px;font-style:normal;opacity:0}
+.ls-coin.in{animation:ls-coin 3s linear infinite}.ls-coin.out{animation:ls-coin 3s linear infinite}
+@keyframes ls-coin{0%{left:-10%;opacity:0}10%{opacity:1}90%{opacity:1}100%{left:100%;opacity:0}}
+.ls-pile{position:relative;width:74px;height:90px;border-radius:12px;background:#efe4c8;overflow:hidden;display:flex;align-items:flex-end;justify-content:center}
+.ls-pile-fill{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(#f6d77a,#e0b04a);animation:ls-fill 4s ease-out forwards}
+@keyframes ls-fill{from{height:5%}to{height:72%}}
+.ls-pile small{position:relative;font-size:11px;font-weight:700;margin-bottom:4px}
+.ls-choose{display:flex;flex-direction:column;gap:8px}
+.ls-opt{text-align:left;min-height:48px;padding:10px 14px;border-radius:14px;border:0;background:#fff;box-shadow:0 3px 0 #d9c59a;font:700 14.5px 'Jua',sans-serif;cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.ls-opt small{font:400 13px/1.45 'Gowun Dodum',sans-serif;color:#5a4a3a}
+.ls-opt[data-pick=ok]{background:#e6f3dd;box-shadow:0 3px 0 #3f9e3a}.ls-opt[data-pick=no]{background:#fbe9e4;box-shadow:0 3px 0 #d0806a}
+@media (prefers-reduced-motion:reduce){.ls *,.ls{animation:none!important;transition:none!important}}
+@media (max-height:700px){.ls-title-i{font-size:44px}.ls-bars,.ls-gbars{height:130px}.ls-line{font-size:14.5px}}

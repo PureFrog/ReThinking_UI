@@ -4,13 +4,14 @@
 // shop's colour with its sign over the door (tapping it walks me to the door). Inside: ShopRoom, a cut-open room
 // with the counter, the shop's own goods on the shelves and the keeper behind the counter, facing me.
 // Room coordinates as in Interior3D: x across, z toward the camera, y up, floor at 0.
-import {Suspense,useEffect,useMemo} from 'react';
-import {useThree,type ThreeEvent} from '@react-three/fiber';
+import {Suspense,useEffect,useMemo,useRef} from 'react';
+import {type ThreeEvent} from '@react-three/fiber';
 import * as THREE from 'three';
 import {soft} from './materials';
 import {OnGround} from './ground';
 import {Explorer} from './Explorer3D';
-import {RoomMe} from './Seats';
+import {RoomMe,type Area} from './Seats';
+import {RoomFollow} from './RoomView';
 import {ROLE_KIT,ROLE_LOOK} from './RoleKit';
 import {LOOK} from './look';
 import type {Look} from '../core/wardrobe';
@@ -56,12 +57,9 @@ const ROOM={w:7,d:5,h:3.6};
 // 피드백 2026-11-23 "들어가면 3인칭": I stand in front of the counter and the camera is behind me, a little up and to
 // the side, so I see myself and the keeper across the counter
 const ME_AT={x:-1.05,z:1.5},ME_TURN=Math.atan2(0-ME_AT.x,-0.9-ME_AT.z);
-function ShopCam(){
-  const {camera,size}=useThree(),tall=size.width<size.height;
-  useMemo(()=>{const c=camera as THREE.PerspectiveCamera;c.clearViewOffset();c.fov=tall?55:42;c.updateProjectionMatrix();
-    c.position.set(tall?0.2:0.9,tall?2.9:2.75,tall?7.6:5.6);c.lookAt(tall?-0.45:-0.35,tall?0.85:1.15,-0.5)},[camera,tall]);
-  return null;
-}
+// 피드백 2026-11-26 "방 UI 통일": the camera is RoomView's (behind me, following, a sideways drag looks round); I can
+// walk the shop floor in front of the counter and round its ends (not behind it: that is the keeper's)
+const SHOP_AREA:Area={x:[-2.9,2.9],z:[-1.8,2.2],block:(x,z)=>Math.abs(x)<1.95&&z<0.85};
 function Goods({id}:{id:ShopId}){const s=SHOP_INFO[id];
   // three shelves on the back wall, the shop's own things on them
   return <group position={[0,0,-ROOM.d/2+0.32]}>
@@ -84,10 +82,10 @@ export function ShopRoom({id,look}:{id:ShopId;look:Look}){
   // 피드백 2026-11-26 "상인의 방 휑해": the builder's and the tailor's rooms get their own floor, walls, light and things (ShopDecor)
   const sm=useMemo(()=>id==='librarian'?null:shopMats(id),[id]);
   const front=useMemo(()=>counterFront(id==='tailor'?'#b98a6e':'#8a5a3e'),[id]);useEffect(()=>()=>front.dispose(),[front]);
-  const lm=lib??sm;
+  const lm=lib??sm,meAt=useRef({...ME_AT});
   const s=SHOP_INFO[id],{w,d,h}=ROOM,kitLook=useMemo(()=>{const r=ROLE_LOOK[id];return r?{...look,coat:r.coat,hat:r.hat,bag:null,tool:null}:look},[id,look]);
   return <group name={'shop-room-'+id}>
-    <ShopCam/>
+    <RoomFollow me={meAt} halfW={ROOM.w/2}/>
     <hemisphereLight args={['#fff4e2','#8a6448',sm?0.7:0.9]}/>
     <directionalLight position={[2,5,5]} intensity={sm?0.95:1.6} color="#fff1dc"/>
     <mesh><sphereGeometry args={[30,24,16]}/><meshBasicMaterial color="#2a2420" side={THREE.BackSide}/></mesh>
@@ -102,7 +100,7 @@ export function ShopRoom({id,look}:{id:ShopId;look:Look}){
     <group position={[0,0,-0.9]} scale={LOOK.explorer.scale*1.25}><Suspense fallback={null}><Explorer look={kitLook} kit={ROLE_KIT[id]}/></Suspense></group>
     {/* me, from behind (3인칭) */}
     {/* 피드백 2026-11-26 "의자가 있다면 앉을 수": the 옷 가게's fitting-room stool (ShopDecor FittingRoom) */}
-    <RoomMe name="shop-me" look={look} home={ME_AT} homeFace={ME_TURN} scale={LOOK.explorer.scale*1.25}
+    <RoomMe name="shop-me" look={look} home={ME_AT} homeFace={ME_TURN} scale={LOOK.explorer.scale*1.25} area={SHOP_AREA} me={meAt}
       seats={id==='tailor'?[{id:'fitting-stool',x:7/2-0.75+0.1,z:-5/2+0.85-0.3,top:0.46,face:-Math.PI/2,box:[0.5,0.9,0.5],at:[7/2-0.65,0.4,-5/2+0.55],via:[{x:2.2,z:1.3},{x:2.05,z:-1.75}]}]:[]}/>
     <group position={[0,0,0.2]}>
       <mesh position-y={0.5} castShadow receiveShadow><boxGeometry args={[3.2,1,0.7]}/>{id==='librarian'?S('#8a5a3e'):<meshStandardMaterial map={front} roughness={0.7}/>}</mesh>

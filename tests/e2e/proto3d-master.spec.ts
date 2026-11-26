@@ -1,7 +1,7 @@
 import { test, expect } from "./fixtures";
 
 // 거장의 집 · 버핏의 서재 (buffett_house_ui.md, ui/MasterStudy.tsx): in from the village, a book out of the shelf, read to
-// the last page and finished; Buffett offers that book's quiz; four answers (all wrong) still pay the first-time coins
+// the last page and finished; Buffett offers that book's quiz; three answers (all wrong) still pay the first-time coins
 // once; a review pays nothing more.
 test.describe.configure({ timeout: 240_000 });
 
@@ -16,17 +16,26 @@ test("서재: 책 완독 → 버핏 퀴즈 → 첫 완료 코인 한 번", async
   const coins = async () => Number((await page.locator(".ms-hud .rt-coins .rt-coins-full").textContent())!.replace(/[^0-9]/g, ""));
   const before = await coins();
   await page.evaluate(() => (window as any).__proto3d.study.pick("02"));
-  const reader = page.getByRole("dialog", { name: /제 2권/ });
+  // 피드백 2026-11-26: the book is a lesson; a step that asks to try something waits for it
+  const reader = page.getByRole("dialog", { name: /제 2권 수업/ });
   await expect(reader).toBeVisible();
-  for (let i = 0; i < 10; i++) { const n = page.getByRole("button", { name: "다음 쪽" }); if (await n.isDisabled()) break; await n.click(); await page.waitForTimeout(450); }
-  await page.getByRole("button", { name: "다 읽고 덮기" }).click();
+  const next = reader.locator(".ls-next");
+  for (let i = 0; i < 12; i++) {
+    if ((await next.textContent())?.includes("수업 마치기")) break;
+    if (await next.isDisabled()) {
+      // 미스터 마켓: let each day go by
+      for (let d = 0; d < 6 && await next.isDisabled(); d++) { await reader.getByRole("button", { name: "그냥 보낸다" }).click(); await reader.locator(".ls-go").click({ force: true }); }
+    }
+    await expect(next).toBeEnabled(); await next.click();
+  }
+  await next.click();
   await expect(reader).toBeHidden();
   await expect(page.locator(".ms-bubble")).toHaveText("제 2권 퀴즈");
   await page.evaluate(() => (window as any).__proto3d.study.talk());
   await page.getByRole("button", { name: "제 2권 퀴즈 풀기" }).click();
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 3; i++) {
     const opt = page.locator(".ms-opt");
-    if (await opt.count()) await opt.nth(3).click(); else await page.locator(".ms-word input").fill("모름");
+    await opt.nth(3).click();
     await page.getByRole("button", { name: "답 제출" }).click();
     await expect(page.getByRole("status").filter({ hasText: /오답|정답/ })).toBeVisible();
     await page.getByRole("button", { name: /다음 문제|결과 보기/ }).click();
@@ -37,9 +46,9 @@ test("서재: 책 완독 → 버핏 퀴즈 → 첫 완료 코인 한 번", async
   // a review: no second payment
   await page.evaluate(() => (window as any).__proto3d.study.talk());
   await page.getByRole("button", { name: "제 2권 다시 풀기" }).click();
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 3; i++) {
     const opt = page.locator(".ms-opt");
-    if (await opt.count()) await opt.first().click(); else await page.locator(".ms-word input").fill("x");
+    await opt.first().click();
     await page.getByRole("button", { name: "답 제출" }).click();
     await page.getByRole("button", { name: /다음 문제|결과 보기/ }).click();
   }

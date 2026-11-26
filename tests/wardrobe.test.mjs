@@ -7,7 +7,9 @@ const {STAMPS, newStamps} = await load('core/stamps');
 
 const fresh = {rank: 0, stamps: [], trust: {tori: 0, moa: 0, luon: 0}, bought: []};
 test('every piece has its model file, a way to get it, and the start look is wearable at once', () => {
-  for (const w of WEAR) assert.ok(fs.existsSync(new URL(`../public/models/explorer/${w.id}.glb`, import.meta.url)), w.id);
+  // a Blender model each, or (kit) made in code in app/proto3d/WearKit.tsx
+  const kitSrc = fs.readFileSync(new URL('../app/proto3d/WearKit.tsx', import.meta.url), 'utf8');
+  for (const w of WEAR) assert.ok(w.kit ? kitSrc.includes(`  ${w.id}:<`) : fs.existsSync(new URL(`../public/models/explorer/${w.id}.glb`, import.meta.url)), w.id);
   assert.ok(fs.existsSync(new URL('../public/models/explorer/explorer.glb', import.meta.url)));
   for (const s of SLOTS) assert.ok(WEAR.some(w => w.slot === s.id), s.id);
   assert.deepEqual(fitLook(DEFAULT_LOOK, fresh), DEFAULT_LOOK);
@@ -26,7 +28,7 @@ test('locked pieces open by title, stamp, trust or buying, and a look falls back
   assert.deepEqual(fitLook(wanted, fresh), {coat: 'coat_vest', hat: null, bag: null, tool: null, palette: 'moss'});
   const names = {rank: () => '기록자', stamp: id => STAMPS.find(s => s.id === id).name, who: () => '토리'};
   assert.equal(howTo(lamp.unlock, names), "업적 '확신 5 적중'");
-  assert.equal(howTo(rain.unlock, names), '6,000원에 사기');
+  assert.equal(howTo(rain.unlock, names), '15,000원에 사기');
 });
 
 test('stamps come from the work of judging, each once', () => {
