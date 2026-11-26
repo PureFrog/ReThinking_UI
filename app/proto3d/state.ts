@@ -32,7 +32,9 @@ import {playRewind,type RewindRound} from '../core/rewind';
 import type {RewindCase} from '../content/rewind';
 import {isoDay} from '../core/items';
 import {outcomeProvider} from '../content/outcomes';
-import {giftOf,itemById,rankItem,type GardenItem} from '../content/garden-items';
+import {giftOf,itemById,rankItem,DECOR_SLOTS,type GardenItem} from '../content/garden-items';
+// the first outdoor spot nothing stands on yet (null when all are taken: it waits in 꾸미기)
+const freeSlot=(owned:{slot:string|null}[])=>DECOR_SLOTS.find(d=>!d.room&&!owned.some(o=>o.slot===d.id))?.id??null;
 import {analystById,UI,line,type AnalystId} from '../content/analysts';
 import {DEMO_HOLDINGS,DEMO_KOSDAQ} from '../content/demo-garden';
 import type {Holding} from '../core/model';
@@ -264,9 +266,10 @@ export function useGarden(){
         return next});
       return streak;
     },
+    // 피드백 2026-11-25 "사도 아무 변화가 없다": a bought thing goes straight into the village, on the first free spot
     buy(item:GardenItem){
       let ok=false;setS(p=>{if(!item.price||p.currency<item.price||p.bought.some(b=>b.itemId===item.id&&b.day===c.today))return p;ok=true;
-        return {...p,currency:p.currency-item.price,bought:[...p.bought,{itemId:item.id,day:c.today}],owned:[...p.owned,{uid:`${item.id}-${c.now}`,itemId:item.id,got:c.today,slot:null}]}});
+        return {...p,currency:p.currency-item.price,bought:[...p.bought,{itemId:item.id,day:c.today}],owned:[...p.owned,{uid:`${item.id}-${c.now}`,itemId:item.id,got:c.today,slot:freeSlot(p.owned)}]}});
       return ok;
     },
     // the onboarding's or a later recapture's confirmed list; demo: swap in the whole demo garden instead
@@ -295,12 +298,15 @@ export function useGarden(){
     // start over: the save goes and the page opens on the onboarding
     // the server's copy won on sign-in (core/sync.ts): it replaces this device's garden as it is
     adopt(save:GardenSave){noLog.current=true;setS(()=>{const m={...blankSave(),...save};return save.wonV===1?m:{...m,wonV:1,currency:Math.round((Number(save.currency)||0)*WON)}});noLog.current=false},
-    wipe(){try{localStorage.removeItem(saveKey());localStorage.removeItem('rethink-garden-at')}catch{}location.replace(location.pathname+'?reset')},
+    // 피드백 2026-11-25 "다시 시작했는데 퀴즈가 이미 끝나 있다": every piece of play kept on the device goes (the house and its quiz,
+    // the walk, the case files, the study, the scenario), only the log-in stays
+    wipe(){try{for(const k of Object.keys(localStorage))if(/^rethink-/.test(k)&&k!=='rethink-account-v1'&&k!=='rethink-guest')localStorage.removeItem(k);sessionStorage.clear()}catch{}location.replace(location.pathname+'?reset')},
     // this week's three goals done (core/weekly.ts): paid once a week
     closeWeek(start:string){let paid=false;setS(p=>{if(p.weeksDone.includes(start))return p;paid=true;return {...p,weeksDone:[...p.weeksDone.slice(-30),start],currency:p.currency+EARN.weekDone}});
       if(paid)say(line(UI.weekDone,{n:won(EARN.weekDone)}))},
     letterRead(month:string){setS(p=>p.letters.includes(month)?p:{...p,letters:[...p.letters,month]})},
     tipDone(id:string){setS(p=>p.tips.includes(id)?p:{...p,tips:[...p.tips,id]})},
+    tipUndo(id:string){setS(p=>p.tips.includes(id)?{...p,tips:p.tips.filter(t=>t!==id)}:p)},
     setLook(look:Look){setS(p=>({...p,look}))},
     // a piece of clothing from the cart's currency (core/wardrobe.ts unlock buy)
     // 가상 종목 (core/virtual.ts): bought at today's price into a free plot of the 과수원; sold back at today's price
@@ -328,6 +334,8 @@ export function useGarden(){
       if(!r.settled.length)return p;paid=r.coins;return {...p,cart:r.cart.slice(-60),currency:p.currency+r.coins}});
       if(paid>0)say(`수레 정산: 코인 ${won(paid)}이 들어왔어요`);return paid},
     // a one-off gift of coins (the tutorial's start money): given once per tag
+    // coins earned by play with its own daily limit kept elsewhere (the arcade's scores): added, no record of a tag
+    earn(amount:number){if(amount>0)setS(p=>({...p,currency:p.currency+amount}))},
     grant(tag:string,amount:number){let given=false;setS(p=>{if((p.grants??[]).includes(tag))return p;given=true;return {...p,currency:p.currency+amount,grants:[...(p.grants??[]),tag]}});return given},
     // the day's quiz coins (core/desk.ts quizCoins): only what is new since the last pay
     quizPay(day:string,total:number){let paid=0;setS(p=>{const had=p.quizPaid?.day===day?p.quizPaid.coins:0;if(total<=had)return p;paid=total-had;

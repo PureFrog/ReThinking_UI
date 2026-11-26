@@ -70,3 +70,9 @@ export const valueOf=(l:VirtualLot,price:number)=>({value:price*l.qty,gain:(pric
 export const virtualTree=(l:VirtualLot,price:number):Holding=>({id:VIRTUAL_ID+l.id,name:l.name,code:l.code,kind:l.id%3,price:l.cost,quantity:l.qty,date:l.day,
   rate:valueOf(l,price).rate,plot:l.plot,lossDays:0,virtual:true});
 export const isVirtualTree=(id:number)=>id>=VIRTUAL_ID&&id<VIRTUAL_ID+100000;
+// 통신기 현재가 (피드백 2026-11-26 "실제 증권앱처럼"): the closes before today on the stock's prices (real when loaded),
+// newest last, at most n; and the day's change against the close before
+export function history(code:string,today:string,n=60):Bar[]{const rb=realBarsOf(code),use=rb??mockBars(code);if(!use)return [];
+  const upto=use.filter(b=>b.d<today);return upto.slice(-n)}
+export function change(code:string,today:string):{price:number;prev:number;rate:number}|null{const h=history(code,today,2);if(h.length<2)return null;
+  const [a,b]=h;return {price:b.c,prev:a.c,rate:Math.round((b.c/a.c-1)*10000)/100}}

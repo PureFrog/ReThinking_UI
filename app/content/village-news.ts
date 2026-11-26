@@ -56,3 +56,31 @@ export const OVERVIEW:Record<string,string>={
   '196170':'바이오 의약품 제형 기술을 개발하는 회사예요.',
 };
 export const overviewOf=(code:string|undefined,name:string)=>code&&OVERVIEW[code]?OVERVIEW[code]:`${name}의 기업 개요는 아직 준비 중이에요.`;
+
+// 통신기 뉴스 탭 (피드백 2026-11-26 "통신기가 주된 교육 컨텐츠, 기사도 기능도 설명도 현실과 비슷하게"): the app's news list
+// reads like a broker app's — a publisher, a time, the headline, a body, the related stock — and every article carries
+// "이 기사에서 볼 것", what a careful reader checks. The live feed (core/content/live/rss.ts) has a headline, a link and an
+// excerpt; until it is connected these are 모의 기사 (fictional publishers, no figures, no calls) and say so on screen.
+export type NewsCard=Article&{press:string;time:string;body:string[];look:string;live:boolean;url?:string};
+const PRESS=['마을경제','정원일보','리씽크뉴스','나루통신','광장비즈'];
+const MORE:Record<Theme,string[]>={
+  실적:['시장에서는 매출보다 영업이익의 변화를 더 눈여겨보는 분위기다. 일회성 비용이 있었는지도 함께 확인되고 있다.','회사 측은 자세한 부문별 숫자를 분기 보고서에 담겠다고 밝혔다. 보고서는 전자공시시스템에 올라간다.'],
+  업황:['업계 관계자는 지역별 수요가 고르지 않다고 설명했다. 다음 달 집계에서 흐름이 이어지는지가 관심이다.','같은 업종이라도 회사마다 제품 구성이 달라 영향은 다르게 나타날 수 있다.'],
+  정책:['세부 기준은 아직 확정되지 않았다. 적용 시기와 대상은 시행령과 고시에서 정해진다.','업계는 의견 수렴 기간 동안 건의 사항을 모아 전달할 계획이다.'],
+  공시:['공시 원문에는 규모, 기간, 목적이 적혀 있다. 투자자는 전자공시시스템(DART)에서 원문을 볼 수 있다.','이번 공시는 정정 공시가 아닌 최초 제출이다. 이후 진행 상황은 추가 공시로 알려진다.'],
+};
+export const LOOK:Record<Theme,string>={
+  실적:'매출·영업이익을 작년 같은 분기와 비교해요. 증권가 예상치(컨센서스)보다 높았는지 낮았는지가 주가에 더 크게 반영되기도 해요.',
+  업황:'업종 전체 얘기예요. 이 회사 매출에서 그 사업이 차지하는 비중이 얼마인지 같이 봐야 영향을 가늠할 수 있어요.',
+  정책:'"발표"와 "시행"은 달라요. 언제부터, 누구에게 적용되는지 세부 기준이 나와야 효과를 알 수 있어요.',
+  공시:'공시는 회사가 직접 낸 공식 문서예요. 기사보다 원문(DART)이 정확해요. 숫자와 날짜를 원문에서 확인해요.',
+};
+// a stock's cards for a day: today's (articlesFor) and the day before's, newest first
+export function newsCards(stocks:{code:string;name:string}[],day:string):NewsCard[]{
+  const prev=new Date(day+'T00:00:00Z');prev.setUTCDate(prev.getUTCDate()-1);const d0=prev.toISOString().slice(0,10);
+  const list=[...articlesFor(stocks,day),...stocks.map(s=>dayBeforeArticle(s,day))].filter((a,i,all)=>all.findIndex(b=>b.title===a.title&&b.code===a.code)===i);
+  return list.map(a=>{const h=hash(a.id),hh=a.day===d0?16+(h%3):7+(h%10),mm=(h>>>5)%60;
+    return {...a,press:PRESS[h%PRESS.length],time:`${a.day===d0?'어제 ':''}${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`,
+      body:[a.summary??'',MORE[a.theme][(h>>>9)%MORE[a.theme].length]].filter(Boolean),look:LOOK[a.theme],live:false}})
+    .sort((x,y)=>(y.day+(y.time.replace('어제 ',''))).localeCompare(x.day+(x.time.replace('어제 ',''))));
+}

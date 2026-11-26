@@ -35,7 +35,7 @@ export function JigiHypos({j,today,newId,onHypos,onConfirm,onReflect,ai}:{ai?:Ji
         <small className="rt-hint">{h.domain} · {h.form} · {h.role}{h.dir!=='없음'?' · '+h.dir:''}{h.confirmedAt?' · 확정 '+ymd(h.confirmedAt):''}</small>
         {h.auto&&h.base&&<p className="jg-rule rt-num">기준 {h.base.date} 종가 {won(h.base.close)} → 종료 {h.endDate}
           {v.end?<> ({v.end.d} 종가 {won(v.end.c)}, <span className={v.end.c>h.base.close?'rt-up':v.end.c<h.base.close?'rt-down':''}>{((v.end.c/h.base.close-1)*100).toFixed(2)}%</span>)</>:v.s==='wait'?' · 종가가 확정되면 자동 판정':''}</p>}
-        {v.s==='data'&&<p className="rt-hint">이 가설은 서버 자료가 붙으면 자동으로 판정해요</p>}</div>;
+        {v.s==='data'&&<p className="rt-hint">시세가 들어오면 자동으로 판정해요</p>}</div>;
       const miss=missingOf(h),b=autoGradable(h)&&j.stock?lastConfirmed(j.stock.code,today):null;
       return <div key={h.id} className="jg-hypo edit" role="group" aria-label="가설 초안">
         <div className="jg-row"><small className="rt-hint">{h.src}에서</small><Pill s={v.s}/></div>

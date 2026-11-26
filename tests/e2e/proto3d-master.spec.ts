@@ -13,7 +13,7 @@ test("서재: 책 완독 → 버핏 퀴즈 → 첫 완료 코인 한 번", async
   await page.waitForFunction(() => (window as any).__proto3d?.ready, null, { timeout: 60_000 });
   await page.evaluate(() => (window as any).__proto3d.landmark("master"));
   await expect(page.getByTestId("master-study")).toBeVisible({ timeout: 15_000 });
-  const coins = async () => Number((await page.locator(".ms-hud .rt-coins").textContent())!.replace(/[^0-9]/g, ""));
+  const coins = async () => Number((await page.locator(".ms-hud .rt-coins .rt-coins-full").textContent())!.replace(/[^0-9]/g, ""));
   const before = await coins();
   await page.evaluate(() => (window as any).__proto3d.study.pick("02"));
   const reader = page.getByRole("dialog", { name: /제 2권/ });

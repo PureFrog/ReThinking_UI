@@ -24,7 +24,7 @@ export function SkyView({planets,sample,share,focus,onPick,onShare,onClose}:{pla
   const pick=(id:string)=>{const x=planets.find(y=>y.id===id);cue('panel-open');if(x?.me){onPick(null);setPrivacy(true)}else{setPrivacy(false);onPick(id)}};
   return <div className="sky" data-testid="sky">
     <div className="sky-top">
-      <div className="sky-plate"><div className="rt-kicker">이번 주 리그 그룹</div><div className="sky-title">다른 유저</div>{sample&&<span className="sky-sample">예시 데이터 · 서버 연결 전</span>}</div>
+      <div className="sky-plate"><div className="rt-kicker">이번 주 리그 그룹</div><div className="sky-title">다른 유저</div>{sample&&<span className="sky-sample">예시 화면 · 실제 유저 연결은 준비 중</span>}</div>
       <div className="sky-right"><button type="button" className="sky-pill" onClick={()=>{onPick(null);setPrivacy(true)}}>공개 설정 · <b>{SHARE_LABEL[share]}</b></button>
         <button type="button" className="sky-pill" aria-label="닫기" onClick={onClose}><Cross size={16}/></button></div>
     </div>

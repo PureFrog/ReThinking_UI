@@ -50,7 +50,7 @@ export function ObservatoryDoor({g,onPlay,onClose,server=null}:{g:G;onPlay:(runI
       {req.def&&<div className="dq-request" data-testid="dq-request"><small>오늘 도착한 의뢰</small><strong>{req.def.name}</strong>{req.def.teaches&&<small>{req.def.tier?`${req.def.tier} · `:''}오늘 연습 · {req.def.teaches}</small>}</div>}
       <Mono pack={pack} big/>
       <p className="dq-principle sm">{pack.mentor.principle}</p>
-      {pack.sample?<p className="rt-hint">예시 판이에요. 회사와 숫자는 가상이고, 서버에 판이 배정되면 날마다 검수한 실제 사건이 들어와요.</p>
+      {pack.sample?<p className="rt-hint">예시 판이에요. 회사와 숫자는 가상이고, 실제 사건 판은 검수를 거쳐 날마다 들어와요.</p>
         :<p className="rt-hint" data-testid="dq-official">오늘의 공식 판 · {srvToday?.company?.alias}. 자료는 장면마다 하나씩 열려요.</p>}
       {server&&srvToday?.practice&&<p className="rt-hint" data-testid="dq-practice-day">오늘은 공식 판이 없어서 예시 판으로 연습해요. 순위와 경험치에는 들어가지 않아요.</p>}
       {note&&<p className="rt-hint" role="status">{note}</p>}

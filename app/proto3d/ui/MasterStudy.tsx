@@ -12,14 +12,14 @@
 // The save: core/master-study.ts StudySave under 'rethink-study-v1'. Kept off: walking about the room (the doors and
 // the floor do nothing yet).
 import {Suspense,useEffect,useMemo,useRef,useState,type KeyboardEvent as RKey} from 'react';
-import {Explorer} from '../Explorer3D';
-import {ROLE_KIT} from '../RoleKit';
-import type {Look} from '../../core/wardrobe';
 import {Canvas,useFrame,useThree,type ThreeEvent} from '@react-three/fiber';
 import {Html,Edges} from '@react-three/drei';
+import {BuffettFigure} from './Buffett3D';
+import {Explorer} from '../Explorer3D';
 import * as THREE from 'three';
 import {soft} from '../materials';
 import {TalkBox,type Choice} from './Walk';
+import {Rug,StudyDecor,ShelfGlow,wallpaper,parquet} from './StudyDecor';
 import {BOOKS,type Book} from '../../content/master-books';
 import {STUDY0,readStudy,quizOf,paginate,pageOfPara,pageOfSec,pageBudget,putRead,finishRead,readState,isRight,startQuiz,submit,seeNext,markPaid,
   quizAt,rightCount,quizStatus,booksRead,firstOffer,offerLabel,type StudySave,type Para} from '../../core/master-study';
@@ -51,25 +51,59 @@ const slotOf=(no:number):V3=>{const s=L().shelf,k=(no-1)%8,row=no<=8?0:1;
 function tex(draw:(c:CanvasRenderingContext2D,w:number,h:number)=>void,w:number,h:number){
   const cv=document.createElement('canvas');cv.width=w;cv.height=h;const c=cv.getContext('2d')!;draw(c,w,h);
   const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;return t}
-function bookMats(b:Book,onShelf=false){const col=L().bookColors[(b.no-1)%L().bookColors.length],gold='#e8cf8a';
-  const spine=tex((c,w,h)=>{c.fillStyle=col;c.fillRect(0,0,w,h);c.fillStyle=gold;c.fillRect(0,h*0.06,w,6);c.fillRect(0,h*0.22,w,6);c.fillRect(0,h*0.9,w,6);
-    c.font=`bold ${w*0.42}px sans-serif`;c.textAlign='center';c.textBaseline='middle';c.fillText(String(b.no).padStart(2,'0'),w/2,h*0.14);
-    // 피드백 2026-11-24 "제목 앞에다가 01 밑에": the title on the spine under the number, wrapped to its width (by
-    // characters, Korean), smaller until it fits between the bands
-    const lines=(px:number)=>{c.font=`bold ${px}px sans-serif`;const out:string[]=[];let line='';
-      for(const ch of b.title){const t=line+ch;if(c.measureText(t).width>w*0.84&&line){out.push(line.trim());line=ch.trim()}else line=t}if(line.trim())out.push(line.trim());return out};
-    const top=h*0.25,room=h*0.86-top;let px=w*0.17,ls=lines(px);while(ls.length*px*1.25>room&&px>9){px-=1;ls=lines(px)}
-    const y0=top+(room-ls.length*px*1.25)/2+px*0.62;ls.forEach((t,i)=>c.fillText(t,w/2,y0+i*px*1.25))},128,512);
-  const cover=tex((c,w,h)=>{c.fillStyle=col;c.fillRect(0,0,w,h);c.strokeStyle=gold;c.lineWidth=6;c.strokeRect(14,14,w-28,h-28);
-    c.fillStyle=gold;c.textAlign='center';c.font='bold 26px sans-serif';c.fillText(`제 ${b.no}권`,w/2,70);
-    c.font='bold 30px sans-serif';const words=b.title.split(' ');let line='',y=150;
-    for(const wd of words){const t=line?line+' '+wd:wd;if(c.measureText(t).width>w-60){c.fillText(line,w/2,y);y+=40;line=wd}else line=t}
-    if(line)c.fillText(line,w/2,y);c.font='20px sans-serif';c.fillText('버핏의 서재',w/2,h-40)},256,360);
-  const page=soft('#f3ead2'),side=soft(col);
-  const m=(t:THREE.Texture)=>new THREE.MeshStandardMaterial({map:t,roughness:0.8});
+// 피드백 2026-11-26 "책이 AI slop, 캐릭터 없음": each book its own binding, by its number: 0 leather with raised bands and a
+// morocco title label, 1 cloth with a linen weave and a paper label, 2 half-leather with marbled boards, 3 vellum with
+// hand-lettered titles; worn corners and a shine on the spine's curve, gilt or plain page edges, a fleuron and the
+// number in old-style figures; the title set in a serif
+const BIND=['#6b2a22','#23364f','#2f4a2c','#7a5a2a','#4a2f52','#21474a','#8a3a2c','#2c2a36'];
+const LABEL=['#a8323a','#1f1b1a','#c9a24a','#efe3c8'];
+function grainy(c:CanvasRenderingContext2D,w:number,h:number,a:number){for(let i=0;i<w*h/5;i++){c.fillStyle=Math.random()<0.5?`rgba(255,255,255,${Math.random()*a})`:`rgba(0,0,0,${Math.random()*a})`;c.fillRect(Math.random()*w,Math.random()*h,1+Math.random()*2,1)}}
+function fleuron(c:CanvasRenderingContext2D,x:number,y:number,r:number,col:string){c.fillStyle=col;for(let k=0;k<4;k++){c.save();c.translate(x,y);c.rotate(k*Math.PI/2);c.beginPath();c.ellipse(0,-r*0.55,r*0.22,r*0.5,0,0,7);c.fill();c.restore()}c.beginPath();c.arc(x,y,r*0.18,0,7);c.fill()}
+function bookMats(b:Book,onShelf=false){const style=(b.no-1)%4,col=BIND[(b.no*3)%BIND.length],gold='#e3c77a',lab=LABEL[(b.no+1)%LABEL.length],ink=style===3?'#4a2f22':gold;
+  const serif='"Gowun Batang","Nanum Myeongjo",serif';
+  const spine=tex((c,w,h)=>{
+    // the binding
+    if(style===3){c.fillStyle='#efe3c8';c.fillRect(0,0,w,h)}else{c.fillStyle=col;c.fillRect(0,0,w,h)}
+    if(style===1){c.strokeStyle='rgba(255,255,255,0.06)';for(let y=0;y<h;y+=3){c.beginPath();c.moveTo(0,y);c.lineTo(w,y);c.stroke()}for(let x=0;x<w;x+=3){c.beginPath();c.moveTo(x,0);c.lineTo(x,h);c.stroke()}}
+    grainy(c,w,h,style===0?0.1:0.06);
+    // the spine's curve: light down the middle, dark at the hinges
+    const sh=c.createLinearGradient(0,0,w,0);sh.addColorStop(0,'rgba(0,0,0,0.45)');sh.addColorStop(0.35,'rgba(255,255,255,0.12)');sh.addColorStop(0.6,'rgba(255,255,255,0.05)');sh.addColorStop(1,'rgba(0,0,0,0.5)');c.fillStyle=sh;c.fillRect(0,0,w,h);
+    // raised bands (leather) or gilt rules
+    const bands=style===0||style===2?[0.08,0.2,0.62,0.74,0.88]:[0.06,0.93];
+    bands.forEach(y=>{if(style===0||style===2){c.fillStyle='rgba(0,0,0,0.45)';c.fillRect(0,h*y+5,w,4);c.fillStyle='rgba(255,255,255,0.25)';c.fillRect(0,h*y-3,w,4);c.fillStyle=col;c.fillRect(0,h*y,w,5)}
+      c.fillStyle=ink;c.fillRect(6,h*y-6,w-12,2);c.fillRect(6,h*y+11,w-12,2)});
+    // the number, a fleuron
+    c.fillStyle=ink;c.textAlign='center';c.textBaseline='middle';c.font=`italic bold ${w*0.36}px ${serif}`;c.fillText(String(b.no),w/2,h*0.14);
+    fleuron(c,w/2,h*0.68,w*0.16,ink);fleuron(c,w/2,h*0.81,w*0.12,ink);
+    // the title on a label (leather, cloth) or straight on the binding
+    const top=h*0.25,bot=h*0.58,room=bot-top;
+    if(style<2){c.fillStyle=lab;c.fillRect(8,top-6,w-16,room+12);c.strokeStyle=gold;c.lineWidth=2;c.strokeRect(11,top-3,w-22,room+6)}
+    c.fillStyle=style<2&&lab==='#efe3c8'?'#3b2a20':ink;
+    const lines=(px:number)=>{c.font=`bold ${px}px ${serif}`;const out:string[]=[];let line='';
+      for(const ch of b.title){const t=line+ch;if(c.measureText(t).width>w*0.72&&line){out.push(line.trim());line=ch.trim()}else line=t}if(line.trim())out.push(line.trim());return out};
+    let px=w*0.17,ls=lines(px);while(ls.length*px*1.2>room-8&&px>9){px-=1;ls=lines(px)}
+    const y0=top+(room-ls.length*px*1.2)/2+px*0.6;ls.forEach((t,i)=>c.fillText(t,w/2,y0+i*px*1.2));
+    // wear at the head and tail
+    c.fillStyle='rgba(255,240,210,0.18)';c.fillRect(0,0,w,5);c.fillRect(0,h-5,w,5)},128,512);
+  const cover=tex((c,w,h)=>{
+    if(style===2){c.fillStyle='#e8dcc0';c.fillRect(0,0,w,h);for(let i=0;i<140;i++){c.strokeStyle=['#8a3a2c','#2f4a6a','#c9a24a','#3b2a20'][i%4]+'66';c.lineWidth=1+Math.random()*3;c.beginPath();let x=Math.random()*w,y=Math.random()*h;c.moveTo(x,y);for(let k=0;k<6;k++){x+=(Math.random()-0.5)*40;y+=Math.random()*30;c.lineTo(x,y)}c.stroke()}
+      c.fillStyle=col;c.fillRect(0,0,52,h);c.beginPath();c.moveTo(w,h);c.lineTo(w-60,h);c.lineTo(w,h-60);c.fill()}
+    else{c.fillStyle=style===3?'#efe3c8':col;c.fillRect(0,0,w,h)}
+    grainy(c,w,h,0.08);
+    c.strokeStyle=ink;c.lineWidth=3;c.strokeRect(16,16,w-32,h-32);c.lineWidth=1;c.strokeRect(24,24,w-48,h-48);
+    [[34,34],[w-34,34],[34,h-34],[w-34,h-34]].forEach(([x,y])=>fleuron(c,x,y,12,ink));
+    c.fillStyle=ink;c.textAlign='center';c.font=`italic 22px ${serif}`;c.fillText(`제 ${b.no}권`,w/2,78);
+    c.font=`bold 30px ${serif}`;const words=b.title.split(' ');let line='',y=160;
+    for(const wd of words){const t=line?line+' '+wd:wd;if(c.measureText(t).width>w-80){c.fillText(line,w/2,y);y+=40;line=wd}else line=t}
+    if(line)c.fillText(line,w/2,y);fleuron(c,w/2,y+50,18,ink);c.font=`16px ${serif}`;c.fillText('버핏의 서재',w/2,h-46)},256,360);
+  const edges=tex((c,w,h)=>{c.fillStyle=b.no%3===0?'#d9b44a':'#efe3c8';c.fillRect(0,0,w,h);c.strokeStyle=b.no%3===0?'rgba(120,80,20,0.4)':'rgba(120,100,70,0.35)';for(let y=1;y<h;y+=2){c.beginPath();c.moveTo(0,y);c.lineTo(w,y);c.stroke()}},64,64);
+  const side=new THREE.MeshStandardMaterial({color:style===3?'#efe3c8':col,roughness:0.7}),page=new THREE.MeshStandardMaterial({map:edges,roughness:0.9,metalness:b.no%3===0?0.3:0});
+  const m=(t:THREE.Texture)=>new THREE.MeshStandardMaterial({map:t,roughness:style===0?0.55:0.85});
   // box faces: +x (front cover), −x (back cover), +y, −y (page edges), +z (spine), −z (page edge)
   // on the shelf the cover's side stays plain (the title reads on the spine); the book taken out shows its cover
   return [onShelf?side:m(cover),side,page,page,m(spine),page]}
+// a little variety on the shelf: some books a bit shorter or slimmer (they stand on the same shelf)
+export const bookShape=(no:number)=>({h:[1,0.92,0.97,0.88,1,0.95,0.9,1][no%8],w:[1,0.9,1.1,0.95,1.05,0.85,1,0.92][(no*3)%8]});
 
 function Shelf({study,hover,picked,onHover,onPick,onShelf}:{study:StudySave;hover:string|null;picked:string|null;onHover:(id:string|null)=>void;onPick:(id:string,touch:boolean)=>void;onShelf:()=>void}){
   const s=L().shelf,wood=useMemo(()=>soft(L().color.wood),[]),dark=useMemo(()=>soft(L().color.woodDark),[]);
@@ -83,7 +117,8 @@ function Shelf({study,hover,picked,onHover,onPick,onShelf}:{study:StudySave;hove
     {[-1,1].map(k=><mesh key={k} position={[s.x+k*W/2,H/2,s.z]} castShadow onClick={frame}><boxGeometry args={[0.07,H,s.depth]}/><primitive object={wood} attach="material"/></mesh>)}
     {[H-0.04,s.rowTop-0.025,s.rowLow-0.025,0.06].map((y,i)=><mesh key={i} position={[s.x,y,s.z]} castShadow receiveShadow onClick={frame}><boxGeometry args={[W,i===3?0.12:0.05,s.depth]}/><primitive object={wood} attach="material"/></mesh>)}
     {BOOKS.map(b=>{const p=slotOf(b.no),on=hover===b.book_id,gone=picked===b.book_id,st=readState(study,b.book_id);
-      return <mesh key={b.book_id} position={[p[0],p[1],p[2]+(on&&!gone?0.04:0)]} visible={!gone} castShadow material={mats[b.book_id]}
+      const k=bookShape(b.no);
+      return <mesh key={b.book_id} position={[p[0],p[1]-(1-k.h)*s.book[1]/2,p[2]+(on&&!gone?0.04:0)]} scale={[k.w,k.h,1]} visible={!gone} castShadow material={mats[b.book_id]}
         onPointerDown={e=>{touch.current=e.pointerType==='touch'}}
         onPointerOver={e=>{e.stopPropagation();if(!touch.current)onHover(b.book_id)}} onPointerOut={()=>{if(!touch.current)onHover(null)}}
         onClick={e=>{e.stopPropagation();onPick(b.book_id,touch.current)}}>
@@ -110,9 +145,7 @@ function FlyingBook({id,t0,dir}:{id:string;t0:number;dir:'out'|'back'}){
 }
 
 // Buffett in his armchair (plain shapes; his head turns to me while we talk, nods once after a book is finished)
-// Buffett in his armchair: the village's figure (Explorer3D) in his own kit (RoleKit master: navy suit, red tie, white
-// hair, round glasses), sat on the cushion; he turns to me while we talk and nods once after a book is finished
-const MASTER_LOOK:Look={coat:'coat_knit',hat:null,bag:null,tool:null,palette:'ink'};
+// Buffett in his armchair (his own figure, ui/Buffett3D.tsx); his head turns to me while we talk and nods once after a book
 function Buffett({look,nod,onTalk,hover,setHover,bubble}:{look:boolean;nod:number;onTalk:()=>void;hover:boolean;setHover:(b:boolean)=>void;bubble:string|null}){
   const B=L().buffett,c=L().color,fig=useRef<THREE.Group>(null);
   const m=useMemo(()=>({chair:soft(c.chair),chairDark:soft(c.chairDark),leg:soft('#3a2a22'),suit:soft(c.suit)}),[c]);
@@ -126,18 +159,15 @@ function Buffett({look,nod,onTalk,hover,setHover,bubble}:{look:boolean;nod:numbe
   return <group position={B.at} rotation-y={B.rot} onClick={talk} onPointerOver={e=>{e.stopPropagation();setHover(true)}} onPointerOut={()=>setHover(false)}>
     {X([0,0.3,0],[1.0,0.28,0.9],m.chair)}{X([0,0.95,-0.38],[1.0,1.05,0.2],m.chair)}{X([-0.47,0.58,0.02],[0.16,0.34,0.84],m.chairDark)}{X([0.47,0.58,0.02],[0.16,0.34,0.84],m.chairDark)}
     {[[-0.4,0.32],[0.4,0.32],[-0.4,-0.34],[0.4,-0.34]].map(([x,z],i)=><mesh key={i} position={[x,0.08,z]}><cylinderGeometry args={[0.035,0.03,0.16,8]}/><primitive object={m.leg} attach="material"/></mesh>)}
-    <group ref={fig} position={[0,B.sitY,-0.08]} scale={LOOK.explorer.scale*B.scale}><Suspense fallback={null}><Explorer look={MASTER_LOOK} kit={ROLE_KIT.master} hair="#eeede8" seated/></Suspense></group>
-    {/* his lap and shoes over the cushion's edge, in the suit's colour */}
-    {[-0.13,0.13].map(x=><group key={x}><mesh position={[x,0.52,0.25]} rotation-x={Math.PI/2} castShadow><capsuleGeometry args={[0.095,0.4,6,12]}/><primitive object={m.suit} attach="material"/></mesh>
-      <mesh position={[x,0.32,0.53]} castShadow><capsuleGeometry args={[0.08,0.2,6,12]}/><primitive object={m.suit} attach="material"/></mesh>
-      <mesh position={[x,0.1,0.6]} scale={[1,0.7,1.5]} castShadow><sphereGeometry args={[0.09,14,10]}/><primitive object={m.leg} attach="material"/></mesh></group>)}
-    {bubble&&<Html position={[0,B.tagY,0]} center zIndexRange={[20,10]}><div className="ms-bubble">{bubble}</div></Html>}
-    {hover&&!bubble&&!look&&<Html position={[0,B.tagY,0]} center zIndexRange={[20,10]}><div className="ms-tag">말 걸기</div></Html>}
+    <BuffettFigure headRef={fig} colors={{suit:c.suit,tie:c.tie,skin:c.skin}}/>
+    {/* one Html that stays mounted (its content changes): mounting and dropping drei Html roots while a book closes
+        threw "removeChild … not a child" on the user's Mac (2026-11-26) */}
+    <Html position={[0,B.tagY,0]} center zIndexRange={[20,10]}>{bubble?<div className="ms-bubble">{bubble}</div>:hover&&!look?<div className="ms-tag">말 걸기</div>:null}</Html>
   </group>;
 }
 
 function Room({children}:{children:React.ReactNode}){
-  const c=L().color,m=useMemo(()=>({floor:soft(c.floor),wall:soft(c.wall),wall2:soft(c.wall2),trim:soft(c.trim),rug:soft(c.rug),lamp:soft('#e9d8a6'),metal:soft('#5a4a3a'),
+  const c=L().color,rr=L().room,m=useMemo(()=>({floor:new THREE.MeshStandardMaterial({map:parquet(rr.w+4,rr.d+4),roughness:0.85}),wall:new THREE.MeshStandardMaterial({map:wallpaper(c.wall,rr.w,rr.h),roughness:0.95}),wall2:new THREE.MeshStandardMaterial({map:wallpaper(c.wall2,rr.d,rr.h),roughness:0.95}),trim:soft(c.trim),rug:soft(c.rug),lamp:soft('#e9d8a6'),metal:soft('#5a4a3a'),
     door:soft(c.door),table:soft(c.woodDark),glow:new THREE.MeshStandardMaterial({color:'#fff2c8',emissive:'#ffdf9a',emissiveIntensity:1.1})}),[c]);
   const r=L().room,lamp=L().lamp,table=L().table;
   return <group>
@@ -146,7 +176,7 @@ function Room({children}:{children:React.ReactNode}){
     <mesh position={[-r.w/2,r.h/2,0]} rotation-y={Math.PI/2} receiveShadow><planeGeometry args={[r.d,r.h]}/><primitive object={m.wall2} attach="material"/></mesh>
     <mesh position={[0,0.06,-r.d/2+0.02]}><boxGeometry args={[r.w,0.12,0.04]}/><primitive object={m.trim} attach="material"/></mesh>
     <mesh position={[-r.w/2+0.02,0.06,0]}><boxGeometry args={[0.04,0.12,r.d]}/><primitive object={m.trim} attach="material"/></mesh>
-    <mesh position={[0.3,0.012,0.1]} rotation-x={-Math.PI/2} receiveShadow><circleGeometry args={[1.5,40]}/><primitive object={m.rug} attach="material"/></mesh>
+    <Rug at={[0.3,0.012,0.1]} size={[3.3,2.3]}/>
     {/* the door on the left wall, near the front */}
     <mesh position={[-r.w/2+0.03,1.05,1.6]} rotation-y={Math.PI/2}><boxGeometry args={[0.95,2.1,0.05]}/><primitive object={m.door} attach="material"/></mesh>
     <mesh position={[-r.w/2+0.07,1.0,1.95]}><sphereGeometry args={[0.04,10,8]}/><primitive object={m.lamp} attach="material"/></mesh>
@@ -159,6 +189,7 @@ function Room({children}:{children:React.ReactNode}){
     <group position={table.at}><mesh position={[0,0.42,0]} castShadow><cylinderGeometry args={[0.34,0.34,0.05,24]}/><primitive object={m.table} attach="material"/></mesh>
       <mesh position={[0,0.2,0]}><cylinderGeometry args={[0.05,0.08,0.4,10]}/><primitive object={m.table} attach="material"/></mesh>
       <mesh position={[0.05,0.5,0]}><cylinderGeometry args={[0.05,0.045,0.1,14]}/><primitive object={m.wall} attach="material"/></mesh></group>
+    <StudyDecor/>
     {children}
   </group>;
 }
@@ -194,7 +225,7 @@ function PageBody({pg,book,n,last,onFinish}:{pg:Para[]|undefined;book:Book;n:num
   if(!pg)return <div className="ms-page-body"/>;
   return <div className="ms-page-body">
     {pg.map(p=><div key={p.i+(p.cont?'c':'')}>{p.head&&<h4 className="ms-sec">{book.sections[p.sec]&&`${p.sec+1}. ${p.head}`}</h4>}<p>{p.text}</p></div>)}
-    {last&&<div className="ms-end"><small>{book.source}</small>{onFinish&&<button type="button" className="ms-finish" onClick={onFinish}>다 읽고 덮기</button>}</div>}
+    {last&&<div className="ms-end">{!(book as {draft?:boolean}).draft&&<small>{book.source}</small>}{onFinish&&<button type="button" className="ms-finish" onClick={onFinish}>다 읽고 덮기</button>}</div>}
     <span className="ms-pno rt-num">{n}</span>
   </div>;
 }
@@ -244,7 +275,8 @@ function BookReader({book,para,peekSec,onClose,onFinish,onBack}:{book:Book;para:
       <button type="button" className="ms-turn prev" aria-label="이전 쪽" disabled={v===0} onClick={()=>go(-1)}/>
       <button type="button" className="ms-turn next" aria-label="다음 쪽" disabled={v>=views-1} onClick={()=>go(1)}/>
     </div>
-    <p className="ms-read-hint">{wide?'모서리를 누르거나 ← → 키로 넘겨요':'옆으로 밀거나 모서리를 눌러 넘겨요'}</p>
+    {/* 피드백 2026-11-25: say where I am, and that this is the last page (no turning hint when there is nothing to turn to) */}
+    <p className="ms-read-hint">{views<=1?'한 장짜리 책이에요 · 마지막 장':v>=views-1?`${v+1} / ${views} · 마지막 장이에요`:`${v+1} / ${views} · ${wide?'모서리를 누르거나 ← → 키로 넘겨요':'옆으로 밀거나 모서리를 눌러 넘겨요'}`}</p>
   </div>;
 }
 
@@ -341,10 +373,13 @@ export function MasterStudy({g,onOut,hud}:{g:G;onOut:()=>void;hud?:React.ReactNo
       <directionalLight position={[2,4,3]} intensity={1.3} color="#ffe2b8" castShadow shadow-mapSize={[1024,1024]}/>
       <Cam view={view}/>
       <Room>
+        <ShelfGlow on={!study.hint&&!reading&&!talk&&!quiz}/>
         <Shelf study={study} hover={hover} picked={pull?.id??null} onHover={id=>{setHover(id);if(id&&!study.hint)put(s=>({...s,hint:true}))}} onPick={pick} onShelf={()=>{if(!busy.current&&!talk&&!quiz)setView('shelf')}}/>
-        {hb&&<Html position={(()=>{const p=slotOf(hb.b.no);return [p[0],p[1]+0.34,p[2]+0.15] as V3})()} center zIndexRange={[25,10]}>
-          <KeepIn className="ms-label" role="tooltip"><small>제 {hb.b.no}권</small><b>{hb.b.title}</b>{hb.more&&<em>{hb.more}</em>}
-            {tap===hb.b.book_id&&<button type="button" className="ms-take" onClick={()=>pick(hb.b.book_id)}>꺼내 읽기</button>}</KeepIn></Html>}
+        <Html position={(()=>{const p=slotOf(hb?hb.b.no:1);return [p[0],p[1]+0.34,p[2]+0.15] as V3})()} center zIndexRange={[25,10]}>
+          {hb&&<KeepIn key={hb.b.book_id} className="ms-label" role="tooltip"><small>제 {hb.b.no}권</small><b>{hb.b.title}</b>{hb.more&&<em>{hb.more}</em>}
+            {tap===hb.b.book_id&&<button type="button" className="ms-take" onClick={()=>pick(hb.b.book_id)}>꺼내 읽기</button>}</KeepIn>}</Html>
+        {/* 피드백 2026-11-26: me in the room, on the rug, facing him (the same outside view as every other room) */}
+        <group position={[0.55,0,0.05]} rotation-y={2.45} scale={LOOK.explorer.scale*0.92} name="study-me"><Suspense fallback={null}><Explorer look={g.s.look}/></Suspense></group>
         <Buffett look={!!talk||!!quiz} nod={nod} onTalk={onTalk} hover={bHover} setHover={setBHover}
           bubble={nodBook&&!talk&&!quiz&&!reading&&!pull?`제 ${nodBook.no}권 퀴즈`:null}/>
       </Room>

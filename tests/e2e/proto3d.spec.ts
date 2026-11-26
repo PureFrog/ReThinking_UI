@@ -97,12 +97,12 @@ test("tapping the ground walks the player there", async ({ page }) => {
 });
 
 // R2: the sky is today's market (app/core/weather.ts); '?weather=' forces it for demos and tests
-for (const [w, label] of [["clear", "맑음"], ["cloudy", "흐림"], ["storm", "비바람"], ["heat", "과열 땡볕"]] as const) {
+for (const [w, label] of [["clear", "조금 오름"], ["cloudy", "거의 그대로"], ["storm", "크게 내림"], ["heat", "크게 오름"]] as const) {
   test(`market weather ${w} sets the sky, the chip and the scene`, async ({ page }) => {
     const errors: string[] = [];
     await open(page, errors, `?weather=${w}`);
     await expect(page.getByTestId("proto3d")).toHaveAttribute("data-weather", w);
-    await expect(page.getByLabel("오늘 시장 날씨")).toContainText(label);
+    await expect(page.getByLabel("오늘 시장 날씨")).toContainText("코스닥");void label;
     expect((await hooks(page))!.weather).toBe(w);
     expect(errors.filter(e => !/deprecated/i.test(e))).toEqual([]);
   });

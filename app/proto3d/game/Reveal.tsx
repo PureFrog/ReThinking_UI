@@ -73,7 +73,7 @@ export function RevealView({pack,play,today,history,ghost,garden,onSimilar,onDon
         <div key={r.who} className="gx-said"><span className="gx-face" style={{backgroundImage:`url(${FACE(r.who)})`}}/><div><b>{NAME[r.who]}</b>{r.text}</div></div>)}</div>}
       {step>=totalAt+4&&like&&<button type="button" className="gx-panel gx-link gx-in" data-testid="gx-similar" onClick={()=>onSimilar?.(like.signal.holdingId)}><strong>내 정원과 닮은 장면</strong><em>›</em>
         <small>D+{like.decision.tick}의 {nameOf(like.decision.code)}와 내 정원의 {like.signal.name}: {like.why.join(' · ')}. 닮은 점만 보여줘.</small></button>}
-      {step>=totalAt+4&&<button type="button" className="gx-panel gx-link gx-in" onClick={()=>setRank(true)}><strong>이번 주 순위</strong><em>›</em><small>판단 점수 순 · 예시 순위 · 서버 연결 전</small></button>}
+      {step>=totalAt+4&&<button type="button" className="gx-panel gx-link gx-in" onClick={()=>setRank(true)}><strong>이번 주 순위</strong><em>›</em><small>판단 점수 순 · 예시 순위 · 실제 순위는 준비 중</small></button>}
     </div>
     <div style={{display:'grid',gridTemplateColumns:'1fr 2fr',gap:8}}><button type="button" className="gx-btn ghost" onClick={onAgain}>다시 하기</button><button type="button" className="gx-btn" onClick={onDone}>나가기</button></div>
   </div>;
@@ -103,7 +103,7 @@ function Ranking({pack,week,me,onBack}:{pack:GamePack;week:string;me:{score:numb
   return <div style={{display:'flex',flexDirection:'column',gap:10,flex:1,minHeight:0}} data-testid="gx-ranking">
     <div className="gx-top"><div><div className="gx-kick">주간 챌린지 · 이번 주 공통 판</div><div className="gx-title">순위</div></div></div>
     <div className="gx-tabs"><button type="button" aria-pressed={by==='score'} onClick={()=>setBy('score')}>판단 점수</button><button type="button" aria-pressed={by==='ret'} onClick={()=>setBy('ret')}>수익</button></div>
-    <div className="gx-sample"><span>{data.sample?'예시 순위 · 서버 연결 전':'이번 주 순위'}</span><span className="gx-mono">참가 {rows.length}</span></div>
+    <div className="gx-sample"><span>{data.sample?'예시 순위 · 실제 순위는 준비 중':'이번 주 순위'}</span><span className="gx-mono">참가 {rows.length}</span></div>
     <div style={{flex:1,minHeight:0,overflow:'auto'}}><ol className="gx-rank" ref={list}>{rows.map((r,i)=><li key={r.name} className={r.me?'me':''}><span className="n gx-mono">{i+1}</span><span>{r.name}</span>
       <b className={`gx-mono ${by==='ret'?cls(r.ret):''}`}>{by==='score'?r.score:pct(r.ret)}</b></li>)}</ol></div>
     <button type="button" className="gx-btn ghost" onClick={onBack}>공개로 돌아가기</button>

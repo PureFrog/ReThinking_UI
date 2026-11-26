@@ -20,6 +20,7 @@ test("home: no dock, the corner buttons, today's quests, the notebook, and the o
   await expect(page.getByRole("dialog", { name: "튜토리얼" })).toHaveCount(0);
   // the corners: weather and quests, coins and settings; no sound button up top
   await expect(page.getByLabel("오늘 시장 날씨")).toBeVisible();
+  await page.getByRole("group", { name: "오늘 퀘스트" }).locator(".rt-quests-h").click();
   await expect(page.getByRole("group", { name: "오늘 퀘스트" }).locator(".rt-quest")).toHaveCount(3);
   await expect(page.getByRole("button", { name: /^코인 .* · 충전$/ })).toBeVisible();
   await expect(page.getByRole("button", { name: "설정" })).toBeVisible();

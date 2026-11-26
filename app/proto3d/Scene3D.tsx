@@ -30,10 +30,12 @@ import type {AnalystId} from '../content/analysts';
 import {LOOK} from './look';
 import {soft} from './materials';
 import {MODELS,ALL_TREE_FILES,CANOPY,BARK,STUMP_CUT,FRUIT,FRUIT_FALLEN} from './models';
-import {OnGround,surfaceY,tiltAt,rng,UP} from './ground';
-import {PLOTS,PATHS,PLACES,place,inStream,route,WORLD,solids,pushOut,BUILDING_R,BRIDGE,streamZ,bridgeBlocks,bridgeLift,FIRE,FIRE_SEAT,type Solid} from './places';
+import {shingles,siding,stone,brick,planks,tmat} from './surfaces';
+import {OnGround,surfaceY,tiltAt,normalAt,rng,UP} from './ground';
+import {PLOTS,PATHS,PLACES,place,inStream,route,WORLD,solids,pushOut,BUILDING_R,BRIDGE,streamZ,bridgeBlocks,bridgeLift,FIRE,FIRE_SEAT,FIRE_LOG,setNpcWalls,NPC_FIRE_SEATS,type Solid} from './places';
 import {spread,spreadXZ} from '../core/world';
 import {SIGN_PLACES,SIGN_BUILDINGS,SIGN_CITY} from './ui/Signs';
+import {VillageLamps} from './VillageLamps';
 import {Stream,Bridge,Paths,Forest,Library,Plaza,PlainTree,MasterHouse,ArcadeHouse} from './World3D';
 import {Interior,type Book,type Note} from './Interior3D';
 import {Explorer} from './Explorer3D';
@@ -42,7 +44,9 @@ import {Showroom} from './Showroom3D';
 import {SkyScene,type SkyWorld} from './Sky3D';
 import type {Look} from '../core/wardrobe';
 import {gardenTree} from '../core/recheck';
-import {Villager,GuideTrail,LeadMark,NewsBoard,MerchantStall,FarmCart,type Errand} from './Village3D';
+import {PondLife,CampfireDecor,Dog} from './VillageNature';
+import {Cat} from './HouseMore';
+import {Villager,GuideTrail,LeadMark,NewsBoard,MerchantStall,FarmCart,type Errand,type Routine} from './Village3D';
 import {ShopHouse,ShopRoom,SHOP_IDS,SHOP_AT,doorOf,type ShopId} from './Shop3D';
 import {NEWS_BOARD,TAILOR_STALL,MERCHANT_STALL,FARM_CART,VILLAGERS} from '../content/villagers';
 import {POND_AT} from './places';
@@ -82,6 +86,8 @@ function pondGeo(grow:number,lift:number){const N=72,pos:number[]=[POND_AT.x,sur
   for(let i=0;i<N;i++){const a=i/N*Math.PI*2,r=pondR(a)+grow,x=POND_AT.x+Math.cos(a)*r,z=POND_AT.z+Math.sin(a)*r;pos.push(x,surfaceY(x,z)+lift,z);idx.push(0,1+(i+1)%N,1+i)}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();return g}
 const HOUSE=place('home');
+const STRAY_CAT:[number,number][]=([[-3,6],[2,4.5],[-6,-2],[4,-4],[9,7],[-1,10]] as [number,number][]).map(([x,z])=>spread(x,z) as [number,number]);
+const STRAY_DOG:[number,number][]=([[1,8],[-4,3],[6,2],[-7,9],[3,-2]] as [number,number][]).map(([x,z])=>spread(x,z) as [number,number]);
 const ROCKS=([/* (the big rock by the old lookout is gone: it stood in front of the fishing camera, 2026-11-20) */[-5,4.4,0.7,0],[-7.2,4.6,0.55,0],[8.4,6,0.9,0],[3.4,5.2,0.5,0]] as number[][]).map(([x,z,sc,rot])=>[...spread(x,z),sc,rot]);
 const FARM=PLOTS;
 // landmarks (R4–R6, Garden3D.tsx; World3D.tsx) and where grass tufts and flowers keep away from
@@ -196,34 +202,85 @@ function Rock({x,z,s=1,rot=0}:{x:number;z:number;s?:number;rot?:number}){
 // the cottage's roof pieces: a gable pushed front to back, the wall-coloured triangles under it, the porch roof
 const tri=(w:number,h:number)=>{const s=new THREE.Shape();s.moveTo(-w/2,0);s.lineTo(w/2,0);s.lineTo(0,h);s.closePath();return s};
 const prism=(w:number,h:number,d:number)=>{const g=new THREE.ExtrudeGeometry(tri(w,h),{depth:d,bevelEnabled:false});g.translate(0,0,-d/2);return g};
-const COTTAGE_ROOF=prism(4.3,1.9,4.8),COTTAGE_GABLE=new THREE.ShapeGeometry(tri(3.4,1.5)),COTTAGE_PORCH=prism(1.7,0.55,1.1);
+const COTTAGE_ROOF=prism(4.3,1.9,4.8),COTTAGE_GABLE=new THREE.ShapeGeometry(tri(4.3,1.9)),COTTAGE_PORCH=prism(1.7,0.55,1.1);
 // the house: tapping it (or its door) goes inside (Interior3D.tsx)
+// 피드백 2026-11-26 "재질이 드러나게": the cottage in real materials: a fieldstone footing, clapboard walls, a shingle
+// roof (two slopes, so the shingles run the right way), a brick chimney that now and then lets off a puff of white
+// steam, a plank door and plank flower boxes (textures: surfaces.ts)
+function useCottageMats(){
+  return useMemo(()=>({stone:tmat(stone(),5/1.4,0.18/1.4*4),wall:tmat(siding(),4.2/1.6,2.5/1.6),gable:tmat(siding(),1/1.6,1/1.6),
+    roof:tmat(shingles(),2.95/1.1,4.8/1.1,0.8),chim:tmat(brick(),0.6/0.5,1.6/0.5),door:tmat(planks(),1,1),box:tmat(planks([138,90,62]),1,0.4),
+    step:tmat(stone(),1.8/1.2,1.1/1.2)}),[]);
+}
+// 피드백 2026-11-26 "연기가 동그래서 실감이 없어": smoke as soft wisps: many billboards with a cloudy, ragged texture that
+// rise, drift with the wind, swell, turn and fade; it comes in short breaths with quiet between
+let smokeTex:THREE.Texture|null=null;
+// a wisp of smoke: many faint, uneven lobes (no single round blob), soft all the way to the edge
+function smoke(){if(smokeTex)return smokeTex;const S=128,cv=document.createElement('canvas');cv.width=cv.height=S;const g=cv.getContext('2d')!;
+  for(let i=0;i<90;i++){const a=Math.random()*Math.PI*2,d=Math.pow(Math.random(),0.7)*40,x=64+Math.cos(a)*d,y=64+Math.sin(a)*d*0.8,r=6+Math.random()*20;
+    g.save();g.translate(x,y);g.rotate(Math.random()*3);g.scale(1,0.5+Math.random()*0.6);const gr=g.createRadialGradient(0,0,0,0,0,r);
+    gr.addColorStop(0,`rgba(255,255,255,${0.05+Math.random()*0.09})`);gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.beginPath();g.arc(0,0,r,0,7);g.fill();g.restore()}
+  const v=g.createRadialGradient(64,64,10,64,64,64);v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(0.7,'rgba(0,0,0,0.4)');v.addColorStop(1,'rgba(0,0,0,1)');g.globalCompositeOperation='destination-out';g.fillStyle=v;g.fillRect(0,0,S,S);
+  smokeTex=new THREE.CanvasTexture(cv);return smokeTex}
+function Steam({at}:{at:[number,number,number]}){
+  const N=34,parts=useRef<(THREE.Sprite|null)[]>([]),seed=useMemo(()=>Array.from({length:N},(_,i)=>({o:i/N,sp:0.75+Math.random()*0.5,sw:Math.random()*6,rot:(Math.random()-0.5)*0.8,big:0.8+Math.random()*0.5})),[]);
+  useFrame(({clock})=>{const t=clock.elapsedTime;
+    // a breath of smoke for ~4 s in every 9
+    const breath=Math.max(0,Math.sin((t%9)/9*Math.PI*2))**0.6;
+    parts.current.forEach((sp,i)=>{if(!sp)return;const s=seed[i],life=3.2,k=((t*s.sp/life)+s.o)%1;
+      // rises fast at first and slows, bends with the wind, curls and spreads; a thin wisp always, more in each breath
+      const rise=1-Math.pow(1-k,1.8);
+      sp.position.set(at[0]+rise*0.9*k+Math.sin(t*0.9+s.sw+k*4)*0.14*k,at[1]+rise*2.3,at[2]+k*0.4+Math.cos(t*0.7+s.sw+k*3)*0.1*k);
+      const sc=(0.5+k*2.1)*s.big;sp.scale.set(sc,sc*(0.85+0.15*Math.sin(t+s.sw)),1);const m=sp.material as THREE.SpriteMaterial;m.rotation=s.sw+s.rot*t;
+      m.opacity=(0.18+breath*0.5)*(1-k)*Math.min(1,k*5)})});
+  return <group>{seed.map((_,i)=><sprite key={i} ref={el=>{parts.current[i]=el}}><spriteMaterial map={smoke()} color={['#f4f4f1','#e2e2de','#d4d4d0'][i%3]} transparent opacity={0} depthWrite={false}/></sprite>)}</group>;
+}
 function House({onEnter,night}:{onEnter:()=>void;night:number}){
   const enter=(e:ThreeEvent<MouseEvent>)=>{e.stopPropagation();onEnter()};
   const M=(c:string)=><primitive object={soft(c)} attach="material"/>;
+  const P=(m:THREE.Material)=><primitive object={m} attach="material"/>;
+  const m=useCottageMats();
   const glow=<meshStandardMaterial color="#ffb24a" emissive="#ff9a2e" emissiveIntensity={1.2+LOOK.daylight.windows*night} toneMapped={false}/>;
-  // 2026-11-18 (user picked 시안 A): a cottage, cream walls and the brown gable roof, chimney, a little porch roof, flower boxes
+  const slope=Math.atan2(1.9,2.15),len=Math.hypot(2.15,1.9)+0.25;
   return <OnGround x={HOUSE.x} z={HOUSE.z} rot={HOUSE.rot}><group onClick={enter} name="house">
-    <mesh position-y={0.09} receiveShadow><boxGeometry args={[5,0.18,4.4]}/>{M('#cfc4b2')}</mesh>
-    <mesh position-y={1.43} castShadow receiveShadow><boxGeometry args={[4.2,2.5,3.4]}/>{M('#f1e6d4')}</mesh>
-    <mesh position-y={2.68} castShadow geometry={COTTAGE_ROOF}>{M('#a0523a')}</mesh>
-    {[-1.71,1.71].map(z=><mesh key={z} position={[0,2.68,z]} rotation-y={z<0?Math.PI:0} geometry={COTTAGE_GABLE}>{M('#f1e6d4')}</mesh>)}
-    <mesh position-y={2.68+1.9} castShadow><boxGeometry args={[0.12,0.14,4.9]}/>{M('#6e3626')}</mesh>
-    {/* chimney */}
-    <mesh position={[1.2,3.6,-0.6]} castShadow><boxGeometry args={[0.6,1.6,0.6]}/>{M('#b9a999')}</mesh>
-    <mesh position={[1.2,4.45,-0.6]} castShadow><boxGeometry args={[0.75,0.15,0.75]}/>{M('#9d8c7d')}</mesh>
+    <mesh position-y={0.09} receiveShadow><boxGeometry args={[5,0.18,4.4]}/>{P(m.step)}</mesh>
+    {/* a fieldstone footing under the clapboard */}
+    <mesh position-y={0.45} castShadow receiveShadow><boxGeometry args={[4.32,0.55,3.52]}/>{P(m.stone)}</mesh>
+    <mesh position-y={1.43} castShadow receiveShadow><boxGeometry args={[4.2,2.5,3.4]}/>{P(m.wall)}</mesh>
+    {/* corner boards */}
+    {[[-2.11,-1.71],[2.11,-1.71],[-2.11,1.71],[2.11,1.71]].map(([x,z],i)=><mesh key={i} position={[x,1.55,z]}><boxGeometry args={[0.14,2.3,0.14]}/>{M('#e6d9c2')}</mesh>)}
+    {[-1.71,1.71].map(z=><mesh key={z} position={[0,2.68,z]} rotation-y={z<0?Math.PI:0} geometry={COTTAGE_GABLE}>{P(m.gable)}</mesh>)}
+    {/* the roof: two shingled slopes and a ridge cap */}
+    {/* 피드백 2026-11-26 "벽과 지붕 사이가 떠 보여": the slopes sit ON the gable line (their underside on it, not across
+        it), a short overhang, and barge boards and a soffit close the eaves so no gap shows under the roof */}
+    {[-1,1].map(k=><mesh key={k} position={[k*1.075+k*Math.sin(slope)*0.11,2.68+0.95+Math.cos(slope)*0.11,0]} rotation-z={-k*slope} castShadow receiveShadow><boxGeometry args={[len,0.22,4.1]}/>{P(m.roof)}</mesh>)}
+    {[-1,1].map(k=>[-1,1].map(e=><mesh key={k+'b'+e} position={[k*1.075,2.68+0.95,e*2.03]} rotation-z={-k*slope}><boxGeometry args={[len,0.26,0.07]}/>{M('#5a3424')}</mesh>))}
+    {[-1,1].map(e=><mesh key={'s'+e} position={[0,2.68+0.01,e*1.85]}><boxGeometry args={[4.35,0.06,0.36]}/>{M('#e6d9c2')}</mesh>)}
+    {[-1,1].map(k=><mesh key={'f'+k} position={[k*2.2,2.62,0]}><boxGeometry args={[0.1,0.16,4.1]}/>{M('#5a3424')}</mesh>)}
+    <mesh position-y={2.68+1.97} rotation-x={Math.PI/2} castShadow><cylinderGeometry args={[0.14,0.14,4.2,10]}/>{M('#6e3626')}</mesh>
+    {/* the brick chimney, its cap, and a puff of steam now and then */}
+    <mesh position={[1.2,3.6,-0.6]} castShadow><boxGeometry args={[0.6,1.6,0.6]}/>{P(m.chim)}</mesh>
+    <mesh position={[1.2,4.45,-0.6]} castShadow><boxGeometry args={[0.75,0.15,0.75]}/>{M('#7d6e62')}</mesh>
+    <Steam at={[1.2,4.6,-0.6]}/>
     {/* door, step and the porch roof over it */}
-    <mesh position={[0,0.95,1.72]}><boxGeometry args={[1,1.7,0.1]}/>{M('#6b4130')}</mesh>
+    <mesh position={[0,0.95,1.72]}><boxGeometry args={[1,1.7,0.1]}/>{P(m.door)}</mesh>
+    <mesh position={[0,1.82,1.74]}><boxGeometry args={[1.12,0.1,0.12]}/>{M('#5a3424')}</mesh>
     <mesh position={[0.32,0.95,1.79]}><sphereGeometry args={[0.06,8,6]}/>{M('#e8c35a')}</mesh>
-    <mesh position={[0,0.2,2.15]} receiveShadow><boxGeometry args={[1.8,0.1,1.1]}/>{M('#bdb2a0')}</mesh>
-    <mesh position={[0,1.95,2.05]} castShadow geometry={COTTAGE_PORCH}>{M('#a0523a')}</mesh>
-    {/* glowing windows (bloom picks these up) with flower boxes */}
+    <mesh position={[0,0.2,2.15]} receiveShadow><boxGeometry args={[1.8,0.1,1.1]}/>{P(m.step)}</mesh>
+    <mesh position={[0,1.95,2.05]} castShadow geometry={COTTAGE_PORCH}>{P(m.roof)}</mesh>
+    {/* glowing windows with crossbars, shutters and plank flower boxes */}
     {[-1.35,1.35].map(x=><group key={x}>
-      <mesh position={[x,1.55,1.72]}><boxGeometry args={[0.85,0.75,0.08]}/>{M('#8a5a3e')}</mesh>
+      <mesh position={[x,1.55,1.72]}><boxGeometry args={[0.85,0.75,0.08]}/>{M('#f4ead6')}</mesh>
       <mesh position={[x,1.55,1.77]}><planeGeometry args={[0.7,0.6]}/>{glow}</mesh>
-      <mesh position={[x,1.07,1.85]} castShadow><boxGeometry args={[0.95,0.22,0.3]}/>{M('#8a5a3e')}</mesh>
+      <mesh position={[x,1.55,1.79]}><boxGeometry args={[0.04,0.6,0.02]}/>{M('#f4ead6')}</mesh>
+      <mesh position={[x,1.55,1.79]}><boxGeometry args={[0.7,0.04,0.02]}/>{M('#f4ead6')}</mesh>
+      {[-1,1].map(k=><mesh key={k} position={[x+k*0.6,1.55,1.75]}><boxGeometry args={[0.28,0.78,0.05]}/>{P(m.box)}</mesh>)}
+      <mesh position={[x,1.07,1.85]} castShadow><boxGeometry args={[0.95,0.22,0.3]}/>{P(m.box)}</mesh>
       {['#e8607a','#ffd34d','#f08aa8'].map((c,i)=><mesh key={c} position={[x-0.3+i*0.3,1.25,1.88]}><sphereGeometry args={[0.13,10,8]}/>{M(c)}</mesh>)}
+      {[-0.15,0.15].map(dx=><mesh key={dx} position={[x+dx,1.22,1.93]}><sphereGeometry args={[0.08,8,6]}/>{M('#4f9a45')}</mesh>)}
     </group>)}
+    {/* a lantern by the door */}
+    <mesh position={[0.75,1.5,1.82]}><boxGeometry args={[0.14,0.22,0.14]}/><meshStandardMaterial color="#ffe0a0" emissive="#ffb347" emissiveIntensity={0.6+night} toneMapped={false}/></mesh>
   </group></OnGround>;
 }
 
@@ -233,10 +290,15 @@ function Campfire({onSit}:{onSit?:()=>void}){
   // 피드백 2026-11-24 "모닥불 앞에 앉기": a tap on the fire or the log walks me to the log and sits me down
   return <group onClick={onSit?e=>{e.stopPropagation();onSit()}:undefined} onPointerOver={onSit?()=>{document.body.style.cursor='pointer'}:undefined} onPointerOut={onSit?()=>{document.body.style.cursor=''}:undefined}><OnGround x={FIRE[0]} z={FIRE[1]}>
     {[0,1.2,2.4].map(a=><mesh key={a} rotation={[Math.PI/2,0,a]} position-y={0.1} castShadow><cylinderGeometry args={[0.08,0.1,1.1,8]}/><primitive object={soft('#8a6448')} attach="material"/></mesh>)}
-    <mesh ref={flame} position-y={0.45}><coneGeometry args={[0.28,0.75,12]}/><meshStandardMaterial color="#ffb02e" emissive="#ff7a1a" emissiveIntensity={1.1} toneMapped={false}/></mesh>
+    <mesh ref={flame} position-y={0.45} visible={false}><coneGeometry args={[0.28,0.75,12]}/><meshBasicMaterial/></mesh>
     <pointLight position-y={0.8} color="#ffae5a" intensity={6} distance={5} decay={2}/>
     {/* a fallen log to sit on */}
     <mesh position={[0.6,0.18,-1.3]} rotation={[0,0.4,Math.PI/2]} castShadow><cylinderGeometry args={[0.2,0.2,2.2,12]}/><primitive object={soft('#b18a6b')} attach="material"/></mesh>
+    {/* two stumps round the fire where the village's people sit a while (places.ts NPC_FIRE_SEATS) */}
+    {([[-1.35,0.55],[0.75,1.25]] as const).map(([x,z])=><group key={x} position={[x,0,z]}>
+      <mesh position-y={0.17} castShadow receiveShadow><cylinderGeometry args={[0.24,0.27,0.34,12]}/><primitive object={soft('#8a6448')} attach="material"/></mesh>
+      <mesh position-y={0.345}><cylinderGeometry args={[0.22,0.22,0.01,16]}/><primitive object={soft('#d9b98c')} attach="material"/></mesh>
+      <mesh position-y={0.352} rotation-x={-Math.PI/2}><ringGeometry args={[0.1,0.12,16]}/><primitive object={soft('#b8916a')} attach="material"/></mesh></group>)}
   </OnGround></group>;
 }
 
@@ -419,11 +481,11 @@ function Player({target,stops,pos,hidden,look,walls,onPick,faceTo=null,sit}:{sit
     if(st){const end=stops.current.length?stops.current[stops.current.length-1]:tg;if(Math.hypot(end.x-st.x,end.z-st.z)>0.25)sit!.current=null}
     const now=!!sit?.current&&!moving.current&&Math.hypot(p.x-st!.x,p.z-st!.z)<0.3;
     if(now){const diff=Math.atan2(Math.sin(st!.face-b.rotation.y),Math.cos(st!.face-b.rotation.y));b.rotation.y+=diff*Math.min(1,LOOK.walk.turn*t)}
-    if(now!==sitting.current){sitting.current=now;(testHooks() as {sitting?:boolean}).sitting=now}
+    if(now!==sitting.current){sitting.current=now;(testHooks() as {sitting?:boolean}).sitting=now;if(now)dispatchEvent(new CustomEvent('rt-sat-fire'))}
     // on the bridge: up and over its planks
     const lift=bridgeLift(p.x,p.z),y=lift?Math.max(surfaceY(p.x,p.z),surfaceY(BRIDGE.x,streamZ(BRIDGE.x))+lift):surfaceY(p.x,p.z);
     gr.position.set(p.x,y,p.z);gr.quaternion.copy(tiltAt(p.x,p.z))});
-  return <group ref={g} visible={!hidden} name="player" onClick={onPick?e=>{e.stopPropagation();onPick()}:undefined}><group ref={body} scale={LOOK.explorer.scale}>
+  return <group ref={g} visible={!hidden} name="player" onClick={onPick&&!hidden?e=>{e.stopPropagation();/* 피드백 2026-11-26: a drag to look round (first person) is not a tap on me */if(e.delta>6)return;onPick()}:undefined}><group ref={body} scale={LOOK.explorer.scale}>
     <Suspense fallback={null}><Explorer look={look} moving={moving} sit={sitting}/></Suspense>
   </group></group>;
 }
@@ -507,7 +569,10 @@ function FollowCam({pos,recenter,focus,orbit,low,near,aim,fp=false,talk=null,eye
     tv.current.x+=(tilt.x-tv.current.x)*ease(6);tv.current.y+=(tilt.y-tv.current.y)*ease(6);
     side.set(1,0,0).applyQuaternion(camera.quaternion);lean.copy(side).multiplyScalar(tv.current.x*LOOK.tilt.amount);
     side.set(0,1,0).applyQuaternion(camera.quaternion);lean.addScaledVector(side,-tv.current.y*LOOK.tilt.amount*0.6);
-    camera.position.add(lean);camera.lookAt(c.target);
+    // 피드백 2026-11-26 "1인칭이 땅에 붙고 화면이 기울어": in first person no phone lean, and the view is levelled to the ground
+    // under me (on the round world the global up leans away from it); the eye sits higher (look.ts camera.fp.eye)
+    if(fpOn){lean.set(0,0,0);camera.up.copy(normalAt(pos.current.x,pos.current.z));camera.lookAt(c.target);camera.up.set(0,1,0)}
+    else{camera.position.add(lean);camera.lookAt(c.target)}
     // e2e: first person or not, how far the camera is from where it looks, how far that is from the player (xz)
     (testHooks() as {view?:unknown}).view={fp:fpOn,eyeGap:+camera.position.distanceTo(c.target).toFixed(2),follow:+Math.hypot(c.target.x-pos.current.x,c.target.z-pos.current.z).toFixed(2)}});
   return <OrbitControls ref={ctl} makeDefault enablePan={false} enableDamping dampingFactor={LOOK.camera.damping} rotateSpeed={LOOK.camera.rotateSpeed} zoomSpeed={LOOK.camera.zoomSpeed}
@@ -630,7 +695,7 @@ export type World={
   talk?:{x:number;z:number;az:number;pitch?:number;dist?:number;lift?:number;eye?:{x:number;z:number;ax:number;az:number}|null}|null;
   // 유저 워크플로우: the village's people (content/villagers.ts), whether each is the one to go to now, who is talking;
   // the guide's footprints to the next one; the news board, the cart's pile and whether the merchant is at the stall
-  villagers?:{id:string;x:number;z:number;face:number;look:Look;hl:boolean;talking:boolean;away?:boolean;errand?:Errand|null;onErrandDone?:()=>void;onPick:()=>void}[];
+  villagers?:{id:string;x:number;z:number;face:number;look:Look;hl:boolean;talking:boolean;away?:boolean;errand?:Errand|null;onErrandDone?:()=>void;routine?:Routine|null;onPick:()=>void}[];
   guide?:{x:number;z:number}|null;
   // 피드백 2026-11-22: the tutorial leads: light on the one place to go, the rest dimmed, and I can only walk along the way there
   lead?:{from:{x:number;z:number};to:{x:number;z:number};mark?:{x:number;z:number};off:()=>void}|null;onNews?:()=>void;cartPile?:number;merchantOpen?:boolean;
@@ -725,14 +790,19 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
   const sit=useRef<{x:number;z:number;face:number}|null>(null);
   const sitDown=()=>{if(world.placing||world.planting)return;const s=FIRE_SEAT;if(!onWay(s.x,s.z)){off();return}
     const r=route(pos.current,s,(x,z)=>inPond(x,z,0.2));if(!r)return;const [first,...rest]=r;target.current.set(first.x,0,first.z);stops.current=rest;sit.current=s;onPick(null)};
-  useEffect(()=>{(testHooks() as {sitDown?:()=>void}).sitDown=sitDown});
+  useEffect(()=>{const h=testHooks() as {sitDown?:()=>void;sitFire?:()=>void};h.sitDown=sitDown;h.sitFire=sitDown});
   const walk=(p:THREE.Vector3)=>{if(world.placing&&world.onPlace){const why=whyHere(p.x,p.z);setGhost({x:p.x,z:p.z,ok:!why});world.onPlace(p.x,p.z,why);return}
     if(world.planting&&world.onPlant){world.onPlant(p.x,p.z,plantBlock(p.x,p.z)||(tooClose([...(world.plants??[]),...starter()],p.x,p.z)?'다른 꽃·나무랑 너무 가까워요':null));return}const r=route(pos.current,p,(x,z)=>inPond(x,z,0.2));if(!r)return;if(!onWay(p.x,p.z)){off();return}const [first,...rest]=r;target.current.set(first.x,0,first.z);stops.current=rest;onPick(null)};
   const reportPoint=useCallback((k:string,v:THREE.Vector3)=>{let p=points.get(k);if(!p){p=new THREE.Vector3();points.set(k,p)}p.copy(v)},[points]);
   useEffect(()=>{testHooks().inside=world.inside;testHooks().stage=world.stage;(testHooks() as unknown as {shop:unknown}).shop=world.shop??null},[world.inside,world.stage,world.shop]);
   // 넓히기 mode: where each closed lot's tag sits (ui/BuildMode.tsx), and the landmarks' (always, for their name tags)
   const bm=world.build?.mode,bl=world.build?.built;
-  const walls=useMemo(()=>solids(bl),[bl]);
+  // 피드백 2026-11-26 "나무도 바위도 통과": the scenery trees are solid too, for me and for the village's people (who also
+  // walk round the fruit trees in the plots: places.ts npcStep)
+  const walls=useMemo(()=>[...solids(bl),...DECO_TREES.map(([,x,z,sc])=>({x,z,r:0.42*sc})),...starter().filter(p=>!['tulips','hydrangea','sunflowers'].includes(p.item)).map(p=>({x:p.x,z:p.z,r:0.4}))],[bl]);
+  // the people also walk round the log and the stumps by the fire (I sit on the log, so not mine)
+  useEffect(()=>{setNpcWalls([...walls,...PLOTS.map(([x,z])=>({x,z,r:0.45})),...[-0.7,0,0.7].map(k=>({x:FIRE_LOG.x-0.92*k,z:FIRE_LOG.z+0.39*k,r:0.28})),
+    ...NPC_FIRE_SEATS.slice(1).map(q=>({x:q.x,z:q.z,r:0.26}))])},[walls]);
   // name signs above the buildings (ui/Signs.tsx)
   useEffect(()=>{for(const k of [...points.keys()])if(k.startsWith('sign-'))points.delete(k);
     const put=(k:string,x:number,z:number,y:number)=>points.set('sign-'+k,new THREE.Vector3(x,surfaceY(x,z)+y,z));
@@ -753,7 +823,7 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
       shadow-mapSize={[LOOK.shadow.mapSize,LOOK.shadow.mapSize]} shadow-radius={LOOK.shadow.radius} shadow-bias={-0.0004} shadow-normalBias={0.04}
       shadow-camera-left={-16} shadow-camera-right={16} shadow-camera-top={16} shadow-camera-bottom={-16} shadow-camera-near={1} shadow-camera-far={50}/>
 
-    {world.sky?<SkyScene sky={world.sky}/>:world.stage?<Showroom look={world.look}/>:world.shop?<ShopRoom id={world.shop} look={world.look}/>:world.inside?<Interior people={world.room.people} books={world.room.books} notes={world.room.notes} resting={world.room.resting} decor={world.decor}
+    {world.sky?<SkyScene sky={world.sky}/>:world.stage?<Showroom look={world.look}/>:world.shop?<ShopRoom id={world.shop} look={world.look}/>:world.inside?<Interior me={world.look} people={world.room.people} books={world.room.books} notes={world.room.notes} resting={world.room.resting} decor={world.decor}
       onDesk={world.room.onDesk} onShelf={world.room.onShelf} onBoard={world.room.onBoard} onDoor={world.room.onDoor} onAnalyst={world.onAnalyst}
       report={reportPoint} reportAnalyst={reportAnalyst}/>:<group onPointerMove={hover} onPointerOut={hoverOff}>
     <Ground onWalk={walk} onHover={world.placing?placeHover:undefined}/>
@@ -765,9 +835,14 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
       :<PlainTree key={p.id} x={p.x} z={p.z}/>)}
     <Tufts/>
     <Pond dim={world.light.night*0.85}/>
+    <PondLife at={POND_AT}/>
+    {/* 피드백 2026-11-26 "길고양이·강아지": a stray cat and a dog wander between the village's corners */}
+    <Cat id="stray-cat" spots={STRAY_CAT} ground={surfaceY} tint="#9a9590"/>
+    <Dog spots={STRAY_DOG}/>
     <Flowers/>
     <House night={world.light.night} onEnter={()=>world.onLandmark('house')}/>
     <Campfire onSit={sitDown}/>
+    <CampfireDecor at={FIRE}/>
     {ROCKS.map(([x,z,sc,rot],i)=><Rock key={i} x={x} z={z} s={sc} rot={rot}/>)}
     {trees.map((t,i)=>{const b=world.birth,k=b?b.ids.indexOf(t.h.id):-1;return <HoldingTree key={t.h.id} id={t.h.id} x={t.x} z={t.z} size={t.size} growth={t.st.growth} condition={t.st.condition} picked={picked===t.h.id} onPick={id=>onPick(id)} onTop={onTops[i]} wind={wl.wind}
       born={b&&k>=0?bornOf(b,k):null} onDeep={world.onDeep} cut={!!cut&&cut.t===t}/>})}
@@ -781,11 +856,11 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
     <WeatherFx weather={weather} center={pos} hemi={hemi}/>
     <OnGround x={SPOTS.signpost.x} z={SPOTS.signpost.z} rot={SPOTS.signpost.rot}><Signpost hitRate={world.hitRate} onPick={()=>world.onLandmark('signpost')}/></OnGround>
     {/* 피드백 2026-11-23: the shop cart became the building shop's house (Shop3D.tsx, drawn with the others below) */}
-    <Stream dim={world.light.night*0.85}/><Bridge/><Paths/><Forest/>
+    <VillageLamps night={world.light.night}/><Stream dim={world.light.night*0.85}/><Bridge/><Paths/><Forest/>
     {/* 피드백 2026-11-22: the library (사서 and the bookshelf) moved into the house */}
     {false&&<Library open={world.caseOpen} onPick={()=>world.onLandmark('library')}/>}
-    <Suspense fallback={null}><MasterHouse onPick={()=>world.onLandmark('master')}/></Suspense>
-    <Suspense fallback={null}><ArcadeHouse onPick={()=>world.onLandmark('arcade')}/></Suspense>
+    <Suspense fallback={null}><MasterHouse night={world.light.night} onPick={()=>world.onLandmark('master')}/></Suspense>
+    <Suspense fallback={null}><ArcadeHouse night={world.light.night} onPick={()=>world.onLandmark('arcade')}/></Suspense>
     <Fields land={world.build?.built.land??[]} mode={!!world.build?.mode} onLot={world.build?.onLot}/>
     {world.build?.mode&&<BuildingLots built={world.build.built} onLot={world.build.onLot}/>}
     {world.build&&<Buildings built={world.build.built}/>}
@@ -803,7 +878,7 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
       {world.analysts.filter(a=>!a.home).map(a=><Analyst key={a.id} id={a.id} to={spotFor(a.id,a.at,a.near,a.spot)} act={a.talking?undefined:a.at===null&&a.spot?a.spot.act:a.at!==null&&!a.near?'look':undefined} faceTo={a.talking?undefined:a.at===null&&a.spot?a.spot.face:undefined} from={world.enterFrom} face={pos} surface={surfaceY} tilt={tiltAt} bubble={a.bubble}
         onPick={()=>world.onAnalyst(a.id)} report={reportAnalyst}/>)}
       {world.naru&&<Analyst key="naru" id="naru" to={world.naru.at} act="look" from={null} face={pos} surface={surfaceY} tilt={tiltAt} bubble={null} onPick={world.naru.onPick} report={reportFriend}/>}
-      {(world.villagers??[]).map(v=><Villager key={v.id} id={v.id} x={v.x} z={v.z} face={v.face} look={v.look} hl={v.hl} talking={v.talking} away={v.away} errand={v.errand} onErrandDone={v.onErrandDone} player={pos} onPick={v.onPick} report={reportPoint}/>)}
+      {(world.villagers??[]).map(v=><Villager key={v.id} id={v.id} x={v.x} z={v.z} face={v.face} look={v.look} hl={v.hl} talking={v.talking} away={v.away} errand={v.errand} onErrandDone={v.onErrandDone} routine={v.routine} player={pos} onPick={v.onPick} report={reportPoint}/>)}
       {world.fishing&&<Bobber x={world.fishing.x} z={world.fishing.z} bite={world.fishing.phase==='bite'}/>}
       {world.friend&&<Analyst key="bori" id="bori" to={world.friend.at} act="look" mood={world.friend.face} from={world.enterFrom} face={pos} surface={surfaceY} tilt={tiltAt} bubble={null} onPick={world.friend.onPick} report={reportFriend}/>}
     </Suspense>

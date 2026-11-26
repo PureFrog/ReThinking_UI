@@ -43,13 +43,14 @@ export function CoinPay({coins,onClose}:{coins:number;onClose:()=>void}){
   // the real payment goes here; until then the window ends on a notice and nothing changes
   const pay=()=>setStep('done');
   return <Sheet kicker="코인 · 결제" title={step==='pick'?'코인 충전':step==='pay'?'결제하기':'결제 안내'} label="코인 결제창" onClose={onClose}
-    foot={step==='pick'?<button type="button" className="rt-btn primary cp-next" onClick={()=>setStep('pay')}>{won(p.price)} 결제로 넘어가기</button>
+    foot={step==='pick'?<button type="button" className="rt-btn primary cp-next" disabled>결제는 준비 중이에요</button>/* 2026-11-25: payment is not connected yet, so the window stops here (no fake pay step) */
       :step==='pay'?<><button type="button" className="rt-btn ghost" onClick={()=>setStep('pick')}>이전</button>
         <button type="button" className="rt-btn primary cp-pay" disabled={!agree} onClick={pay}>{won(p.price)} 결제하기</button></>
       :<button type="button" className="rt-btn primary" onClick={onClose}>닫기</button>}>
     <div className="cp-step" key={step}>
     {step==='pick'&&<>
       <div className="cc-now"><span>지금 가진 코인</span><b><Coin/>{wonShort(coins)}</b></div>
+      <p className="rt-hint cp-soon" role="status">코인 충전은 준비 중이에요. 지금은 퀴즈, 일지, 낚시, 퀘스트로 코인을 모을 수 있어요.</p>
       <ul className="cp-packs" role="radiogroup" aria-label="충전할 코인">{COIN_PACKS.map(x=><li key={x.id}>
         <button type="button" role="radio" aria-checked={x.id===pack} className="cp-pack" data-on={x.id===pack} onClick={()=>setPack(x.id)}>
           {x.tag&&<em>{x.tag}</em>}<b><Coin/>{wonShort(x.coins)}</b>{x.bonus>0&&<small>+보너스 {wonShort(x.bonus)}</small>}<span className="cp-price">{won(x.price)}</span></button></li>)}</ul>

@@ -75,7 +75,7 @@ export function Fields({land,mode,onLot}:{land:string[];mode:boolean;onLot?:(id:
     {open.flatMap(l=>l.plots.map(([x,z],i)=><OnGround key={l.id+i} x={x} z={z} lift={-0.02}><Bed kind={l.kind}/></OnGround>))}
     {groups.map((gr,k)=>{const b=boundsOf(gr.plots,1.35),step=1.3;return <group key={k}>
       {rect(b,step,gateOf(b)).map(([x,z,rot],i)=><OnGround key={i} x={x} z={z} rot={rot}><FencePiece len={step}/></OnGround>)}
-      <OnGround x={b.x0-0.55} z={gateOf(b)-1.25} rot={-Math.PI/2}><Sign color={gr.kind==='farm'?'#f2d28c':'#bfe39c'} text={gr.kind==='farm'?'실제 종목':'가상 종목'}/></OnGround>
+      <OnGround x={b.x0-0.55} z={gateOf(b)-1.25} rot={-Math.PI/2}><Sign color={gr.kind==='farm'?'#f2d28c':'#bfe39c'} text={gr.kind==='farm'?'내 진짜 종목':'연습 종목'}/></OnGround>
       </group>})}
     {mode&&closed.map(l=>{const b=boundsOf(l.plots,1.1);return <group key={l.id} onClick={stop(onLot&&(()=>onLot('land:'+l.id)))} name={'lot-land-'+l.id}>
       {rect(b,0.7).map(([x,z,rot],i)=><OnGround key={i} x={x} z={z} rot={rot} lift={0.04}><mesh><boxGeometry args={[0.12,0.06,0.42]}/><meshBasicMaterial color="#ffffff" transparent opacity={0.92}/></mesh></OnGround>)}

@@ -1,0 +1,105 @@
+/* 피드백 2026-11-25 "무조건 심플, 깔끔": one quiet layer of controls over the garden. Loaded last (page.tsx), so it
+   tightens what the older sheets set without touching their layout logic. */
+
+/* talk boxes: no role tag, a small × to close, a quiet way back to the bubble before */
+.rt-talk .rt-talk-role,.rt-talk-role{display:none!important}
+.rt-talk-x{position:absolute;top:10px;right:10px;z-index:2;width:30px;height:30px;display:grid;place-items:center;padding:0;border:0;border-radius:50%;
+  background:#0000000d;color:#5a5f55;font:400 19px/1 system-ui,sans-serif;cursor:pointer}
+.rt-talk-x:hover{background:#0000001a}
+.rt-talk-choices.on-box .rt-talk-choice.rt-talk-prev{margin-right:auto;background:transparent;border-color:transparent;box-shadow:none;color:#6b7065;padding-left:4px}
+
+/* the drawer's lock: a small tag, the full words only while the first lesson points at it */
+.hs-plate:not([data-hl=true]){padding:3px 8px;border-radius:999px;font-size:11px;background:#3b332ab3;border-color:#c9a24a80;box-shadow:none}
+
+/* phones upright: smaller, lighter controls so the garden is what you see */
+@media (max-width:700px) and (orientation:portrait){
+  .proto3d .rt-weather{padding:6px 10px;row-gap:0;column-gap:6px;border-radius:12px}
+  .proto3d .rt-weather-k{font-size:10.5px}
+  .proto3d .rt-weather .rt-num{font-size:13.5px}
+  .proto3d .rt-weather strong{font-size:12.5px}
+  .proto3d .rt-quests{padding:3px 8px;border-radius:12px;gap:0}
+  .proto3d .rt-quests-h{font-size:11.5px;padding:3px 2px}
+  .proto3d .rt-quest{font-size:12.5px;padding:3px 2px}
+  .proto3d .rt-quest i{width:13px;height:13px}
+  .proto3d .rt-top-right{gap:6px}
+  .proto3d .rt-coins .bd-coin{width:17px;height:17px;font-size:10px}
+  .proto3d .rt-coin-cal svg{width:16px;height:16px}
+  .proto3d .vl-gear{font-size:15px}
+  /* the right-hand column: four small buttons in one even stack */
+  .proto3d .proto3d-locate{width:40px;height:40px;border-radius:12px;right:calc(12px + env(safe-area-inset-right,0px));background:#ffffffb8}
+  .proto3d .proto3d-locate svg{width:18px;height:18px}
+  .proto3d .proto3d-locate.vl-book{bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+  .proto3d .proto3d-locate.proto3d-map{bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+  .proto3d .proto3d-locate.proto3d-view{bottom:calc(132px + env(safe-area-inset-bottom,0px))}
+  .proto3d .proto3d-locate.vl-comm{bottom:calc(188px + env(safe-area-inset-bottom,0px))}
+  .proto3d .rt-view-label{font-size:11px}
+  /* the request notice sits on the same bottom line, left of the stack */
+  .proto3d .rt-request{bottom:calc(14px + env(safe-area-inset-bottom,0px));right:62px;padding:4px 4px 4px 10px;border-radius:14px}
+  .proto3d .rt-request-go b{font-size:13px}.proto3d .rt-request-go small{font-size:11px}
+  .proto3d .rt-request-x{width:28px;height:28px}
+  /* who stands where: name tags read, but small */
+  .vl-npc-tag{padding:2px 8px;font-size:11.5px}
+  .vl-npc-tag small{font-size:10px}
+  .rt-tip{padding:8px 8px 8px 12px;font-size:12.5px;max-width:240px}
+}
+/* nothing else shows through while someone is talking */
+.proto3d:has(.rt-talk) .rt-request{opacity:0;pointer-events:none}
+/* the market chip: one small line of when, one of the number (no label, no note) */
+.proto3d .rt-weather{grid-template-columns:auto;row-gap:1px}
+.proto3d .rt-weather .rt-num{white-space:nowrap}
+/* the buying day beside the rate */
+.rt-draft-bottom{flex-wrap:wrap}
+.rt-draft-bottom .rt-draft-date{margin-left:auto}
+.rt-draft-bottom .rt-draft-date .rt-input{width:140px}
+.rt-need-date{display:block;margin-top:4px;color:#a1502c;font-weight:600}
+/* 피드백 2026-11-26 "세 아이콘 높이가 화면마다 다르다": coins, calendar and settings share one height everywhere (village, arcade,
+   study, house), the round ones are as wide as they are tall, and all three wear the same white ring */
+.proto3d{--hud-h:40px}
+@media (max-width:700px){.proto3d{--hud-h:34px}}
+.proto3d .rt-top-right{align-items:center}
+.proto3d .rt-top-right>*{height:var(--hud-h);min-height:0;box-sizing:border-box;margin:0}
+.proto3d .rt-top-right>.rt-me-chip{width:var(--hud-h);padding:0}
+.proto3d .rt-top-right>.rt-coins{font-size:calc(var(--hud-h)*0.38);box-shadow:0 0 0 2px #ffffffd9,0 8px 20px -8px #10200d66}
+.proto3d .rt-top-right>.rt-me-chip svg{width:calc(var(--hud-h)*0.48);height:calc(var(--hud-h)*0.48)}
+.proto3d .rt-top-right>.vl-gear{font-size:calc(var(--hud-h)*0.44)}
+/* 피드백 2026-11-26 "하얀 푯말이 몰입감을 깬다": the people's name tags become small wooden signs like 집 and 거장의 집 —
+   dark warm wood, light letters, no white glow; the role line stays, quieter */
+.vl-npc-tag{background:#4a3626d9!important;border:1px solid #2e2118!important;color:#f6ecd8!important;box-shadow:0 2px 6px #0004!important;
+  padding:2px 8px!important;font-size:11.5px!important;backdrop-filter:none!important;border-radius:8px!important}
+.vl-npc-tag small{color:#e7c98a!important;font-size:10px!important;font-weight:500!important}
+.vl-npc-tag:hover{background:#5a4230f0!important}
+
+/* 피드백 2026-11-26 "옷 입힐 때 이름이 너무 크고, 메뉴가 캐릭터를 가려": a small name chip with a pencil, the top buttons in
+   one row at the HUD's height, and a panel only as tall as its content (a bottom sheet on a phone, a side card elsewhere) */
+.proto3d .rt-me-plate{padding:8px 14px!important;border-radius:16px!important;max-width:min(300px,calc(100vw - 190px))!important}
+.proto3d .rt-me-name{font-family:inherit!important;font-size:16px!important;letter-spacing:-.2px!important;margin:0!important;display:inline-flex!important;align-items:center;gap:6px}
+.proto3d .rt-me-name::after{content:'✎';font-size:13px;opacity:.45}
+.proto3d .rt-me-plate form .rt-input{font-size:16px!important;margin:0!important;padding:6px 10px}
+.proto3d .rt-me-rank{font-size:11px}
+.proto3d .rt-me-top{flex-direction:row!important;align-items:center!important}
+.proto3d .rt-me-top .rt-btn{min-height:var(--hud-h,40px)!important;font-size:14px;padding:0 14px}
+.proto3d .rt-me-panel{top:76px!important;bottom:auto!important;height:auto!important;max-height:calc(100dvh - 92px);width:340px!important;overflow:auto}
+.proto3d .rt-me-only{font-size:15px!important;margin:0 0 8px!important}
+.proto3d .rt-me-tile strong{font-size:14px}
+.proto3d .rt-me-tile small{font-size:11px;line-height:1.35}
+@media(max-width:700px){
+  .proto3d .rt-me-plate{left:12px!important;max-width:calc(100vw - 170px)!important}
+  .proto3d .rt-me-top{right:12px!important}
+  .proto3d .rt-me-panel{top:auto!important;left:8px!important;right:8px!important;width:auto!important;bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;max-height:40dvh;padding:12px!important}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .proto3d .rt-me-panel{top:8px!important;right:8px!important;left:auto!important;bottom:auto!important;width:min(340px,44vw)!important;max-height:calc(100dvh - 16px)}
+  .proto3d .rt-me-top{left:12px!important;right:auto!important;top:auto!important;bottom:12px!important}
+}
+
+/* 일출·일몰 (피드백 2026-11-26): a low sun glowing at the horizon and long cloud streaks lit from below */
+.proto3d-horizon{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden;transition:opacity 2s}
+.proto3d-horizon i{position:absolute;left:50%;top:30%;width:60vmax;height:60vmax;transform:translate(-50%,-50%);border-radius:50%;
+  background:radial-gradient(circle,#fff6d8 0 5%,#ffd27acc 9%,#ff9a6a66 22%,transparent 55%)}
+.proto3d-horizon.dawn i{background:radial-gradient(circle,#fffbea 0 5%,#ffe1b0cc 9%,#f7a9bd66 24%,transparent 56%);left:30%}
+.proto3d-horizon.dusk i{left:70%}
+.proto3d-horizon b{position:absolute;height:14px;border-radius:999px;filter:blur(3px);background:linear-gradient(90deg,transparent,#ffb38acc 25%,#ffd9a8 55%,#ff9a8a99 80%,transparent)}
+.proto3d-horizon.dawn b{background:linear-gradient(90deg,transparent,#f7b9cccc 25%,#fff0d0 55%,#c9b6ff99 80%,transparent)}
+.proto3d-horizon b:nth-of-type(1){left:8%;width:46%;top:12%}
+.proto3d-horizon b:nth-of-type(2){left:40%;width:38%;top:19%;height:10px;opacity:.8}
+.proto3d-horizon b:nth-of-type(3){left:18%;width:30%;top:25%;height:8px;opacity:.7}

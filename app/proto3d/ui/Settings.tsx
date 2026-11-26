@@ -4,6 +4,7 @@
 // (data-still, data-text) so every screen follows.
 import {useState} from 'react';
 import {Sheet} from './Sheet';
+import {viewWeather,viewHour,setView} from '../viewPrefs';
 import type {useGarden} from '../state';
 type G=ReturnType<typeof useGarden>;
 // tilt: the phone's permission ask (iPhone) lives here; onTutorial plays the first-run tutorial again
@@ -12,6 +13,7 @@ export function SettingsSheet({g,onClose,tilt,onTutorial,account,onLogOut,onDele
   onDelete?:()=>Promise<string|null>;onWipe?:()=>void}){
   const st=g.s.settings,[sure,setSure]=useState(false),[del,setDel]=useState<'ask'|'busy'|string|null>(null);
   const set=(p:Partial<typeof st>)=>g.ops.setSettings({...st,...p});
+  const [vw,setVw]=useState(viewWeather),[vh,setVh]=useState(viewHour);
   return <Sheet kicker="설정" title="설정" label="설정" onClose={onClose}>
     <div className="rt-field">소리 <span className="rt-hint">{g.s.sound?'켜짐':'꺼짐'}</span>
       <button type="button" className="rt-btn" style={{width:'100%',marginTop:6}} aria-label={g.s.sound?'소리 끄기':'소리 켜기'} aria-pressed={!g.s.sound} onClick={()=>g.ops.setSound(!g.s.sound)}>{g.s.sound?'소리 끄기':'소리 켜기'}</button></div>
@@ -19,6 +21,11 @@ export function SettingsSheet({g,onClose,tilt,onTutorial,account,onLogOut,onDele
       <input type="range" min={0} max={1} step={0.05} value={st.sfx} aria-label="효과음 크기" onChange={e=>set({sfx:Number(e.target.value)})}/></label>
     <div className="rt-field">글자 크기<div className="rt-seg" role="group" aria-label="글자 크기">
       {([['m','보통'],['l','크게'],['xl','더 크게']] as const).map(([k,l])=><button key={k} type="button" aria-pressed={st.text===k} onClick={()=>set({text:k})}>{l}</button>)}</div></div>
+    <div className="rt-field">날씨<div className="rt-seg" role="group" aria-label="날씨 고르기">
+      {([['auto','자동'],['clear','맑음'],['cloudy','흐림'],['storm','비바람'],['heat','무더위']] as const).map(([k,l])=><button key={k} type="button" aria-pressed={vw===k} onClick={()=>{setView('weather',k);setVw(k)}}>{l}</button>)}</div>
+      <span className="rt-hint">자동은 그날 코스닥을 따라가요</span></div>
+    <div className="rt-field">시간<div className="rt-seg" role="group" aria-label="시간 고르기">
+      {([['auto','지금'],['8','아침'],['13','낮'],['18','저녁'],['22','밤']] as const).map(([k,l])=><button key={k} type="button" aria-pressed={vh===k} onClick={()=>{setView('hour',k);setVh(k)}}>{l}</button>)}</div></div>
     <label className="rt-row" style={{cursor:'pointer'}}><input type="checkbox" checked={st.still} onChange={e=>set({still:e.target.checked})}/>
       <div><strong>움직임 줄이기</strong><small>애니메이션을 건너뛰어요. 폰의 동작 줄이기 설정을 따라요</small></div></label>
     <label className="rt-row" style={{cursor:'pointer'}}><input type="checkbox" checked={st.tilt} onChange={e=>set({tilt:e.target.checked})}/>

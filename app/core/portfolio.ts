@@ -7,7 +7,10 @@ import type {ReadHolding} from '../content/portfolio';
 export const HELD=[{id:'week',label:'1주 안',days:5},{id:'month',label:'1달쯤',days:30},{id:'quarter',label:'3달쯤',days:90},{id:'half',label:'반년 넘게',days:200}] as const;
 export type HeldId=typeof HELD[number]['id'];
 // one line of the confirm list: keep = plant it / take the new rate; held only for a new tree
-export type Draft={name:string;rate:number;quantity:number;price:number;keep:boolean;held:HeldId;existing:number|null};
+// date: the exact buying day (YYYY-MM-DD). 피드백 2026-11-25: the models (서서히 etc.) read from the buying day, so a new
+// tree needs it; held stays only as the old rough fallback
+export type Draft={name:string;rate:number;quantity:number;price:number;keep:boolean;held:HeldId;existing:number|null;date?:string};
+export const isDay=(d:string|undefined):d is string=>!!d&&/^\d{4}-\d{2}-\d{2}$/.test(d);
 export function drafts(read:ReadHolding[],holdings:Holding[]):{rows:Draft[];missing:Holding[]}{
  const seen=new Set<string>();const rows:Draft[]=[];
  for(const r of read){const name=r.name.trim();if(!name||seen.has(name))continue;seen.add(name);const ex=holdings.find(h=>h.name===name);
@@ -22,7 +25,7 @@ export function applyDrafts(holdings:Holding[],rows:Draft[],gone:number[],free:n
   if(ex){if(ex.rate!==r.rate){updated++;next=next.map(h=>h===ex?{...h,rate:r.rate,lossDays:r.rate<=-20?h.lossDays:0}:h)}continue}
   const plot=plots.shift();if(plot===undefined){left.push(r);continue}
   const days=HELD.find(x=>x.id===r.held)!.days;
-  const h:Holding={id:now+i,name:r.name,kind:kind(r.name),price:r.price,quantity:r.quantity,date:back(days),rate:r.rate,plot,lossDays:0};planted.push(h);next=[...next,h]}
+  const h:Holding={id:now+i,name:r.name,kind:kind(r.name),price:r.price,quantity:r.quantity,date:isDay(r.date)?r.date:back(days),rate:r.rate,plot,lossDays:0};planted.push(h);next=[...next,h]}
  return {holdings:next,planted,updated,left,gone:holdings.filter(h=>gone.includes(h.id))}}
 // The garden's empty plots, in order (plots: how many the 3D garden has, or the open plot indices, core/land.ts openPlots)
 export const freePlots=(holdings:Holding[],plots:number|number[])=>(typeof plots==='number'?[...Array(plots).keys()]:plots).filter(i=>!holdings.some(h=>h.plot===i));
@@ -55,7 +58,7 @@ export function matchName<T extends {code:string;name:string}>(name:string,hits:
  return hits.find(h=>norm(h.name)===n)??(hits.length===1&&norm(hits[0].name).includes(n)?hits[0]:null);
 }
 export function draftToReal(d:Draft,stock:{code:string;name:string},today:string,closeOn:(day:string)=>number|null):RealDraft|null{
- const date=back(HELD.find(x=>x.id===d.held)!.days,today);
+ const date=isDay(d.date)?d.date:back(HELD.find(x=>x.id===d.held)!.days,today);
  const price=d.price>0?d.price:closeOn(date)??0;
  return price>0?{code:stock.code,name:stock.name,date,quantity:Math.max(1,d.quantity||1),price}:null;
 }

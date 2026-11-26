@@ -8,7 +8,8 @@ import {useGLTF} from '@react-three/drei';
 import * as THREE from 'three';
 import {soft} from './materials';
 import {MODELS} from './models';
-import {route} from './places';
+import {route,npcStep,NPC_FIRE_SEATS,NPC_LIVE,npcAround} from './places';
+import {surfaceY} from './ground';
 import {LOOK} from './look';
 import type {AnalystId} from '../content/analysts';
 
@@ -47,7 +48,8 @@ export function Analyst({id,to,from,act,faceTo,face,surface,tilt,bubble,onPick,r
     const w=window as {__proto3d?:{boriFace?:string}};(w.__proto3d??={}).boriFace=cur},[cur,faces,parts]);
   const g=useRef<THREE.Group>(null),turn=useRef<THREE.Group>(null);
   const pos=useRef(new THREE.Vector3((from??to).x,0,(from??to).z)),heading=useRef(0),blink=useRef(2+Math.random()*3);
-  const v=useMemo(()=>new THREE.Vector3(),[]);
+  const v=useMemo(()=>new THREE.Vector3(),[]),nav=useRef<number|undefined>(undefined),seatK=useRef(0);
+  const solid=surface===surfaceY;
   useEffect(()=>{if(g.current)g.current.name=`analyst-${id}`},[id]);
   // a new place to go: by the bridge if it is across the stream (places.ts route)
   const stops=useRef<AnalystSpot[]>([]),goal=useRef<AnalystSpot>(to);
@@ -55,14 +57,22 @@ export function Analyst({id,to,from,act,faceTo,face,surface,tilt,bubble,onPick,r
   useFrame(({clock},dt)=>{const gr=g.current,tr=turn.current;if(!gr||!tr)return;const t=clock.elapsedTime,d=Math.min(dt,0.25)/* by time */,p=pos.current;
     let gl=goal.current;if(Math.hypot(gl.x-p.x,gl.z-p.z)<0.05&&stops.current.length){gl=goal.current=stops.current.shift()!}
     const dx=gl.x-p.x,dz=gl.z-p.z,dist=Math.hypot(dx,dz),moving=dist>0.05;
-    if(moving){const step=Math.min(dist,SPEED*d);p.x+=dx/dist*step;p.z+=dz/dist*step;heading.current=Math.atan2(dx,dz)}
+    // 피드백 2026-11-26 "NPC가 나무·바위 통과": in the village they walk round things (places.ts npcStep); rooms are clear
+    if(moving){const step=Math.min(dist,SPEED*d),ox=p.x,oz=p.z;
+      if(solid){const q={x:p.x,z:p.z,side:nav.current};if(npcStep(q,gl.x,gl.z,step,npcAround(id))){p.x=q.x;p.z=q.z}nav.current=q.side}else{p.x+=dx/dist*step;p.z+=dz/dist*step}
+      heading.current=Math.atan2(p.x-ox||dx,p.z-oz||dz)}
     else{// standing: face the way their act points, or the player
       // the short way round, by time (it used to creep 4% a frame, the long way at times: on a slow phone 보리 kept its
       // back to the player for seconds after coming over)
       const want=faceTo!==undefined&&act&&act!=='stand'?faceTo:Math.atan2(face.current.x-p.x,face.current.z-p.z);
       const diff=Math.atan2(Math.sin(want-heading.current),Math.cos(want-heading.current));
       heading.current+=diff*(1-Math.exp(-d*LOOK.analystTurn))}
-    gr.position.set(p.x,surface(p.x,p.z),p.z);gr.quaternion.copy(tilt(p.x,p.z));
+    // by the fire on a seat (places.ts NPC_FIRE_SEATS), not talking: sits down facing the fire, hands out to its warmth
+    const fs=solid&&!moving&&!mood?NPC_FIRE_SEATS.find(q=>Math.hypot(q.x-p.x,q.z-p.z)<0.2):undefined;
+    seatK.current+=((fs?1:0)-seatK.current)*(1-Math.exp(-d*6));const sk=seatK.current;
+    if(fs)heading.current+=Math.atan2(Math.sin(fs.face-heading.current),Math.cos(fs.face-heading.current))*(1-Math.exp(-d*5));
+    if(solid)NPC_LIVE[id]={x:p.x,z:p.z};
+    gr.position.set(p.x,surface(p.x,p.z)+sk*0.24,p.z);gr.quaternion.copy(tilt(p.x,p.z));
     tr.rotation.y=THREE.MathUtils.lerp(tr.rotation.y,heading.current,moving?0.2:1);
     const {body,head,armL,armR,eyes,rest}=parts;
     // the gesture that goes with the face (보리 talking): a tilt when curious, a hop when happy, a slow sway when tired
@@ -80,8 +90,8 @@ export function Analyst({id,to,from,act,faceTo,face,surface,tilt,bubble,onPick,r
       head.rotation.z+=(moodTilt-head.rotation.z)*(1-Math.exp(-d*8))}
     const swing=moving?Math.sin(t*9)*0.6:Math.sin(t*1.6)*0.05;
     const l=doing==='read'?-0.7:doing==='scope'?-1.7:doing==='arms'?-0.55:0,r=doing==='read'?-0.7:doing==='board'?-1.25+Math.sin(t*1.3)*0.15:doing==='note'?-0.8+Math.sin(t*6)*0.08:doing==='arms'?-0.55:0;
-    if(armL&&rest.armL){armL.rotation.x=rest.armL.x+swing+l;armL.rotation.z=(rest.armL.z??0)+(doing==='arms'?0.6:0)}
-    if(armR&&rest.armR){armR.rotation.x=rest.armR.x-swing+r+(bubble?.alert&&!moving&&id==='tori'?-0.5:0)+(!moving&&cur==='thinking'?-1.9:!moving&&cur==='happy'?-0.6+Math.sin(t*6)*0.2:0);armR.rotation.z=(rest.armR.z??0)+(doing==='arms'?-0.6:0)}
+    if(armL&&rest.armL){armL.rotation.x=rest.armL.x+swing+l-seatK.current*0.9;armL.rotation.z=(rest.armL.z??0)+(doing==='arms'?0.6:0)}
+    if(armR&&rest.armR){armR.rotation.x=rest.armR.x-swing+r-seatK.current*0.9+(bubble?.alert&&!moving&&id==='tori'?-0.5:0)+(!moving&&cur==='thinking'?-1.9:!moving&&cur==='happy'?-0.6+Math.sin(t*6)*0.2:0);armR.rotation.z=(rest.armR.z??0)+(doing==='arms'?-0.6:0)}
     // blink every few seconds
     blink.current-=d;const shut=blink.current<0.12;if(blink.current<0)blink.current=2.5+Math.random()*3;
     for(const e of eyes)e.scale.y=rest.eyeY*(shut?0.15:1);

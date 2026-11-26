@@ -247,7 +247,7 @@ function Feedback({run,pack,q,summary,onBack}:{run:DailyRun;pack:DailyPack;q:Que
   return <><div className="dq-scroll" data-testid="dq-feedback">
     <section className="gx-panel dq-sec gx-in"><div className="dq-k-row"><p className="dq-k">내 일지 피드백</p>{r.pending?<b className="dq-score-wait">평가 중</b>:<b className="gx-mono dq-score">{r.journal}</b>}</div>
       <p className="dq-summary" data-testid="dq-summary">{summary}</p>
-      <p className="gx-note">{r.pending?'채점자가 아직 답하지 않았어요. 평가가 끝나면 장면마다 피드백이 들어와요.':r.judge==='toulmin-v1'?'툴민 채점기가 내 문장에서 주장·자료·연결·반박을 찾아 매긴 점수예요.':'체험용 점수예요. 낱말 규칙으로 매겨서 논증이 옳은지는 보증하지 않아요.'} 보유·매도 선택은 점수에 들어가지 않아요.</p>
+      <p className="gx-note">{r.pending?'채점자가 아직 답하지 않았어요. 평가가 끝나면 장면마다 피드백이 들어와요.':r.judge==='toulmin-v1'?'채점기가 내 문장에서 주장·자료·연결·반박을 찾아 매긴 점수예요.':'체험용 점수예요. 낱말 규칙으로 매겨서 논증이 옳은지는 보증하지 않아요.'} 보유·매도 선택은 점수에 들어가지 않아요.</p>
       {r.forecast&&<p className="gx-note" data-testid="dq-forecast">예측력 {r.forecast.n?`${r.forecast.k} / ${r.forecast.n}`:'판정 없음'} · 대상·방향·기한을 밝힌 가설만, 점수·경험치와 따로 봐요.</p>}</section>
     <div className="dq-tabs dq-scene-tabs" role="tablist" aria-label="장면">{r.scenes.map((x,i)=>{const sc=pack.scenes.find(y=>y.id===x.scene);return <button key={x.scene} type="button" role="tab" aria-selected={k===i} onClick={()=>setK(i)}>장면 {sc?.no??i+1}</button>})}</div>
     {s&&d&&sg&&<section className="gx-panel dq-sec gx-in" data-testid="dq-fb-scene" key={s.id}>

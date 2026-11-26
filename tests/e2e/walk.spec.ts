@@ -29,18 +29,18 @@ test("the first walk: entry → room lesson → the village's people one by one"
   await page.getByRole("button", { name: /정원에 넣기/ }).click();
   await expect(page.getByTestId("house")).toBeVisible({ timeout: 20_000 });
   // the first lesson
-  await expect(page.locator(".rt-talk-line")).toContainText("문제 하나 풀어 보자");
+  await expect(page.locator(".rt-talk-line")).toContainText("첫 문제부터 풀어 보자");
   await expect.poll(async () => (await page.evaluate(() => (window as unknown as { __proto3d?: { house?: { paper: string } } }).__proto3d?.house?.paper))).toBe("glow");
-  await page.getByRole("button", { name: "종이 누르기" }).click();
+  await page.getByRole("button", { name: "퀴즈 시작" }).click();
   await expect(page.locator(".hs-chip[data-hl=true]")).toBeVisible();
   await page.getByRole("button", { name: /^\W*응$/ }).click();
   await expect(page.locator(".hs-plate[data-hl=true]")).toBeVisible();
-  await expect(page.locator(".rt-talk-line")).toContainText("퀴즈 Lv.5에 열려");
-  await page.getByRole("button", { name: "종이 펼치기" }).click();
+  await expect(page.locator(".rt-talk-line")).toContainText("Lv.5에 열려");
+  await page.getByRole("button", { name: "퀴즈 시작" }).click();
   await answerPaper(page);
   await expect(page.locator(".hs-back")).toContainText("정답");
-  await page.getByRole("button", { name: "해설 봤어 · 고개 들기" }).click();
-  await expect(page.locator(".rt-talk-line")).toContainText("문 열어 둘게");
+  await page.getByRole("button", { name: "닫기", exact: true }).click();
+  await expect(page.locator(".rt-talk-line")).toContainText("문 열어 뒀어");
   await expect.poll(async () => (await page.evaluate(() => (window as unknown as { __proto3d?: { house?: { door: boolean } } }).__proto3d?.house?.door))).toBe(true);
   await page.screenshot({ path: info.outputPath("1-lesson-door.png") });
   await page.getByRole("button", { name: "밖으로 나가기" }).click();
@@ -70,23 +70,22 @@ test("the first walk: entry → room lesson → the village's people one by one"
   // the merchant (10:00, open): the start coins (no free tree: the virtual field is where buying and selling is tried,
   // with game coins), the communicator, the day before's news, a buy with coins
   await go(page, "상인");
-  await expect(talk(page)).toContainText("사고팔기는 여기서", { timeout: 40_000 });
+  await expect(talk(page)).toContainText("사고파는 건 여기서", { timeout: 40_000 });
   await say(page, "코인 받고 통신기 보기");
   // 2026-11-23: the communicator is the practice-account MTS (ui/Comm.tsx), opened on its 주문 tab
   const comm = page.getByRole("dialog", { name: "통신기" });
   await expect(comm.getByRole("list", { name: "살 수 있는 종목" }).getByRole("listitem")).toHaveCount(5);
   await comm.getByRole("list", { name: "살 수 있는 종목" }).getByRole("button").first().click();
-  await expect(comm.getByRole("button", { name: "전날 뉴스를 먼저 읽어요" })).toBeDisabled();
-  await comm.getByRole("button", { name: "기사 읽기" }).click();
   await comm.getByRole("button", { name: "한 주 더" }).click();
   await page.screenshot({ path: info.outputPath("3-communicator.png") });
   await comm.getByRole("button", { name: /매수 주문 · 코인/ }).click();
+  await comm.getByRole("alertdialog", { name: "매수 주문 확인" }).getByRole("button", { name: "매수 확인" }).click();
   await expect(talk(page)).toContainText("심었어!", { timeout: 30_000 });
   await say(page, "농부한테 가기");
   // selling: 0 cannot be confirmed; the farmer goes to the tree, picks, carries it to the cart, then says when it is paid
   await go(page, "농부");
-  await expect(talk(page)).toContainText("내가 가서 따서", { timeout: 40_000 });
-  await say(page, "매도할 수량 정하기");
+  await expect(talk(page)).toContainText("몇 주 팔지 정해", { timeout: 40_000 });
+  await say(page, "팔 수량 정하기");
   const harvest = page.getByRole("dialog", { name: "가상 종목 매도" });
   await expect(harvest.getByRole("button", { name: "수량을 골라요" })).toBeDisabled();
   await harvest.getByLabel("매도 수량").fill("1");
@@ -102,7 +101,7 @@ test("the first walk: entry → room lesson → the village's people one by one"
   await page.evaluate(() => (window as unknown as { __proto3d: { walkPass: (s: string) => void } }).__proto3d.walkPass("librarian"));
   // the news board
   await go(page, "신문 배달");
-  await expect(talk(page)).toContainText("종목 소식을 모아 왔어", { timeout: 40_000 });
+  await expect(talk(page)).toContainText("종목 소식 모아 왔어", { timeout: 40_000 });
   await say(page, "표지판 보기");
   await expect(page.getByRole("dialog", { name: "뉴스 표지판" })).toContainText("예시 기사");
   await page.screenshot({ path: info.outputPath("4-news.png") });

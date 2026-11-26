@@ -57,6 +57,10 @@ export function House({g,master,onOut,onSettings,lesson=false}:{g:G;master:boole
   useEffect(()=>{if(!desk)put(x=>deskOf(x,day)?x:putDesk(x,newDay(day,bundleOfDay(PAPERS,day,seenPapers(x)))))},[day,!!desk]);// eslint-disable-line react-hooks/exhaustive-deps
   // the day's quiz coins (2026-11-23): the base once the first papers are all right, then each right paper of the run
   useEffect(()=>{if(desk)g.ops.quizPay(day,quizCoins(desk))},[desk?.stamps.length]);// eslint-disable-line react-hooks/exhaustive-deps
+  // 연습 한 판: two questions not yet seen (from the 100), held only here: no stamp kept, no xp, no coins
+  const [drill,setDrill]=useState<DeskDay|null>(null);
+  const newDrill=()=>{const seen=new Set([...seenPapers(h),...(drill?.ids??[])]),pool=PAPERS.filter(p=>!seen.has(p.id)),use=(pool.length>=DESK.perDay?pool:PAPERS);
+    const ids=[...use].sort(()=>Math.random()-0.5).slice(0,DESK.perDay).map(p=>p.id);setDrill(newDay(day,ids))};
   const quizDone=!!desk?.done,started=!!desk&&desk.stamps.length>0&&!desk.done;
   const today=caseOf(h,day);
   // today's file is handed out with the unlock (and never asked for before it: 설계 7장)
@@ -82,16 +86,16 @@ export function House({g,master,onOut,onSettings,lesson=false}:{g:G;master:boole
   const auto=useRef(false);
   useEffect(()=>{if(auto.current||view!=='desk'||!h.unlocked||!quizDone||!today||today.status==='done'||les||!sqTutorialOn())return;auto.current=true;openCase()},[view,h.unlocked,quizDone,today,les]);// eslint-disable-line react-hooks/exhaustive-deps
   const lookUp=()=>{if(les==='solve'&&deskOf(loadHouse(),day)?.stamps.length){setLes('door');setView('desk');return}setView('desk');if(state==='unlocked'&&!still()){setRising(true);setTimeout(()=>setRising(false),TIMING.houseRise)}};
-  const drawerTap=()=>{if(h.unlocked){if(today)openCase();return}const p=lockPlate(level);setSay({text:`손잡이에 적혀 있지? ${p.title.replace('시나리오 · ','')}. 지금은 Lv.${level}이야.`,at:'plate'})};
+  const drawerTap=()=>{if(h.unlocked){if(today)openCase();return}const p=lockPlate(level);setSay({text:`이 서랍은 퀴즈 Lv.${HOUSE.unlockLevel}에 열려. 지금은 Lv.${level}이야.`,at:'plate'});void p};
   const goOut=()=>{if(les){lessonDone();setLes(null)}onOut()};
-  const doorTap=()=>{if(door){goOut();return}setSay({text:'문은 오늘 문서를 다 보면 열어 줄게.',at:'paper'})};
+  const doorTap=()=>{if(door){goOut();return}setSay({text:'오늘 퀴즈를 다 풀면 문이 열려.',at:'paper'})};
   const LV=HOUSE.unlockLevel;
-  const lessonLine:Line|null=les==='wave'?{text:'어서 와, 나는 이 방의 선생님이야. 매일 퀴즈를 내고 해설해 줄게. 오늘은 나랑 문제 하나 풀어 보자. 이 종이 한 장 받아 줄래?',choices:[{label:'종이 누르기',go:openPaper}]}
-    :les==='level'?{text:`이건 네 퀴즈 레벨이야. 지금은 Lv.${level}. 퀴즈를 풀면서 여기까지 자라는 거야.`,choices:[{label:'응',go:()=>setLes('lock')}]}
-    :les==='lock'?{text:`옆 서랍엔 자물쇠가 있어. 퀴즈 Lv.${LV}에 열려. 그때 사건철을 같이 꺼내 보자. 이제 종이를 펼쳐 볼까?`,choices:[{label:'종이 펼치기',go:openPaper}]}
-    :les==='door'?{text:'오늘 수업 끝! 문 열어 둘게. 마을 일은 보리한테 물어봐. 남은 문서는 언제든 와서 마저 봐도 돼. …졸지 말고 다녀와.',choices:[{label:'밖으로 나가기',go:goOut}]}:null;
+  const lessonLine:Line|null=les==='wave'?{text:'어서 와, 나는 선생님이야. 매일 퀴즈를 내고 해설해 줄게. 첫 문제부터 풀어 보자.',choices:[{label:'퀴즈 시작',go:openPaper}]}
+    :les==='level'?{text:`위에 있는 건 네 퀴즈 레벨이야. 지금은 Lv.${level}. 풀수록 올라가.`,choices:[{label:'응',go:()=>setLes('lock')}]}
+    :les==='lock'?{text:`옆 서랍은 Lv.${LV}에 열려. 그 안에 사건철이 있어. 이제 문제 풀자.`,choices:[{label:'퀴즈 시작',go:openPaper}]}
+    :les==='door'?{text:'오늘 퀴즈 끝! 문 열어 뒀어.',choices:[{label:'밖으로 나가기',go:goOut}]}:null;
   const line:Line=lessonLine??(say?{text:say.text,choices:[{label:'알겠어',go:()=>setSay(null)}]}:{text:boriLine(state,{first,level,caseStatus:today?.status??null,started}),choices:[
-    ...(state==='quiz'||state==='quiz-first'?[{label:started?'이어서 보기':'문서 받기',go:openPaper}]:[]),
+    ...(state==='quiz'||state==='quiz-first'?[{label:started?'이어서 풀기':'퀴즈 시작',go:openPaper}]:[]),
     ...(quizDone?[{label:'오늘 결과표',go:openPaper}]:[]),
     ...((state==='unlocked'||state==='case')&&today?[{label:today.status==='open'?'책갈피부터 이어 보기':'사건철 펼치기',go:openCase}]:[]),
     ...(door?[{label:'밖으로 나가기',go:goOut}]:[])]});
@@ -109,7 +113,8 @@ export function House({g,master,onOut,onSettings,lesson=false}:{g:G;master:boole
       caseFile={!h.unlocked||!today?'hidden':rising?'rising':view==='case'?'open':today.status==='done'?'done':'closed'} door={door}
       onPaper={openPaper} onDrawer={drawerTap} onCase={openCase} onDoor={doorTap} onBori={()=>setSay(null)}/>
     {!h.unlocked&&view==='desk'&&<Pinned at="drawer"><button type="button" data-hl={les==='lock'} className="hs-plate" onClick={drawerTap} aria-label={`${lockPlate(level).title} · ${lockPlate(level).now}`}>
-      <b>🔒 {lockPlate(level).title}</b><span>{lockPlate(level).now}</span></button></Pinned>}
+      {/* 피드백 2026-11-25 "너무 intruding": a small lock on the drawer; the full words only while the first lesson points at it */}
+      {les==='lock'?<><b>🔒 {lockPlate(level).title}</b><span>{lockPlate(level).now}</span></>:<b>🔒 Lv.{LV}</b>}</button></Pinned>}
     <div className="hs-top">
       <span className="hs-chip" data-hl={les==='level'} aria-label={`퀴즈 레벨 ${level}`}>퀴즈 Lv.{level}
         {/* the gauge 보리 points at on the first lesson: from where I am to the drawer's level */}
@@ -117,8 +122,10 @@ export function House({g,master,onOut,onSettings,lesson=false}:{g:G;master:boole
       <span className="hs-chip hs-day">{day.slice(5).replace('-','월 ')}일</span>
       <button type="button" className="hs-corner" aria-label="설정" onClick={onSettings}>설정</button>
     </div>
-    {view==='desk'&&<TalkBox className="hs-talk" name="선생님" nameWho="teacher" role="방의 선생님 · 퀴즈와 사건철" line={line.text} choices={line.choices}/>}
-    {view==='paper'&&desk&&<QuizDesk first={les==='solve'} d={desk} level={level}
+    {view==='desk'&&<TalkBox className="hs-talk" name="선생님" nameWho="teacher" line={line.text} choices={line.choices}/>}
+    {view==='paper'&&desk&&drill&&<QuizDesk key={drill.ids.join()} practice d={drill} level={level} onPaw={setQuizPaw} onUp={()=>setDrill(null)} onPractice={newDrill}
+      onStamp={(p,choice,resp)=>setDrill(x=>x&&finishDay(stampPaper(x,p,choice,resp)))} onStop={()=>{}} onChallenge={()=>{}}/>}
+    {view==='paper'&&desk&&!drill&&<QuizDesk first={les==='solve'} d={desk} level={level} onPractice={desk.done?newDrill:undefined}
       onStamp={(p,choice,resp)=>put(x=>{const cur=deskOf(x,day);if(!cur)return x;const n=finishDay(stampPaper(cur,p,choice,resp));
         if(n===cur)return x;const y=putDesk(x,n);return afterQuiz(y,Math.max(levelOf(y.xp).lv,master?HOUSE.unlockLevel:0),day)})}
       onStop={()=>put(x=>{const cur=deskOf(x,day);if(!cur)return x;const n=stopRun(cur);if(n===cur)return x;const y=putDesk(x,n);return afterQuiz(y,Math.max(levelOf(y.xp).lv,master?HOUSE.unlockLevel:0),day)})}
@@ -147,7 +154,7 @@ const coin=(n:number)=>n.toLocaleString('ko-KR')+'코인';
 const STAMP_TEXT=(p:Paper,s:Stamp)=>s.choice===null?'시간 초과':p.quiz?(s.right?'정답':'오답'):p.options[s.choice];
 const INK=(p:Paper,s:Stamp)=>s.choice===null?'late':p.quiz?(s.right?'yes':'no'):s.choice===0?'yes':'no';
 const secondsFor=(p:Paper)=>p.quiz?QUIZ_SECONDS[p.quiz.type]??TIMING.quizPaper:TIMING.quizPaper;
-function QuizDesk({d,level,onStamp,onStop,onChallenge,onPaw,onUp,first=false}:{first?:boolean;d:DeskDay;level:number;onStamp:(p:Paper,choice:0|1|null,resp?:Resp|null)=>void;onStop:()=>void;onChallenge:(lv:Level)=>void;onPaw:(p:Paws)=>void;onUp:()=>void}){
+function QuizDesk({d,level,onStamp,onStop,onChallenge,onPaw,onUp,first=false,practice=false,onPractice}:{practice?:boolean;onPractice?:()=>void;first?:boolean;d:DeskDay;level:number;onStamp:(p:Paper,choice:0|1|null,resp?:Resp|null)=>void;onStop:()=>void;onChallenge:(lv:Level)=>void;onPaw:(p:Paws)=>void;onUp:()=>void}){
   // waiting on the challenge choice (left and came back): the last paper's back again, with the choice on it
   const id=nextPaper(d)??(choosing(d)?d.stamps[d.stamps.length-1].id:null);
   // the paper whose back is showing (the one just stamped), until 다음 장
@@ -177,11 +184,13 @@ function QuizDesk({d,level,onStamp,onStop,onChallenge,onPaw,onUp,first=false}:{f
         <ol className="hs-rows">{d.stamps.map((s,i)=>{const q=paperOf(s.id);return <li key={s.id} data-r={s.choice===null?'late':s.right?'ok':'no'}>
           <span className="hs-num">No.{String(i+1).padStart(2,'0')}</span><span className="hs-q">{q.q}</span>
           <b>{s.choice===null?'시간 초과':s.right?'맞음':'틀림'}</b></li>})}</ol>
+        {practice?<p className="hs-total"><b>{right}/{n}</b> 맞힘 · 연습 문제라 기록과 코인은 없어요</p>:<>
         <p className="hs-total"><b>{right}/{n}</b> 맞힘 · 경험치 +{d.xp} · 퀴즈 Lv.{level}</p>
-        <p className="hs-total hs-coins" data-run={Math.max(0,stepOf(d))}>{coins>0?<>코인 <b>+{coin(coins)}</b> · {stepOf(d)===0?'입장 퀴즈 통과':`${LEVEL_KO[lv]} 도전 ${stepOf(d)}단계${stepOf(d)===steps.length-1?' 완주!':'에서 멈추고 받음'}`}</>:d.stamps.length>DESK.perDay&&d.stamps.some(x=>!x.right)?`${LEVEL_KO[lv]} 도전 실패: 걸었던 코인은 전부 몰수됐어.`:d.stamps.length>=DESK.perDay&&d.stamps.every(x=>x.right)?`${n}장 모두 맞혔어.`:`첫 ${DESK.perDay}장을 다 맞히면 ${coin(steps[0])}과 도전 기회가 열려.`}</p>
+        <p className="hs-total hs-coins" data-run={Math.max(0,stepOf(d))}>{coins>0?<>코인 <b>+{coin(coins)}</b> · {stepOf(d)===0?'입장 퀴즈 통과':`${LEVEL_KO[lv]} 도전 ${stepOf(d)}단계${stepOf(d)===steps.length-1?' 완주!':'에서 멈추고 받음'}`}</>:d.stamps.length>DESK.perDay&&d.stamps.some(x=>!x.right)?`${LEVEL_KO[lv]} 도전 실패: 걸었던 코인은 전부 몰수됐어.`:d.stamps.length>=DESK.perDay&&d.stamps.every(x=>x.right)?`${n}장 모두 맞혔어.`:`첫 ${DESK.perDay}장을 다 맞히면 ${coin(steps[0])}과 도전 기회가 열려.`}</p></>}
         <p className="hs-pen">오늘도 같이 읽어 줘서 고마워.</p>
       </article>
-      <div className="hs-bar"><button type="button" className="rt-btn primary" onClick={onUp}>고개 들기</button></div>
+      {/* 피드백 2026-11-26 "오늘의 퀴즈를 풀려고 하면 끝난 퀴즈만 보여": today's quiz is once a day; after it, new questions to practise */}
+      <div className="hs-bar">{onPractice&&<button type="button" className="rt-btn" onClick={onPractice}>새 문제로 연습</button>}<button type="button" className="rt-btn primary" onClick={onUp}>닫기</button></div>
     </section>}
   const no=d.ids.indexOf(p.id)+1,mark=stampMark(p.id),q=p.quiz;
   // 도전 (2026-11-24): past the entry pair, two papers a step; which step this paper is in, and what is held / at stake
@@ -225,8 +234,8 @@ function QuizDesk({d,level,onStamp,onStop,onChallenge,onPaw,onUp,first=false}:{f
       <button key={o} type="button" className="hs-stamp" data-c={i===0?'yes':'no'} onClick={()=>q?press(0,q.data.options![i].id):press(i as 0|1)}><span>{o}</span></button>)}</div>
       :ONE_TAP.includes(q.type)?null
       :<div className="hs-acts"><button type="button" className="rt-btn primary hs-send" disabled={!ready(q,resp)} onClick={()=>resp!==null&&send(resp)}>제출</button></div>)
-      :first?<div className="hs-acts"><button type="button" className="rt-btn primary" onClick={onUp}>해설 봤어 · 고개 들기</button></div>
-      :<div className="hs-acts"><button type="button" className="rt-btn ghost" onClick={onUp}>잠깐 고개 들기</button>
+      :first?<div className="hs-acts"><button type="button" className="rt-btn primary" onClick={onUp}>닫기</button></div>
+      :<div className="hs-acts"><button type="button" className="rt-btn ghost" onClick={onUp}>닫기</button>
         {choose&&<button type="button" className="rt-btn hs-cash" onClick={()=>{onStop();setBack(null)}}>{`그만하고 ${coin(stepCoins(d))} 받기`}</button>}
         {choose&&!d.level?(['easy','hard'] as Level[]).map(l=><button key={l} type="button" className="rt-btn primary" data-level={l} onClick={()=>{onChallenge(l);setBack(null)}}>{`${LEVEL_KO[l]} 도전 · ${coin(CHALLENGE[l][after])}`}</button>)
           :choose?<button type="button" className="rt-btn primary" onClick={()=>{onChallenge(lv);setBack(null)}}>{`${LEVEL_KO[lv]} 도전 계속 · ${coin(steps[after])}`}</button>
@@ -255,15 +264,16 @@ function Parts({q,r,set,send}:{q:Q100;r:Resp|null;set:(r:Resp|null)=>void;send:(
       return <div className="hs-dirs">{d.targets!.map(t=><div key={t.id} className="hs-dir" role="group" aria-label={t.text}><b>{t.text}</b>
         <div>{d.options!.map(o=><button key={o.id} type="button" className="hs-chipbtn" aria-pressed={map[t.id]===o.id}
           onClick={()=>{const n={...map,[t.id]:o.id};if(d.targets!.length===1)send(n);else set(n)}}>{o.text}</button>)}</div></div>)}</div>;
-    case 'matching':{const cur=pick??d.left!.find(l=>!map[l.id])?.id??null;
+    // 피드백 2026-11-26 "연결 문제 답이 안 골라져": no two-step pick any more: the descriptions sit on the right with their
+    // letters, and each word on the left has its own row of letter chips: one tap pairs it (a letter taken elsewhere moves)
+    case 'matching':
       return <div className="hs-match">
-        <div className="hs-left" role="group" aria-label="왼쪽">{d.left!.map(l=>{const k=d.right!.findIndex(x=>x.id===map[l.id]);
-          return <button key={l.id} type="button" className="hs-opt" aria-pressed={cur===l.id} data-paired={k>=0} onClick={()=>setPick(l.id)}>
-            <span>{l.text}</span><i>{k>=0?ABC[k]:'?'}</i></button>})}</div>
-        <div className="hs-right" role="group" aria-label="오른쪽">{d.right!.map((o,k)=><button key={o.id} type="button" className="hs-opt" disabled={!cur}
-          data-used={Object.values(map).includes(o.id)} onClick={()=>{if(!cur)return;const n:Record<string,string>={};for(const [a,b] of Object.entries(map))if(b!==o.id)n[a]=b;n[cur]=o.id;set(n);setPick(null)}}>
-          <i>{ABC[k]}</i><span>{o.text}</span></button>)}</div>
-        <p className="hs-hint">왼쪽을 고르고, 맞는 설명을 눌러 짝지어요.</p></div>}
+        <div className="hs-left" role="group" aria-label="단어">{d.left!.map(l=><div key={l.id} className="hs-mrow" role="group" aria-label={l.text}>
+          <span>{l.text}</span><div>{d.right!.map((o,k)=><button key={o.id} type="button" className="hs-chipbtn" aria-pressed={map[l.id]===o.id} aria-label={`${l.text} → ${ABC[k]}`}
+            onClick={()=>{const n:Record<string,string>={};for(const [a,b] of Object.entries(map))if(b!==o.id&&a!==l.id)n[a]=b;n[l.id]=o.id;set(n)}}>{ABC[k]}</button>)}</div></div>)}</div>
+        <div className="hs-right" role="list" aria-label="설명">{d.right!.map((o,k)=><div key={o.id} role="listitem" className="hs-mdef" data-used={Object.values(map).includes(o.id)}>
+          <i>{ABC[k]}</i><span>{o.text}</span></div>)}</div>
+        <p className="hs-hint">단어마다 맞는 설명의 글자를 눌러요.</p></div>;
     case 'fill_blank':
       return <div className="hs-fill">{d.blanks!.map(b=><label key={b.id}><span className="sr-only">빈칸</span>
         <input type="text" inputMode={b.input_type==='number'?'decimal':'text'} autoComplete="off" aria-label={b.input_type==='number'?'숫자 입력':'답 입력'} value={map[b.id]??''}

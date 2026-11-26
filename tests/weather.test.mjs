@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {load} from './load-app.mjs';
-const {weatherOf,isWeather,WEATHERS,WEATHER_LABEL,WEATHER_NOTE} = await load('core/weather');
+const {weatherOf,isWeather,WEATHERS,WEATHER_LABEL,WEATHER_NOTE,marketLabel,closeWord,waitsForToday} = await load('core/weather');
 const {mockMarket} = await load('content/market');
 
 test('weather follows the index move and the swing', () => {
@@ -36,4 +36,15 @@ test('weather lines stay short and give no buy/sell advice', () => {
     assert.doesNotMatch(WEATHER_NOTE[w] + WEATHER_LABEL[w], /팔아|사|오를|괜찮아|천천히|~/);
   }
   assert.equal(isWeather('snow'), false);
+});
+
+test('the chip says which close it is, in plain words', () => {
+  assert.equal(closeWord('2026-11-25', '2026-11-25'), '오늘 장 마감');
+  assert.equal(closeWord('2026-11-24', '2026-11-25'), '어제 장 마감');
+  assert.equal(closeWord('2026-11-20', '2026-11-23'), '11/20 (금) 장 마감');
+  assert.equal(waitsForToday('2026-11-24', '2026-11-25'), true);
+  assert.equal(waitsForToday('2026-11-20', '2026-11-22'), false);
+  assert.equal(marketLabel('cloudy', -0.8), '조금 내림');
+  assert.equal(marketLabel('cloudy', 0.1), '거의 그대로');
+  assert.equal(marketLabel('heat', 4.79), '크게 오름');
 });

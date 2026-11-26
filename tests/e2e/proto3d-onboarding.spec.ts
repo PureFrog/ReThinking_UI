@@ -36,7 +36,7 @@ test("a new player lands on an empty garden and types two holdings in", async ({
   const list = page.getByRole("dialog", { name: "종목 확인" });
   await list.getByLabel("1번 종목 이름").fill("한빛전자");
   await list.getByLabel("한빛전자 수익률").fill("-31");
-  await list.getByLabel("한빛전자 보유 기간").selectOption("half");
+  await list.getByLabel("한빛전자 산 날짜").fill("2026-05-20");
   await list.getByRole("button", { name: "종목 추가" }).click();
   await list.getByLabel("2번 종목 이름").fill("나래식품");
   await list.getByLabel("나래식품 수익률").fill("6.5");
@@ -113,7 +113,7 @@ test("a capture fills the list (mock reader), and the track record edits it late
   await V.moreSheet(page);
   await page.getByRole("dialog", { name: "더보기" }).getByRole("button", { name: /^내 종목/ }).click();
   const edit = page.getByRole("dialog", { name: "종목 확인" });
-  await expect(edit.getByLabel("클래시스 보유 기간")).toHaveCount(0); // a planted tree keeps its age
+  await expect(edit.getByLabel("클래시스 산 날짜")).toHaveCount(0); // a planted tree keeps its age
   await edit.getByLabel("클래시스 수익률").fill("-9");
   await edit.getByRole("button", { name: "네오위즈 빼기" }).click();
   await edit.getByRole("button", { name: "종목 추가" }).click();

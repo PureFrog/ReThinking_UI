@@ -186,3 +186,8 @@ img.dq-mono{object-fit:cover;padding:0}
 .dq-news li.new{border-left-color:var(--rt-seal)}
 .dq-news p{font-size:13.5px;margin:2px 0 0}
 .dq-news p.dq-news-sum{font-size:12.5px;color:var(--rt-mute,#6d6457);line-height:1.5;margin-top:3px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+/* device check 2026-11-25: on narrow phones the centered notice ran under the right-hand buttons (수첩). It sits left,
+   clear of the button column, and its words wrap instead. */
+@keyframes rt-request-in-l{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media(max-width:700px){.rt-request{left:calc(12px + env(safe-area-inset-left,0px));right:82px;transform:none;width:auto;max-width:none;animation-name:rt-request-in-l}
+  .rt-request-go{flex:1;min-width:0}}

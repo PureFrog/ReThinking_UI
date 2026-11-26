@@ -27,8 +27,8 @@ test("the book: stocks, their journals by date, one journal with its chart and g
   await page.screenshot({ path: info.outputPath("jigi-book.png") });
   await book(page).getByRole("button", { name: /^삼성전자 일지/ }).click();
   // (since 2026-11-22 a stock's page lists its journals by date, with a line at the bottom to write today)
-  await expect(book(page).locator(".jg-page .jg-card")).toHaveCount(5);
-  await book(page).locator(".jg-card").first().click();
+  await expect(book(page).locator(".jg-page .jf-card")).toHaveCount(5);
+  await book(page).locator(".jf-card").first().click();
   await expect(book(page).getByRole("img", { name: /삼성전자 일봉 차트/ })).toBeVisible();
   await expect(book(page)).toContainText("모의 시세");
   // the direction hypothesis shows its rule: base close → end date (graded automatically, no manual buttons)
@@ -123,7 +123,7 @@ test("hypotheses: pull, confirm, the verdict once its end date passes, then the 
   // saving opens the analysis; open the book tab, then the newest journal of 카카오
   await book(page).getByRole("tab", { name: "일기장" }).click();
   await book(page).getByRole("button", { name: /^카카오 일지 2편/ }).click();
-  await book(page).locator(".jg-card").last().click();// the page runs oldest to newest
+  await book(page).locator(".jf-card").last().click();// the page runs oldest to newest
   await book(page).getByRole("button", { name: "가설 뽑기" }).click();
   const drafts = book(page).getByRole("group", { name: "가설 초안" });
   await expect(drafts).toHaveCount(2);

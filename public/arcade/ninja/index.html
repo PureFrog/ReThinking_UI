@@ -159,6 +159,8 @@ canvas#game{position:absolute;inset:0;width:100%;height:100%;display:block}
 .tut-pic img{width:100%;height:100%;object-fit:cover}
 .tut-h{font-family:'Jua',sans-serif;font-size:25px;font-weight:400;margin-top:18px;letter-spacing:-.5px}
 .tut-body{font-size:15px;line-height:1.6;margin-top:8px;color:#5c5447;word-break:keep-all}
+.tut-tip{margin-top:10px;font-size:13px;color:#4b6638;background:#eef5e6;border-radius:10px;padding:8px 10px;word-break:keep-all}
+#sndBtn{position:absolute;right:12px;bottom:12px;width:40px;height:40px;border-radius:50%;border:1px solid rgba(42,38,32,.15);background:#fffaf0;font-size:18px;cursor:pointer;z-index:5}
 .tut-dots{display:flex;gap:6px;justify-content:center;margin-top:auto;padding-top:20px}
 .tut-dots i{width:7px;height:7px;border-radius:50%;background:rgba(42,38,32,.18)}
 .tut-dots i.on{background:var(--accent)}
@@ -368,6 +370,62 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { } },
 };
 
+
+/* ============================================================
+   소리 (피드백 2026-11-26): 효과음과 BGM을 그 자리에서 합성. 달릴 때 신나는 곡, 자를 종목을 고를 때 빠르고 긴박한 곡,
+   타이틀·결산은 잔잔한 곡. 🔊 버튼으로 끄고 켬 (npf.sound)
+   ============================================================ */
+const SND = (() => {
+  let ctx = null, master = null, bgmBus = null, on = store.get('npf.sound', true), mode = null, timer = null, step = 0, last = {};
+  const N = n => 440 * Math.pow(2, (n - 69) / 12);
+  function ensure() { if (ctx || !on) return !!ctx; try { const A = window.AudioContext || window.webkitAudioContext; ctx = new A(); master = ctx.createGain(); master.gain.value = .7; master.connect(ctx.destination);
+    bgmBus = ctx.createGain(); bgmBus.gain.value = .45; bgmBus.connect(master); } catch { return false } return true; }
+  function tone(f, d, { type = 'square', g = .08, at = 0, to = null, bus = null, att = .005 } = {}) { if (!ctx) return; const t = ctx.currentTime + at, o = ctx.createOscillator(), v = ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t); if (to) o.frequency.exponentialRampToValueAtTime(to, t + d); v.gain.setValueAtTime(0, t); v.gain.linearRampToValueAtTime(g, t + att); v.gain.exponentialRampToValueAtTime(.0001, t + d);
+    o.connect(v).connect(bus || master); o.start(t); o.stop(t + d + .02); }
+  let nb = null; function noise(d, { f = 2000, to = null, g = .15, at = 0, q = 1, type = 'bandpass', bus = null } = {}) { if (!ctx) return; if (!nb) { nb = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate); const a = nb.getChannelData(0); for (let i = 0; i < a.length; i++) a[i] = Math.random() * 2 - 1; }
+    const t = ctx.currentTime + at, s = ctx.createBufferSource(), fl = ctx.createBiquadFilter(), v = ctx.createGain(); s.buffer = nb; fl.type = type; fl.frequency.setValueAtTime(f, t); if (to) fl.frequency.exponentialRampToValueAtTime(to, t + d); fl.Q.value = q;
+    v.gain.setValueAtTime(g, t); v.gain.exponentialRampToValueAtTime(.0001, t + d); s.connect(fl).connect(v).connect(bus || master); s.start(t); s.stop(t + d + .02); }
+  const FX = {
+    slash: () => { noise(.12, { f: 5000, to: 900, g: .22, q: 2 }); tone(1400, .06, { type: 'sawtooth', g: .03, to: 500 }); },
+    kill: () => { tone(520, .08, { g: .07, to: 260 }); noise(.08, { f: 1200, g: .1 }); },
+    news: () => { tone(N(84), .09, { type: 'triangle', g: .09 }); tone(N(88), .14, { type: 'triangle', g: .09, at: .07 }); },
+    gauge: () => tone(N(91), .05, { type: 'triangle', g: .05 }),
+    item: () => [72, 76, 79, 84, 88].forEach((n, i) => tone(N(n), .12, { type: 'square', g: .06, at: i * .055 })),
+    bori: () => { noise(.5, { f: 600, to: 3000, g: .1, q: .7 }); tone(N(81), .2, { type: 'sine', g: .08, at: .1 }); },
+    boriTap: () => [84, 88, 91, 96].forEach((n, i) => tone(N(n), .16, { type: 'sine', g: .08, at: i * .06 })),
+    lev: () => { tone(220, .5, { type: 'sawtooth', g: .07, to: 880 }); tone(N(88), .3, { type: 'square', g: .05, at: .45 }); },
+    liq: () => { tone(400, .6, { type: 'sawtooth', g: .08, to: 80 }); noise(.4, { f: 300, g: .15, type: 'lowpass' }); },
+    cut: () => { noise(.2, { f: 3000, to: 400, g: .3, q: 1.5 }); tone(180, .2, { type: 'square', g: .06, to: 60 }); },
+    tick: () => tone(1800, .03, { type: 'square', g: .04 }),
+    room: () => [67, 72, 76, 79].forEach((n, i) => tone(N(n), .14, { type: 'square', g: .06, at: i * .08 })),
+    door: () => { tone(110, .25, { type: 'sine', g: .15, to: 70 }); tone(N(79), .3, { type: 'triangle', g: .06, at: .15 }); },
+    move: () => tone(660, .03, { type: 'triangle', g: .025 }),
+    end: () => [72, 76, 79, 84, 79, 84, 88].forEach((n, i) => tone(N(n), .22, { type: 'square', g: .07, at: i * .12 })),
+    sel: () => tone(N(79), .05, { type: 'triangle', g: .06 }),
+  };
+  // three pieces: [bpm, step(i)]
+  const RUN_CH = [[60, 64, 67], [57, 60, 64], [65, 69, 72], [67, 71, 74]], RUN_MEL = [72, 0, 74, 76, 79, 0, 76, 74, 72, 0, 69, 72, 74, 76, 74, 0];
+  const SONGS = {
+    run: [144, i => { const ch = RUN_CH[Math.floor(i / 16) % 4], m = RUN_MEL[i % 16]; if (m) tone(N(m + (Math.floor(i / 32) % 2 ? 2 : 0)), .12, { g: .045, bus: bgmBus });
+      if (i % 2 === 0) tone(N(ch[0] - 24), .18, { type: 'triangle', g: .12, bus: bgmBus }); tone(N(ch[(i >> 1) % 3] + 12), .06, { g: .015, bus: bgmBus });
+      if (i % 4 === 0) noise(.06, { f: 120, g: .25, type: 'lowpass', bus: bgmBus }); if (i % 4 === 2) noise(.05, { f: 4000, g: .06, bus: bgmBus }); if (i % 2 === 1) noise(.02, { f: 9000, g: .03, type: 'highpass', bus: bgmBus }); }],
+    decide: [176, i => { const ch = [[57, 60, 64], [56, 60, 63]][Math.floor(i / 8) % 2]; tone(N(ch[i % 3] + 12), .07, { type: 'sawtooth', g: .03, bus: bgmBus });
+      if (i % 2 === 0) tone(N(ch[0] - 24), .1, { type: 'square', g: .07, bus: bgmBus }); if (i % 4 === 0) noise(.05, { f: 140, g: .3, type: 'lowpass', bus: bgmBus });
+      noise(.015, { f: 9000, g: .04, type: 'highpass', bus: bgmBus }); if (i % 8 === 4) tone(N(81), .08, { type: 'square', g: .03, bus: bgmBus }); }],
+    calm: [92, i => { const ch = [[60, 64, 67], [65, 69, 72], [62, 65, 69], [67, 71, 74]][Math.floor(i / 8) % 4];
+      if (i % 8 === 0) ch.forEach(n => tone(N(n), 1.4, { type: 'triangle', g: .025, bus: bgmBus, att: .05 })); if (i % 2 === 0) tone(N(ch[(i / 2) % 3] + 12), .35, { type: 'sine', g: .03, bus: bgmBus }); }],
+  };
+  function bgm(m) { if (m === mode) return; mode = m; clearInterval(timer); timer = null; if (!m || !ensure()) return; const [bpm, f] = SONGS[m], len = 60 / bpm / 2; step = 0;
+    timer = setInterval(() => { if (!on || !ctx || ctx.state !== 'running') return; f(step++) }, len * 1000); }
+  return {
+    play(k) { if (!on || !ensure()) return; const now = performance.now(); if (now - (last[k] || 0) < 40) return; last[k] = now; try { FX[k](); } catch { } },
+    bgm, unlock() { if (on && ensure() && ctx.state === 'suspended') ctx.resume(); if (mode && !timer) { const m = mode; mode = null; bgm(m); } },
+    get on() { return on }, toggle() { on = !on; store.set('npf.sound', on); if (!on) { const m = mode; bgm(null); mode = m; if (master) master.gain.value = 0; } else { ensure(); if (master) master.gain.value = .7; const m = mode; mode = null; bgm(m); } },
+  };
+})();
+addEventListener('pointerdown', () => SND.unlock(), { capture: true }); addEventListener('keydown', () => SND.unlock(), { capture: true });
+
 /* ============================================================
    뉴스 묶음 · 뉴스 점수 · 가우시안 수익률 (설계서 3.3 ~ 3.5)
    ============================================================ */
@@ -464,7 +522,7 @@ function activateLev() {
   G.slots.forEach(s => { s.value *= f; s.roomStart *= f; });
   G.debt += E * (CFG.LEV_MULT - 1);
   G.items--; G.stats.levUsed++;
-  G.lev = { active: true, days: CFG.LEV_DAYS, startEq: E };
+  G.lev = { active: true, days: CFG.LEV_DAYS, startEq: E }; SND.play('lev');
   toast(`⚡ 레버리지 2배 · ${CFG.LEV_DAYS}거래일`, 'gold');
 }
 
@@ -472,7 +530,7 @@ function endLev(forced) {
   const tot = holdSum();
   if (tot > 0) { const f = Math.max(0, tot - G.debt) / tot; G.slots.forEach(s => { s.value *= f; s.roomStart *= f; }); }
   G.debt = 0; G.lev.active = false;
-  if (forced) { G.stats.liq++; toast('💥 강제 청산! 레버리지 해제', 'red'); }
+  if (forced) { G.stats.liq++; toast('💥 강제 청산! 레버리지 해제', 'red'); SND.play('liq'); }
   else toast('레버리지 종료');
 }
 
@@ -495,14 +553,14 @@ function startRoom() {
   ['#hud', '#tray', '#itemSlot', '#news'].forEach(s => $(s).classList.remove('hidden'));
   ['#bori', '#boriBox', '#decideBar'].forEach(s => $(s).classList.add('hidden'));
   setTray('compact');
-  toast(`방 ${G.room + 1} · ${G.themes[G.room].name}`);
+  toast(`방 ${G.room + 1} · ${G.themes[G.room].name}`); SND.play('room'); SND.bgm('run');
   if (G.room > 0) setTimeout(() => toast('리밸런싱 완료 · 5종목 각 20%'), 350);
 }
 
 function endRun() {
   endBori();
   if (G.room === CFG.ROOMS - 1) { G.phase = 'settle'; G.settleT = 0; showSettle(); return; }
-  G.phase = 'decide'; G.decideT = CFG.DECIDE;
+  G.phase = 'decide'; G.decideT = CFG.DECIDE; SND.bgm('decide'); G.lastTick = Math.ceil(CFG.DECIDE);
   G.targets = SLOT.target.map(() => ({ cut: false }));
   setTray('fanned');
   $('#decideBar').classList.remove('hidden');
@@ -511,7 +569,7 @@ function endRun() {
 
 function toggleSel(i) {
   if (G.phase !== 'decide' || G.paused) return;
-  G.selected.has(i) ? G.selected.delete(i) : G.selected.add(i);
+  G.selected.has(i) ? G.selected.delete(i) : G.selected.add(i); SND.play('sel');
   document.querySelectorAll('#tray .pc').forEach((el, j) => el.classList.toggle('sel', G.selected.has(j)));
   updDecideUI();
 }
@@ -537,7 +595,7 @@ function confirmCut() {
     G.cash += proceeds - cost; G.stats.cost += cost; G.stats.cuts += sel.length;
     pushHist();
   }
-  G.phase = 'slash'; G.slashT = 0; G.cutCost = cost;
+  G.phase = 'slash'; G.slashT = 0; G.cutCost = cost; SND.bgm(null);
   $('#decideBar').classList.add('hidden');
   $('#boriBox').classList.add('hidden');      // 보리 박스는 판단 종료까지 고정
   G.selected = new Set(sel); renderTray();
@@ -571,7 +629,7 @@ function updateSlash(dt) {
 }
 
 function doCut(i) {
-  G.targets[i].cut = true; G.targets[i].cutT = G.anim;
+  G.targets[i].cut = true; G.targets[i].cutT = G.anim; SND.play('cut');
   const x = laneX(i), y = geo.targetY;
   fx.slashes.push({ x, y, life: .3, max: .3, ang: -.5 });
   burst(x, y, SLOT.color[i], 14);
@@ -625,7 +683,7 @@ function updateRun(dt) {
    뉴스 카드 — 최대 3장, 아래로 쌓임 (설계서 6.3 · 6.4)
    ============================================================ */
 function kill(m) {
-  m.dead = true; G.stats.kills++;
+  m.dead = true; G.stats.kills++; SND.play('slash'); SND.play('kill');
   const x = laneX(m.lane);
   fx.slashes.push({ x, y: m.y, life: .25, max: .25, ang: rng() - .5 });
   burst(x, m.y, MON[m.type].color, 10);
@@ -641,13 +699,13 @@ function nextNews(cat) {
 }
 
 function gaugeUp(x, y) {
-  G.gauge++;
+  G.gauge++; SND.play('gauge');
   fx.floats.push({ x, y: y - 20, text: '+⚡', life: .8, color: '#ffd43b' });
-  if (G.gauge >= CFG.GAUGE_MAX) { G.gauge = 0; G.items++; toast('⚡ 레버리지 아이템 획득!', 'gold'); }
+  if (G.gauge >= CFG.GAUGE_MAX) { G.gauge = 0; G.items++; toast('⚡ 레버리지 아이템 획득!', 'gold'); SND.play('item'); }
 }
 
 function showNews(n) {
-  n.seen = true; G.stats.news++;
+  n.seen = true; G.stats.news++; SND.play('news');
   const C = CAT[n.cat];
   const slot = n.cid === null ? -1 : G.slots.findIndex(s => s.cid === n.cid);
   const name = n.cid === null ? '' : COMPANIES[n.cid].name;
@@ -684,7 +742,7 @@ function updateBori(dt) {
   const b = G.bori; if (!b) return;
   const el = $('#bori');
   if (b.state === 'wait' && G.runT >= b.at) {
-    b.state = 'fly'; b.t = 0;
+    b.state = 'fly'; b.t = 0; SND.play('bori');
     renderBoriFace(false); el.classList.remove('hidden', 'hit');
   }
   if (b.state === 'fly') {
@@ -705,7 +763,7 @@ function tapBori(e) {
   e.preventDefault(); e.stopPropagation();
   const b = G && G.bori;
   if (!b || b.state !== 'fly' || G.paused) return;
-  b.state = 'done'; G.stats.bori++;
+  b.state = 'done'; G.stats.bori++; SND.play('boriTap');
   // 대상: 이번 방 뉴스 점수 S가 가장 낮은 보유 종목 (동점이면 무작위)
   const order = G.slots.map((s, i) => ({ i, S: deckScore(G.deck, s.cid), r: rng() })).sort((a, c) => a.S - c.S || a.r - c.r);
   const slot = order[0].i;
@@ -798,56 +856,102 @@ const GAME_UI = ['#hud', '#tray', '#itemSlot', '#news', '#bori', '#boriBox', '#d
 const hideGameUI = () => { GAME_UI.forEach(s => $(s).classList.add('hidden')); clearCards(); };
 
 function showTitle() {
-  hideGameUI();
+  hideGameUI(); SND.bgm('calm');
   const recs = loadRecords();
   const ov = $('#overlay'); ov.className = '';
   ov.innerHTML = `<div class="title-wrap">
     <div class="title-ninja">${assetTag('ninja_run', '🥷')}</div>
     <div class="title-name">닌자 포트폴리오</div>
-    <div class="ov-sub">가제 · 웹 프로토타입 v0.2</div>
     <div class="legend" style="text-align:left;margin-top:22px">
-      🏃 30초 달리며 몬스터를 베어 뉴스를 모으고<br>
-      ⚠️ 지나가는 보리를 탭해 위험 종목을 찾고<br>
-      🔪 방 끝 5초 안에 자를 종목을 고르세요<br>
-      🗺️ 방 4개 · 본게임 2분 40초<br>
-      <span style="color:var(--muted)">기업명은 실제 기업을 비튼 가상 이름이며, 수익률은 뉴스에 따라 무작위로 정해집니다.</span>
+      🥷 달리며 몬스터를 베고 뉴스를 모아요<br>
+      🐻 지나가는 보리를 탭하면 위험 종목을 알려 줘요<br>
+      🔪 방 끝 5초 안에 나쁜 종목을 베요 · 방 4개, 2분 40초<br>
+      <span style="color:var(--muted);font-size:12px">기업명은 가상이고, 수익률은 뉴스에 따라 무작위로 정해져요.</span>
     </div>
     ${recs.length ? `<div class="ov-sub" style="margin-top:10px">내 최고 기록 <b class="${recs[0].r >= 0 ? 'up' : 'down'}">${pctTxt(recs[0].r)}</b></div>` : ''}
     <button class="btn" id="startBtn">시작하기</button>
     <div class="btn-row"><button class="btn ghost" id="tutBtn">📖 튜토리얼</button><button class="btn ghost" id="recBtn">🏅 내 기록</button></div></div>`;
   const tn = ov.querySelector('.title-ninja img'); if (tn) tn.style.cssText = 'width:96px;height:96px;object-fit:contain';
-  $('#startBtn').onclick = () => newGame();
+  $('#startBtn').onclick = () => store.get('npf.tutSeen', 0) ? newGame() : showTutorial(0);
+  const sb = document.createElement('button'); sb.id = 'sndBtn'; sb.textContent = SND.on ? '🔊' : '🔇'; sb.setAttribute('aria-label', '소리 켜고 끄기'); sb.onclick = () => { SND.toggle(); sb.textContent = SND.on ? '🔊' : '🔇'; }; ov.querySelector('.title-wrap').appendChild(sb);
   $('#tutBtn').onclick = () => showTutorial(0);
   $('#recBtn').onclick = showRecords;
 }
 
-// 튜토리얼 — 유저가 할 일만 설명 (설계서 12장). [에셋 ID, 임시 이모지, 제목, 본문]
+// 튜토리얼 (피드백 2026-11-26 "스냅샷으로 진짜 이해하기 쉽게, 어떻게 이기는지, 짧고 재밌게"): 4장, 장마다 움직이는
+// 게임 장면이 그려지고 손가락이 할 일을 보여 줌. [제목, 한 줄 설명, 꿀팁, 장면]
 const TUTORIAL = [
-  ['tut_01_goal', '🎯', '목표', '닌자와 함께 4개의 방을 달리며 1,000만 원을 최대한 불려 보세요.'],
-  ['tut_02_move', '👆', '이동', '좌우로 스와이프하거나 화면 왼쪽·오른쪽을 탭해 줄을 바꿔요.<br>몬스터와 같은 줄에 서면 자동으로 베어요.'],
-  ['tut_03_news', '📰', '뉴스', '몬스터를 베면 보유 기업과 시장 뉴스가 나와요. 뉴스는 최대 3개까지 쌓여요.<br>어떤 기업을 팔지 뉴스를 보고 정하세요.'],
-  ['tut_04_bori', '⚠️', '보리', '보리가 화면을 휙 지나가면 재빨리 탭하세요!<br>다음 방에서 떨어질 기업을 알려 줘요.'],
-  ['tut_05_cut', '🔪', '베기', '방 끝에서 5초 안에 팔 기업 카드를 탭하고 \'베기!\'를 누르세요.<br>판 기업 대신 새 기업이 들어와요. 팔 때마다 수수료 3%가 들어요.<br>아무것도 안 팔아도 돼요.'],
-  ['tut_06_leverage', '⚡', '레버리지', '왼쪽 아이템을 누르면 한 방 동안 수익도 손실도 2배가 돼요.<br>손실이 커지면 자동으로 풀려요.'],
-  ['tut_07_records', '🏅', '기록', '게임이 끝나면 수익률이 내 기록에 저장돼요.<br>최고 기록에 도전하세요!'],
+  ['달리며 베기', '👆 좌우로 밀어 줄을 바꿔요. 몬스터와 같은 줄에 서면 자동으로 베고 <b>뉴스</b>가 떨어져요.', '빨간 ▼ 악재가 붙은 종목을 기억해 두세요', 'run'],
+  ['보리를 잡아라!', '보리가 휙 지나가면 바로 탭! 다음 방에서 <b>떨어질 종목</b>을 찍어 줘요.', '놓쳐도 괜찮아요. 다음 방에 또 올 수 있어요', 'bori'],
+  ['5초 안에 베기', '방 끝에 카드 5장이 펼쳐져요. 악재가 쌓인 종목, 보리가 찍은 종목을 탭하고 <b>베기!</b>', '팔 때마다 수수료 3%. 다 베면 오히려 손해예요', 'cut'],
+  ['이기는 법', '방 4개가 끝났을 때 <b>수익률</b>이 높을수록 이겨요. ⚡레버리지는 수익도 손실도 2배!', '확신이 있을 때만 ⚡ 쓰기 · 2분 40초면 한 판', 'win'],
 ];
-
+let tutRaf = 0;
+function tutScene(cv, kind) {
+  const c = cv.getContext('2d'), dpr = Math.min(2, devicePixelRatio || 1);
+  const W = cv.clientWidth, H = cv.clientHeight; cv.width = W * dpr; cv.height = H * dpr; c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const lx = i => W * (0.1 + i * 0.2), t0 = performance.now();
+  const bori = asset('bori_face_fly');
+  const finger = (x, y, press) => { c.save(); c.translate(x, y); c.font = `${press ? 30 : 34}px sans-serif`; c.textAlign = 'center'; c.textBaseline = 'top'; c.fillText('👆', 0, 0);
+    if (press) { c.strokeStyle = 'rgba(255,255,255,.9)'; c.lineWidth = 3; c.beginPath(); c.arc(0, 2, 16, 0, 7); c.stroke(); } c.restore(); };
+  const card = (x, y, w, h, i, badges, sel, label) => { c.fillStyle = '#fffaf0'; c.strokeStyle = sel ? '#d0493c' : 'rgba(42,38,32,.25)'; c.lineWidth = sel ? 3 : 1.5;
+    c.beginPath(); c.roundRect(x, y, w, h, 8); c.fill(); c.stroke(); c.fillStyle = SLOT.color[i]; c.beginPath(); c.roundRect(x + 4, y + 4, w - 8, h * .32, 5); c.fill();
+    c.fillStyle = '#2a2620'; c.font = `bold ${Math.round(w * .2)}px sans-serif`; c.textAlign = 'center'; c.fillText(['삼손', '나버', '기야', '애풀', '코코아'][i], x + w / 2, y + h * .58);
+    badges.forEach((b, k) => { c.fillStyle = b > 0 ? '#3f8f4a' : '#d0493c'; c.font = `bold ${Math.round(w * .2)}px sans-serif`; c.fillText(b > 0 ? '▲' : '▼', x + w * (.3 + k * .4), y + h * .85); });
+    if (label) { c.fillStyle = '#d0493c'; c.beginPath(); c.roundRect(x - 6, y - 20, w + 12, 18, 9); c.fill(); c.fillStyle = '#fff'; c.font = 'bold 11px sans-serif'; c.fillText(label, x + w / 2, y - 7); } };
+  const draw = () => {
+    const t = (performance.now() - t0) / 1000; c.clearRect(0, 0, W, H);
+    const bg = c.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, kind === 'win' ? '#fbf7ec' : '#cfe6c2'); bg.addColorStop(1, kind === 'win' ? '#f3ead2' : '#a9cf8e'); c.fillStyle = bg; c.fillRect(0, 0, W, H);
+    if (kind === 'run' || kind === 'bori') {
+      c.strokeStyle = 'rgba(255,255,255,.5)'; c.setLineDash([6, 8]); for (let i = 1; i < 5; i++) { c.beginPath(); c.moveTo(W * i * .2, 0); c.lineTo(W * i * .2, H); c.stroke(); } c.setLineDash([]);
+      const cyc = t % 3, lane = cyc < 1 ? 1 : 3, nx = lx(cyc < .9 ? 1 : cyc < 1.1 ? 1 + (cyc - .9) * 10 : 3);
+      // a monster coming down lane 3, slashed when it meets the ninja
+      const my = H * (.05 + Math.min(1, cyc / 2) * .7), hit = cyc > 2;
+      if (!hit) { c.font = '30px sans-serif'; c.textAlign = 'center'; c.fillText('👾', lx(3), my); }
+      else if (cyc < 2.5) { c.strokeStyle = '#fff'; c.lineWidth = 5; c.beginPath(); c.moveTo(lx(3) - 26, H * .7); c.lineTo(lx(3) + 26, H * .62); c.stroke();
+        c.fillStyle = '#fffaf0'; c.strokeStyle = '#d0493c'; c.lineWidth = 2; const y = H * .08 + (cyc - 2) * 20; c.beginPath(); c.roundRect(W * .2, y, W * .6, 30, 8); c.fill(); c.stroke();
+        c.fillStyle = '#2a2620'; c.font = 'bold 13px sans-serif'; c.fillText('📰 기야, 공장 가동 중단 ▼', W / 2, y + 20); }
+      c.font = '34px sans-serif'; c.textAlign = 'center'; c.fillText('🥷', nx, H * .78);
+      if (kind === 'run' && cyc > .5 && cyc < 1.2) finger(W * .35 + (cyc - .5) * W * .3, H * .5, true);
+      if (kind === 'bori') { const u = (t % 2.6) / 2.6, bx = lerp(-60, W + 60, u), by = H * .35 + Math.sin(u * 12) * 8;
+        if (u < .55) { if (bori) c.drawImage(bori, bx - 28, by - 28, 56, 56); else { c.font = '40px sans-serif'; c.fillText('🐻', bx, by); } if (u > .38) finger(bx, by + 18, u > .45); }
+        else { c.font = 'bold 16px sans-serif'; c.fillStyle = '#d0493c'; c.fillText('✨ 보리 포착!', W / 2, H * .3); card(W / 2 - 26, H * .44, 52, 64, 2, [-1], true, '⚠ 다음 방 하락'); } }
+    }
+    if (kind === 'cut') { const w = W * .15, h = w * 1.3, y = H * .3, cyc = t % 4, pick = cyc > 1.4, cut = cyc > 2.6;
+      const tm = Math.max(1, 5 - Math.floor(cyc * 1.2)); c.fillStyle = '#2a2620'; c.font = 'bold 18px sans-serif'; c.textAlign = 'center'; c.fillText(`⏱ ${tm}`, W / 2, H * .17);
+      [[1, 1], [1, -1], [-1, -1], [1], [-1, 1]].forEach((b, i) => { const x = W * (.1 + i * .18) - w / 2 + W * .09; if (cut && i === 2) { c.save(); c.globalAlpha = Math.max(0, 1 - (cyc - 2.6)); card(x - (cyc - 2.6) * 20, y + (cyc - 2.6) * 30, w, h, i, b, true); c.restore(); } else card(x, y, w, h, i, b, pick && i === 2, i === 2 ? '보리 ⚠' : ''); });
+      c.fillStyle = cut ? '#a33a2e' : '#d0493c'; c.beginPath(); c.roundRect(W * .35, H * .78, W * .3, 34, 17); c.fill(); c.fillStyle = '#fff'; c.font = 'bold 15px sans-serif'; c.fillText(pick ? '베기! (1)' : '모두 유지 ▶', W / 2, H * .78 + 22);
+      if (cyc > .9 && cyc < 1.6) finger(W * (.1 + 2 * .18) + W * .09, y + h * .5, cyc > 1.3); if (cyc > 2 && cyc < 2.7) finger(W / 2, H * .8, cyc > 2.4); }
+    if (kind === 'win') { const x0 = W * .08, x1 = W * .92, yb = H * .82, yt = H * .14; c.strokeStyle = 'rgba(42,38,32,.15)'; c.lineWidth = 1;
+      for (let k = 1; k < 4; k++) { const x = lerp(x0, x1, k / 4); c.beginPath(); c.moveTo(x, yt); c.lineTo(x, yb); c.stroke(); }
+      c.setLineDash([4, 4]); c.beginPath(); c.moveTo(x0, (yt + yb) / 2 + 20); c.lineTo(x1, (yt + yb) / 2 + 20); c.stroke(); c.setLineDash([]);
+      const pts = [0, -4, 2, 6, 3, 9, 12, 7, 15, 22, 18, 26], u = Math.min(1, (t % 4) / 3), n = Math.max(2, Math.floor(u * pts.length));
+      c.fillStyle = 'rgba(242,194,48,.18)'; c.fillRect(lerp(x0, x1, .5), yt, (x1 - x0) / 4, yb - yt); c.font = '16px sans-serif'; c.textAlign = 'center'; c.fillText('⚡×2', lerp(x0, x1, .625), yt + 18);
+      c.strokeStyle = '#c8453a'; c.lineWidth = 3; c.beginPath(); for (let k = 0; k < n; k++) { const x = lerp(x0, x1, k / (pts.length - 1)), y = (yt + yb) / 2 + 20 - pts[k] * 4; k ? c.lineTo(x, y) : c.moveTo(x, y); } c.stroke();
+      c.fillStyle = '#2a2620'; c.font = 'bold 12px sans-serif'; ['방1', '방2', '방3', '방4'].forEach((r, k) => c.fillText(r, lerp(x0, x1, k / 4 + .125), yb + 16));
+      if (u >= 1) { c.fillStyle = '#c8453a'; c.font = 'bold 26px sans-serif'; c.fillText('+26.0% 🏆', W / 2, H * .2); } }
+    tutRaf = requestAnimationFrame(draw);
+  };
+  cancelAnimationFrame(tutRaf); draw();
+}
 function showTutorial(p) {
-  const [id, emoji, h, body] = TUTORIAL[p];
+  const [h, body, tip, kind] = TUTORIAL[p];
   const last = p === TUTORIAL.length - 1;
   const ov = $('#overlay'); ov.className = '';
   ov.innerHTML = `<div class="tut" id="tut">
-    <div class="tut-top"><span>튜토리얼 ${p + 1}/${TUTORIAL.length}</span><button class="tut-close" id="tutClose">닫기 ✕</button></div>
-    <div class="tut-pic">${assetTag(id, emoji)}</div>
-    <div class="tut-h">${h}</div><div class="tut-body">${body}</div>
+    <div class="tut-top"><span>${p + 1} / ${TUTORIAL.length}</span><button class="tut-close" id="tutClose">건너뛰기 ✕</button></div>
+    <div class="tut-pic"><canvas id="tutCv" style="width:100%;height:100%;display:block"></canvas></div>
+    <div class="tut-h">${h}</div><div class="tut-body">${body}</div><div class="tut-tip">💡 ${tip}</div>
     <div class="tut-dots">${TUTORIAL.map((_, i) => `<i class="${i === p ? 'on' : ''}"></i>`).join('')}</div>
     <div class="btn-row"><button class="btn ghost" id="tutPrev" ${p === 0 ? 'disabled' : ''}>이전</button>
       <button class="btn" id="tutNext">${last ? '시작하기' : '다음'}</button></div></div>`;
-  ov.scrollTop = 0;
-  const go = d => { const q = p + d; if (q >= 0 && q < TUTORIAL.length) showTutorial(q); };
-  $('#tutClose').onclick = showTitle;
+  ov.scrollTop = 0; SND.play('sel');
+  requestAnimationFrame(() => tutScene($('#tutCv'), kind));
+  const stop = () => cancelAnimationFrame(tutRaf);
+  const go = d => { const q = p + d; if (q >= 0 && q < TUTORIAL.length) { stop(); showTutorial(q); } };
+  $('#tutClose').onclick = () => { stop(); showTitle(); };
   $('#tutPrev').onclick = () => go(-1);
-  $('#tutNext').onclick = () => last ? newGame() : go(1);
+  $('#tutNext').onclick = () => { if (last) { stop(); store.set('npf.tutSeen', 1); newGame(); } else go(1); };
   let sx = null; const t = $('#tut');
   t.onpointerdown = e => { sx = e.clientX; };
   t.onpointerup = e => { if (sx == null) return; const dx = e.clientX - sx; sx = null; if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1); };
@@ -902,6 +1006,7 @@ function showIntro(slotIdx, dur, heading, first) {
 }
 
 function showSettle() {
+  SND.bgm('calm'); SND.play('end');
   $('#news').classList.add('hidden'); clearCards();
   $('#tray').classList.add('hidden'); $('#itemSlot').classList.add('hidden');
   const ov = $('#overlay'); ov.className = 'modal';
@@ -1172,7 +1277,7 @@ function step(dt) {
       { const el = $('#introTimer'); if (el) el.textContent = Math.max(0, Math.ceil(G.introT)) + '초'; }
       if (G.introT <= 0) endIntro(); break;
     case 'run': updateRun(dt); updateCards(dt); break;
-    case 'decide': G.clock += dt; G.decideT -= dt; updateCards(dt); if (G.decideT <= 0) confirmCut(); break;
+    case 'decide': G.clock += dt; G.decideT -= dt; updateCards(dt); if (Math.ceil(G.decideT) < G.lastTick) { G.lastTick = Math.ceil(G.decideT); SND.play('tick'); } if (G.decideT <= 0) confirmCut(); break;
     case 'slash': G.clock += dt; updateCards(dt); updateSlash(dt); break;
     case 'settle': G.clock += dt; G.settleT += dt; updSettle(); if (G.settleT >= CFG.SETTLE) showResult(); break;
   }
@@ -1190,7 +1295,7 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
-function move(d) { if (G && G.phase === 'run' && !G.paused) G.lane = clamp(G.lane + d, 0, CFG.LANES - 1); }
+function move(d) { if (G && G.phase === 'run' && !G.paused) { const l = clamp(G.lane + d, 0, CFG.LANES - 1); if (l !== G.lane) SND.play('move'); G.lane = l; } }
 let ptr = null;
 cv.addEventListener('pointerdown', e => { ptr = { x: e.clientX, y: e.clientY }; });
 cv.addEventListener('pointerup', e => {

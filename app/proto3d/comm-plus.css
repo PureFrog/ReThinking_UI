@@ -1,0 +1,126 @@
+/* 통신기 더하기 (ui/CommPlus.tsx): dotted words that explain themselves, the first-time guide, the stock page,
+   missions, the two fields; in the MTS's own look (app/mts/mts.css) */
+.rt-term{border-bottom:1.5px dotted #9aa3b5;cursor:help;-webkit-touch-callout:none;user-select:none}
+.rt-term-tip{position:fixed;z-index:200;max-width:240px;padding:9px 12px;border-radius:12px;background:#1f2633;color:#fff;font-size:12.5px;line-height:1.45;
+  box-shadow:0 10px 24px -10px #000a;pointer-events:none;white-space:normal;text-align:left;font-weight:400}
+.rt-term-tip b{display:block;font-size:13px;margin-bottom:2px;color:#ffd447}
+.rt-q{font-style:normal;display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;background:#eef1f6;color:#5b6577;font-size:11px;margin-left:2px}
+.rt-comm-help{width:28px;height:28px;border-radius:50%;border:0;background:#eef1f6;color:#3a4458;font-weight:800;margin-right:6px}
+.rt-cg{position:absolute;inset:0;z-index:50;background:#0b122080;display:grid;place-items:center;padding:20px}
+.rt-cg-card{width:min(320px,100%);background:#fff;border-radius:20px;padding:22px 20px 16px;text-align:center;box-shadow:0 20px 40px -16px #000a}
+.rt-cg-ic{font-size:44px;line-height:1;margin-bottom:8px}
+.rt-cg-card b{display:block;font-size:19px;margin-bottom:6px;color:#1f2633}
+.rt-cg-card p{font-size:14px;line-height:1.55;color:#4a5466;margin:0 0 14px}
+.rt-cg-dots{display:flex;justify-content:center;gap:6px;margin-bottom:12px}.rt-cg-dots i{width:7px;height:7px;border-radius:50%;background:#d5dae3}.rt-cg-dots i[data-on=true]{background:#e0493d}
+.rt-cg-acts{display:flex;justify-content:space-between;align-items:center;gap:10px}.rt-cg-acts .rt-comm-go{flex:1;max-width:150px}
+.rt-fields{display:grid;gap:6px;margin:10px 16px}
+.rt-fields>div{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-radius:12px;background:#f5f7fa;font-size:12.5px;line-height:1.45;color:#3a4458}
+.rt-fields span{font-size:18px;line-height:1}.rt-fields p{margin:0}
+.rt-mis{margin:6px 16px 10px;padding:10px 12px;border-radius:14px;background:#fff8e6;border:1px solid #f3dfa6}
+.rt-mis h4{margin:0 0 6px;font-size:14px}.rt-mis h4 small{font-size:11px;color:#8a7a50;font-weight:400}
+.rt-mis-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px}
+.rt-mis-row .rt-comm-go{min-height:28px;padding:0 12px;font-size:12px;width:auto}
+.rt-mis-row[data-paid=true]{opacity:.55}
+.mts-row-top .rt-spark{flex:none;margin:0 6px}
+.rt-ord-kind{display:inline-flex;gap:6px}.rt-ord-kind b,.rt-ord-kind span{padding:2px 10px;border-radius:999px;font-size:12px}.rt-ord-kind b{background:#1f2633;color:#fff}.rt-ord-kind .off{background:#eef1f6;color:#8a93a5}
+.rt-ord-pct{display:flex;gap:6px;margin:6px 0}.rt-ord-pct button{flex:1;min-height:32px;border-radius:10px;border:1px solid #d5dae3;background:#fff;font-weight:700;color:#3a4458}
+.rt-ord-when{font-size:12px;color:#5b6577;margin:4px 0 10px}
+.rt-sp{position:absolute;inset:0;z-index:40;background:#fff;overflow-y:auto;padding:0 16px 90px;display:flex;flex-direction:column;gap:10px}
+.rt-sp-top{position:sticky;top:0;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:10px 0;z-index:2}
+.rt-sp-top div{text-align:center}.rt-sp-top b{display:block;font-size:17px}.rt-sp-top small{font-size:11.5px;color:#6b7486}
+.rt-sp-price strong{display:block;font-size:30px;font-weight:800}.rt-sp-price strong small{font-size:15px;margin-left:2px}
+.rt-sp-price span{font-size:14px;font-weight:700}
+.rt-sp .up{color:#e0493d}.rt-sp .down{color:#2f6fd6}.rt-sp .flat{color:#3a4458}
+.rt-sp-spans{display:flex;gap:6px}.rt-sp-spans button{flex:1;min-height:30px;border-radius:999px;border:1px solid #e1e5ec;background:#fff;font-weight:700;color:#5b6577}
+.rt-sp-spans button[aria-selected=true]{background:#1f2633;color:#fff;border-color:#1f2633}
+.rt-sp-chart{width:100%;height:150px}
+.rt-sp-stats{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;margin:0;border-top:1px solid #eef1f6;padding-top:6px}
+.rt-sp-stats div{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f3f5f8;font-size:13px}.rt-sp-stats dt{color:#6b7486}.rt-sp-stats dd{margin:0;font-weight:700}
+.rt-sp-book h4{margin:4px 0 6px;font-size:14px}.rt-sp-book h4 small{font-size:11px;color:#8a93a5;font-weight:400}
+.rt-sp-book>div{display:grid;grid-template-columns:1fr 1fr 1fr;padding:5px 8px;font-size:12.5px;text-align:center}
+.rt-sp-book .ask{background:#eef4ff;color:#2f6fd6}.rt-sp-book .bid{background:#fff0ee;color:#e0493d}.rt-sp-book b{color:#1f2633}
+.rt-sp-book .ask span:first-child{text-align:left}.rt-sp-book .bid span:last-child{text-align:right}
+.rt-sp-book .bid[data-now=true]{outline:2px solid #1f2633;outline-offset:-2px;border-radius:6px}
+.rt-sp-acts{position:sticky;bottom:0;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 0;background:#fff}
+
+/* 휴대폰 (피드백 2026-11-26 "휴대폰 같은 UI 안에 주식창"): the 통신기 is a phone that rises from the bottom; the app runs on
+   its screen. Portrait: a phone 19.5:9 as tall as fits. Short landscape screens: the bezel stays, the phone is wider. */
+.rt-comm{display:flex;align-items:center;justify-content:center;background:rgba(14,18,26,.5);backdrop-filter:blur(2px)}
+.rt-phone{--ph:min(calc(100dvh - 28px),860px);position:relative;height:var(--ph);width:min(calc(var(--ph) * .47),calc(100vw - 20px));
+  padding:11px;border-radius:calc(var(--ph) * .065);background:linear-gradient(145deg,#3b4250,#16191f 40%,#2a2f38);
+  box-shadow:0 0 0 1.5px #5a6270,0 0 0 3px #111,0 30px 70px rgba(0,0,0,.55),inset 0 0 6px rgba(255,255,255,.18);
+  animation:rt-phone-up .55s cubic-bezier(.2,1.25,.4,1) both}
+@keyframes rt-phone-up{from{transform:translateY(70vh) rotate(-9deg) scale(.9)}to{transform:none}}
+.rt-phone-btn{position:absolute;width:4px;border-radius:2px;background:#2b3039;box-shadow:inset 0 0 1px #888}
+.rt-phone-btn.a{left:-4px;top:15%;height:5%}.rt-phone-btn.b{left:-4px;top:23%;height:9%}.rt-phone-btn.c{right:-4px;top:20%;height:12%}
+.rt-phone-screen{position:relative;height:100%;width:100%;overflow:hidden;border-radius:calc(var(--ph) * .052);background:#fff;display:flex;flex-direction:column;
+  animation:rt-screen-on .5s .25s ease-out both}
+@keyframes rt-screen-on{from{filter:brightness(0)}to{filter:none}}
+.rt-phone-status{flex:none;height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 22px 0 26px;background:#fff;
+  font:600 14px -apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif;color:#111;position:relative}
+.rt-phone-island{position:absolute;left:50%;top:7px;transform:translateX(-50%);width:31%;height:22px;border-radius:12px;background:#0b0c0f}
+.rt-phone-ic{display:flex;align-items:center;gap:5px}.rt-phone-ic svg{fill:#111}
+.rt-phone-bat{width:23px;height:11px;border:1.4px solid #111;border-radius:3.5px;padding:1px;position:relative;opacity:.9}
+.rt-phone-bat::after{content:'';position:absolute;right:-3.5px;top:3px;width:2px;height:4px;background:#111;border-radius:0 1px 1px 0}
+.rt-phone-bat i{display:block;height:100%;width:78%;background:#111;border-radius:1.5px}
+.rt-phone-home{position:absolute;left:50%;bottom:7px;transform:translateX(-50%);width:34%;height:5px;border-radius:3px;background:#111;opacity:.85;z-index:9;pointer-events:none}
+.rt-comm .rt-phone .mts-shell{position:relative;inset:auto;flex:1;min-height:0;padding:0;background:transparent}
+.rt-comm .rt-phone .mts-phone{max-width:none;border-radius:0;box-shadow:none}
+.rt-comm .rt-phone .mts-top{padding:8px 12px}
+.rt-comm .rt-phone .mts-brand{font-size:16px}
+.rt-comm .rt-phone .mts-demo{display:none}
+.rt-comm .rt-phone .mts-tabs{grid-template-columns:repeat(4,1fr);padding-bottom:16px}
+.rt-phone-splash{position:absolute;inset:0;z-index:20;display:grid;place-content:center;justify-items:center;gap:8px;background:#2a3f5c;color:#fff;pointer-events:none;
+  animation:rt-splash .9s ease-in both}
+.rt-phone-splash .mts-mark{width:44px;height:44px;gap:4px}.rt-phone-splash b{font-size:24px;letter-spacing:-.02em}.rt-phone-splash small{opacity:.7;font-size:12px}
+@keyframes rt-splash{0%,55%{opacity:1}100%{opacity:0}}
+@media(orientation:landscape) and (max-height:560px){.rt-phone{--ph:calc(100dvh - 16px);width:min(520px,calc(100vw - 20px));padding:8px}
+  .rt-phone-status{height:22px;font-size:12px}.rt-phone-island{top:3px;height:16px;width:18%}}
+
+/* 뉴스 탭 · 기사 */
+.rt-news-note{margin:8px 12px;padding:8px 10px;border-radius:10px;background:#fff7e6;color:#8a5a00;font-size:12px;line-height:1.45}
+.rt-news-list{list-style:none;margin:0;padding:0;background:#fff}
+.rt-news-row{display:grid;gap:5px;width:100%;text-align:left;padding:13px 14px;border:0;border-bottom:1px solid var(--mts-line);background:#fff;cursor:pointer}
+.rt-news-row:active{background:#f4f6f9}
+.rt-news-row strong{font-size:15px;line-height:1.38;color:var(--mts-ink)}
+.rt-news-meta{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--mts-sub)}
+.rt-news-meta b{font-size:10.5px;padding:2px 6px;border-radius:5px;background:#eef1f6;color:#3a4458}
+.rt-news-meta b.t-실적{background:#fdecea;color:#b4302a}.rt-news-meta b.t-공시{background:#e9f0fd;color:#2457b8}.rt-news-meta b.t-정책{background:#eaf6ee;color:#2b7a44}
+.rt-news-stock{font-size:12px;color:#4a5566;display:flex;gap:6px}.rt-news-stock em{font-style:normal;font-weight:700}
+.rt-news-stock em.up,.rt-art-stock em.up{color:var(--mts-up)}.rt-news-stock em.down,.rt-art-stock em.down{color:var(--mts-down)}
+.rt-art{position:absolute;inset:0;z-index:8;background:#fff;display:flex;flex-direction:column;animation:rt-slide .22s ease-out}
+@keyframes rt-slide{from{transform:translateX(30%);opacity:0}to{transform:none;opacity:1}}
+.rt-art-body{flex:1;overflow-y:auto;padding:14px 18px 18px}
+.rt-art-body h3{font-size:20px;line-height:1.38;margin:8px 0 14px;letter-spacing:-.02em}
+.rt-art-body p{font-size:15.5px;line-height:1.75;margin:0 0 12px;color:#2a3240}
+.rt-art-src{display:block;font-size:11.5px;color:var(--mts-sub);margin-bottom:14px}
+.rt-art-look{padding:12px 14px;border-radius:12px;background:#f2f6ff;border:1px solid #d9e4fb}
+.rt-art-look b{font-size:13px;color:#2457b8}.rt-art-look p{font-size:13.5px;line-height:1.6;margin:6px 0 0}
+.rt-art-stock{display:flex;gap:8px;padding:10px 12px 22px;border-top:1px solid var(--mts-line)}
+.rt-art-stock>button:first-child{flex:1;display:flex;align-items:center;gap:7px;padding:10px 12px;border:1px solid var(--mts-line);border-radius:12px;background:#fff;font-size:13px;cursor:pointer}
+.rt-art-stock>button:first-child span{color:var(--mts-sub);font-size:11.5px}.rt-art-stock i{margin-left:auto;font-style:normal;color:var(--mts-sub)}
+.rt-art-stock .rt-comm-go{width:auto;padding:0 16px}
+.rt-ord-news{display:grid;gap:3px;text-align:left;padding:10px 12px;border-radius:10px;border:1px solid var(--mts-line);background:#f8f9fb;cursor:pointer}
+.rt-ord-news span{font-size:11.5px;color:var(--mts-sub)}.rt-ord-news b{font-size:13.5px;line-height:1.4;color:var(--mts-ink)}
+/* 주문 확인 */
+.rt-oc{position:absolute;inset:0;z-index:12;background:rgba(10,14,20,.45);display:flex;align-items:flex-end;animation:rt-comm-in .15s}
+.rt-oc-card{width:100%;background:#fff;border-radius:18px 18px 0 0;padding:18px 18px 26px;animation:rt-oc-up .22s ease-out}
+@keyframes rt-oc-up{from{transform:translateY(40%)}to{transform:none}}
+.rt-oc-card h4{margin:0 0 12px;font-size:18px}.rt-oc-card h4.up{color:var(--mts-up)}.rt-oc-card h4.down{color:var(--mts-down)}
+.rt-oc-card dl{margin:0;display:grid;gap:9px}.rt-oc-card dl div{display:flex;justify-content:space-between;font-size:14px}
+.rt-oc-card dt{color:var(--mts-sub)}.rt-oc-card dd{margin:0;font-weight:600}
+.rt-oc-note{font-size:12px;color:var(--mts-sub);margin:12px 0}
+.rt-oc-acts{display:grid;grid-template-columns:1fr 2fr;gap:8px}
+.rt-oc-no{min-height:48px;border:0;border-radius:12px;background:#eef0f3;font-weight:700;font-size:15px;cursor:pointer}
+/* 주간 챌린지 */
+.rt-wk{margin:10px 12px;padding:12px 14px;border-radius:14px;background:#fff;border:1px solid var(--mts-line);display:grid;gap:8px}
+.rt-wk h4{margin:0;font-size:14px;display:flex;flex-wrap:wrap;gap:6px;align-items:baseline}.rt-wk h4 small{font-weight:400;color:var(--mts-sub);font-size:11.5px}
+.rt-wk-bar{display:grid;grid-template-columns:84px 1fr 62px;align-items:center;gap:8px;font-size:12.5px}
+.rt-wk-bar small{color:var(--mts-sub);font-size:10.5px}
+.rt-wk-track{position:relative;height:10px;border-radius:6px;background:#f0f2f5}
+.rt-wk-track::after{content:'';position:absolute;left:50%;top:-2px;bottom:-2px;width:1.5px;background:#c5cbd4}
+.rt-wk-track i{position:absolute;top:0;bottom:0;border-radius:6px;transition:width .5s}
+.rt-wk-track i.up{background:var(--mts-up)}.rt-wk-track i.down{background:var(--mts-down)}
+.rt-wk-bar b{text-align:right}.rt-wk-bar b.up{color:var(--mts-up)}.rt-wk-bar b.down{color:var(--mts-down)}
+.rt-wk-say{margin:0;font-size:12.5px;color:#4a5566;line-height:1.5}
+.rt-fb-kick{display:block;font-size:12px;color:#c4432f;font-weight:700;margin-bottom:4px}

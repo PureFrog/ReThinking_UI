@@ -24,3 +24,11 @@ let INDEX:Bar[]=[];
 export function setMarketBars(bs:Bar[]){INDEX=[...bs].sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:0)}
 export type MarketProvider={today(day:string):Market};
 export const marketProvider:MarketProvider={today:day=>realMarket(INDEX,day)??mockMarket(day)};
+// 이번 주 코스닥 (주간 챌린지, core/challenge.ts): the index from the last close before Monday to the latest close up to
+// today, in %. Real bars when loaded; otherwise the mock days of this week compounded (weekdays before today).
+export function indexWeek(monday:string,today:string):{rate:number;real:boolean}{
+  if(INDEX.length){const before=[...INDEX].reverse().find(b=>b.d<monday),last=[...INDEX].reverse().find(b=>b.d<=today);
+    if(before&&last&&last.d>=monday)return {rate:r2((last.c/before.c-1)*100),real:true};if(before&&last)return {rate:0,real:true}}
+  let k=1;for(let d=new Date(monday+'T00:00:00Z');d.toISOString().slice(0,10)<today;d.setUTCDate(d.getUTCDate()+1)){const w=d.getUTCDay();if(w>0&&w<6)k*=1+mockMarket(d.toISOString().slice(0,10)).index/100}
+  return {rate:r2((k-1)*100),real:false};
+}

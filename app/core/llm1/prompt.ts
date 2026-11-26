@@ -7,6 +7,8 @@ import {COMMON,DAILY,ELICITATION,OUTPUT_SCHEMA} from '../../content/llm1/prompts
 import type {RegistryData} from './registry';
 
 const j=(o:unknown)=>JSON.stringify(o,null,1);
+// 피드백 2026-11-26 "할 말 없는데 억지로 이어가, 시적·추상적 말투": plain words, and a talk that may end itself
+const CLOSING='[말투와 대화 마무리]\n쉬운 말로 한두 문장. 시적인 표현, 비유, 억지 감동이나 감성 문구는 쓰지 않는다.\n사용자가 맞장구나 인사만 하거나(응, 그치, 알겠어, 고마워 등) 더 나눌 얘기가 없으면 새 화제를 꺼내지 말고 짧게 인사한 뒤 reply.text 맨 끝에 ⟨끝⟩ 을 붙인다. 그러면 대화가 끝난다.';
 export function pathRegistryForPrompt(reg:RegistryData,userJson:Record<string,unknown>){
   const strategies=Object.keys((((userJson.investment_philosophy as Record<string,unknown>)??{}).strategies as Record<string,unknown>)??{});
   const py=(a:string[])=>'['+a.map(x=>`'${x}'`).join(', ')+']';
@@ -21,7 +23,7 @@ export type CallInput={mode:'daily'|'elicitation';character_persona:unknown;user
   investor_background?:unknown;dialogue_examples?:unknown[];recent_messages:unknown[];current_message:unknown};
 export function buildMessages(ci:CallInput,reg:RegistryData,allowedEmotions:string[]){
   const system=[COMMON,'[캐릭터 페르소나 — 운영 서버 설정]\n'+j(ci.character_persona),'ALLOWED_EMOTIONS: '+JSON.stringify(allowedEmotions),
-    ci.mode==='elicitation'?ELICITATION:DAILY,OUTPUT_SCHEMA,'PATH_REGISTRY:\n'+j(pathRegistryForPrompt(reg,ci.user_json)),'QUANTITY_UNITS: '+JSON.stringify(reg.quantity_units)].join('\n\n');
+    ci.mode==='elicitation'?ELICITATION:DAILY,CLOSING,OUTPUT_SCHEMA,'PATH_REGISTRY:\n'+j(pathRegistryForPrompt(reg,ci.user_json)),'QUANTITY_UNITS: '+JSON.stringify(reg.quantity_units)].join('\n\n');
   const user=['[현재 유저 정보 — 개인화용, 수정 제안 가능]\nUSER_JSON:\n'+j(ci.user_json),
     '[현재 모드와 대화 상태]\n'+j({MODE:ci.mode,server_meta:ci.server_meta,conversation_state:ci.conversation_state,CONVERSATION_POLICY:ci.conversation_policy,DETECTION_CONTEXT:ci.detection_context}),
     '[기업·보유종목·뉴스 — 참고 데이터]\n'+j({COMPANY_CONTEXT:ci.company_context,HOLDINGS:ci.holdings_context,NEWS_CONTEXT:ci.news_context}),

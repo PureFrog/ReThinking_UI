@@ -6,6 +6,7 @@
 // server first: 보리 then starts that talk instead of the small talk (supabase.ts boriOpen). One look for both: 보리
 // coming over and 보리 tapped. The rest of the screen steps back meanwhile (rethink.css .rt-talk).
 import {useEffect,useRef,useState} from 'react';
+import {josa} from '../../core/memory';
 import {FRIEND,FRIEND_TALK,friendReplies,type FriendTopic,type TalkLine} from '../../core/friend';
 import {TIMING} from '../../core/timing';
 import {FRIEND_FACE,type BoriFace} from '../../core/friend';
@@ -18,6 +19,9 @@ export type Speaker={id:string;name:string;smalls:string[];stockLine:(name:strin
 const LATER='응, 괜찮아. 생각나면 그때 말해 줘.';
 
 // onFace: the face of the line on screen (보리's model wears it, Analyst3D); the server sends one with every line
+const ACK=/^(응+|웅+|어+|그치|그래|그렇구나|알겠어|알았어|오케이|ㅇㅋ|ㅇㅇ+|ok|okay|넹|네+|예|좋아|고마워|땡큐|ㄱㅅ|ㅎㅎ+|ㅋㅋ+|굿)[!.~ ?ㅎㅋ]*$/i;
+const END_MARK=/\s*⟨끝⟩\s*$/;
+const BYE=['그래, 또 불러!','응, 다음에 또 얘기하자.','좋아, 필요하면 불러.'];
 export function FriendSheet({opener,topic,seed,onGo,onClose,talk,opening,onFace,who,stocks=[],onStock,pickFirst,onPickTalk}:{opener:string;topic:FriendTopic;seed:string;onGo:(to:'grades'|'journal'|'case')=>void;onClose:()=>void;
   talk?:((history:TalkLine[],message:string)=>Promise<Line>)|null;opening?:(()=>Promise<Line|null>)|null;onFace?:(f:BoriFace)=>void;
   who?:Speaker;stocks?:{id:number;name:string}[];onStock?:(id:number)=>void;
@@ -68,14 +72,22 @@ export function FriendSheet({opener,topic,seed,onGo,onClose,talk,opening,onFace,
     if(c.talk){setMode('type');if(!stopLoss)say('응, 뭐든 말해 봐.','curious');return}
     setHistory(h=>[...h,{who:'me',text:c.label}]);if(c.answer)say(c.answer,c.go?'happy':'playful');setMode('leaving');
     const to=c.go;setTimeout(()=>{if(to)onGo(to);else onClose()},to?TIMING.talkGo:TIMING.talkLeave+400)};
-  const send=async()=>{const m=draft.trim();if(!m||busy||!talk)return;const before=history;setDraft('');setMine(m);setBusy(true);
-    setHistory([...before,{who:'me',text:m}]);setFace('thinking');const a=await talk(before,m);setBusy(false);say(a.text,a.emotion??'neutral',a.at??null)};
+  // 피드백 2026-11-26 "할 말 없는데 억지로 이어가": a bare "응/그치/알겠어/고마워" after a real exchange ends the talk here
+  // (no model call), and the model may end it too by putting ⟨끝⟩ at the end of its line (core/llm1/prompt.ts CLOSING)
+  const [ended,setEnded]=useState(false);
+  const send=async()=>{const m=draft.trim();if(!m||busy||!talk||ended)return;const before=history;setDraft('');setMine(m);
+    if(before.length>=2&&ACK.test(m)){setHistory([...before,{who:'me',text:m}]);setEnded(true);say(BYE[before.length%BYE.length],'happy');return}
+    setBusy(true);setHistory([...before,{who:'me',text:m}]);setFace('thinking');const a=await talk(before,m);setBusy(false);
+    const end=END_MARK.test(a.text),text=a.text.replace(END_MARK,'').trim();if(end)setEnded(true);say(text||BYE[0],a.emotion??'neutral',a.at??null)};
   const showChoices=mode==='choose'&&done&&!busy&&queue.length<=1&&!!line;
-  return <div className="rt-talk" role="dialog" aria-label={`${name}와 대화`} data-face={face}>
+  const manyChoices=choices.length>3;
+  const choiceList=(cls:string)=><div className={cls} role="group" aria-label="대답">
+      {choices.map((c,i)=><button key={c.label} type="button" className={'rt-talk-choice'+(i===0?' first':'')} onClick={()=>pick(c)}>{c.label}</button>)}</div>;
+  return <div className="rt-talk" role="dialog" aria-label={`${josa(name,'와')} 대화`} data-face={face}>
     {mode!=='leaving'&&<button type="button" className="rt-talk-leave" onClick={onClose}>{mode==='type'?'대화 끝내기':'나중에 얘기할게'}</button>}
     {mine&&mode!=='choose'&&<p className="rt-talk-me">{mine}</p>}
-    {showChoices&&<div className="rt-talk-choices" role="group" aria-label="대답">
-      {choices.map((c,i)=><button key={c.label} type="button" className={'rt-talk-choice'+(i===0?' first':'')} onClick={()=>pick(c)}>{c.label}</button>)}</div>}
+    {/* a long list (the stocks) goes inside the box as chips: a column of nine ran over the line on short phones (device check 2026-11-25) */}
+    {showChoices&&!manyChoices&&choiceList('rt-talk-choices')}
     <div className="rt-talk-box" onClick={tapBox}>
       <span className={'rt-talk-name n-'+(who?.id??'bori')} data-who={who?.id??'bori'}>{name}{at&&!busy&&<time className="rt-talk-at rt-num" dateTime={at}>{at.slice(11,16)}</time>}</span>
       <p className="rt-talk-line" aria-live="polite">
@@ -83,7 +95,9 @@ export function FriendSheet({opener,topic,seed,onGo,onClose,talk,opening,onFace,
         <span className="rt-sr">{busy?'':line.slice(shown)}</span>
       </p>
       {done&&!busy&&queue.length>1&&<i className="rt-talk-more" aria-hidden/>}
-      {mode==='type'&&<form className="rt-talk-type" onClick={e=>e.stopPropagation()} onSubmit={e=>{e.preventDefault();void send()}}>
+      {showChoices&&manyChoices&&<div onClick={e=>e.stopPropagation()}>{choiceList('rt-talk-choices on-box')}</div>}
+      {mode==='type'&&ended&&!busy&&<div className="rt-talk-choices on-box" onClick={e=>e.stopPropagation()}><button type="button" className="rt-talk-choice first" onClick={onClose}>대화 마치기</button></div>}
+      {mode==='type'&&!ended&&<form className="rt-talk-type" onClick={e=>e.stopPropagation()} onSubmit={e=>{e.preventDefault();void send()}}>
         <input ref={input} className="rt-input" disabled={!talk} value={draft} maxLength={FRIEND_TALK.maxIn} onChange={e=>setDraft(e.target.value)}
           placeholder={talk?`${name}한테 말하기`:'자유 대화는 로그인하면 열려요'} aria-label={`${name}에게 말하기`}/>
         <button type="submit" className="rt-btn rt-btn-ink" disabled={!talk||busy||!draft.trim()}>보내기</button>
