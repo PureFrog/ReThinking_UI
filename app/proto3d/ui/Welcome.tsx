@@ -47,7 +47,7 @@ function LandingInstall(){
   if(state!=='offer'&&state!=='ios')return null;
   return <div className="rt-wel-install">
     <button type="button" className="rt-wel-pill rt-wel-inst" aria-expanded={state==='ios'?steps:undefined}
-      onClick={()=>{if(state==='offer')void install();else setSteps(v=>!v)}}>📲 앱으로 설치</button>
+      onClick={()=>{if(state==='offer')void install();else setSteps(v=>!v)}}>앱으로 설치</button>
     {state==='ios'&&steps&&<ol className="rt-wel-steps"><li>아래쪽 공유 버튼 <b>⎋</b>을 눌러요</li><li><b>홈 화면에 추가</b>를 골라요</li><li>오른쪽 위 <b>추가</b>를 눌러요</li></ol>}
   </div>;
 }
