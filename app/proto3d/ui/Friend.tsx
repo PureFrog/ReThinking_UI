@@ -65,6 +65,9 @@ export function FriendSheet({opener,topic,seed,onGo,onClose,talk,opening,onFace,
     if(c.stock!==undefined&&who&&talk&&onPickTalk){const id=c.stock,n=c.label;setPicking(false);setMode('type');setHistory(h=>[...h,{who:'me',text:n}]);setBusy(true);setFace('thinking');
       void onPickTalk(id,n).then(l=>{setBusy(false);if(l)say(l.text,l.emotion??'curious',l.at??null);else say(`${n}? 좋아. 왜 갖고 있는지 한 줄로 말해 줘. 반대로 볼 근거를 같이 찾아볼게.`,'curious')});return}
     if(c.stock!==undefined&&who&&talk){const n=c.label;setPicking(false);setMode('type');say(`${n}? 좋아. 왜 갖고 있는지 한 줄로 말해 줘. 반대로 볼 근거를 같이 찾아볼게.`,'curious');setHistory(h=>[...h,{who:'me',text:n}]);return}
+    // 피드백 2026-11-26 "내 종목 얘기를 골랐는데 대화가 아니라 나무로 가": with someone to talk to, the stock picked is what we
+    // talk about next (the same as typing it); only with no talk to be had does it walk to the tree
+    if(c.stock!==undefined&&talk){const n=c.label;setPicking(false);setMode('type');void ask(`${n} 얘기 하고 싶어.`);return}
     if(c.stock!==undefined){const id=c.stock,n=c.label;setMode('leaving');say(who?who.stockLine(n):`${n} 나무로 가자.`,'happy');setTimeout(()=>onStock?.(id),TIMING.talkGo+300);return}
     if(c.leave){setMode('leaving');say(LATER,'happy');setTimeout(onClose,TIMING.talkLeave);return}
     // v3 npc_bori: the signal talk is not sent to the library; with no free talk yet, 보리 points to 루온 and lets it be
@@ -75,7 +78,8 @@ export function FriendSheet({opener,topic,seed,onGo,onClose,talk,opening,onFace,
   // 피드백 2026-11-26 "할 말 없는데 억지로 이어가": a bare "응/그치/알겠어/고마워" after a real exchange ends the talk here
   // (no model call), and the model may end it too by putting ⟨끝⟩ at the end of its line (core/llm1/prompt.ts CLOSING)
   const [ended,setEnded]=useState(false);
-  const send=async()=>{const m=draft.trim();if(!m||busy||!talk||ended)return;const before=history;setDraft('');setMine(m);
+  const send=async()=>{const m=draft.trim();if(!m||busy||!talk||ended)return;setDraft('');await ask(m)};
+  const ask=async(m:string)=>{if(!talk)return;const before=history;setMine(m);
     if(before.length>=2&&ACK.test(m)){setHistory([...before,{who:'me',text:m}]);setEnded(true);say(BYE[before.length%BYE.length],'happy');return}
     setBusy(true);setHistory([...before,{who:'me',text:m}]);setFace('thinking');const a=await talk(before,m);setBusy(false);
     const end=END_MARK.test(a.text),text=a.text.replace(END_MARK,'').trim();if(end)setEnded(true);say(text||BYE[0],a.emotion??'neutral',a.at??null)};

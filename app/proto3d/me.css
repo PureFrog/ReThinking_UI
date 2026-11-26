@@ -138,3 +138,23 @@ html[data-text="xl"] .proto3d :is(.rt-sheet-head,.rt-sheet-body,.rt-sheet-foot,.
 .rt-me-act.buy:disabled{background:#efe7d3;border-color:var(--rt-line2);color:var(--rt-mute)}
 .rt-me-act:not(:disabled):active{transform:translateY(1px)}
 .proto3d .rt-me-shop[data-on=true]{box-shadow:inset 0 0 0 1.5px #3f9e3a,0 0 0 3px #3f9e3a2e;border-color:#3f9e3a}
+
+/* 방명록 (ui/SkyView.tsx Guestbook, db/migrations/017_social.sql) */
+.sky-book{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+.sky-book-in{display:grid;grid-template-columns:1fr auto;gap:8px}
+.sky-book-in input{min-width:0;font:inherit;font-size:14px;padding:10px 12px;border-radius:10px;border:1px solid var(--rt-line,#d9d2c3);background:var(--rt-paper,#fffaf0);color:inherit}
+.sky-book-in input:focus-visible{outline:2px solid var(--rt-accent);outline-offset:1px}
+.sky-notes{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto}
+.sky-notes li{display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:baseline;font-size:13px;padding:8px 10px;border-radius:10px;background:var(--rt-paper,#fffaf0)}
+.sky-notes li b{font-weight:700;white-space:nowrap}
+.sky-notes li span{min-width:0;overflow-wrap:anywhere}
+.sky-notes li small{color:var(--rt-mute);font-size:11px}
+.sky-note-x{font:inherit;font-size:11px;color:var(--rt-mute);background:none;border:0;padding:0 2px;cursor:pointer}
+.sky-note-x:hover,.sky-note-x:focus-visible{color:var(--rt-seal);text-decoration:underline}
+
+/* 접속 상태 (018_presence): a dot on the name tag and in the visit sheet */
+.sky-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle;background:#9a9a9a;box-shadow:0 0 0 1.5px rgba(255,255,255,.7)}
+.sky-dot.on{background:#3cbf6a;box-shadow:0 0 0 1.5px rgba(255,255,255,.8),0 0 6px rgba(60,191,106,.8)}
+.sky-status{display:block;font-size:12px;color:var(--rt-mute);margin-top:2px}
+.sky-status.on{color:#2f9a55;font-weight:600}
+.sky-closed{margin:10px 0 4px;font-size:12.5px}

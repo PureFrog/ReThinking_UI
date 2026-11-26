@@ -11,10 +11,11 @@ import '../../mts/mts.css';
 import '../comm-plus.css';
 import {StockSheet} from '../../mts/StockSheet';
 import {rateOf} from '../../core/holdings-in';
-import {newsCards,type NewsCard} from '../../content/village-news';
+import {mergeNews,type NewsCard} from '../../content/village-news';
+import {useLiveNews} from '../liveNews';
 import type {CommAccount,CommLine} from '../../content/comm';
 import {Term,CommGuide,guideSeen,markGuide,Spark,StockPage,Missions,Fields,WeeklyCard,FirstBuyCards,firstBuySeen,markFirstBuy,type Mission,type Weekly} from './CommPlus';
-import {history,change} from '../../core/virtual';
+import {history,change,quote} from '../../core/virtual';
 
 const won=(n:number)=>Math.round(n).toLocaleString('ko-KR');
 const signed=(n:number)=>`${n>0?'+':''}${won(n)}`;
@@ -33,6 +34,8 @@ function TabIcon({id}:{id:CommTab}){
   return <svg {...p}><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 10h16"/></svg>;
 }
 
+// the day of the latest close a price stands on, as M/D
+const closeDay=(code:string)=>{const q=quote(code,new Date().toISOString().slice(0,10));return q?`${+q.day.slice(5,7)}/${+q.day.slice(8)}`:'-'};
 export function Comm({acct,cands,lots,day,room,open,openNote,start='balance',onBuy,onSell,onTree,onClose,missions=[],onClaim,onRead,onChart,weekly,onWeekly}:{acct:CommAccount;cands:Cand[];lots:Lot[];day:string;room:number;
   open:boolean;openNote:string;start?:CommTab;onBuy:(code:string,qty:number)=>string|null;onSell:(lotId:number,qty:number)=>void;onTree:(id:number)=>void;onClose:()=>void;missions?:Mission[];onClaim?:(id:string)=>void;onRead?:()=>void;onChart?:()=>void;weekly?:Weekly;onWeekly?:()=>void}){
   const [tab,setTab]=useState<CommTab>(start),[side,setSide]=useState<'buy'|'sell'>('buy');
@@ -40,7 +43,11 @@ export function Comm({acct,cands,lots,day,room,open,openNote,start='balance',onB
   const [qty,setQty]=useState(1),[msg,setMsg]=useState<string|null>(null),[lotId,setLotId]=useState<number|null>(null),[n,setN]=useState(0);
   const c=cands.find(x=>x.code===pick)??null,cost=c?.price!=null?c.price*qty:0;
   // 피드백 2026-11-26: the news is its own tab, read when I want (no longer a gate in front of 매수)
-  const news=useMemo(()=>newsCards([...cands,...acct.lines.filter(l=>l.kind==='real').map(l=>({code:l.code,name:l.name}))].filter((x,i,a)=>a.findIndex(y=>y.code===x.code)===i),day),[cands,acct.lines,day]);
+  // 실제 기사 (db/functions/news-feed) where the server answers, 모의 기사 for the rest
+  const newsStocks=useMemo(()=>[...cands,...acct.lines.filter(l=>l.kind==='real').map(l=>({code:l.code,name:l.name}))].filter((x,i,a)=>a.findIndex(y=>y.code===x.code)===i).map(x=>({code:x.code,name:x.name})),[cands,acct.lines]);
+  const live=useLiveNews(newsStocks);
+  const news=useMemo(()=>mergeNews(newsStocks,day,live),[newsStocks,day,live]);
+  const anyLive=news.some(a=>a.live),anyMock=news.some(a=>!a.live);
   const [first,setFirst]=useState<{name:string;price:number}|null>(null),[art,setArt]=useState<NewsCard|null>(null),[confirm,setConfirm]=useState<null|{side:'buy'|'sell'}>(null),[booting,setBooting]=useState(true);
   useEffect(()=>{const t=setTimeout(()=>setBooting(false),900);return()=>clearTimeout(t)},[]);
   const readArt=(a:NewsCard)=>{setArt(a);onRead?.()};
@@ -141,7 +148,8 @@ export function Comm({acct,cands,lots,day,room,open,openNote,start='balance',onB
               <div><dt><Term k="예수금">매수 가능</Term></dt><dd>{won(acct.coins)} · 최대 {c.price?Math.floor(acct.coins/c.price):0}주</dd></div>
             </dl>
             <div className="rt-ord-pct" role="group" aria-label="빠른 수량">{[10,25,50,100].map(p=><button key={p} type="button" onClick={()=>{const mx=c.price?Math.floor(acct.coins/c.price):0;setQty(Math.max(1,Math.floor(mx*p/100)))}}>{p===100?'최대':`${p}%`}</button>)}</div>
-            <p className="rt-ord-when">⏱ <Term k="체결"/>: 다음 거래일 장 마감(15:30) 값으로 돼요.</p>
+            {/* 피드백 2026-11-26 "수익률이 안 바뀌어": what really happens: bought at once at the latest close; the rate moves when the next close comes in */}
+            <p className="rt-ord-when">⏱ <Term k="체결"/>: 가장 최근 종가({closeDay(c.code)})로 바로 사요. 수익률은 다음 장 마감(15:30) 값이 들어오면 바뀌어요.</p>
             <button type="button" className="rt-comm-go buy" disabled={cost>acct.coins||room<=0||c.price==null}
               onClick={()=>setConfirm({side:'buy'})}>
               {room<=0?'가상 밭에 빈칸이 없어요':cost>acct.coins?`코인 ${won(cost-acct.coins)} 부족`:`매수 주문 · 코인 ${won(cost)}`}</button>
@@ -162,10 +170,10 @@ export function Comm({acct,cands,lots,day,room,open,openNote,start='balance',onB
 
       {tab==='news'&&<main className="mts-main rt-news" aria-label="뉴스">
         <div className="mts-acct"><span>종목 뉴스</span><span>오늘 후보 · 내 종목</span></div>
-        <p className="rt-news-note">⚠︎ 모의 기사예요. 실제 뉴스 연결 전까지 연습용으로 만든 기사이고 실제 회사 소식이 아니에요.</p>
+        {anyMock&&<p className="rt-news-note">⚠︎ {anyLive?'"모의" 표시가 붙은 기사는 연습용으로 만든 글이에요. 실제 회사 소식이 아니에요.':'모의 기사예요. 실제 뉴스를 불러오지 못해 연습용으로 만든 기사이고 실제 회사 소식이 아니에요.'}</p>}
         <ul className="rt-news-list">{news.map(a=>{const ch=change(a.code,day);return <li key={a.id}>
           <button type="button" className="rt-news-row" onClick={()=>readArt(a)}>
-            <span className="rt-news-meta"><b className={`t-${a.theme}`}>{a.theme}</b>{a.press} · {a.time}</span>
+            <span className="rt-news-meta"><b className={`t-${a.theme}`}>{a.theme}</b>{a.press} · {a.time}{!a.live&&anyLive&&' · 모의'}</span>
             <strong>{a.title}</strong>
             <span className="rt-news-stock">{a.name}{ch&&<em className={tone(ch.rate)}>{pct(ch.rate)}</em>}</span>
           </button></li>})}</ul>
@@ -200,6 +208,7 @@ function ArticleView({a,ch,onClose,onStock,onOrder}:{a:NewsCard;ch:{rate:number}
       <h3>{a.title}</h3>
       {a.body.map((p,i)=><p key={i}>{p}</p>)}
       <small className="rt-art-src">{a.live?'언론사 요약 발췌 · 전문은 원문에서 봐요':'모의 기사 · 연습용으로 만든 글이에요. 실제 회사 소식이 아니에요.'}</small>
+      {a.live&&a.url&&<a className="rt-art-link" href={a.url} target="_blank" rel="noopener noreferrer">원문 보기 ↗</a>}
       <aside className="rt-art-look"><b>📌 이 기사에서 볼 것</b><p>{a.look}</p></aside>
     </article>
     <div className="rt-art-stock"><button type="button" onClick={onStock}><span>관련 종목</span><b>{a.name}</b>{ch&&<em className={tone(ch.rate)}>{pct(ch.rate)}</em>}<i>차트 ›</i></button>
@@ -214,7 +223,7 @@ function OrderConfirm({side,name,qty,price,onOk,onCancel}:{side:'buy'|'sell';nam
     <h4 className={buy?'up':'down'}>{buy?'매수':'매도'} 주문 확인</h4>
     <dl><div><dt>종목</dt><dd>{name}</dd></div><div><dt>주문 종류</dt><dd><Term k="시장가"/></dd></div><div><dt>수량</dt><dd>{won(qty)}주</dd></div>
       <div><dt>현재가</dt><dd>{price!=null?won(price):'-'}원</dd></div><div><dt>예상 금액</dt><dd><b>{price!=null?won(price*qty):'-'} 코인</b></dd></div>
-      <div><dt><Term k="체결"/></dt><dd>다음 거래일 15:30 종가</dd></div></dl>
+      <div><dt><Term k="체결"/></dt><dd>{buy?'가장 최근 종가로 바로':'다음 거래일 15:30 종가'}</dd></div></dl>
     <p className="rt-oc-note">체결 값은 지금 값과 다를 수 있어요. 게임 코인으로만 주문돼요.</p>
     <div className="rt-oc-acts"><button type="button" className="rt-oc-no" onClick={onCancel}>취소</button>
       <button type="button" className={`rt-comm-go ${side}`} onClick={onOk}>{buy?'매수':'매도'} 확인</button></div>

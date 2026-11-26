@@ -46,7 +46,9 @@ export const LOOK={
     // turn: how far round from straight behind the player the camera swings, so both faces show (radians)
     talk:{pitch:1.18,dist:6.5,lift:0.9,turn:0.55},
     // 유저 워크플로우 2장: talking face to face, the camera at my eyes (eye, a little behind: back) on the other's face (face)
-    eyeTalk:{eye:1.3,face:1.12,back:0.55,fov:54},
+    // 피드백 2026-11-26 "밑에서 올려다봐서 당황": the camera at the other's eye level (faceOf: how high each one's face is;
+    // the villagers are small, 루온 and the analysts tall), a step further back so the head and shoulders fit
+    eyeTalk:{eye:0.08,face:1.12,back:1.5,fov:50,faceOf:{luon:1.85,tori:1.7,moa:1.7,bori:1.6,naru:1.2} as Record<string,number>},
     // the village tour (ui/Tour.tsx): after a moment the camera comes down in front of the friend being introduced
     tour:{pitch:1.3,dist:5.2,lift:0.55,turn:{tori:0,moa:0,luon:0} as Record<string,number>,pitchOf:{} as Record<string,number>},
     // fishing with 나루: higher, looking down on the float past the player

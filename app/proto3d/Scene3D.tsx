@@ -32,7 +32,7 @@ import {soft} from './materials';
 import {MODELS,ALL_TREE_FILES,CANOPY,BARK,STUMP_CUT,FRUIT,FRUIT_FALLEN} from './models';
 import {shingles,siding,stone,brick,planks,tmat} from './surfaces';
 import {OnGround,surfaceY,tiltAt,normalAt,rng,UP} from './ground';
-import {PLOTS,PATHS,PLACES,place,inStream,route,WORLD,solids,pushOut,BUILDING_R,BRIDGE,streamZ,bridgeBlocks,bridgeLift,FIRE,FIRE_SEAT,FIRE_LOG,setNpcWalls,NPC_FIRE_SEATS,type Solid} from './places';
+import {PLOTS,PATHS,PLACES,place,inStream,route,WORLD,solids,pushOut,BUILDING_R,BRIDGE,streamZ,bridgeBlocks,bridgeLift,FIRE,FIRE_SEAT,FIRE_LOG,setNpcWalls,npcStep,NPC_FIRE_SEATS,type Solid} from './places';
 import {spread,spreadXZ} from '../core/world';
 import {SIGN_PLACES,SIGN_BUILDINGS,SIGN_CITY} from './ui/Signs';
 import {VillageLamps} from './VillageLamps';
@@ -457,22 +457,26 @@ function Keys({pos,target,stops,onMove,enabled,gate}:{gate:(x:number,z:number)=>
 
 // the player: my observer as I dressed it (Explorer3D.tsx, core/wardrobe.ts), walking where I tap
 function Player({target,stops,pos,hidden,look,walls,onPick,faceTo=null,sit}:{sit?:React.MutableRefObject<{x:number;z:number;face:number}|null>;faceTo?:{x:number;z:number}|null;onPick?:()=>void;target:React.MutableRefObject<THREE.Vector3>;stops:React.MutableRefObject<{x:number;z:number}[]>;pos:React.MutableRefObject<THREE.Vector3>;hidden?:boolean;look:Look;walls:Solid[]}){
-  const g=useRef<THREE.Group>(null),body=useRef<THREE.Group>(null),moving=useRef(false),speed=useRef(0),sitting=useRef(false);
+  const g=useRef<THREE.Group>(null),body=useRef<THREE.Group>(null),moving=useRef(false),speed=useRef(0),sitting=useRef(false),walker=useRef<{x:number;z:number;since?:number}>({x:0,z:0});
   useFrame((_,dt)=>{const p=pos.current,tg=target.current,gr=g.current,b=body.current;if(!gr||!b)return;const t=Math.min(dt,0.25)/* by time: a slow phone walks as fast */;
     const dx=tg.x-p.x,dz=tg.z-p.z,d=Math.hypot(dx,dz);moving.current=d>0.05;
     // speeds up from a stand, slows down over the last stretch, turns toward where it goes instead of snapping
     const want=moving.current?SPEED*Math.min(1,d/LOOK.walk.brake+0.25):0;speed.current+=(want-speed.current)*Math.min(1,LOOK.walk.accel*t);
     // 피드백 2026-11-24 "물가를 그냥 건널 수 있어": the stream is crossed only on the wooden bridge; a step into the water
     // (from the bank) stops at the bank, whatever brought it there (a tap, the keys, a talk's walk)
-    if(moving.current){const step=Math.min(d,speed.current*t),nx=p.x+dx/d*step,nz=p.z+dz/d*step;
+    // 피드백 2026-11-26 "지도에서 낚시터 누르면 이동이 안 돼": a walk headed straight at a stall or rock used to push into it and
+    // stop; now it goes round (places.ts npcStep, as the village's people do) and only gives up when there is no way
+    if(moving.current){const step=Math.min(d,speed.current*t),wk=walker.current;wk.x=p.x;wk.z=p.z;
+      if(!npcStep(wk,tg.x,tg.z,step,walls,0.35)&&(wk.since??0)>200){tg.set(p.x,0,p.z);stops.current=[];moving.current=false;return}
+      const nx=wk.x,nz=wk.z;
       if((inStream(nx,nz,STREAM_PAD)&&!inStream(p.x,p.z,STREAM_PAD))||bridgeBlocks(p,{x:nx,z:nz})){tg.set(p.x,0,p.z);stops.current=[];moving.current=false;return}
-      p.x=nx;p.z=nz;
+      const mx=nx-p.x,mz=nz-p.z;p.x=nx;p.z=nz;
       // 피드백 2026-11-24 "낚시터 지나갈 수 있게 됐어, 물이면 못 지나가게": the pond's water is not walked on either; a step into
       // it slides along its bank (so a walk round it still gets there), a target on the water ends at the bank
       if(inPond(p.x,p.z,POND_PAD)){outOfPond(p);if(inPond(tg.x,tg.z,POND_PAD)){const q={x:tg.x,z:tg.z};outOfPond(q);tg.set(q.x,0,q.z)}}
       // buildings are solid: slide along their edge; a target inside one ends at its edge
       if(pushOut(p,walls)){const q={x:tg.x,z:tg.z};if(pushOut(q,walls))tg.set(q.x,0,q.z)}
-      const yaw=Math.atan2(dx,dz),diff=Math.atan2(Math.sin(yaw-b.rotation.y),Math.cos(yaw-b.rotation.y));b.rotation.y+=diff*Math.min(1,LOOK.walk.turn*t)}
+      const yaw=Math.atan2(mx||dx,mz||dz),diff=Math.atan2(Math.sin(yaw-b.rotation.y),Math.cos(yaw-b.rotation.y));b.rotation.y+=diff*Math.min(1,LOOK.walk.turn*t)}
     else if(stops.current.length){const n=stops.current.shift()!;tg.set(n.x,0,n.z)}
     // standing in a talk: turned to the one I talk to
     else if(faceTo){const yaw=Math.atan2(faceTo.x-p.x,faceTo.z-p.z),diff=Math.atan2(Math.sin(yaw-b.rotation.y),Math.cos(yaw-b.rotation.y));b.rotation.y+=diff*Math.min(1,LOOK.walk.turn*t)}
@@ -503,7 +507,7 @@ const easeInOut=(k:number)=>k<0.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
 // low: the root cut-away is open, so the camera comes down to the side of it (keeping the way it faces)
 // near: a capsule is being buried or dug up (W3): the camera comes closer to it
 // aim: a landmark just opened — the camera comes down to a side view from the garden's side, facing it (core/land.ts)
-function FollowCam({pos,recenter,focus,orbit,low,near,aim,fp=false,talk=null,eye=null}:{pos:React.MutableRefObject<THREE.Vector3>;recenter:number;focus:THREE.Vector3|null;orbit:Orbit|null;low:number|null;near:boolean;aim?:number|null;fp?:boolean;talk?:{az:number;pitch?:number;dist?:number}|null;eye?:{x:number;z:number;ax:number;az:number}|null}){
+function FollowCam({pos,recenter,focus,orbit,low,near,aim,fp=false,talk=null,eye=null}:{pos:React.MutableRefObject<THREE.Vector3>;recenter:number;focus:THREE.Vector3|null;orbit:Orbit|null;low:number|null;near:boolean;aim?:number|null;fp?:boolean;talk?:{az:number;pitch?:number;dist?:number}|null;eye?:{x:number;z:number;ax:number;az:number;h?:number}|null}){
   const shift=useRef({x:0,y:0}),back=useRef(false),lean=useMemo(()=>new THREE.Vector3(),[]),side=useMemo(()=>new THREE.Vector3(),[]),tv=useRef({x:0,y:0});
   const ctl=useRef<OrbitControlsImpl>(null),{camera,size}=useThree(),fpWas=useRef(false);
   const prev=useMemo(()=>new THREE.Vector3(),[]),want=useMemo(()=>new THREE.Vector3(),[]),fwd=useMemo(()=>new THREE.Vector3(),[]);
@@ -518,9 +522,10 @@ function FollowCam({pos,recenter,focus,orbit,low,near,aim,fp=false,talk=null,eye
     // out to the usual framing where I stand
     const pc0=camera as THREE.PerspectiveCamera,E=LOOK.camera.eyeTalk;
     if(eye){if(!eyeWas.current){eyeWas.current=true;eyeFrom.copy(camera.position)}
-      want.set(eye.ax,surfaceY(eye.ax,eye.az)+E.face,eye.az);c.target.lerp(want,ease(4));
-      const dx=eye.ax-eye.x,dz=eye.az-eye.z,d=Math.hypot(dx,dz)||1;
-      fwd.set(eye.x-dx/d*E.back,surfaceY(eye.x,eye.z)+E.eye,eye.z-dz/d*E.back);camera.position.lerp(fwd,ease(3.2));
+      const fh=eye.h??E.face;want.set(eye.ax,surfaceY(eye.ax,eye.az)+fh,eye.az);c.target.lerp(want,ease(4));
+      const dx=eye.ax-eye.x,dz=eye.az-eye.z,d=Math.hypot(dx,dz)||1,cx=eye.x-dx/d*E.back,cz=eye.z-dz/d*E.back;
+      // level with their face (the ground under the camera can sit lower on the round village: measured from theirs)
+      fwd.set(cx,surfaceY(eye.ax,eye.az)+fh+E.eye,cz);camera.position.lerp(fwd,ease(3.2));
       if(pc0.fov!==E.fov){pc0.fov=E.fov;pc0.updateProjectionMatrix()}c.enableZoom=false;c.enableRotate=false;c.minDistance=0.1;c.maxPolarAngle=Math.PI;
       c.update();camera.lookAt(c.target);(testHooks() as {view?:unknown}).view={fp:false,eyeTalk:true,eyeGap:+camera.position.distanceTo(c.target).toFixed(2),follow:0};return}
     if(eyeWas.current){eyeWas.current=false;back.current=true;c.enableRotate=true;c.enableZoom=true;pc0.fov=fr.fov;pc0.updateProjectionMatrix();
@@ -692,7 +697,7 @@ export type World={
   placing?:{id:string}|null;onPlace?:(x:number,z:number,why:string|null)=>void;
   // 보리 came over to talk: the camera frames the point between it and the player (LOOK.camera.talk)
   // eye: 유저 워크플로우 2장, a talk face to face: the camera at my eyes (x,z), looking at the other's face (ax,az)
-  talk?:{x:number;z:number;az:number;pitch?:number;dist?:number;lift?:number;eye?:{x:number;z:number;ax:number;az:number}|null}|null;
+  talk?:{x:number;z:number;az:number;pitch?:number;dist?:number;lift?:number;eye?:{x:number;z:number;ax:number;az:number;h?:number}|null}|null;
   // 유저 워크플로우: the village's people (content/villagers.ts), whether each is the one to go to now, who is talking;
   // the guide's footprints to the next one; the news board, the cart's pile and whether the merchant is at the stall
   villagers?:{id:string;x:number;z:number;face:number;look:Look;hl:boolean;talking:boolean;away?:boolean;errand?:Errand|null;onErrandDone?:()=>void;routine?:Routine|null;onPick:()=>void}[];
@@ -724,7 +729,10 @@ export default function Scene3D({holdings,picked,onPick,recenter,weather,world}:
   const sun=useRef<THREE.DirectionalLight>(null);
   const pos=useRef(PLAYER_START.clone()),target=useRef(PLAYER_START.clone()),stops=useRef<{x:number;z:number}[]>([]);
   // the map (ui/MapSheet.tsx) sends the player to a place
-  useEffect(()=>{if(!world.goTo)return;const r=route(pos.current,world.goTo,(x,z)=>inPond(x,z,0.2));if(!r)return;const [first,...rest]=r;target.current.set(first.x,0,first.z);stops.current=rest},[world.goTo]);
+  // 피드백 2026-11-26 "지도에서 낚시터 누르면 이동이 안 돼": a goal on the pond's edge (the fishing spot) was "in the water" to
+  // the route, which then gave up; it is moved out to the bank first
+  useEffect(()=>{if(!world.goTo)return;const gq={x:world.goTo.x,z:world.goTo.z};if(inPond(gq.x,gq.z,0.25)){outOfPond(gq);const k=Math.hypot(gq.x-POND_AT.x,gq.z-POND_AT.z)||1;gq.x+=(gq.x-POND_AT.x)/k*0.3;gq.z+=(gq.z-POND_AT.z)/k*0.3}
+    const r=route(pos.current,gq,(x,z)=>inPond(x,z,0.2));if(!r)return;const [first,...rest]=r;target.current.set(first.x,0,first.z);stops.current=rest},[world.goTo]);
   // each holding grows on its own plot (app/core/portfolio.ts gives every new tree an empty one)
   // PM 설계 2026-11-19 7장: a tree shows its stock's name only. Leaf colour, size, fruit and lean no longer follow returns,
   // holding days or signals: every holding tree is the same grown, healthy tree (?treeState=1 brings the old look back)

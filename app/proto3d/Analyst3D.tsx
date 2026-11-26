@@ -48,7 +48,7 @@ export function Analyst({id,to,from,act,faceTo,face,surface,tilt,bubble,onPick,r
     const w=window as {__proto3d?:{boriFace?:string}};(w.__proto3d??={}).boriFace=cur},[cur,faces,parts]);
   const g=useRef<THREE.Group>(null),turn=useRef<THREE.Group>(null);
   const pos=useRef(new THREE.Vector3((from??to).x,0,(from??to).z)),heading=useRef(0),blink=useRef(2+Math.random()*3);
-  const v=useMemo(()=>new THREE.Vector3(),[]),nav=useRef<number|undefined>(undefined),seatK=useRef(0);
+  const v=useMemo(()=>new THREE.Vector3(),[]),seatK=useRef(0),gaveUp=useRef<string|null>(null);
   const solid=surface===surfaceY;
   useEffect(()=>{if(g.current)g.current.name=`analyst-${id}`},[id]);
   // a new place to go: by the bridge if it is across the stream (places.ts route)
@@ -56,11 +56,15 @@ export function Analyst({id,to,from,act,faceTo,face,surface,tilt,bubble,onPick,r
   useEffect(()=>{const r=route(pos.current,to,()=>false);stops.current=r?r.slice(1):[];goal.current=r?r[0]:to},[to.x,to.z]);// eslint-disable-line react-hooks/exhaustive-deps
   useFrame(({clock},dt)=>{const gr=g.current,tr=turn.current;if(!gr||!tr)return;const t=clock.elapsedTime,d=Math.min(dt,0.25)/* by time */,p=pos.current;
     let gl=goal.current;if(Math.hypot(gl.x-p.x,gl.z-p.z)<0.05&&stops.current.length){gl=goal.current=stops.current.shift()!}
-    const dx=gl.x-p.x,dz=gl.z-p.z,dist=Math.hypot(dx,dz),moving=dist>0.05;
+    const dx=gl.x-p.x,dz=gl.z-p.z,dist=Math.hypot(dx,dz),gk=gl.x.toFixed(2)+','+gl.z.toFixed(2);
+    // gave up on this goal (blocked, places.ts npcStep): stand still until the goal changes
+    if(gaveUp.current&&gaveUp.current!==gk)gaveUp.current=null;
+    const moving=dist>0.05&&!gaveUp.current;
     // 피드백 2026-11-26 "NPC가 나무·바위 통과": in the village they walk round things (places.ts npcStep); rooms are clear
     if(moving){const step=Math.min(dist,SPEED*d),ox=p.x,oz=p.z;
-      if(solid){const q={x:p.x,z:p.z,side:nav.current};if(npcStep(q,gl.x,gl.z,step,npcAround(id))){p.x=q.x;p.z=q.z}nav.current=q.side}else{p.x+=dx/dist*step;p.z+=dz/dist*step}
-      heading.current=Math.atan2(p.x-ox||dx,p.z-oz||dz)}
+      if(solid){if(!npcStep(p,gl.x,gl.z,step,npcAround(id)))gaveUp.current=gk}else{p.x+=dx/dist*step;p.z+=dz/dist*step}
+      // turn smoothly toward the way it walks (no snapping when going round)
+      const want=Math.atan2(p.x-ox||dx,p.z-oz||dz);heading.current+=Math.atan2(Math.sin(want-heading.current),Math.cos(want-heading.current))*(1-Math.exp(-d*10))}
     else{// standing: face the way their act points, or the player
       // the short way round, by time (it used to creep 4% a frame, the long way at times: on a slow phone 보리 kept its
       // back to the player for seconds after coming over)

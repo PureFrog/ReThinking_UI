@@ -97,13 +97,30 @@ export const npcWalls=()=>NPC_WALLS;
 export const NPC_LIVE:Record<string,{x:number;z:number}>={};
 export const npcAround=(id:string):Solid[]=>{const out=[...NPC_WALLS];for(const k in NPC_LIVE)if(k!==id)out.push({...NPC_LIVE[k],r:0.32});return out};
 const deeper=(x:number,z:number,fx:number,fz:number,list:Solid[],pad:number)=>list.some(w=>{const d=Math.hypot(x-w.x,z-w.z);return d<w.r+pad&&d<Math.hypot(fx-w.x,fz-w.z)-1e-4});
-export function npcStep(p:{x:number;z:number;side?:number},gx:number,gz:number,m:number,list:Solid[]=NPC_WALLS,pad=0.3):boolean{
-  const dx=gx-p.x,dz=gz-p.z,d=Math.hypot(dx,dz);if(d<1e-4)return false;const s=Math.min(d,m),base=Math.atan2(dx,dz),sd=p.side??1;
+// 피드백 2026-11-26 "막히면 돌아가지 못하고 랙 걸리듯 난리": the way round keeps to one side while it is needed (no flipping
+// side to side each frame), and a walk that has not got closer for a while gives up (returns false: the caller stops
+// and waits for its next goal)
+type Walker={x:number;z:number;side?:number;hold?:number;best?:number;since?:number;gx?:number;gz?:number};
+export function npcStep(p:Walker,gx:number,gz:number,m:number,list:Solid[]=NPC_WALLS,pad=0.3):boolean{
+  const dx=gx-p.x,dz=gz-p.z,d=Math.hypot(dx,dz);if(d<1e-4)return false;const s=Math.min(d,m),base=Math.atan2(dx,dz);
+  if(p.gx!==gx||p.gz!==gz){p.gx=gx;p.gz=gz;p.best=d;p.since=0;p.hold=0}
+  if(d<(p.best??Infinity)-0.05){p.best=d;p.since=0}else p.since=(p.since??0)+1;
+  if((p.since??0)>200)return false;
   // a goal inside something (a seat, the cart, a spot by a tree): that one is not in the way
   if(list.some(w=>Math.hypot(gx-w.x,gz-w.z)<w.r+pad))list=list.filter(w=>Math.hypot(gx-w.x,gz-w.z)>=w.r+pad);
-  for(const off of [0,0.45,0.9,1.35,1.8,2.3]){for(const k of off?[sd,-sd]:[1]){const a=base+off*k,nx=p.x+Math.sin(a)*s,nz=p.z+Math.cos(a)*s;
-    if(!deeper(nx,nz,p.x,p.z,list,pad)){p.x=nx;p.z=nz;if(off)p.side=k;return true}}}
-  return false;
+  const free=(a:number)=>{const nx=p.x+Math.sin(a)*s,nz=p.z+Math.cos(a)*s;return deeper(nx,nz,p.x,p.z,list,pad)?null:[nx,nz]};
+  const go=(xz:number[])=>{p.x=xz[0];p.z=xz[1];return true};
+  // straight on when clear and not in the middle of going round
+  if(!(p.hold&&p.hold>0)){const st=free(base);if(st)return go(st)}
+  else p.hold--;
+  // going round: the side chosen keeps until clear of the obstacle (hold); first time, the side that turns least
+  const OFF=[0.4,0.8,1.2,1.6,2.0,2.4,2.8];
+  const first=(k:number)=>{for(const o of OFF){const xz=free(base+o*k);if(xz)return {o,xz}}return null};
+  let sd=p.side;
+  if(!sd||!(p.hold&&p.hold>0)){const L=first(1),R=first(-1);if(!L&&!R)return false;sd=!R||(L&&L.o<=R.o)?1:-1}
+  const r=first(sd)??first(-sd);if(!r)return false;
+  if(free(base)&&r.o<=0.4){p.hold=0}else{p.side=sd;p.hold=Math.max(p.hold??0,25)}
+  return go(r.xz);
 }
 // moves a point out to the edge of any solid it is inside (pad: the player's own width); true if it moved
 export function pushOut(p:{x:number;z:number},list:Solid[],pad=0.35){let moved=false;

@@ -24,3 +24,13 @@ test('the lamps stand off the paths and out of the water', () => {
   assert.ok(P.LAMP_AT.length>=3&&P.LAMP_AT.length<=6);
   for(const l of P.LAMP_AT){assert.equal(P.inStream(l.x,l.z,0.5),false);for(const path of P.PATHS)for(const [x,z] of path)assert.ok(Math.hypot(x-l.x,z-l.z)>=0.75)}
 });
+test('going round keeps one side (no flip-flop), and a walk walled off gives up', () => {
+  // a wall of three across the way
+  const wall=[{x:0,z:-0.8,r:0.5},{x:0,z:0,r:0.5},{x:0,z:0.8,r:0.5}],p={x:-3,z:0};let flips=0,last=null;
+  for(let i=0;i<500&&Math.hypot(p.x-3,p.z)>0.05;i++){P.npcStep(p,3,0,0.05,wall);if(p.side!==undefined&&last!==null&&p.side!==last)flips++;if(p.side!==undefined)last=p.side}
+  assert.ok(Math.hypot(p.x-3,p.z)<=0.05,'arrived');assert.ok(flips<=1,`flips ${flips}`);
+  // the goal inside a closed ring of rocks: no way in
+  const ring=Array.from({length:16},(_,i)=>({x:Math.cos(i/16*Math.PI*2)*2,z:Math.sin(i/16*Math.PI*2)*2,r:0.5})),q={x:-5,z:0.1};let stopped=false;
+  for(let i=0;i<3000;i++)if(!P.npcStep(q,0.3,0,0.05,ring)){stopped=true;break}
+  assert.ok(stopped,'gave up');
+});
