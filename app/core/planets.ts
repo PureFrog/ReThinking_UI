@@ -8,7 +8,9 @@ export const SHARE_LABEL:Record<Share,string>={off:'비공개',hide:'이름 가�
 export type PlanetTree={condition:Condition;sector:string;name?:string};
 export type Planet={id:string;name:string;rank:string;habit:string;color:string;hit:number|null;calibration:number|null;best:number|null;stamps:number;trees:PlanetTree[];share:Share;me?:boolean;sample?:boolean;
   // real players (db/migrations/018_presence.sql): when their app last checked in; closed = a planet with no garden shown
-  seenAt?:string|null;closed?:boolean};
+  seenAt?:string|null;closed?:boolean;
+  // ?skydemo: example players drawn the way real ones are (status, closed planet, notes), always labelled 예시
+  demo?:boolean};
 // the three tree kinds the garden draws (content/portfolio.ts kindOf) read as broad sectors
 export const SECTOR_OF_KIND=['기술·부품','소비재','콘텐츠'];
 export type PlanetCtx={name:string;rank:string;habit:string;color:string;hit:number|null;calibration:number|null;best:number|null;stamps:number};
@@ -60,4 +62,26 @@ export function planetOfRow(r:{player:string;handle:string|null;body:ReturnType<
   if(r.body&&Array.isArray(r.body.trees)&&r.body.share!=='off')return {...r.body,id:r.player,name:r.handle||r.body.name,seenAt};
   let h=0;for(const c of r.player)h=(h*31+c.charCodeAt(0))>>>0;
   return {id:r.player,name:r.handle||'유저',rank:'',habit:'',color:CLOSED_COLORS[h%CLOSED_COLORS.length],hit:null,calibration:null,best:null,stamps:0,trees:[],share:'off',closed:true,seenAt};
+}
+
+// ?skydemo (보여 주기용): how the sky looks with real players, without a server. Five example players at fixed times
+// before `now`: two 온라인, three 오프라인 (10분, 3시간, 2일), one of them with a closed planet.
+export const DEMO_NOTES:Record<string,{handle:string;body:string;ago:number}[]>={
+  'demo-1':[{handle:'느린복기',body:'반도체 나무 꽃 핀 거 멋지네요',ago:3600e3},{handle:'공시러',body:'이번 주 복기 같이 해요',ago:26*3600e3}],
+  'demo-2':[{handle:'새벽매수',body:'응원 보내요!',ago:600e3}],
+};
+export function demoNeighbours(now:number):Planet[]{
+  const ago=(ms:number)=>new Date(now-ms).toISOString();
+  const tree=(condition:Condition,sector:string)=>({condition,sector});
+  return [
+    {id:'demo-1',name:'새벽매수',rank:'애널리스트',habit:'지켜봄 위주',color:'#36557e',hit:62,calibration:71,best:20,stamps:6,share:'hide',demo:true,seenAt:ago(30e3),
+      trees:[tree('bloom','기술·부품'),tree('well','기술·부품'),tree('well','소비재'),tree('dull','콘텐츠'),tree('well','소비재')]},
+    {id:'demo-2',name:'느린복기',rank:'시니어 애널리스트',habit:'홀드 위주',color:'#7a5238',hit:55,calibration:80,best:30,stamps:9,share:'open',demo:true,seenAt:ago(80e3),
+      trees:[{condition:'well',sector:'기술·부품',name:'삼성전자'},{condition:'wilt',sector:'콘텐츠',name:'카카오'},{condition:'bloom',sector:'기술·부품',name:'SK하이닉스'}]},
+    {id:'demo-3',name:'공시러',rank:'주니어 애널리스트',habit:'고르게',color:'#c4652e',hit:48,calibration:58,best:-10,stamps:3,share:'hide',demo:true,seenAt:ago(10*60e3),
+      trees:[tree('rot','소비재'),tree('dull','기술·부품'),tree('well','콘텐츠'),tree('well','소비재')]},
+    {id:'demo-4',name:'현금비중',rank:'애널리스트',habit:'손절 검토 위주',color:'#4d4a8a',hit:70,calibration:66,best:10,stamps:5,share:'hide',demo:true,seenAt:ago(3*3600e3),
+      trees:[tree('well','기술·부품'),tree('well','기술·부품')]},
+    {...planetOfRow({player:'demo-5',handle:'분기노트',body:null,seen_at:ago(2*24*3600e3)}),demo:true},
+  ];
 }

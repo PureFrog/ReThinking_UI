@@ -3,7 +3,7 @@
 // planets, a visit sheet for a tapped planet (its judging numbers, trees by state and sector, names only if its owner
 // opened them, stamps, one cheer), and my own share setting with a preview of what others get.
 import {useEffect,useRef,useState} from 'react';
-import {CONDITION_COLOR,CONDITION_SHORT,SHARE_LABEL,presenceOf,type Planet,type Share} from '../../core/planets';
+import {CONDITION_COLOR,CONDITION_SHORT,SHARE_LABEL,DEMO_NOTES,presenceOf,type Planet,type Share} from '../../core/planets';
 import {screenPoints} from '../screen';
 import {Cross} from './Icons';
 import {cue} from '../../core/sound';
@@ -11,6 +11,15 @@ import {cheer,myCheers,notesOf,addNote,deleteNote,myId,cleanNote,NOTE_MAX,type N
 
 // 방명록 on a planet (db/migrations/017_social.sql): the newest 30 notes, a short line of my own on someone else's,
 // and a delete on the ones I wrote (or, on my planet, any). Only between real players: the examples have none.
+// ?skydemo: the example players' notes, read only
+function DemoBook({owner}:{owner:string}){
+  const notes=DEMO_NOTES[owner]??[];
+  return <div className="sky-book"><div className="sky-sec"><span>방명록 · {notes.length}</span><span className="sky-note">예시</span></div>
+    {notes.length?<ul className="sky-notes">{notes.map((n,i)=><li key={i}><b>{n.handle}</b><span>{n.body}</span><small>{n.ago<3600e3?`${Math.round(n.ago/60e3)}분 전`:n.ago<86400e3?`${Math.round(n.ago/3600e3)}시간 전`:`${Math.round(n.ago/86400e3)}일 전`}</small></li>)}</ul>
+    :<p className="sky-note">아직 남긴 글이 없어요</p>}
+    <p className="sky-note">예시 화면이라 글을 남길 수 없어요</p></div>;
+}
+
 function Guestbook({owner,write}:{owner:string;write:boolean}){
   const [notes,setNotes]=useState<Note[]|null>(null),[text,setText]=useState(''),[busy,setBusy]=useState(false),[err,setErr]=useState<string|null>(null);
   const load=()=>notesOf(owner).then(n=>setNotes(n??[]));
@@ -45,12 +54,12 @@ export function SkyView({planets,sample,share,focus,week,onPick,onShare,onClose,
   const [privacy,setPrivacy]=useState(false),[cheered,setCheered]=useState<string[]>([]),[received,setReceived]=useState<number|null>(null),[me,setMe]=useState<string|null>(null);
   // real players: who I cheered this week and how many cheered me (kept on the server, one per neighbour per week)
   useEffect(()=>{if(sample)return;let on=true;void myCheers(week).then(c=>{if(on&&c){setCheered(c.given);setReceived(c.received)}});void myId().then(id=>{if(on)setMe(id)});return()=>{on=false}},[sample,week]);
-  const doCheer=(id:string)=>{cue('grade-stamp');setCheered(c=>[...c,id]);if(!sample)void cheer(id,week).then(ok=>{if(!ok)setCheered(c=>c.filter(x=>x!==id))})};
+  const doCheer=(id:string)=>{cue('grade-stamp');setCheered(c=>[...c,id]);if(!sample&&!planets.find(x=>x.id===id)?.demo)void cheer(id,week).then(ok=>{if(!ok)setCheered(c=>c.filter(x=>x!==id))})};
   const p=planets.find(x=>x.id===focus&&!x.me)??null;
   const pick=(id:string)=>{const x=planets.find(y=>y.id===id);cue('panel-open');if(x?.me){onPick(null);setPrivacy(true)}else{setPrivacy(false);onPick(id)}};
   return <div className="sky" data-testid="sky">
     <div className="sky-top">
-      <div className="sky-plate"><div className="rt-kicker">이번 주 리그 그룹</div><div className="sky-title">다른 유저</div>{sample?<span className="sky-sample">예시 화면 · 입장코드를 넣은 계정으로 로그인하면 실제 유저가 보여요</span>:<span className="sky-sample">입장코드를 넣은 유저 {planets.filter(x=>!x.me).length}명{received!==null?` · 이번 주 받은 응원 ${received}`:''}</span>}</div>
+      <div className="sky-plate"><div className="rt-kicker">이번 주 리그 그룹</div><div className="sky-title">다른 유저</div>{sample?<span className="sky-sample">예시 화면 · 입장코드를 넣은 계정으로 로그인하면 실제 유저가 보여요</span>:planets.some(x=>x.demo)?<span className="sky-sample">예시 화면 · 실제 유저 화면을 흉내 낸 목 데이터예요 (온라인 {planets.filter(x=>x.demo&&presenceOf(x.seenAt,Date.now()).online).length}명)</span>:<span className="sky-sample">입장코드를 넣은 유저 {planets.filter(x=>!x.me).length}명{received!==null?` · 이번 주 받은 응원 ${received}`:''}</span>}</div>
       <div className="sky-right">{onLeague&&<button type="button" className="sky-pill" onClick={onLeague}>리그 순위</button>}<button type="button" className="sky-pill" onClick={()=>{onPick(null);setPrivacy(true)}}>공개 설정 · <b>{SHARE_LABEL[share]}</b></button>
         <button type="button" className="sky-pill" aria-label="닫기" onClick={onClose}><Cross size={16}/></button></div>
     </div>
@@ -70,7 +79,7 @@ export function SkyView({planets,sample,share,focus,week,onPick,onShare,onClose,
         <div className="sky-row"><button type="button" className="rt-btn" onClick={()=>onPick(null)}>뒤로</button>
           <button type="button" className="rt-btn primary" disabled={cheered.includes(p.id)} onClick={()=>doCheer(p.id)}>{cheered.includes(p.id)?'이번 주 응원함':'응원하기'}</button>
           {cheered.includes(p.id)&&<span className="sky-cheer" aria-hidden>응</span>}</div>
-        {sample?<p className="sky-note">예시 행성이라 방명록은 없어요</p>:<Guestbook owner={p.id} write/>}
+        {sample?<p className="sky-note">예시 행성이라 방명록은 없어요</p>:p.demo?<DemoBook owner={p.id}/>:<Guestbook owner={p.id} write/>}
       </div>}
     </section>
     <section className={`sky-sheet${privacy?' on':''}`} aria-label={privacy?'내 공개 범위':undefined} aria-hidden={!privacy}>

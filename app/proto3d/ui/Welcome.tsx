@@ -7,6 +7,7 @@ import {Logo} from './Logo';
 import {authRepo} from '../server';
 import {authNotice,redeemInvite} from '../supabase';
 import {CONSENTS,NICK_MAX,checkSignUp,type Account,type ConsentId} from '../../core/auth';
+import {useInstall} from '../../pwa';
 
 type View='land'|'login'|'signup';
 // owing: an account signed in with Kakao or Google that has not agreed to the terms yet — it only sees that step
@@ -33,9 +34,22 @@ function Landing({onSignup,onLogin,onGuest}:{shot:string;onSignup:()=>void;onLog
       <button type="button" className="rt-gbtn green" onClick={onSignup}>시작하기</button>
       <button type="button" className="rt-gbtn light" onClick={onLogin}>로그인</button>
       {onGuest&&<button type="button" className="rt-wel-guest" onClick={onGuest}>가입 없이 둘러보기</button>}
+      <LandingInstall/>
     </div>
     <p className="rt-wel-legal">본 서비스는 투자 권유를 목적으로 하지 않으며, 제공되는 정보는 한국거래소 종가 등 과거 데이터와 일부 모의 데이터에 기반한 참고 자료입니다. 투자 판단과 그 결과에 대한 책임은 이용자 본인에게 있습니다.</p>
   </section>;
+}
+
+// 앱으로 설치 on the first screen (PWA, app/pwa.tsx): Android·PC Chrome/Edge open the browser's own install dialog;
+// iPhone Safari has none, so the button shows the three steps; already installed or no way to install → nothing
+function LandingInstall(){
+  const {state,install}=useInstall(),[steps,setSteps]=useState(false);
+  if(state!=='offer'&&state!=='ios')return null;
+  return <div className="rt-wel-install">
+    <button type="button" className="rt-wel-pill rt-wel-inst" aria-expanded={state==='ios'?steps:undefined}
+      onClick={()=>{if(state==='offer')void install();else setSteps(v=>!v)}}>앱으로 설치</button>
+    {state==='ios'&&steps&&<ol className="rt-wel-steps"><li>아래쪽 공유 버튼 <b>⎋</b>을 눌러요</li><li><b>홈 화면에 추가</b>를 골라요</li><li>오른쪽 위 <b>추가</b>를 눌러요</li></ol>}
+  </div>;
 }
 
 function Social({verb,onError}:{verb:string;onError:(e:string)=>void}){

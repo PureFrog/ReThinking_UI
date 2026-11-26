@@ -239,24 +239,85 @@ export function Plaza({onPick,flags,me}:{onPick:()=>void;flags:string[];me:numbe
   </group></OnGround>;
 }
 
-// 오락실 (피드백 2026-11-24 "왼쪽 리그광장 오른쪽 오락실", a teammate's model): over the bridge, right of the split, its
-// door turned to the path. The file is 1 wide, 0.49 high, 0.91 deep (steps and stones in front); ARCADE_SIZE scales it.
-export const ARCADE_SIZE=5.2;
+// 오락실 (피드백 2026-11-26 "오락실 외관이 작고 별로" → 시안 C 캡슐 뽑기 돔, 더 크게): a round coral building with a glass
+// dome full of capsules on top, an arched door, a glowing coin slot, a prize chute, a crank that
+// turns, a ring of chasing bulbs, and a few giant capsules by the way in. Door at local +z, turned to the path.
+// No lettering on it: the neon sign on posts by the path names it. ARCADE_R is its footprint (places.ts SOLID_R keeps the player outside it).
+export const ARCADE_R=3.0;
+const CAPSULE_COLS=['#ff5fa8','#49c9ff','#ffd447','#7dde8f','#a98bff','#ff8a4c'];
+// a capsule: two half spheres, coloured top and white bottom, a thin band where they meet
+function Capsule({r,col,at,rot=[0,0,0],open=0}:{r:number;col:string;at:[number,number,number];rot?:[number,number,number];open?:number}){
+  return <group position={at} rotation={rot}>
+    <mesh position-y={open} castShadow><sphereGeometry args={[r,18,10,0,Math.PI*2,0,Math.PI/2]}/>{S(col)}</mesh>
+    <mesh castShadow><sphereGeometry args={[r,18,10,0,Math.PI*2,Math.PI/2,Math.PI/2]}/>{S('#fbf7ee')}</mesh>
+    <mesh rotation-x={Math.PI/2}><torusGeometry args={[r*0.99,r*0.06,6,24]}/>{S('#e8dfcc')}</mesh>
+  </group>;
+}
 export function ArcadeHouse({onPick,night=0}:{onPick:()=>void;night?:number}){
-  const p=PLACES.find(x=>x.id==='arcade')!;
-  const {scene}=useGLTF(MODELS.arcade);
-  const obj=useMemo(()=>{const o=scene.clone(true);o.traverse(c=>{const m=c as THREE.Mesh;if(m.isMesh){m.castShadow=true;m.receiveShadow=true;
-    const mat=m.material as THREE.MeshPhysicalMaterial;if(mat&&'transmission' in mat){mat.transmission=0;mat.thickness=0}}});return o},[scene]);
+  const p=PLACES.find(x=>x.id==='arcade')!,R=ARCADE_R,H=3.1,DR=R*0.93,B=0.24;
+  // the capsules in the dome: rings from the dome's floor up, fewer as it narrows (fixed, the same each visit)
+  const caps=useMemo(()=>{const out:{at:[number,number,number];rot:[number,number,number];col:string}[]=[];const rnd=rng(7);let k=0;
+    for(let ring=0;ring<5;ring++){const y=0.32+ring*0.5,rr=Math.sqrt(Math.max(0,(DR-0.45)**2-y*y))*0.92,n=Math.max(3,Math.round(rr*3.2));
+      for(let i=0;i<n;i++){const a=i/n*Math.PI*2+ring*0.7;out.push({at:[Math.cos(a)*rr,H+0.18+y,Math.sin(a)*rr],rot:[rnd()*3,rnd()*3,rnd()*3],col:CAPSULE_COLS[k++%CAPSULE_COLS.length]})}}
+    return out},[DR]);
+  const crank=useRef<THREE.Group>(null),bulbs=useRef<(THREE.MeshStandardMaterial|null)[]>([]),slot=useRef<THREE.MeshStandardMaterial>(null);
+  useFrame(({clock},dt)=>{if(crank.current)crank.current.rotation.z+=dt*0.6;const t=Math.floor(clock.elapsedTime*5);
+    bulbs.current.forEach((m,i)=>{if(m)m.emissiveIntensity=((i+t)%4===0?2.4:0.45)*(0.4+night*1.2)});
+    if(slot.current)slot.current.emissiveIntensity=(0.6+Math.sin(clock.elapsedTime*3)*0.4)*(0.5+night*1.5)});
+  const NB=28;
   return <><OnGround x={p.x} z={p.z} rot={p.rot}><group onClick={click(onPick)} name="arcade">
-    <primitive object={obj} scale={ARCADE_SIZE} position-y={-0.03}/>
-    <mesh position={[0,1.4,-0.2]} visible={false}><boxGeometry args={[5.2,2.8,4.2]}/></mesh>
-    {/* 피드백 2026-11-26 "오락실도 밤되면 너무 어두워": light spills out the front (pink and blue like the screens inside) */}
-    <pointLight position={[0,1.6,3]} color="#ff7ad9" intensity={night*7} distance={7} decay={1.6}/>
-    <group position={[0,0,3]}><GlowPool r={3} color="#c46bff" k={night*0.8}/></group>
+    {/* plinth and body, two soft bands round it */}
+    <mesh position-y={B/2} receiveShadow castShadow><cylinderGeometry args={[R+0.25,R+0.35,B,40]}/>{S('#f4e6c8')}</mesh>
+    <mesh position-y={B+H/2} castShadow receiveShadow><cylinderGeometry args={[R*0.94,R,H,40]}/>{S('#ff7f7a')}</mesh>
+    {[B+H*0.33,B+H*0.66].map(y=><mesh key={y} position-y={y}><cylinderGeometry args={[R*0.99-(y-B)/H*0.06*R,R*0.99-(y-B)/H*0.06*R,0.12,40]}/>{S('#ff9e8f')}</mesh>)}
+    <mesh position-y={B+H} castShadow><cylinderGeometry args={[R*1.0,R*0.96,0.36,40]}/>{S('#fff3dc')}</mesh>
+    <mesh position-y={B+H+0.19} rotation-x={Math.PI/2}><torusGeometry args={[R*0.98,0.07,8,48]}/>{S('#ffc83d')}</mesh>
+    {/* the bulb ring on the white band */}
+    {Array.from({length:NB},(_,i)=>{const a=i/NB*Math.PI*2;return <mesh key={i} position={[Math.sin(a)*R*1.01,B+H,Math.cos(a)*R*1.01]}>
+      <sphereGeometry args={[0.075,10,8]}/><meshStandardMaterial ref={m=>{bulbs.current[i]=m}} color="#fff1b0" emissive="#ffd447" toneMapped={false}/></mesh>})}
+    {/* the capsules, then the glass dome over them, a gold knob on top */}
+    <group position-y={B}>{caps.map((c,i)=><Capsule key={i} r={0.36} col={c.col} at={c.at} rot={c.rot}/>)}</group>
+    <mesh position-y={B+H+0.16}><sphereGeometry args={[DR,40,20,0,Math.PI*2,0,Math.PI/2]}/>
+      <meshStandardMaterial color="#e6f7ff" transparent opacity={0.26} roughness={0.04} metalness={0.1} emissive="#9fdcff" emissiveIntensity={night*0.25} depthWrite={false}/></mesh>
+    <mesh position-y={B+H+0.16+DR}><cylinderGeometry args={[0.32,0.42,0.3,20]}/>{S('#ffc83d')}</mesh>
+    <mesh position-y={B+H+0.16+DR+0.3}><sphereGeometry args={[0.2,16,12]}/>{S('#ff5a6e')}</mesh>
+    {/* the front: an arched door, the coin slot to its left, the prize chute to its right (no lettering: the neon post sign in front names it) */}
+    <group position={[0,B,R*0.955]}>
+      <mesh position={[0,1.0,0.02]} castShadow><boxGeometry args={[1.5,2.0,0.24]}/>{S('#ffc83d')}</mesh>
+      <mesh position={[0,2.0,0.02]} rotation-x={Math.PI/2}><cylinderGeometry args={[0.75,0.75,0.24,28,1,false,-Math.PI/2,Math.PI]}/>{S('#ffc83d')}</mesh>
+      <mesh position={[0,0.95,0.1]}><boxGeometry args={[1.2,1.9,0.12]}/>{S('#7a2b45')}</mesh>
+      <mesh position={[0,1.9,0.1]} rotation-x={Math.PI/2}><cylinderGeometry args={[0.6,0.6,0.12,28,1,false,-Math.PI/2,Math.PI]}/>{S('#7a2b45')}</mesh>
+      <mesh position={[0.38,0.95,0.18]}><sphereGeometry args={[0.07,10,8]}/>{S('#ffc83d')}</mesh>
+      <group position={[-1.35,1.55,0.06]}>
+        <mesh><boxGeometry args={[0.62,0.82,0.12]}/>{S('#d8d4cc')}</mesh>
+        <mesh position-z={0.07}><boxGeometry args={[0.08,0.42,0.04]}/><meshStandardMaterial ref={slot} color="#3a2a10" emissive="#ffd447" toneMapped={false}/></mesh>
+      </group>
+      <group position={[1.35,0.75,0.06]}>
+        <mesh><boxGeometry args={[0.7,0.62,0.14]}/>{S('#d8d4cc')}</mesh>
+        <mesh position-z={0.06}><boxGeometry args={[0.5,0.42,0.06]}/>{S('#2b1d28')}</mesh>
+        <Capsule r={0.17} col="#49c9ff" at={[0,-0.05,0.1]}/>
+      </group>
+    </group>
+    {/* the crank on the right side, turning slowly */}
+    <group position={[R*0.99,B+H*0.55,0]} rotation-y={Math.PI/2}>
+      <group ref={crank}>
+        <mesh rotation-x={Math.PI/2}><cylinderGeometry args={[0.7,0.7,0.24,28]}/>{S('#ffc83d')}</mesh>
+        <mesh position-z={0.18}><boxGeometry args={[0.28,1.5,0.18]}/>{S('#fff3dc')}</mesh>
+      </group>
+      <mesh position-z={0.3}><sphereGeometry args={[0.16,12,10]}/>{S('#ff5a6e')}</mesh>
+    </group>
+    {/* giant capsules by the way in, one cracked open */}
+    <Capsule r={0.55} col="#49c9ff" at={[2.3,0.55,R+0.45]} rot={[0.2,0.4,0.3]}/>
+    <Capsule r={0.42} col="#ffd447" at={[3.1,0.42,R-0.55]} rot={[-0.3,1.0,0.1]}/>
+    <Capsule r={0.4} col="#ff5fa8" at={[-2.9,0.4,R-1.1]} rot={[0,0,0.5]} open={0.25}/>
+    <mesh position={[0,1.7,0]} visible={false}><cylinderGeometry args={[R+0.3,R+0.3,3.6,16]}/></mesh>
+    {/* 밤: the dome lights from inside, pink spills at the door */}
+    <pointLight position={[0,B+H+1.1,0]} color="#ffb0e0" intensity={night*6} distance={9} decay={1.6}/>
+    <pointLight position={[0,1.6,R+1.6]} color="#ff7ad9" intensity={night*6} distance={7} decay={1.6}/>
+    <group position={[0,0,R+1.4]}><GlowPool r={3.2} color="#c46bff" k={night*0.8}/></group>
   </group></OnGround>
   <ArcadeNeon night={night}/></>;
 }
-useGLTF.preload(MODELS.arcade);
 // a neon sign by the arcade's path: "오락실" in pink tubes with a blue border, a row of chasing bulbs, on two posts
 function neonTex(){const c=document.createElement('canvas');c.width=512;c.height=220;const g=c.getContext('2d')!;
   g.fillStyle='#1b1030';g.beginPath();g.roundRect(6,6,500,208,34);g.fill();

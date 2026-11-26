@@ -57,15 +57,16 @@ const PLACE_AT:Partial<Record<PlaceId,{x:number;z:number;rot:number;walk:{x:numb
   farm:{x:18,z:-4.7,rot:0,walk:{x:11.0,z:-4.7}},
   orchard:{x:18,z:5.0,rot:0,walk:{x:10.8,z:5.0}},
   // 피드백 2026-11-24 "왼쪽 리그광장 오른쪽 오락실": over the bridge the path splits; the plaza on the left, the arcade
-  // (a teammate's model, World3D.tsx ArcadeHouse) on the right, its door turned to the split
+  // (World3D.tsx ArcadeHouse) on the right, its door turned to the split
   plaza:{x:-9.4,z:27.2,rot:0,walk:{x:-9.4,z:22.6}},
-  arcade:{x:4.0,z:27.6,rot:-2.0,walk:{x:1.3,z:26.37}},
+  // 2026-11-26: the capsule-dome arcade (World3D.tsx ArcadeHouse, ARCADE_R 3.0); its walk point 1.0 out from the door
+  arcade:{x:4.0,z:27.6,rot:-2.0,walk:{x:0.36,z:25.94}},
 };
 export const PLACES=PLACES1.map(p=>PLACE_AT[p.id]?{...p,...PLACE_AT[p.id]!,label:p.id==='library'?'도서관':p.label}:p);
 export const place=(id:PlaceId)=>PLACES.find(p=>p.id===id)!;
 // solid footprints the player walks around, not through (2026-11-16 "캐릭터가 건물을 통과"): circles on the ground.
 // Each place's walk point stays outside its circle. Bought buildings and landmarks join when they stand.
-const SOLID_R:Partial<Record<PlaceId,number>>={master:2.7,home:2.4,library:2.6,observatory:1.5,cart:2.1,arcade:2.3};
+const SOLID_R:Partial<Record<PlaceId,number>>={master:2.7,home:2.4,library:2.6,observatory:1.5,cart:2.1,arcade:3.1};
 export const BUILDING_R:Record<string,number>={greenhouse:1.7,silo:1.3,windmill:1.4};
 export type Solid={x:number;z:number;r:number};
 // the rocks (Scene3D ROCKS, x z scale, spread) and the signpost, shared with the scene
