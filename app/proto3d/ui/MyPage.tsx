@@ -32,7 +32,7 @@ export function wearCtx(g:G):WearCtx{
   const rank=rankOf(xpOf({graded:g.s.graded.length,cases:g.s.cases.length,rewinds:g.s.rewinds.length,work:workOf(g.s)})).index;
   return {rank,stamps:g.s.stamps.map(s=>s.id),trust:{tori:g.s.trust.tori.stage,moa:g.s.trust.moa.stage,luon:g.s.trust.luon.stage},bought:g.s.wardrobe,all:masterOn()};
 }
-export function MyPage({g,onClose,onRecords,onSettings,onLetter,wearOnly}:{wearOnly?:boolean;g:G;onClose:()=>void;onRecords:()=>void;onSettings?:()=>void;onLetter?:()=>void}){
+export function MyPage({g,onClose,onRecords,onSettings,onLetter,wearOnly,canBuy}:{wearOnly?:boolean;canBuy?:boolean;g:G;onClose:()=>void;onRecords:()=>void;onSettings?:()=>void;onLetter?:()=>void}){
   const [tab,setTab]=useState<'wear'|'record'|'stamps'>('wear'),[slot,setSlot]=useState<Slot|'color'>('coat'),[naming,setNaming]=useState(false),[name,setName]=useState(g.s.name);
   const ctx=wearCtx(g),look=fitLook(g.s.look,ctx),rk=rankOf(xpOf({graded:g.s.graded.length,cases:g.s.cases.length,rewinds:g.s.rewinds.length,work:workOf(g.s)}));
   const habit=habitOf(g.s.judgments,g.s.graded),t=trackOf(g.s.judgments,g.s.graded);
@@ -50,7 +50,7 @@ export function MyPage({g,onClose,onRecords,onSettings,onLetter,wearOnly}:{wearO
     <div className="rt-me-top">{onSettings&&<button type="button" className="rt-btn" onClick={onSettings}>설정</button>}<button type="button" className="rt-btn" onClick={onClose}><Cross size={18}/>닫기</button></div>
     <section className="rt-me-panel">
       {/* the clothes shop opens the wardrobe alone: a title, not a row of one tab */}
-      {wearOnly?<h2 className="rt-me-only">옷 갈아입기</h2>:<div className="rt-tabs" role="tablist">{([['wear','꾸미기'],['record','기록'],['stamps','업적']] as const).map(([k,l])=>
+      {wearOnly?<h2 className="rt-me-only">{canBuy?'옷 가게':'옷장 · 옷 갈아입기'}</h2>:<div className="rt-tabs" role="tablist">{([['wear','꾸미기'],['record','기록'],['stamps','업적']] as const).map(([k,l])=>
         <button key={k} type="button" role="tab" aria-selected={tab===k} onClick={()=>setTab(k)}>{l}</button>)}</div>}
       {tab==='wear'&&<>
         <div className="rt-me-slots">{[...SLOTS,{id:'color' as const,label:'색'}].map(s=><button key={s.id} type="button" aria-pressed={slot===s.id} onClick={()=>setSlot(s.id)}>{s.label}</button>)}</div>
@@ -63,6 +63,8 @@ export function MyPage({g,onClose,onRecords,onSettings,onLetter,wearOnly}:{wearO
             return <div key={w.id} className="rt-me-tile rt-me-shop" data-locked={!open&&!price} data-on={on}>
               <strong>{w.name}</strong>
               {open?<button type="button" className="rt-me-act" data-on={on} disabled={on} onClick={()=>wear({...look,[w.slot]:w.id})}>{verb[on?1:0]}</button>
+                // 피드백 2026-11-26: buying only at the clothes shop; the wardrobe says where it is sold
+                :price&&!canBuy?<small>옷 가게에서 {won(price)}</small>
                 :price?<><small>{won(price)} · 지금 {won(g.s.currency)}</small>
                   <button type="button" className="rt-me-act buy" disabled={g.s.currency<price} onClick={()=>g.ops.buyWear(w.id,price)}>{g.s.currency<price?`${won(price-g.s.currency)} 부족`:'구매'}</button></>
                 :<small><Lock size={12}/> {howTo(w.unlock,names)}</small>}</div>})}

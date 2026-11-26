@@ -94,9 +94,12 @@ export function BuilderFacade({W,D,H,lit,glow}:{W:number;D:number;H:number;lit:b
     <group position={[1.15,G+1.3,fz+0.03]}><Window w={0.62} h={0.62} frame="#f4eedf" lit={lit} glow={glow}/>
       {[-1,1].map(k=><mesh key={k} position={[k*0.5,0,0.02]}><boxGeometry args={[0.3,0.75,0.04]}/>{M('#5f8a7a')}</mesh>)}
       <group position={[0,-0.5,0.12]}><FlowerBox w={0.75} color="#8a5a3e"/></group></group>
-    {/* the sign on a bracket over the door */}
-    <group position={[0,G+H+0.05,fz+0.18]}><mesh position-y={0.1}><boxGeometry args={[1.3,0.04,0.04]}/>{M('#2f2a28')}</mesh>
-      <mesh position-y={-0.2}><boxGeometry args={[1.1,0.62,0.06]}/>{P(m.sign)}</mesh></group>
+    {/* 피드백 2026-11-26 "간판 왜 가려져 있어": the sign used to hang under the eave, where the roof hid its top and the
+        lantern and awning crossed it; it stands on the front of the roof now, on two posts, clear of everything */}
+    {(()=>{const sz=D/2-0.55,ry=G+H+1.25*(1-sz/(D/2)),lift=0.14;
+      return <group position={[0,ry,sz]}>
+        {[-0.42,0.42].map(x=><mesh key={x} position={[x,lift/2,0]}><boxGeometry args={[0.07,lift+0.2,0.07]}/>{M('#5a3d2b')}</mesh>)}
+        <mesh position-y={lift+0.31} castShadow><boxGeometry args={[1.1,0.62,0.06]}/>{P(m.sign)}</mesh></group>})()}
     {/* outside: lumber, a brick pile, a wheelbarrow, shrubs */}
     <group position={[W/2+0.4,G,D/2-0.3]}>{[0,1,2,3,4].map(i=><mesh key={i} position={[0,0.06+Math.floor(i/2)*0.12,(i%2)*0.2]} rotation-y={0.05*i}><boxGeometry args={[0.14,0.1,1.2]}/>{M(['#c9a27a','#b58e66','#d4b088'][i%3])}</mesh>)}</group>
     <group position={[-W/2-0.35,G,D/2-0.4]}>{[0,1,2,3,4,5].map(i=><mesh key={i} position={[(i%3)*0.22-0.22,0.06+Math.floor(i/3)*0.11,0]}><boxGeometry args={[0.2,0.1,0.1]}/>{M('#b5523b')}</mesh>)}</group>

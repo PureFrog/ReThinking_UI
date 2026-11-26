@@ -198,7 +198,7 @@ test("보리's paws stay where the day is: the plate, the case file, the place I
 
 test("토리·모아·루온 are back in the village and talk in their own voice: small talk or one of my holdings", async ({ page }) => {
   await page.goto("/?demo&bori");
-  await expect(page.locator(".rt-talk-line")).toContainText("예시 신호", { timeout: 20000 });
+  await expect(page.locator(".rt-talk-line")).toContainText("위험 신호가 잡혔어", { timeout: 20000 });
   await page.getByRole("button", { name: "나중에", exact: true }).click();
   await expect(page.locator(".rt-talk")).toHaveCount(0, { timeout: 10000 });
   await page.evaluate(() => (window as unknown as { __proto3d: { talkTo: (id: string) => void } }).__proto3d.talkTo("luon"));
@@ -218,7 +218,7 @@ test("the village: trees carry their names only, no tab dock; a tree opens its s
   await expect(page.getByTestId("proto3d")).toHaveAttribute("data-place", "village", { timeout: 30_000 });// the first page of a run waits on the dev server's build
   await expect(page.locator(".rt-dock")).toHaveCount(0);
   // 보리 comes up first with the demo stop-loss signal (예시 신호); put it off and walk on
-  await expect(page.locator(".rt-talk-line")).toContainText("예시 신호", { timeout: 20000 });
+  await expect(page.locator(".rt-talk-line")).toContainText("위험 신호가 잡혔어", { timeout: 20000 });
   await page.getByRole("button", { name: "나중에", exact: true }).click();
   await expect(page.locator(".rt-talk")).toHaveCount(0, { timeout: 10000 });
   // (since the wider village the start view shows the orchard, not the farm: walk to the farm first; a tag shows for
@@ -251,7 +251,7 @@ test("hovering a thing in the village shows what it is", async ({ page }) => {
 test("today's quests sit under the weather and fold up with a tap on their title", async ({ page }) => {
   await page.goto("/?demo&bori");
   // 보리 comes over first with the demo signal and the talk covers the corner: put it off
-  await expect(page.locator(".rt-talk-line")).toContainText("예시 신호", { timeout: 20000 });
+  await expect(page.locator(".rt-talk-line")).toContainText("위험 신호가 잡혔어", { timeout: 20000 });
   await page.getByRole("button", { name: "나중에", exact: true }).click();
   await expect(page.locator(".rt-talk")).toHaveCount(0, { timeout: 10000 });
   await expect(page.locator(".rt-weather")).toBeVisible();

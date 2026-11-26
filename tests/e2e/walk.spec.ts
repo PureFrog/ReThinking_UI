@@ -46,7 +46,7 @@ test("the first walk: entry → room lesson → the village's people one by one"
   await page.getByRole("button", { name: "밖으로 나가기" }).click();
   await expect(page.getByTestId("proto3d")).toHaveAttribute("data-place", "village");
   // the square: 보리 shows the way; my tree is not planted yet
-  await expect(talk(page)).toContainText("만날 친구한테 빛을 비춰 줄게");// 보리's line since 06f4222 (content/villagers.ts square)
+  await expect(talk(page)).toContainText("만날 사람한테 빛을 비춰 줄게");// 보리's line since 06f4222 (content/villagers.ts square)
   expect((await hk(page)).walk?.planted).toBe(false);
   // 피드백 2026-11-22: no round of introductions at the start any more (each person introduces themselves when met on
   // the walk): 보리's line ends with 가 보자, and the walk's card points at the first one, the farmer, lit
@@ -117,8 +117,10 @@ test("the first walk: entry → room lesson → the village's people one by one"
   await go(page, "옷 상인");
   await expect(talk(page)).toContainText("옷 구경", { timeout: 40_000 });
   await say(page, "옷 보기");
+  // 피드백 2026-11-26: the tailor's is the one place to buy clothes (the room's 옷장 only changes them)
+  await expect(page.getByRole("dialog", { name: "내 프로필" }).getByRole("heading", { name: "옷 가게" })).toBeVisible();
   await page.getByRole("button", { name: /닫기|돌아가기/ }).first().click();
-  await expect(talk(page)).toContainText("마음대로 다녀", { timeout: 20_000 });
+  await expect(talk(page)).toContainText("자유롭게 다녀", { timeout: 20_000 });
   await say(page, "좋아");
   await expect.poll(async () => (await hk(page)).walk?.on).toBe(false);
   // a tree opens its status, read only

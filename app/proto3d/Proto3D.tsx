@@ -329,6 +329,10 @@ export default function Proto3D(){
     setMinutes(at());const t=setInterval(()=>setMinutes(at()),20000);return()=>clearInterval(t)},[viewTick]);
   // my observer's page (ui/MyPage.tsx): the garden is put away for the stage while it is open
   const [me,setMe]=useState(false);
+  // 피드백 2026-11-26 "옷은 옷 가게에서만 사야 돼": the tailor opens the wardrobe as his shop (구매 there); the room's
+  // 옷장 and a tap on me only change what I wear
+  const [meShop,setMeShop]=useState(false);
+  useEffect(()=>{if(!me)setMeShop(false)},[me]);
   // inside the house (Interior3D.tsx): a paper-coloured fade covers the swap between the garden and the room
   const [inside,setInside]=useState(false),[fading,setFading]=useState(false);
   // the room's first visit (after the first walk): the teacher, then the librarian, say what each is for (tips 'room')
@@ -511,7 +515,7 @@ export default function Proto3D(){
   const markHeard=(id:string)=>{const h=hear(loadHouse(),id);saveHouse(h);setHeard(h.heard)};
   const boriOpening=useCallback(async():Promise<BoriLine|null>=>{const today=clock.today,c=openedRef.current;
     if(!syncOn&&!testOpen){if(!lossNow||!lossHolding)return null;markHeard(lossNow.id);setAskedAbout(codeOf(lossHolding));
-      return {text:`${lossHolding.name}에서 위험 신호가 잡혔어${lossHolding.real?'':' (예시 신호)'}. 지금도 이 종목을 보유하는 이유가 뭐야?`,emotion:'concerned'}}
+      return {text:`${lossHolding.name}에서 위험 신호가 잡혔어. 지금도 이 종목을 보유하는 이유가 뭐야?`,emotion:'concerned'}}
     if(c&&c.day===today)return {text:c.text,emotion:c.emotion??'curious'};
     // (the e2e stand-in answers with a plain line)
     const t=testOpen?await testOpen(lossCodes).then(x=>x?{text:x,emotion:'curious'}:null):await boriOpen(boriHoldings,lossCodes);
@@ -946,7 +950,7 @@ export default function Proto3D(){
         // 피드백 2026-11-22 "튜토리얼 중에 이 화면에서 벗어날 수가 없다": a way out on the first walk too (the stop counts as seen)
         ...(walkStep==='shop-build'?[{label:'다음에 볼게',go:()=>{talkOver();pass('shop-build')}}]:[])]}}
     if(t.id==='tailor')return {name:'옷 상인',line:'옷 구경해 볼래? 산 옷은 너를 누르면 언제든 갈아입을 수 있어.',
-      choices:[{label:'옷 보기',go:()=>{if(walkStep==='shop-wear')afterSheet.current='shop-wear';talkOver();setMe(true)}},...(walkStep==='shop-wear'?[{label:'다음에 볼게',go:()=>{talkOver();pass('shop-wear')}}]:[])]};
+      choices:[{label:'옷 보기',go:()=>{if(walkStep==='shop-wear')afterSheet.current='shop-wear';talkOver();setMeShop(true);setMe(true)}},...(walkStep==='shop-wear'?[{label:'다음에 볼게',go:()=>{talkOver();pass('shop-wear')}}]:[])]};
     return {name:'',line:'',choices:[]};
   };
   // every station done but 보리's last line not answered yet (a reload in between): it is said again
@@ -1175,7 +1179,7 @@ export default function Proto3D(){
       {tip&&<Tip text={tipText(tip)} target={TIP_AT[tip].target} point={TIP_AT[tip].point} onDone={()=>g.ops.tipDone(tip)}/>}
       {skyOpen&&!sheet&&<SkyView planets={skyPlanets} sample={neighbours.sample} share={share} focus={skyOpen.focus} week={weekStart(clock.today)} onPick={id=>setSkyOpen({focus:id})}
         onShare={v=>g.ops.setSettings({...s.settings,share:v})} onClose={()=>setSkyOpen(null)} onLeague={()=>setSheet({kind:'league'})}/>}
-      {me&&!sheet&&<MyPage wearOnly g={g} onClose={()=>setMe(false)} onRecords={()=>setSheet({kind:'records'})} onSettings={()=>setSheet({kind:'settings'})} onLetter={()=>setSheet({kind:'letter',month:monthOf(clock.today)})}/>}
+      {me&&!sheet&&<MyPage wearOnly canBuy={meShop} g={g} onClose={()=>setMe(false)} onRecords={()=>setSheet({kind:'records'})} onSettings={()=>setSheet({kind:'settings'})} onLetter={()=>setSheet({kind:'letter',month:monthOf(clock.today)})}/>}
       {sheet?.kind==='settings'&&<SettingsSheet g={g} onClose={close} tilt={tiltCtl} account={account?.email??null}
         onLogOut={account?()=>{void authRepo.logOut();setAccount(null);setSheet(null)}:undefined}
         onDelete={syncOn&&saveRepo?async()=>{const e=await saveRepo!.deleteMe();if(e)return e;try{localStorage.removeItem('rethink-account-v1');localStorage.removeItem('rethink-guest')}catch{/* nothing kept */}g.ops.wipe();return null}:undefined}
