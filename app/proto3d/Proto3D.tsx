@@ -1144,8 +1144,8 @@ export default function Proto3D(){
       {sheet?.kind==='quizlog'&&<QuizReview onClose={close} onQuiz={()=>{setSheet(null);setInside(false);enterHouse()}}/>}
       {fading&&<div className="rt-room-fade" aria-hidden/>}
       {tip&&<Tip text={tipText(tip)} target={TIP_AT[tip].target} point={TIP_AT[tip].point} onDone={()=>g.ops.tipDone(tip)}/>}
-      {skyOpen&&!sheet&&<SkyView planets={skyPlanets} sample={neighbours.sample} share={share} focus={skyOpen.focus} onPick={id=>setSkyOpen({focus:id})}
-        onShare={v=>g.ops.setSettings({...s.settings,share:v})} onClose={()=>setSkyOpen(null)}/>}
+      {skyOpen&&!sheet&&<SkyView planets={skyPlanets} sample={neighbours.sample} share={share} focus={skyOpen.focus} week={weekStart(clock.today)} onPick={id=>setSkyOpen({focus:id})}
+        onShare={v=>g.ops.setSettings({...s.settings,share:v})} onClose={()=>setSkyOpen(null)} onLeague={()=>setSheet({kind:'league'})}/>}
       {me&&!sheet&&<MyPage wearOnly g={g} onClose={()=>setMe(false)} onRecords={()=>setSheet({kind:'records'})} onSettings={()=>setSheet({kind:'settings'})} onLetter={()=>setSheet({kind:'letter',month:monthOf(clock.today)})}/>}
       {sheet?.kind==='settings'&&<SettingsSheet g={g} onClose={close} tilt={tiltCtl} account={account?.email??null}
         onLogOut={account?()=>{void authRepo.logOut();setAccount(null);setSheet(null)}:undefined}

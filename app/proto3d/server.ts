@@ -2,6 +2,7 @@
 // local mock for the real backend (schema in db/schema.sql, plan in docs/server.md) is one file.
 // Nothing here holds keys; a real adapter reads its endpoint from the environment at build time.
 import {ranked,tierOf,weekOf,LEAGUE,type Row} from '../core/league';
+import {liveLeague,livePlanets,publishPlanet} from './social';
 
 export type LeagueRepo={
   // my group's table for the week of `day`, with my points in it
@@ -22,7 +23,15 @@ export const localLeague:LeagueRepo={
   },
   async push(){},
 };
-export const leagueRepo:LeagueRepo=localLeague;
+// the real table (app/proto3d/social.ts, every invited player) when signed in with an invite code, else the examples
+export const leagueRepo:LeagueRepo={
+  async week(day,me){return (await liveLeague(weekOf(day),me))??localLeague.week(day,me)},
+  async push(){},
+};
+// the table and whether it is the examples (the sheet says so)
+export async function leagueWeek(day:string,me:{name:string;points:number}){
+  const live=await liveLeague(weekOf(day),me);return live?{rows:live,sample:false}:{rows:await localLeague.week(day,me),sample:true};
+}
 export {tierOf};
 
 // 관측소 원정 (docs/server.md): the week's ranking for a 판 and where a finished run goes. The client sends what it did
@@ -69,7 +78,11 @@ export function supabasePlanets(url:string,anonKey:string,token:()=>string|null)
     async publish(me){await fetch(`${url}/rest/v1/planets`,{method:'POST',headers:{...h(),prefer:'resolution=merge-duplicates'},body:JSON.stringify(me?{body:wireOf(me)}:{body:null})}).catch(()=>{})},
   };
 }
-export const planetRepo:PlanetRepo=localPlanets;
+// the real neighbours (every invited player who shares a planet) when signed in with an invite code, else the examples
+export const planetRepo:PlanetRepo={
+  async neighbours(week){const p=await livePlanets();return p?{planets:p,sample:false}:localPlanets.neighbours(week)},
+  async publish(me){await publishPlanet(me)},
+};
 
 // Accounts (core/auth.ts): sign up, log in, who is signed in. Local: one account kept on this device only, and never
 // its password (the local check only matches the e-mail; the real check is the server's). Kakao and Google need the

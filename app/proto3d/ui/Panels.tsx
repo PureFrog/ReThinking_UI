@@ -24,7 +24,7 @@ import type {RunRecord} from '../../core/game/run';
 import {CART_STOCK,DECOR_SLOTS,itemById} from '../../content/garden-items';
 import {ANALYSTS,MODEL_INFO,LINES,UI,CURRENCY,analystById,say,line,type AnalystId} from '../../content/analysts';
 import type {Signal} from '../../content/signals';
-import {leagueRepo} from '../server';
+import {leagueWeek} from '../server';
 import {Sheet,Face,pct} from './Sheet';
 import type {useGarden} from '../state';
 import {workOf,weekWorkOf} from '../state';
@@ -67,15 +67,15 @@ export function Records({g,onClose,onHoldings,onLapse}:{g:G;onClose:()=>void;onH
 
 export function League({g,onClose}:{g:G;onClose:()=>void}){
   const pts=weekPoints(g.s.graded,g.s.cases,g.clock.today,weekWorkOf(g.s,g.clock.today));
-  const [rows,setRows]=useState<Awaited<ReturnType<typeof leagueRepo.week>>|null>(null);
-  useEffect(()=>{let live=true;leagueRepo.week(g.clock.today,{name:'나',points:pts}).then(r=>{if(live)setRows(r)});return()=>{live=false}},[g.clock.today,pts]);
+  const [lg,setLg]=useState<Awaited<ReturnType<typeof leagueWeek>>|null>(null),rows=lg?.rows??null;
+  useEffect(()=>{let live=true;leagueWeek(g.clock.today,{name:'나',points:pts}).then(r=>{if(live)setLg(r)});return()=>{live=false}},[g.clock.today,pts]);
   const total=trackOf(g.s.judgments,g.s.graded).points,tier=TIERS.find(t=>t.id===tierOf(total))!;
   return <Sheet kicker="주간 리그 · 기록 점수" title={`${tier.label} 리그`} onClose={onClose}>
     <p className="rt-hint">맞힌 개수가 아니라 한 일로 점수가 쌓여요: 일지 저장 3 · 가설 확정 2 · 복기 3 · 과제 실천 2 · 케이스. 상위 3명 승급 · 일요일 자정 마감</p>
     <div style={{marginTop:12}}>{rows?rows.map(r=><div key={r.id} className="rt-row" style={r.me?{background:'var(--rt-accent-soft)',borderRadius:10,padding:'12px 8px'}:undefined}>
       <b className="rt-num" style={{width:24,color:r.promote?'var(--rt-accent)':'var(--rt-mute)'}}>{r.rank}</b>
       <div><strong>{r.name}{r.me?' (나)':''}</strong></div><b className="rt-num">{r.points}</b></div>):<p className="rt-empty">불러오는 중</p>}</div>
-    <p className="rt-hint" style={{marginTop:12}}>지금은 예시 리그예요. 실제 유저 리그는 준비 중이에요</p>
+    {lg&&<p className="rt-hint" style={{marginTop:12}}>{lg.sample?'지금은 예시 리그예요. 입장코드를 넣은 계정으로 로그인하면 실제 유저와 겨뤄요':'입장코드를 넣은 유저 모두가 한 리그예요 (비공개 테스트)'}</p>}
   </Sheet>;
 }
 
