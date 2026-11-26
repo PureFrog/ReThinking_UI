@@ -4,6 +4,7 @@
 // (data-still, data-text) so every screen follows.
 import {useState} from 'react';
 import {Sheet} from './Sheet';
+import {InstallRow} from '../../pwa';
 import {viewWeather,viewHour,setView} from '../viewPrefs';
 import type {useGarden} from '../state';
 type G=ReturnType<typeof useGarden>;
@@ -15,6 +16,7 @@ export function SettingsSheet({g,onClose,tilt,onTutorial,account,onLogOut,onDele
   const set=(p:Partial<typeof st>)=>g.ops.setSettings({...st,...p});
   const [vw,setVw]=useState(viewWeather),[vh,setVh]=useState(viewHour);
   return <Sheet kicker="설정" title="설정" label="설정" onClose={onClose}>
+    <InstallRow/>
     <div className="rt-field">소리 <span className="rt-hint">{g.s.sound?'켜짐':'꺼짐'}</span>
       <button type="button" className="rt-btn" style={{width:'100%',marginTop:6}} aria-label={g.s.sound?'소리 끄기':'소리 켜기'} aria-pressed={!g.s.sound} onClick={()=>g.ops.setSound(!g.s.sound)}>{g.s.sound?'소리 끄기':'소리 켜기'}</button></div>
     <label className="rt-field">효과음 크기 <span className="rt-hint">{g.s.sound?`${Math.round(st.sfx*100)}%`:'소리 꺼짐'}</span>
