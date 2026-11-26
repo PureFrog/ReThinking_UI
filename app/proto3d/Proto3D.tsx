@@ -70,7 +70,17 @@ import {didList,markDid} from '../core/did';
 import {viewWeather,viewHour} from './viewPrefs';
 import {mondayOf,weekOver,weekResult,WEEKLY_COINS} from '../core/challenge';
 import {indexWeek} from '../content/market';
-const QUEST_COINS=3_000,ARCADE_DAY_CAP=15_000;// 원: each of today's quests as it is done (피드백 2026-11-26 "벌 수 있는 기회가 적다")
+const QUEST_COINS=3_000,ARCADE_DAY_CAP=15_000;
+// 피드백 2026-11-26 "오늘의 퀘스트 끝내면 애니메이션 + 효과음과 함께 코인 보상": a card pops (sound), coins fly to the purse
+const qwinQueue:{label:string;coins:number;all:boolean}[]=[];let qwinBusy=false;
+function questWinShow(label:string,coins:number,all:boolean){qwinQueue.push({label,coins,all});if(!qwinBusy)qwinNext()}
+function qwinNext(){const q=qwinQueue.shift();if(!q){qwinBusy=false;return}qwinBusy=true;const root=document.querySelector('[data-testid=proto3d]');if(!root){qwinBusy=false;return}
+  const el=document.createElement('div');el.className='rt-qwin';el.setAttribute('role','status');
+  const card=document.createElement('div');card.className='rt-qwin-card';
+  card.innerHTML='<span class="rt-qwin-burst" aria-hidden="true"></span><small>오늘 퀘스트 완료!</small><b></b><span class="rt-qwin-coin"><i aria-hidden="true">C</i><span></span></span>'+(q.all?'<em>오늘 퀘스트 다 끝! 🎉</em>':'');
+  card.querySelector('b')!.textContent=q.label;card.querySelector('.rt-qwin-coin span')!.textContent='+'+q.coins.toLocaleString();el.appendChild(card);
+  for(let k=0;k<9;k++){const c=document.createElement('i');c.className='rt-qwin-fly';c.setAttribute('aria-hidden','true');c.textContent='C';c.style.setProperty('--k',String(k));el.appendChild(c)}
+  root.appendChild(el);cue('stage-up');setTimeout(()=>cue('gift-pickup'),650);setTimeout(()=>{el.remove();qwinNext()},2600)}// 원: each of today's quests as it is done (피드백 2026-11-26 "벌 수 있는 기회가 적다")
 import {rankOf,xpOf} from '../core/rank';
 import {Expedition} from './game/Expedition';
 import {DailyQuest} from './game/daily/DailyQuest';
@@ -362,7 +372,10 @@ export default function Proto3D(){
   // fishing with 나루 at the pond (ui/Fishing.tsx, core/fishing.ts): talking, fishing, or the log; the float's phase
   const [fish,setFish]=useState<'talk'|'play'|'log'|null>(null),[bob,setBob]=useState<'wait'|'bite'|null>(null);
 
-  const goPlace=(id:PlaceId)=>{const p=place(id);setPicked(null);setFocus(null);setView(null);setGoTo({...p.walk,at:Date.now()});setSheet(null)};
+  // 지도의 "여기로 가기": a place with a door is walked to and gone into on arrival (as a tap on it); the rest walked to
+  const goPlace=(id:PlaceId)=>{const lm=({home:'house',master:'master',arcade:'arcade',plaza:'plaza'} as Record<string,string>)[id];
+    if(lm){setSheet(null);world.onLandmark(lm as never);return}
+    const p=place(id);setPicked(null);setFocus(null);setView(null);setGoTo({...p.walk,at:Date.now()});setSheet(null)};
   // W5 타임랩스 (core/history.ts): which weekly frame is shown, and whether it plays on by itself
   const [lapse,setLapse]=useState<{i:number;playing:boolean}|null>(null);
   const frames=useMemo(lapseFrames,[]);
@@ -523,7 +536,9 @@ export default function Proto3D(){
   const didIt=(id:QuestId)=>markDid(clock.today,id);
   // each quest done pays a little at once (the day's three together still pay EARN.dayDone on top)
   const questKey=tasks.filter(t=>t.done).map(t=>t.id).join(',');
-  useEffect(()=>{if(!ready)return;for(const t of tasks)if(t.done){const k=`quest:${clock.today}:${t.id}`;if(!(s.grants??[]).includes(k)){g.ops.grant(k,QUEST_COINS);g.say(`퀘스트 완료: ${QUEST_LABEL[t.id]} · 코인 +${QUEST_COINS.toLocaleString()}`)}}},[questKey,ready]);// eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{if(!ready)return;for(const t of tasks)if(t.done){const k=`quest:${clock.today}:${t.id}`;if(!(s.grants??[]).includes(k)){g.ops.grant(k,QUEST_COINS);questWinShow(QUEST_LABEL[t.id],QUEST_COINS,tasks.every(x=>x.done))}}},[questKey,ready]);// eslint-disable-line react-hooks/exhaustive-deps
+  // 피드백 2026-11-26 "퀘스트 끝내면 애니메이션 + 효과음과 함께 코인 보상": one card at a time, coins flying to the purse
+  // shown by questWinShow (below the component): its own little layer on the page, so nothing else's re-render takes it down
   // the quest list under the weather folds and unfolds with a tap on its title; kept on this device
   const [questsFolded,setQuestsFolded]=useState(()=>{try{return localStorage.getItem('rethink-quests-folded')!=='0'}catch{return true}});/* 피드백 2026-11-25: folded to one line unless opened */
   const toggleQuests=()=>setQuestsFolded(v=>{const n=!v;try{localStorage.setItem('rethink-quests-folded',n?'1':'0')}catch{/* this visit only */}return n});
@@ -978,7 +993,7 @@ export default function Proto3D(){
       else g.say(r==='coins'?'코인이 모자라요':'다른 꽃·나무랑 너무 가까워요')},
     // 보리 came over and is talking: the camera comes close on the two of them until the talk opens or is answered
     // with 나루: the camera on the two of them while talking, over the player's shoulder onto the water while fishing
-    talk:vtTalk&&vt&&vt.id!=='bori'&&!shop?{x:vt.at.x,z:vt.at.z,az:0,eye:{x:vt.stand.x,z:vt.stand.z,ax:vt.at.x,az:vt.at.z}}
+    talk:vtTalk&&vt&&vt.id!=='bori'&&!shop?{x:vt.at.x,z:vt.at.z,az:0,eye:{x:vt.stand.x,z:vt.stand.z,ax:vt.at.x,az:vt.at.z,h:(LOOK.camera.eyeTalk.faceOf as Record<string,number>)[vt.id]??LOOK.camera.eyeTalk.face}}
       :tourShow&&tourNear&&(tourStep.at==='tori'||tourStep.at==='moa'||tourStep.at==='luon')?(()=>{const sp=FIXED_SPOT[tourStep.at];const T=LOOK.camera.tour;return {x:sp.x,z:sp.z,az:sp.face+(T.turn[tourStep.at]??0),pitch:T.pitchOf[tourStep.at]??T.pitch,dist:T.dist,lift:T.lift}})()
       :fish==='talk'?{x:(NARU.x+FISH_STAND.x)/2,z:(NARU.z+FISH_STAND.z)/2,az:Math.atan2(FISH_STAND.x-NARU.x,FISH_STAND.z-NARU.z)+LOOK.camera.talk.turn}
       :fish==='play'?{x:FISH_AT.x*0.8+FISH_STAND.x*0.2,z:FISH_AT.z*0.8+FISH_STAND.z*0.2,az:Math.atan2(FISH_STAND.x-FISH_AT.x,FISH_STAND.z-FISH_AT.z)+0.35,pitch:LOOK.camera.fish.pitch,dist:LOOK.camera.fish.dist}
@@ -1120,11 +1135,11 @@ export default function Proto3D(){
       {/* 피드백 2026-11-23: in a shop with no talk open: talk to the keeper again, or go back out */}
       {shop&&!vtTalk&&!sheet&&!me&&!fading&&<div className="vl-shop-acts">
         <button type="button" className="rt-btn primary" onClick={()=>onVillager(shop)}>{VILLAGERS.find(v=>v.id===shop)?.name}에게 말 걸기</button>
-        <button type="button" className="rt-btn" onClick={()=>{setVt(null);swapShop(null)}}>밖으로 나가기</button></div>}
+</div>}
       {vtTalk&&where==='village'&&<VillagerTalk key={(vt?.id??'')+(vt?.stage??'')} name={vtTalk.name} who={vt?.id==='bori'||!merchantOpen&&vt?.id==='merchant'&&vt?.stage!=='meet'?'bori':vt?.id} role={ROLE[vt?.id==='bori'||!merchantOpen&&vt?.id==='merchant'&&vt?.stage!=='meet'?'bori':vt?.id??'']} line={vtTalk.line} choices={vtTalk.choices} onLeave={walkOn?undefined:talkOver}/>}
       {sheet?.kind==='tree'&&(()=>{const hh=[...holdings,...vtrees].find(x=>x.id===sheet.id);if(!hh)return null;const lot=hh.virtual?(s.virtual??[]).find(l=>VIRTUAL_ID+l.id===hh.id):null;
         const q=lot?lotQuote(lot,clock.today):hh.code?quote(hh.code,clock.today):null;
-        return <TreeStatus h={hh} price={q?.price??null} onClose={close}/>})()}
+        return <TreeStatus h={hh} price={q?.price??null} basis={q?`${q.day.slice(5).replace('-','/')} 종가 · ${q.real?'실제 시세':'모의 시세'}`:null} onClose={close}/>})()}
       {sheet?.kind==='comm'&&<Comm key={sheet.tab??'balance'} start={sheet.tab} acct={commAccount(holdings,s.virtual??[],s.currency,clock.today,id=>VIRTUAL_ID+id)} cands={todays}
         lots={(s.virtual??[]).map(l=>{const q=lotQuote(l,clock.today);return {id:l.id,name:l.name,qty:l.qty,price:q?.price??null,rate:q?Math.round((q.price/l.cost-1)*1000)/10:null}})}
         day={clock.today} room={commRoom} open={true/* 피드백 2026-11-26: orders any time; they settle at the next close either way */} openNote={`상인이 ${nextOpenLabel(minutes)}에 와요. 주문은 상인이 있는 동안(8시~20시)만 돼요.`}
@@ -1189,6 +1204,8 @@ export default function Proto3D(){
       {/* 통신기 (ui/Comm.tsx): once the merchant has handed it over, a button on the screen opens the practice-account MTS */}
       {ready&&!quiet&&!inside&&where==='village'&&!sheet&&<button type="button" className="proto3d-locate vl-comm" data-label="통신기" aria-label="통신기" onClick={()=>{setPicked(null);setSheet({kind:'comm',tab:'balance'})}}>
         <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M10 7l2 2 2-3M11 17h2"/></svg></button>}
+      {/* 피드백 2026-11-26 "어떤 장소로 이동하고 나가기 버튼도 안 보여": in a shop the way out is always there */}
+      {shop&&!fading&&!vtTalk&&<button type="button" className="rt-btn vl-shop-back" onClick={()=>{setSheet(null);setMe(false);setVt(null);swapShop(null)}}>← 밖으로 나가기</button>}
       {pet&&<div className="rt-petmenu" role="dialog" aria-label={`${PETS[pet].name}와 놀기`}>
         <b>{PETS[pet].kind==='cat'?'🐱':'🐶'} {PETS[pet].name}</b><small>하루 한 번씩 돌봐 주면 코인을 조금 받아요</small>
         <div><button type="button" className="rt-btn primary" onClick={()=>petDo('pet')}>쓰다듬기</button>

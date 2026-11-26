@@ -15,7 +15,7 @@ import {mergeNews,type NewsCard} from '../../content/village-news';
 import {useLiveNews} from '../liveNews';
 import type {CommAccount,CommLine} from '../../content/comm';
 import {Term,CommGuide,guideSeen,markGuide,Spark,StockPage,Missions,Fields,WeeklyCard,FirstBuyCards,firstBuySeen,markFirstBuy,type Mission,type Weekly} from './CommPlus';
-import {history,change} from '../../core/virtual';
+import {history,change,quote} from '../../core/virtual';
 
 const won=(n:number)=>Math.round(n).toLocaleString('ko-KR');
 const signed=(n:number)=>`${n>0?'+':''}${won(n)}`;
@@ -34,6 +34,8 @@ function TabIcon({id}:{id:CommTab}){
   return <svg {...p}><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 10h16"/></svg>;
 }
 
+// the day of the latest close a price stands on, as M/D
+const closeDay=(code:string)=>{const q=quote(code,new Date().toISOString().slice(0,10));return q?`${+q.day.slice(5,7)}/${+q.day.slice(8)}`:'-'};
 export function Comm({acct,cands,lots,day,room,open,openNote,start='balance',onBuy,onSell,onTree,onClose,missions=[],onClaim,onRead,onChart,weekly,onWeekly}:{acct:CommAccount;cands:Cand[];lots:Lot[];day:string;room:number;
   open:boolean;openNote:string;start?:CommTab;onBuy:(code:string,qty:number)=>string|null;onSell:(lotId:number,qty:number)=>void;onTree:(id:number)=>void;onClose:()=>void;missions?:Mission[];onClaim?:(id:string)=>void;onRead?:()=>void;onChart?:()=>void;weekly?:Weekly;onWeekly?:()=>void}){
   const [tab,setTab]=useState<CommTab>(start),[side,setSide]=useState<'buy'|'sell'>('buy');
@@ -146,7 +148,8 @@ export function Comm({acct,cands,lots,day,room,open,openNote,start='balance',onB
               <div><dt><Term k="예수금">매수 가능</Term></dt><dd>{won(acct.coins)} · 최대 {c.price?Math.floor(acct.coins/c.price):0}주</dd></div>
             </dl>
             <div className="rt-ord-pct" role="group" aria-label="빠른 수량">{[10,25,50,100].map(p=><button key={p} type="button" onClick={()=>{const mx=c.price?Math.floor(acct.coins/c.price):0;setQty(Math.max(1,Math.floor(mx*p/100)))}}>{p===100?'최대':`${p}%`}</button>)}</div>
-            <p className="rt-ord-when">⏱ <Term k="체결"/>: 다음 거래일 장 마감(15:30) 값으로 돼요.</p>
+            {/* 피드백 2026-11-26 "수익률이 안 바뀌어": what really happens: bought at once at the latest close; the rate moves when the next close comes in */}
+            <p className="rt-ord-when">⏱ <Term k="체결"/>: 가장 최근 종가({closeDay(c.code)})로 바로 사요. 수익률은 다음 장 마감(15:30) 값이 들어오면 바뀌어요.</p>
             <button type="button" className="rt-comm-go buy" disabled={cost>acct.coins||room<=0||c.price==null}
               onClick={()=>setConfirm({side:'buy'})}>
               {room<=0?'가상 밭에 빈칸이 없어요':cost>acct.coins?`코인 ${won(cost-acct.coins)} 부족`:`매수 주문 · 코인 ${won(cost)}`}</button>
@@ -220,7 +223,7 @@ function OrderConfirm({side,name,qty,price,onOk,onCancel}:{side:'buy'|'sell';nam
     <h4 className={buy?'up':'down'}>{buy?'매수':'매도'} 주문 확인</h4>
     <dl><div><dt>종목</dt><dd>{name}</dd></div><div><dt>주문 종류</dt><dd><Term k="시장가"/></dd></div><div><dt>수량</dt><dd>{won(qty)}주</dd></div>
       <div><dt>현재가</dt><dd>{price!=null?won(price):'-'}원</dd></div><div><dt>예상 금액</dt><dd><b>{price!=null?won(price*qty):'-'} 코인</b></dd></div>
-      <div><dt><Term k="체결"/></dt><dd>다음 거래일 15:30 종가</dd></div></dl>
+      <div><dt><Term k="체결"/></dt><dd>{buy?'가장 최근 종가로 바로':'다음 거래일 15:30 종가'}</dd></div></dl>
     <p className="rt-oc-note">체결 값은 지금 값과 다를 수 있어요. 게임 코인으로만 주문돼요.</p>
     <div className="rt-oc-acts"><button type="button" className="rt-oc-no" onClick={onCancel}>취소</button>
       <button type="button" className={`rt-comm-go ${side}`} onClick={onOk}>{buy?'매수':'매도'} 확인</button></div>

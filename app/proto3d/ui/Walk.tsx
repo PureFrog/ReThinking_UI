@@ -123,7 +123,7 @@ export function NewsBoard({stocks,day,onClose}:{stocks:{code:string;name:string}
   </Sheet>;
 }
 
-export function TreeStatus({h,price,onClose}:{h:{name:string;code?:string;price:number;quantity:number;date:string;rate:number;virtual?:boolean};price:number|null;onClose:()=>void}){
+export function TreeStatus({h,price,basis=null,onClose}:{h:{name:string;code?:string;price:number;quantity:number;date:string;rate:number;virtual?:boolean};price:number|null;basis?:string|null;onClose:()=>void}){
   const worth=Math.round(h.price*(1+h.rate/100)*h.quantity);
   return <Sheet kicker={h.virtual?'가상 종목 · 상태':'실제 종목 · 상태'} title={h.name} label={`${h.name} 상태`} onClose={onClose} compact>
     <dl className="vl-status">
@@ -131,6 +131,8 @@ export function TreeStatus({h,price,onClose}:{h:{name:string;code?:string;price:
       <div><dt>평단가</dt><dd className="rt-num">{won(h.price)}</dd></div>
       <div><dt>수익률</dt><dd className={'rt-num '+(h.rate>0?'up':h.rate<0?'down':'')}>{h.rate>0?'+':''}{h.rate}%</dd></div>
       <div><dt>보유액수</dt><dd className="rt-num">{won(worth)} <small>{h.quantity}주{price!=null?` · 지금 ${won(price)}`:''}</small></dd></div>
+      {/* 피드백 2026-11-26 "가상이라도 실제랑 비슷하게 반영됐는지": which price this is: the day's close, real or the mock walk */}
+      {basis&&<div><dt>가격 기준</dt><dd className="rt-num">{basis}</dd></div>}
     </dl>
     <div className="rt-section">기업 개요</div>
     <p className="vl-overview">{overviewOf(h.code,h.name)}</p>

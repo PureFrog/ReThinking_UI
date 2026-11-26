@@ -61,6 +61,7 @@ export function House({g,master,onOut,onSettings,lesson=false}:{g:G;master:boole
   const [drill,setDrill]=useState<DeskDay|null>(null);
   const newDrill=()=>{const seen=new Set([...seenPapers(h),...(drill?.ids??[])]),pool=PAPERS.filter(p=>!seen.has(p.id)),use=(pool.length>=DESK.perDay?pool:PAPERS);
     const ids=[...use].sort(()=>Math.random()-0.5).slice(0,DESK.perDay).map(p=>p.id);setDrill(newDay(day,ids))};
+  const practiceNow=()=>{setSay(null);newDrill();setView('paper')};
   const quizDone=!!desk?.done,started=!!desk&&desk.stamps.length>0&&!desk.done;
   const today=caseOf(h,day);
   // today's file is handed out with the unlock (and never asked for before it: 설계 7장)
@@ -93,10 +94,11 @@ export function House({g,master,onOut,onSettings,lesson=false}:{g:G;master:boole
   const lessonLine:Line|null=les==='wave'?{text:'어서 와, 나는 선생님이야. 매일 퀴즈를 내고 해설해 줄게. 첫 문제부터 풀어 보자.',choices:[{label:'퀴즈 시작',go:openPaper}]}
     :les==='level'?{text:`위에 있는 건 네 퀴즈 레벨이야. 지금은 Lv.${level}. 풀수록 올라가.`,choices:[{label:'응',go:()=>setLes('lock')}]}
     :les==='lock'?{text:`옆 서랍은 Lv.${LV}에 열려. 그 안에 사건철이 있어. 이제 문제 풀자.`,choices:[{label:'퀴즈 시작',go:openPaper}]}
-    :les==='door'?{text:'오늘 퀴즈 끝! 문 열어 뒀어.',choices:[{label:'밖으로 나가기',go:goOut}]}:null;
+    :les==='door'?{text:'오늘 퀴즈 끝! 문 열어 뒀어. 더 풀고 싶으면 새 문제 줄게.',choices:[{label:'새 문제 풀기',go:()=>{lessonDone();setLes(null);practiceNow()}},{label:'밖으로 나가기',go:goOut}]}:null;
   const line:Line=lessonLine??(say?{text:say.text,choices:[{label:'알겠어',go:()=>setSay(null)}]}:{text:boriLine(state,{first,level,caseStatus:today?.status??null,started}),choices:[
     ...(state==='quiz'||state==='quiz-first'?[{label:started?'이어서 풀기':'퀴즈 시작',go:openPaper}]:[]),
-    ...(quizDone?[{label:'오늘 결과표',go:openPaper}]:[]),
+    // 피드백 2026-11-26 "선생님을 눌러 퀴즈 풀기를 누르면 끝난 화면만": after today's, new questions straight away (연습)
+    ...(quizDone?[{label:'새 문제 풀기',go:practiceNow},{label:'오늘 결과표',go:()=>{setDrill(null);openPaper()}}]:[]),
     ...((state==='unlocked'||state==='case')&&today?[{label:today.status==='open'?'책갈피부터 이어 보기':'사건철 펼치기',go:openCase}]:[]),
     ...(door?[{label:'밖으로 나가기',go:goOut}]:[])]});
   // 보리's paws (9-3): a place for each state of the day, and they keep moving there

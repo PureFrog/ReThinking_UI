@@ -75,6 +75,17 @@ def read_day(path):
         return list(csv.DictReader(f))
 
 
+def kosdaq120_codes():
+    """The 과수원's virtual stocks (app/content/kosdaq120.ts): their real closes too, so a practice buy follows the market
+    (2026-11-26: small KOSDAQ names were outside the top 300 and fell back to the mock walk)."""
+    import re
+    src = Path(__file__).resolve().parents[2] / 'app' / 'content' / 'kosdaq120.ts'
+    try:
+        return set(re.findall(r"code:\s*'(\d{6})'", src.read_text(encoding='utf-8')))
+    except OSError:
+        return set()
+
+
 def garden_codes(sb):
     codes = set()
     for row in sb.req('GET', 'garden_saves?select=body->holdings') or []:
@@ -104,7 +115,7 @@ def main(argv=None):
               'mktcap': num(r['MKTCAP']), 'as_of': as_of} for r in latest if r.get('ISU_CD')]
     top = [n['code'] for n in sorted(names, key=lambda n: -(n['mktcap'] or 0))[:TOP]]
     sb = None if a.dry else Supa()
-    wanted = set(top) | set(JOURNAL_STOCKS) | (garden_codes(sb) if sb else set())
+    wanted = set(top) | set(JOURNAL_STOCKS) | kosdaq120_codes() | (garden_codes(sb) if sb else set())
     # what is there already: the stocks on the last uploaded day
     last = None if a.dry else (sb.req('GET', 'price_daily?select=d&order=d.desc&limit=1') or [None])[0]
     last_d = last['d'].replace('-', '') if last else None
