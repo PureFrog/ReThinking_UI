@@ -13,7 +13,7 @@ import {BUILDINGS,type Built} from '../../core/land';
 type Tab=FlowerKind|'goods'|'mine'|'stocks'|'build';
 // 피드백 2026-11-24: the 건물 상인 sells the buildings too; a chosen one is set down in the village (Proto3D placing),
 // paid when it is
-const PIC:Record<string,string>={greenhouse:'🌿',silo:'🌾',windmill:'🌬️'};
+const PIC:Record<string,string>={greenhouse:'🌿',silo:'🌾',windmill:'🌬️',moneybag:'💰'};
 export function FlowerShop({coins,plants,onPick,onGoods,onRemove,onClose,onStocks,built,onBuilding}:{built?:Built;onBuilding?:(id:string)=>void;onStocks?:()=>void;coins:number;plants:Plant[];onPick:(id:string)=>void;onGoods:()=>void;onRemove:(id:string)=>void;onClose:()=>void}){
   const [tab,setTab]=useState<Tab>('tree'),[sel,setSel]=useState<string|null>(null);
   const bld=tab==='build'&&sel?BUILDINGS.find(b=>b.id===sel)??null:null;

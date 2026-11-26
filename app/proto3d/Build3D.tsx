@@ -6,7 +6,8 @@
 //   Lots       in 넓히기 mode: land still closed as dashed outlines, building lots as dashed squares (tags in DOM)
 //   Buildings  유리 온실, 곡물 창고, 풍차
 //   Landmarks  서울 경복궁, 도쿄 가미나리몬, 파리 에펠탑, 런던 시계탑, 뉴욕 자유의 여신상 — at the garden's edge
-import {useLayoutEffect,useMemo,useRef} from 'react';
+import {Suspense,useLayoutEffect,useMemo,useRef} from 'react';
+import {useGLTF} from '@react-three/drei';
 import {useFrame,type ThreeEvent} from '@react-three/fiber';
 import * as THREE from 'three';
 import {soft} from './materials';
@@ -121,7 +122,12 @@ function Windmill(){
     <mesh position={[0,0.45,0.82]}><boxGeometry args={[0.4,0.7,0.06]}/>{S('#6b4a36')}</mesh>
   </group>;
 }
-export const BuildingModel=({id}:{id:string})=>id==='greenhouse'?<Greenhouse/>:id==='silo'?<Silo/>:<Windmill/>;
+// 돈 주머니 (피드백 2026-11-26): the team's model, made lighter (about 46k triangles, a 1024 texture); 1 unit wide as made,
+// so it is scaled up to stand about as big as the 곡물 창고
+const MONEY_BAG='/models/buildings/money_bag.glb';
+function MoneyBag(){const {scene}=useGLTF(MONEY_BAG);const m=useMemo(()=>{const c=scene.clone(true);c.traverse(o=>{const x=o as THREE.Mesh;if(x.isMesh){x.castShadow=true;x.receiveShadow=true}});return c},[scene]);
+  return <primitive object={m} scale={2.6}/>}
+export const BuildingModel=({id}:{id:string})=>id==='greenhouse'?<Greenhouse/>:id==='silo'?<Silo/>:id==='moneybag'?<Suspense fallback={null}><MoneyBag/></Suspense>:<Windmill/>;
 export function Buildings({built,onPick}:{built:Built;onPick?:(id:string)=>void}){
   return <>{BUILDINGS.filter(b=>built.buildings.includes(b.id)).map(b=>{const [x,z]=buildingAt(b,built);return <OnGround key={b.id} x={x} z={z} rot={b.rot}>
     <group onClick={stop(onPick&&(()=>onPick(b.id)))} name={'building-'+b.id}><BuildingModel id={b.id}/></group></OnGround>})}</>;

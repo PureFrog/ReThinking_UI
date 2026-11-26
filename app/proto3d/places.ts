@@ -67,7 +67,7 @@ export const place=(id:PlaceId)=>PLACES.find(p=>p.id===id)!;
 // solid footprints the player walks around, not through (2026-11-16 "캐릭터가 건물을 통과"): circles on the ground.
 // Each place's walk point stays outside its circle. Bought buildings and landmarks join when they stand.
 const SOLID_R:Partial<Record<PlaceId,number>>={master:2.7,home:2.4,library:2.6,observatory:1.5,cart:2.1,arcade:3.1};
-export const BUILDING_R:Record<string,number>={greenhouse:1.7,silo:1.3,windmill:1.4};
+export const BUILDING_R:Record<string,number>={greenhouse:1.7,silo:1.3,windmill:1.4,moneybag:1.3};
 // keep: always walked round, even when a goal lies inside it (the fire: a seat by it must not open a way through the flames)
 export type Solid={x:number;z:number;r:number;keep?:boolean;live?:string/* a person standing there (NPC_LIVE id) */};
 // the rocks (Scene3D ROCKS, x z scale, spread) and the signpost, shared with the scene

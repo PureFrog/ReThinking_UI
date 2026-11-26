@@ -54,6 +54,8 @@ const BUILDINGS0:Building[]=[
   {id:'greenhouse',name:'유리 온실',price:WON*150,at:[-6.6,-7.2],rot:0.4,desc:'겨울에도 초록이 남는 온실'},
   {id:'silo',name:'곡물 창고',price:WON*200,at:[14.6,8.4],rot:-0.3,desc:'과수원 옆 둥근 창고'},
   {id:'windmill',name:'풍차',price:WON*300,at:[16.6,-6],rot:-0.6,desc:'언덕 위에서 도는 풍차'},
+  // 피드백 2026-11-26: 돈 주머니 (a model from the team, public/models/buildings/money_bag.glb), 500만 원
+  {id:'moneybag',name:'돈 주머니',price:WON*5000,at:[-12.5,-9.5],rot:0.5,desc:'코인이 가득 담긴 커다란 돈 주머니'},
 ];
 export const BUILDINGS:Building[]=BUILDINGS0.map(b=>({...b,at:spread(b.at[0],b.at[1])}));
 export type City={id:string;city:string;landmark:string;index:string;blurb:string;price:number;at:[number,number];rot:number};
