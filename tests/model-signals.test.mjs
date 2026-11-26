@@ -161,3 +161,32 @@ test('the KOSDAQ120 list is the models\' universe (stock_coverage.csv, 2026-11-2
   for(const c of ['900110','900250','900310'])assert.ok(!codes.has(c),c);
   for(const c of ['042600','123410','126600'])assert.ok(codes.has(c),c);
 });
+
+// ── S10 (analysis_results.dialogue, db/migrations/020): 루온 says the pipeline's own line
+const LINE='매출액을 보면 2025년 4분기 약 246억 원에서 2026년 2분기 약 220억 원으로 감소했어. 원자재가 안정되면 이익률이 회복된다는 건 가능한 이야기지만, 아직 실제로 그렇게 됐는지는 확인하지 못했어.';
+const said=(p)=>result({dialogue:{character_message:LINE,emotion_code:'concerned',asked_cc_id:null,fallback:false},...p});
+
+test('luon says the S10 line on the rebuttal note, the decision stays the headline', () => {
+  const n=V.rebuttalNote(holding(),said());
+  assert.equal(n.say,LINE);assert.equal(n.headline,'네 근거 하나가 숫자와 반대야');
+  // older rows (no dialogue), an empty or overlong line: the decision's fixed line
+  for(const d of [undefined,null,{character_message:'  '},{character_message:'가'.repeat(401)}])
+    assert.equal(V.rebuttalNote(holding(),result({dialogue:d})).say,V.DECISION.thesis_factually_inconsistent.say);
+  assert.deepEqual(V.dialogueLine(said({dialogue:{character_message:` ${LINE}\n`}})),{text:LINE,emotion:'thinking'});
+  assert.equal(V.dialogueLine(said({status:'failed'})),null);
+});
+
+test("luon opens the debate with the newest line about a stock still held, for three days", () => {
+  const now=Date.parse('2026-11-23T10:00:00+09:00');
+  const rows=V.latestByCompany([said(),said({request_id:'r2',company_id:'095270',analyzed_at:'2026-11-21T09:00:00+09:00',
+    dialogue:{character_message:'다른 종목 얘기야.',emotion_code:'curious'}})]);
+  const held=[holding(),holding({id:8,name:'한국철강',code:'095270'})];
+  const o=V.luonOpener(held,now,rows);
+  assert.equal(o.code,'344820');assert.equal(o.emotion,'concerned');assert.ok(o.text.startsWith('…KCC글라스 얘기'));assert.ok(o.text.endsWith(LINE));
+  assert.equal(V.luonOpener([held[1]],now,rows).code,'095270');
+  assert.equal(V.luonOpener(held,now+4*864e5,rows),null);                                  // stale
+  assert.equal(V.luonOpener([holding({real:false})],now,rows),null);                        // a mock tree never
+  assert.equal(V.luonOpener([holding({virtual:true})],now,rows),null);
+  assert.equal(V.luonOpener([holding({code:'000660'})],now,rows),null);                     // sold: nothing about it
+  assert.equal(V.luonOpener(held,now,V.latestByCompany([result()])),null);                 // no S10 line yet
+});
