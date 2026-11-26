@@ -193,19 +193,12 @@ test("leaving mid-quest comes back to the same scene and draft", async ({ page }
   expect((await save(page)).observatory.runs.length).toBe(1);
 });
 
-test("today's request arrives in the garden; the notice opens it", async ({ page }) => {
+// 피드백 2026-11-26 "관측소는 UI에 없어야 돼": the garden shows no request notice (the quest stays for ?quest only)
+test("no observatory request in the garden", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?demo&weather=clear");
   await expect(page.locator(".proto3d canvas")).toBeVisible({ timeout: 30_000 });
-  const notice = page.getByTestId("request-notice");
-  await expect(notice).toContainText("오늘의 관측 의뢰가 도착했어", { timeout: 15_000 });
-  // (the dock and its 관측소 badge are gone with the village screen; the notice is the way in)
-  await notice.getByRole("button", { name: /오늘의 관측 의뢰/ }).click();
-  const dq = page.getByTestId("daily-quest");
-  await expect(dq).toBeVisible({ timeout: 10_000 });
-  await expect(dq).toHaveAttribute("data-stage", "lesson");
-  // the run carries its own request; the app holds no course
-  const s = await save(page);
-  expect(s.observatory.runs[0].def.name).toBe("가격표 뒤의 고객");
-  expect(s.observatory.noticed).toBeTruthy();
+  await page.waitForTimeout(4000);
+  await expect(page.getByTestId("request-notice")).toHaveCount(0);
+  await expect(page.getByText(/관측/)).toHaveCount(0);
 });

@@ -68,7 +68,14 @@ test("the communicator: balance, an answer in place, today's five, a coin order"
   await shot(page, `comm-order-${info.project.name}`);
   await comm.getByRole("button", { name: /매수 주문 · 코인/ }).click();
   await comm.getByRole("alertdialog", { name: "매수 주문 확인" }).getByRole("button", { name: "매수 확인" }).click();
-  await expect(comm.getByRole("status")).toContainText("2주를 샀어요");
+  // 피드백 2026-11-26: a new stock is planted before the eyes (the app closes, the sapling comes up), then the merchant
+  // says so and can open the app again
+  await expect(comm).toHaveCount(0);
+  await expect(page.getByText(/심었어! 가상 나무 값은/)).toBeVisible({ timeout: 60_000 });
+  await page.waitForTimeout(300);
+  await shot(page, `comm-planted-${info.project.name}`);
+  await page.getByRole("button", { name: /더 사기/ }).click();
+  await expect(comm).toBeVisible();
 
   // the coin stock is in the balance, and it can be sold (the farmer loads the cart)
   await comm.getByRole("navigation", { name: "아래 메뉴" }).getByRole("button", { name: "잔고" }).click();

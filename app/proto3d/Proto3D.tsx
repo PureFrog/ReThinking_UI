@@ -800,7 +800,11 @@ export default function Proto3D(){
           // the first walk's buy: planted before the eyes, then the merchant says what comes next
           if(r.ok&&walkStep==='merchant'){const lot=r.lot;putWalk(w=>({...w,freeTree:lot.id}));setSheet(null);setVt(null);cue('plant');
             startBirth([VIRTUAL_ID+lot.id],false,()=>setVt({id:'merchant',phase:'talk',stand:meNow(),at:villager('merchant'),stage:'planted'}));return null}
-          if(r.ok){cue('capsule-mark');return `${name} ${n}주를 샀어요. 가상 밭에 심었어요.`}
+          // 피드백 2026-11-26 "튜토리얼 이후엔 나무 생성되는 과정이 안 보여": a new stock is planted before the eyes as on the
+          // first walk (the app closes, the sapling comes up, the merchant says so); more of one I have just grows its tree
+          if(r.ok&&!(s.virtual??[]).some(l=>l.code===code)){const lot=r.lot;setSheet(null);setVt(null);cue('plant');
+            startBirth([VIRTUAL_ID+lot.id],false,()=>setVt({id:'merchant',phase:'talk',stand:meNow(),at:villager('merchant'),stage:'planted'}));return null}
+          if(r.ok){cue('capsule-mark');return `${name} ${n}주를 더 샀어요. 나무가 자라요.`}
           return r.why==='coins'?`코인이 ${won(r.need??0)} 모자라요`:r.why==='room'?'가상 밭에 빈칸이 없어요':'지금은 살 수 없어요'};
   // 피드백 2026-11-26 (B. 연습 과수원): first steps with a reward each, shown in the 통신기's 잔고
   const flag=(k:string)=>{try{return !!localStorage.getItem('rethink-mis-'+k)}catch{return false}},setFlag=(k:string)=>{try{localStorage.setItem('rethink-mis-'+k,'1')}catch{/* this visit */}};
@@ -909,7 +913,7 @@ export default function Proto3D(){
           choices:[{label:'팔 수량 정하기',go:()=>setSheet({kind:'harvest'})}]};
       }
       if(st==='loaded')return {name:'농부',line:'수레에 실었어. 다음 거래일 장 끝나면 코인이 들어와.',choices:[{label:'알겠어',go:talkOver}]};
-      return {name:'농부',line:'뭘 도와줄까?',
+      return {name:'농부',line:'뭘 도와줄까? 내 종목 밭을 고치거나, 가상 나무를 따서 팔아 줄게.',
         choices:[{label:'내 종목 고치기',go:()=>{talkOver();setSheet({kind:'onboard'})}},{label:'가상 종목 팔기',go:()=>setSheet({kind:'harvest'})}]};
     }
     if(t.id==='merchant'){
@@ -917,8 +921,12 @@ export default function Proto3D(){
       if(!merchantOpen)return {name:'보리',line:walkStep==='merchant'?`상인은 ${nextOpenLabel(minutes)}에 와. 그동안 신문 배달부터 만나 볼까?`:`상인은 ${nextOpenLabel(minutes)}에 와. 모의투자는 그때 상인한테 와서 하면 돼.`,
         choices:walkStep==='merchant'?[{label:'신문 배달 먼저',go:()=>{talkOver();putWalk(w=>({...passStep(passStep(w,'merchant'),'sell'),merchantWait:true}))}}]
           :[{label:'알겠어',go:talkOver}]};
-      if(st==='planted')return {name:'상인',line:'심었어! 가상 나무 값은 실제 주가를 따라가. 팔 땐 농부한테 가면 돼.',
-        choices:[{label:walkStep==='merchant'?'농부한테 가기':'고마워',go:()=>{talkOver();if(walkStep==='merchant')pass('merchant');else putWalk(w=>({...w,merchantWait:false}))}}]};
+      // 피드백 2026-11-26 "가상 종목 파는 건 상인을 통해서만 가능한 게 이상": 가상 종목은 상인의 모의투자에서 사고팔고,
+      // 농부한테서도 팔 수 있어 (상인이 없는 밤에도). 어디서 팔든 농부가 따서 수레에 실어
+      if(st==='planted')return {name:'상인',line:walkStep==='merchant'?'심었어! 가상 나무 값은 실제 주가를 따라가. 팔 땐 모의투자 매도 탭에서 하거나 농부한테 가면 돼. 이번엔 농부한테 가 보자.'
+          :'심었어! 가상 나무 값은 실제 주가를 따라가. 팔 땐 모의투자 매도 탭이나 농부한테.',
+        choices:walkStep==='merchant'?[{label:'농부한테 가기',go:()=>{talkOver();pass('merchant')}}]
+          :[{label:'더 사기',go:()=>{setVt(null);setSheet({kind:'comm',tab:'order'})}},{label:'고마워',go:()=>{talkOver();putWalk(w=>({...w,merchantWait:false}))}}]};
       const first=!(s.grants??[]).includes('tour');
       return {name:'상인',line:first?`코인으로 사고파는 건 여기서 해. 시작 코인 ${(START_GRANT/10000).toLocaleString()}만 원 줄게. 오늘 후보 다섯 개 중에 골라 봐.`:'오늘 후보 다섯 개야. 모의투자에서 골라 봐.',
         choices:[{label:first?'코인 받고 모의투자 열기':'모의투자 열기',go:()=>{if(first)g.ops.grant('tour',START_GRANT);setVt(null);setSheet({kind:'comm',tab:'order'})}},]};
@@ -1072,7 +1080,8 @@ export default function Proto3D(){
   const qNotice=qWaiting&&s.onboarded&&s.observatory?.noticed!==qDay;
   // the notice sits just above the next-task card (its height changes with its text), never on top of it
   // the same moments as the next-task card: not inside the house, not while building, not over a capsule or a jump
-  const showReq=ready&&!quiet&&!walkOn&&qNotice&&!sheet&&!picked&&!inside&&!capFx&&!jump&&!buildMode&&h===undefined,[reqBottom,setReqBottom]=useState<number|null>(null);
+  // 피드백 2026-11-26 "관측소는 UI에 없어야 돼": 오늘의 관측 의뢰 알림 (관측소로 들어가는 마지막 입구) 끔
+  const showReq=false&&ready&&!quiet&&!walkOn&&qNotice&&!sheet&&!picked&&!inside&&!capFx&&!jump&&!buildMode&&h===undefined,[reqBottom,setReqBottom]=useState<number|null>(null);
   useEffect(()=>{if(!showReq)return;
     const f=()=>{const host=document.querySelector('.proto3d'),n=host?.querySelector('.rt-next');
       if(!host||!n){setReqBottom(null);return}const hr=host.getBoundingClientRect(),r=n.getBoundingClientRect();

@@ -18,9 +18,6 @@ import {formatDay} from '../../core/items';
 import {Cross,Lock} from './Icons';
 import type {useGarden} from '../state';
 import {workOf} from '../state';
-import {titleOf} from '../../core/game/daily/model';
-import {ProgressBar} from '../game/daily/DailyQuest';
-import {Titles} from '../game/daily/Door';
 type G=ReturnType<typeof useGarden>;
 
 function Count({to,suffix=''}:{to:number|null;suffix?:string}){
@@ -73,11 +70,7 @@ export function MyPage({g,onClose,onRecords,onSettings,onLetter,wearOnly}:{wearO
             <span className="rt-me-swatch">{[p.primary,p.secondary,p.accent].map(c=><i key={c} style={{background:c}}/>)}</span><strong>{p.name}</strong>{!open&&<small><Lock size={12}/> {howTo(p.unlock,names)}</small>}</button>})}
         </div></>}
       {tab==='record'&&<div className="rt-me-record">
-        {/* 관측소 숙련도 (game/daily): investor_progress — title, level, the bar to the next, the quests opened */}
-        <div className="rt-section">관측소 숙련도</div>
-        {/* no course list here (feedback 2026-11-19): what comes next stays on the server */}
-        {(()=>{const total=g.s.observatory?.progress.total_xp??0;
-          return <div data-testid="me-observatory" style={{marginBottom:14}}><ProgressBar total={total} t={titleOf(total)}/><Titles g={g}/></div>})()}
+        {/* 피드백 2026-11-26: 관측소는 UI에서 뺌 (관측소 숙련도 칸 없음) */}
         <div className="rt-me-big"><div><span>판단 적중</span><b className="rt-num"><Count to={t.hitRate} suffix="%"/></b></div><div><span>확신 보정</span><b className="rt-num"><Count to={t.calibration}/></b></div>
           <div><span>기록한 판단</span><b className="rt-num"><Count to={t.judged}/></b></div><div><span>최고 연속</span><b className="rt-num"><Count to={g.s.streak.best} suffix="일"/></b></div></div>
         <div className="rt-section">고른 판단</div>
@@ -88,9 +81,9 @@ export function MyPage({g,onClose,onRecords,onSettings,onLetter,wearOnly}:{wearO
         <button type="button" className="rt-btn" style={{width:'100%',marginTop:12}} onClick={onRecords}>판단 목록과 케이스 도감</button>
         {onLetter&&<button type="button" className="rt-btn" style={{width:'100%',marginTop:8}} onClick={onLetter}>이번 달 리포트 미리 보기</button>}
       </div>}
-      {tab==='stamps'&&<div className="rt-me-stamps">{STAMPS.map(s=>{const got=g.s.stamps.find(x=>x.id===s.id);
+      {tab==='stamps'&&<div className="rt-me-stamps">{STAMPS.filter(s=>s.id!=='observatory-first').map(s=>{const got=g.s.stamps.find(x=>x.id===s.id);
         return <div key={s.id} className="rt-me-stamp" data-got={!!got}><i aria-hidden>{got?s.name[0]:''}</i><strong>{s.name}</strong><small>{got?formatDay(got.day,g.clock.today):s.how}</small></div>})}
-        <p className="rt-hint" style={{gridColumn:'1/-1'}}>{g.s.stamps.length} / {STAMPS.length}개 · {CURRENCY} {won(g.s.currency)}</p></div>}
+        <p className="rt-hint" style={{gridColumn:'1/-1'}}>{g.s.stamps.filter(s=>s.id!=='observatory-first').length} / {STAMPS.length-1}개 · {CURRENCY} {won(g.s.currency)}</p></div>}
     </section>
   </div>;
 }
