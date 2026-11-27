@@ -85,7 +85,7 @@ export function Onboarding({g,onClose,onPlanted,onDemo,reader,onReal,real,pick=f
     <p className="rt-hint" style={{marginTop:14}}>종목 하나가 나무 하나예요. 분석가 셋이 손실 신호를 찾아 알려줘요.</p>
     <div className="rt-pick">
       <button type="button" className="rt-pick-card" disabled={reading} onClick={()=>file.current?.click()}>
-        <Lens size={20}/><strong>{reading?'읽는 중':'캡처 올리기'}</strong><small>{reader?'증권 앱 보유 종목 화면. 여러 종목도 한 번에 읽어요.':'증권 앱 보유 종목 화면. 이 기기 밖으로 보내지 않아요.'}</small></button>
+        <Lens size={20}/><strong>{reading?'읽는 중':'캡처 올리기'}</strong><small>{reader?'증권 앱 보유 종목 화면. 종목과 수익률만 가져와요.':'증권 앱 보유 종목 화면. 이 기기 밖으로 보내지 않아요.'}</small></button>
       <button type="button" className="rt-pick-card" onClick={()=>setRows([blankDraft()])}>
         <Plus size={20}/><strong>직접 입력</strong><small>종목명과 수익률만 있으면 돼요.</small></button>
       {onReal&&<button type="button" className="rt-pick-card" onClick={onReal}>
@@ -95,7 +95,9 @@ export function Onboarding({g,onClose,onPlanted,onDemo,reader,onReal,real,pick=f
         <Strike size={20}/><strong>아직 투자 안 해요</strong><small>빈 목록으로 시작해요. 가상 밭에서 무료 나무로 연습할 수 있어요.</small></button>}
     </div>
     {readErr&&<p className="rt-err" role="alert">{readErr}</p>}
-    <p className="rt-hint" style={{marginTop:14}}>{reader?'올린 캡처는 종목을 읽으려고 OpenAI(미국)로 한 번 보내고 저장하지 않아요. 계좌번호·총액은 읽지 않아요.':'로그인하면 캡처를 실제로 읽어요. 지금은 올리면 예시 4종목이 나와요.'}</p>
+    {/* 피드백 2026-11-27: the OpenAI line under the cards is gone (the overseas transfer is agreed at sign-up, core/auth.ts);
+        the capture card itself says what is taken */}
+    {!reader&&<p className="rt-hint" style={{marginTop:14}}>로그인하면 캡처를 실제로 읽어요. 지금은 올리면 예시 4종목이 나와요.</p>}
   </Sheet>;
 
   return <Sheet kicker={first?'시작 · 확인':'내 종목'} title={`${kept.length}종목`} label="종목 확인" onClose={onClose}

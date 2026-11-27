@@ -172,11 +172,16 @@
 }
 /* QA 2026-11-26 "power by netlify 때문에 클릭 안 되는 아이콘": Netlify puts its badge (iframe#nl-badge-frame, about 183×50,
    fixed bottom-right, over everything) on the site. It is left as it is; the app and its full-screen layers end above it,
-   so no button sits under it. Without the badge (another host, or switched off) nothing changes. */
+   so no button sits under it. Without the badge (another host, or switched off) nothing changes.
+   피드백 2026-11-27 "밑에 꺼먼거 뭐임": only the buttons and panels end above the badge; the garden itself (the 3D view)
+   still runs to the bottom edge, under the badge, so no dark strip shows. */
 :root{--nl-safe:0px}
 html:has(#nl-badge-frame){--nl-safe:64px}
-html:has(#nl-badge-frame) body{background:#1d2419}
-html:has(#nl-badge-frame) :is(.proto3d,.proto3d .ac,.hs,.sc,.jf-open,.proto3d .rt-qwin,.ms,.rt-wel,.rt-bridge,.rt-comm){bottom:var(--nl-safe)!important}
+html:has(#nl-badge-frame) body{background:#e4e8df}
+html:has(#nl-badge-frame) .proto3d{overflow:visible!important}
+html:has(#nl-badge-frame) .proto3d>.proto3d-world{height:calc(100% + var(--nl-safe))!important}
+html:has(#nl-badge-frame) :is(.proto3d,.proto3d .ac,.hs,.sc,.jf-open,.proto3d .rt-qwin,.ms,.rt-bridge,.rt-comm){bottom:var(--nl-safe)!important}
+html:has(#nl-badge-frame) .rt-wel{padding-bottom:calc(env(safe-area-inset-bottom,0px) + var(--nl-safe))}
 /* QA 2026-11-26 (폰 점검): the hint never takes a tap, and while a talk or a sheet is open it moves up to the top
    (at the bottom it lay over the answer buttons); the round 1인칭·지도 buttons step aside while a sheet is open
    (they sat over the sheet's right edge) */
