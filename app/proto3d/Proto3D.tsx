@@ -1115,7 +1115,7 @@ export default function Proto3D(){
       data-night={light.night>0.5} style={{background:`linear-gradient(180deg,${sky('top')} 0%,${sky('mid')} 38%,${sky('bottom')} 100%)`}}>
       {light.night>0.05&&<div className="proto3d-stars" aria-hidden style={{opacity:light.night}}/>}
       {glowSky>0.05&&!skyOpen&&<div className={`proto3d-horizon ${dawn?'dawn':'dusk'}`} aria-hidden style={{opacity:Math.min(1,glowSky*1.3)}}><i/><b/><b/><b/></div>}
-      {w&&<Canvas frameloop={((expedition||quest)&&!wide)||where!=='village'?'never':'always'} shadows="soft" dpr={[1,1.5]} gl={{antialias:false,alpha:true,powerPreference:'high-performance'}}
+      {w&&<Canvas className="proto3d-world" frameloop={((expedition||quest)&&!wide)||where!=='village'?'never':'always'} shadows="soft" dpr={[1,1.5]} gl={{antialias:false,alpha:true,powerPreference:'high-performance'}}
         camera={{fov:46,near:0.5,far:120,position:[0,21,14.5]}}>
         <Scene3D holdings={shown} picked={picked} onPick={id=>{if(id===null){setPicked(null);return}openTree(id)}} recenter={recenter} weather={weather} world={world}/>
         <Peek/>
